@@ -1,0 +1,36 @@
+{
+  "name": "@effing/tween",
+  "version": "0.1.0",
+  "description": "Tweening and easing functions for animations",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm build"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "keywords": [
+    "animation",
+    "easing",
+    "tween",
+    "interpolation"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

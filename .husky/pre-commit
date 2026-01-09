@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# --- NVM ---
+# Check if NVM is installed and source it
+export NVM_DIR="$HOME/.nvm" # Or wherever NVM is installed
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+  echo "NVM sourced successfully for hook." # Optional: Log confirmation
+  # Use the project's .nvmrc file if it exists
+  if [ -f ".nvmrc" ]; then
+    nvm use || { echo "Failed to switch Node version via nvm use."; exit 1; }
+    echo "Hook using Node version $(node -v) specified in .nvmrc" # Optional logging
+  else
+    echo "Hook Warning: NVM sourced, but no .nvmrc found. Using NVM's current/default: $(node -v)" # Optional logging
+  fi
+elif [ -x "$(command -v node)" ]; then
+  echo "Hook Warning: NVM not found, using system Node: $(node -v)" # Optional logging
+else
+  echo "Hook Error: NVM not found and Node not found in PATH. Cannot run Node-based hooks."
+  exit 1 # Stop the commit
+fi
+# -----------
+
+pnpm lint-staged
+
+pnpm -r typecheck
+pnpm -r test
+
+pnpm docs:api
+git add docs/api/

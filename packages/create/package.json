@@ -1,0 +1,33 @@
+{
+  "name": "@effing/create",
+  "version": "0.1.0",
+  "description": "Create a new Effing project",
+  "type": "module",
+  "bin": "./dist/index.js",
+  "files": [
+    "dist",
+    "template"
+  ],
+  "scripts": {
+    "prebuild": "node scripts/copy-template.js",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "effing",
+    "create",
+    "scaffold",
+    "cli"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

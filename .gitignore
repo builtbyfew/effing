@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.react-router/
+.env
+packages/create/template/
+test-output/
+.DS_Store

@@ -1,0 +1,4 @@
+# Generated API docs (TypeDoc output)
+docs/api/**
+
+pnpm-lock.yaml

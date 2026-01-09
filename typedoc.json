@@ -1,0 +1,28 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "tsconfig": "./tsconfig.typedoc.json",
+  "entryPoints": [
+    "packages/effie/src/index.ts",
+    "packages/annie/src/index.ts",
+    "packages/ffs/src/index.ts",
+    "packages/annie-player/src/index.ts",
+    "packages/annie-player/src/react.tsx",
+    "packages/effie-preview/src/index.ts",
+    "packages/effie-preview/src/react.tsx",
+    "packages/tween/src/index.ts",
+    "packages/satori/src/index.ts",
+    "packages/serde/src/index.ts"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "docs/api-intro.md",
+  "mergeReadme": true,
+  "name": "Effing API Reference",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "categorizeByGroup": true,
+  "githubPages": false,
+  "logLevel": "Error"
+}

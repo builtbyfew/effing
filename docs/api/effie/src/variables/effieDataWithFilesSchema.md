@@ -1,0 +1,11 @@
+[**Effing API Reference**](../../../README.md)
+
+***
+
+[Effing API Reference](../../../README.md) / [effie/src](../README.md) / effieDataWithFilesSchema
+
+# Variable: effieDataWithFilesSchema
+
+> `const` **effieDataWithFilesSchema**: `z.ZodType`\<[`EffieData`](../type-aliases/EffieData.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<`WebOrFileUrl`\>, `WebOrFileUrl`\>\>
+
+Defined in: packages/effie/src/schema.ts:392

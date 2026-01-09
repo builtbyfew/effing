@@ -1,0 +1,51 @@
+[**Effing API Reference**](../../../README.md)
+
+***
+
+[Effing API Reference](../../../README.md) / [annie-player/src](../README.md) / AnniePlayerEvents
+
+# Type Alias: AnniePlayerEvents
+
+> **AnniePlayerEvents** = `object`
+
+Defined in: packages/annie-player/src/core.ts:12
+
+## Properties
+
+### error
+
+> **error**: `Error`
+
+Defined in: packages/annie-player/src/core.ts:15
+
+***
+
+### load
+
+> **load**: `object`
+
+Defined in: packages/annie-player/src/core.ts:14
+
+#### dimensions
+
+> **dimensions**: `object`
+
+##### dimensions.height
+
+> **height**: `number`
+
+##### dimensions.width
+
+> **width**: `number`
+
+#### frameCount
+
+> **frameCount**: `number`
+
+***
+
+### statechange
+
+> **statechange**: [`AnniePlayerState`](AnniePlayerState.md)
+
+Defined in: packages/annie-player/src/core.ts:13

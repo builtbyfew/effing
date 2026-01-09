@@ -1,0 +1,66 @@
+{
+  "name": "@effing/ffs",
+  "version": "0.1.0",
+  "description": "FFmpeg-based effie rendering service",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./handlers": {
+      "types": "./dist/handlers/index.d.ts",
+      "import": "./dist/handlers/index.js"
+    }
+  },
+  "bin": {
+    "ffs": "./dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx --watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run --exclude '**/*.integration.test.ts'",
+    "test:integration": "vitest run integration",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@aws-sdk/lib-storage": "^3.750.0",
+    "@effing/effie": "workspace:*",
+    "body-parser": "^1.20.3",
+    "express": "^4.21.2",
+    "ffmpeg-static": "^5.2.0",
+    "sharp": "^0.33.5",
+    "tar-stream": "^3.1.7",
+    "undici": "^7.3.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^5.0.0",
+    "@types/tar-stream": "^3.1.3",
+    "tsup": "catalog:",
+    "tsx": "^4.19.3",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "keywords": [
+    "video",
+    "ffmpeg",
+    "rendering",
+    "effie"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

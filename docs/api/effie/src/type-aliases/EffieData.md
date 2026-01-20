@@ -8,7 +8,7 @@
 
 > **EffieData**\<`S`, `U`\> = `object`
 
-Defined in: packages/effie/src/types.ts:16
+Defined in: [packages/effie/src/types.ts:16](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L16)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: packages/effie/src/types.ts:16
 
 > `optional` **audio**: [`EffieAudio`](EffieAudio.md)\<`S`, `U`\>
 
-Defined in: packages/effie/src/types.ts:26
+Defined in: [packages/effie/src/types.ts:26](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L26)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: packages/effie/src/types.ts:26
 
 > **background**: [`EffieBackground`](EffieBackground.md)\<`S`, `U`\>
 
-Defined in: packages/effie/src/types.ts:25
+Defined in: [packages/effie/src/types.ts:25](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L25)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: packages/effie/src/types.ts:25
 
 > **cover**: [`EffieWebUrl`](EffieWebUrl.md)
 
-Defined in: packages/effie/src/types.ts:23
+Defined in: [packages/effie/src/types.ts:23](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L23)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: packages/effie/src/types.ts:23
 
 > **fps**: `number`
 
-Defined in: packages/effie/src/types.ts:22
+Defined in: [packages/effie/src/types.ts:22](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L22)
 
 ***
 
@@ -58,7 +58,7 @@ Defined in: packages/effie/src/types.ts:22
 
 > **height**: `number`
 
-Defined in: packages/effie/src/types.ts:21
+Defined in: [packages/effie/src/types.ts:21](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L21)
 
 ***
 
@@ -66,7 +66,7 @@ Defined in: packages/effie/src/types.ts:21
 
 > **segments**: [`EffieSegment`](EffieSegment.md)\<`S`, `U`\>[]
 
-Defined in: packages/effie/src/types.ts:27
+Defined in: [packages/effie/src/types.ts:27](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L27)
 
 ***
 
@@ -74,7 +74,7 @@ Defined in: packages/effie/src/types.ts:27
 
 > `optional` **sources**: `S`
 
-Defined in: packages/effie/src/types.ts:24
+Defined in: [packages/effie/src/types.ts:24](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L24)
 
 ***
 
@@ -82,4 +82,4 @@ Defined in: packages/effie/src/types.ts:24
 
 > **width**: `number`
 
-Defined in: packages/effie/src/types.ts:20
+Defined in: [packages/effie/src/types.ts:20](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L20)

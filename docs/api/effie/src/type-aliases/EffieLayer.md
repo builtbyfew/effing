@@ -8,7 +8,7 @@
 
 > **EffieLayer**\<`S`, `U`\> = `object`
 
-Defined in: packages/effie/src/types.ts:70
+Defined in: [packages/effie/src/types.ts:70](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L70)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: packages/effie/src/types.ts:70
 
 > `optional` **delay**: `number`
 
-Defined in: packages/effie/src/types.ts:78
+Defined in: [packages/effie/src/types.ts:78](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L78)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: packages/effie/src/types.ts:78
 
 > `optional` **effects**: [`EffieEffect`](EffieEffect.md)[]
 
-Defined in: packages/effie/src/types.ts:81
+Defined in: [packages/effie/src/types.ts:81](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L81)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: packages/effie/src/types.ts:81
 
 > `optional` **from**: `number`
 
-Defined in: packages/effie/src/types.ts:79
+Defined in: [packages/effie/src/types.ts:79](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L79)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: packages/effie/src/types.ts:79
 
 > `optional` **motion**: [`EffieMotion`](EffieMotion.md)
 
-Defined in: packages/effie/src/types.ts:82
+Defined in: [packages/effie/src/types.ts:82](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L82)
 
 ***
 
@@ -58,7 +58,7 @@ Defined in: packages/effie/src/types.ts:82
 
 > **source**: [`EffieSource`](EffieSource.md)\<`S`, `U`\>
 
-Defined in: packages/effie/src/types.ts:77
+Defined in: [packages/effie/src/types.ts:77](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L77)
 
 ***
 
@@ -66,7 +66,7 @@ Defined in: packages/effie/src/types.ts:77
 
 > **type**: `"image"` \| `"animation"`
 
-Defined in: packages/effie/src/types.ts:74
+Defined in: [packages/effie/src/types.ts:74](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L74)
 
 ***
 
@@ -74,4 +74,4 @@ Defined in: packages/effie/src/types.ts:74
 
 > `optional` **until**: `number`
 
-Defined in: packages/effie/src/types.ts:80
+Defined in: [packages/effie/src/types.ts:80](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L80)

@@ -6,7 +6,7 @@
 
 # Class: FFmpegCommand
 
-Defined in: packages/ffs/src/ffmpeg.ts:26
+Defined in: [packages/ffs/src/ffmpeg.ts:26](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L26)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:26
 
 > **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`): `FFmpegCommand`
 
-Defined in: packages/ffs/src/ffmpeg.ts:32
+Defined in: [packages/ffs/src/ffmpeg.ts:32](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L32)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:32
 
 > **filterComplex**: `string`
 
-Defined in: packages/ffs/src/ffmpeg.ts:29
+Defined in: [packages/ffs/src/ffmpeg.ts:29](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L29)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:29
 
 > **globalArgs**: `string`[]
 
-Defined in: packages/ffs/src/ffmpeg.ts:27
+Defined in: [packages/ffs/src/ffmpeg.ts:27](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L27)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:27
 
 > **inputs**: [`FFmpegInput`](../type-aliases/FFmpegInput.md)[]
 
-Defined in: packages/ffs/src/ffmpeg.ts:28
+Defined in: [packages/ffs/src/ffmpeg.ts:28](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L28)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:28
 
 > **outputArgs**: `string`[]
 
-Defined in: packages/ffs/src/ffmpeg.ts:30
+Defined in: [packages/ffs/src/ffmpeg.ts:30](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L30)
 
 ## Methods
 
@@ -76,7 +76,7 @@ Defined in: packages/ffs/src/ffmpeg.ts:30
 
 > **buildArgs**(`inputResolver`): `string`[]
 
-Defined in: packages/ffs/src/ffmpeg.ts:44
+Defined in: [packages/ffs/src/ffmpeg.ts:44](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/ffs/src/ffmpeg.ts#L44)
 
 #### Parameters
 

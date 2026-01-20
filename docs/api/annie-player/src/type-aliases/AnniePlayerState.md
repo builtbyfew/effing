@@ -8,7 +8,7 @@
 
 > **AnniePlayerState** = `object`
 
-Defined in: packages/annie-player/src/core.ts:3
+Defined in: [packages/annie-player/src/core.ts:3](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L3)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: packages/annie-player/src/core.ts:3
 
 > **dimensions**: \{ `height`: `number`; `width`: `number`; \} \| `null`
 
-Defined in: packages/annie-player/src/core.ts:9
+Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L9)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: packages/annie-player/src/core.ts:9
 
 > **error**: `string` \| `null`
 
-Defined in: packages/annie-player/src/core.ts:5
+Defined in: [packages/annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L5)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: packages/annie-player/src/core.ts:5
 
 > **frameCount**: `number`
 
-Defined in: packages/annie-player/src/core.ts:8
+Defined in: [packages/annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L8)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: packages/annie-player/src/core.ts:8
 
 > **isLoading**: `boolean`
 
-Defined in: packages/annie-player/src/core.ts:6
+Defined in: [packages/annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L6)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: packages/annie-player/src/core.ts:6
 
 > **isPlaying**: `boolean`
 
-Defined in: packages/annie-player/src/core.ts:7
+Defined in: [packages/annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L7)
 
 ***
 
@@ -56,4 +56,4 @@ Defined in: packages/annie-player/src/core.ts:7
 
 > **status**: `string`
 
-Defined in: packages/annie-player/src/core.ts:4
+Defined in: [packages/annie-player/src/core.ts:4](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/annie-player/src/core.ts#L4)

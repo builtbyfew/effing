@@ -8,7 +8,7 @@
 
 > **EffieAudio**\<`S`, `U`\> = `object`
 
-Defined in: packages/effie/src/types.ts:48
+Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L48)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: packages/effie/src/types.ts:48
 
 > `optional` **fadeIn**: `number`
 
-Defined in: packages/effie/src/types.ts:54
+Defined in: [packages/effie/src/types.ts:54](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L54)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: packages/effie/src/types.ts:54
 
 > `optional` **fadeOut**: `number`
 
-Defined in: packages/effie/src/types.ts:55
+Defined in: [packages/effie/src/types.ts:55](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L55)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: packages/effie/src/types.ts:55
 
 > `optional` **seek**: `number`
 
-Defined in: packages/effie/src/types.ts:56
+Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L56)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: packages/effie/src/types.ts:56
 
 > **source**: [`EffieSource`](EffieSource.md)\<`S`, `U`\>
 
-Defined in: packages/effie/src/types.ts:52
+Defined in: [packages/effie/src/types.ts:52](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L52)
 
 ***
 
@@ -58,4 +58,4 @@ Defined in: packages/effie/src/types.ts:52
 
 > `optional` **volume**: `number`
 
-Defined in: packages/effie/src/types.ts:53
+Defined in: [packages/effie/src/types.ts:53](https://github.com/builtbyfew/effing/blob/3506549da451b3dcbb26d055409c91704957393e/packages/effie/src/types.ts#L53)

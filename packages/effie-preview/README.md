@@ -98,7 +98,7 @@ function CustomLayout({ effieJson }) {
                   layer={layer}
                   index={j}
                   resolveSource={resolveSource}
-                  mediaHeight={200}
+                  resolution={{ width: 356, height: 200 }}
                 />
                 <EffieLayerPreview.Info layer={layer} index={j} />
               </EffieLayerPreview.Root>
@@ -150,6 +150,7 @@ Display the cover image, or a video player if a rendered video is available.
 ```tsx
 <EffieCoverPreview
   cover={EffieWebUrl}         // Cover image URL
+  resolution={{ width, height }} // Preview resolution
   video={string | null}       // Optional rendered video URL
   onPlay={() => void}         // Callback when video starts playing
   onFullyBuffered={() => void} // Callback when video is fully buffered
@@ -168,8 +169,7 @@ Preview the composition background (color, image, or video).
 <EffieBackgroundPreview
   background={EffieBackground}
   resolveSource={EffieSourceResolver}
-  aspectRatio={string} // e.g. "16/9", "1/1"
-  mediaHeight={number} // Default: 270
+  resolution={{ width, height }}
   className={string}
   style={CSSProperties}
 />
@@ -207,8 +207,7 @@ Preview a segment with all its layers. The `stacking` prop controls how layers a
   segment={EffieSegment}
   index={number}
   resolveSource={EffieSourceResolver}
-  aspectRatio={string} // e.g. "16/9", "1/1"
-  mediaHeight={number} // Default: 270
+  resolution={{ width, height }}
   stacking={"vertical" | "horizontal"} // Default: "vertical"
   className={string}
   style={CSSProperties}
@@ -242,8 +241,7 @@ Preview a single layer (image or animation). The `stacking` prop controls layout
   layer={EffieLayer}
   index={number}
   resolveSource={EffieSourceResolver}
-  aspectRatio={string} // e.g. "16/9", "1/1"
-  mediaHeight={number} // Default: 270
+  resolution={{ width, height }}
   stacking={"vertical" | "horizontal"} // Default: "horizontal"
   className={string}
   style={CSSProperties}
@@ -258,7 +256,7 @@ Preview a single layer (image or animation). The `stacking` prop controls layout
     layer={EffieLayer}
     index={number}
     resolveSource={EffieSourceResolver}
-    mediaHeight={number}
+    resolution={{ width, height }}
     className={string}
     style={CSSProperties}
   />

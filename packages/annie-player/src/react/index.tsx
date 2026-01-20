@@ -135,7 +135,10 @@ function AnniePlayerRoot({
 
   return (
     <AnniePlayerContext.Provider value={value}>
-      <div style={style} className={className}>
+      <div
+        style={{ display: "inline-block", width: "fit-content", ...style }}
+        className={className}
+      >
         {children}
       </div>
     </AnniePlayerContext.Provider>
@@ -158,7 +161,12 @@ function AnniePlayerWrapper({
   const { isHovering, setIsHovering, state } = useAnniePlayerContext();
   return (
     <div
-      style={{ position: "relative", display: "inline-block", ...style }}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        width: "fit-content",
+        ...style,
+      }}
       className={className}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -402,6 +410,7 @@ function AnniePlayerSimple({
             style={{
               position: "relative",
               display: "inline-block",
+              width: "fit-content",
             }}
             data-hovering={isHovering}
             data-playing={state.isPlaying}

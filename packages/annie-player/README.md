@@ -123,16 +123,16 @@ function HeadlessPlayer() {
 
 #### Available Sub-components
 
-| Component                 | Description                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| `AnniePlayer.Root`        | Provider that manages player state. Accepts `src`, `height`, `fps`, `autoLoad`, `autoPlay`. |
-| `AnniePlayer.Wrapper`     | Container with hover detection. Sets `data-hovering` and `data-playing` attributes.         |
-| `AnniePlayer.Canvas`      | The canvas element where frames are rendered.                                               |
-| `AnniePlayer.Controls`    | Container for buttons. Auto-hides when playing (unless hovering).                           |
-| `AnniePlayer.LoadButton`  | Load button with default "Load"/"Loading..." text.                                          |
-| `AnniePlayer.PlayButton`  | Play button with default "Play" text.                                                       |
-| `AnniePlayer.PauseButton` | Pause button with default "Pause" text.                                                     |
-| `AnniePlayer.Status`      | Status overlay showing current state.                                                       |
+| Component                 | Description                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `AnniePlayer.Root`        | Provider that manages player state. Accepts `src`, `height`, `defaultWidth`, `fps`, `autoLoad`, `autoPlay`. |
+| `AnniePlayer.Wrapper`     | Container with hover detection. Sets `data-hovering` and `data-playing` attributes.                         |
+| `AnniePlayer.Canvas`      | The canvas element where frames are rendered.                                                               |
+| `AnniePlayer.Controls`    | Container for buttons. Auto-hides when playing (unless hovering).                                           |
+| `AnniePlayer.LoadButton`  | Load button with default "Load"/"Loading..." text.                                                          |
+| `AnniePlayer.PlayButton`  | Play button with default "Play" text.                                                                       |
+| `AnniePlayer.PauseButton` | Pause button with default "Pause" text.                                                                     |
+| `AnniePlayer.Status`      | Status overlay showing current state.                                                                       |
 
 ### Vanilla JavaScript
 

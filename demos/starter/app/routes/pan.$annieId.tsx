@@ -47,12 +47,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   return {
     annieId: params.annieId,
     annieUrl: url,
+    width,
     height,
   };
 }
 
 export default function AnniePreviewPage() {
-  const { annieId, annieUrl, height } = useLoaderData<typeof loader>();
+  const { annieId, annieUrl, width, height } = useLoaderData<typeof loader>();
+
+  const scaledResolution = {
+    width: Math.round((540 * width) / height),
+    height: 540,
+  };
 
   return (
     <div style={styles.pageContainer}>
@@ -60,7 +66,8 @@ export default function AnniePreviewPage() {
 
       <AnniePlayer
         src={annieUrl}
-        height={Math.min(540, height)}
+        height={scaledResolution.height}
+        defaultWidth={scaledResolution.width}
         autoLoad={true}
         autoPlay={true}
         fps={30}

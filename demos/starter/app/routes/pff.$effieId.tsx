@@ -21,12 +21,15 @@ import {
   useEffieWarmup,
 } from "@effing/effie-preview/react";
 import { getEffie } from "~/effies";
-import { dimensionsFromAspectRatio } from "~/dimensions.server";
 import type { Route } from "./+types/pff.$effieId";
 
 // ============ Constants ============
 
-const ASPECT_RATIOS = ["1:1", "4:5", "9:16"] as const;
+const RESOLUTIONS = [
+  { w: 1080, h: 1080 },
+  { w: 1080, h: 1350 },
+  { w: 1080, h: 1920 },
+] as const;
 
 const RENDER_SCALES = [
   { value: 1 / 3, label: "33%" },
@@ -74,8 +77,8 @@ type RenderState = {
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const requestUrl = new URL(request.url);
-  const aspectRatio = requestUrl.searchParams.get("ratio") || "1:1";
-  const { width, height } = dimensionsFromAspectRatio(aspectRatio);
+  const width = parseInt(requestUrl.searchParams.get("w") || "1080", 10);
+  const height = parseInt(requestUrl.searchParams.get("h") || "1080", 10);
 
   const { previewProps, renderer, propsSchema } = await getEffie(
     params.effieId,
@@ -119,9 +122,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   return {
     effieId: params.effieId,
-    aspectRatio,
+    width,
+    height,
     effie,
-    jsonUrl: `/ff/${urlSegment}?ratio=${aspectRatio}`,
+    jsonUrl: `/ff/${urlSegment}?w=${width}&h=${height}`,
     warmupStreamUrl,
   };
 }
@@ -240,7 +244,7 @@ export async function action({
 // ============ Component ============
 
 export default function EffiePreviewPage() {
-  const { effie, jsonUrl, effieId, aspectRatio, warmupStreamUrl } =
+  const { effie, jsonUrl, effieId, width, height, warmupStreamUrl } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -283,7 +287,17 @@ export default function EffiePreviewPage() {
 
   const warmup = useEffieWarmup(warmupStreamUrl);
   const resolveSource = createEffieSourceResolver(effie.sources);
-  const cssAspectRatio = aspectRatio.replace(":", "/");
+
+  // Compute scaled resolution for preview (540px height for cover)
+  const coverResolution = {
+    width: Math.round((540 * width) / height),
+    height: 540,
+  };
+  // Scaled resolution for background/segment previews (270px width)
+  const previewResolution = {
+    width: 270,
+    height: Math.round((270 * height) / width),
+  };
 
   const isLoading = navigation.state === "loading";
   const isRendering =
@@ -345,6 +359,9 @@ export default function EffiePreviewPage() {
           height: 6,
           backgroundColor: "#E5E7EB",
           opacity: showProgressBar ? 1 : 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
         }}
       >
         <div
@@ -369,13 +386,24 @@ export default function EffiePreviewPage() {
         <div>
           <h1 style={{ margin: 0 }}>Effie Preview: {effieId}</h1>
           <p style={{ color: "#666" }}>
-            Aspect ratio: {aspectRatio} |{" "}
-            {ASPECT_RATIOS.filter((r) => r !== aspectRatio).map((r, i) => (
-              <span key={r}>
-                {i > 0 && " | "}
-                <a href={`/pff/${effieId}?ratio=${r}`}>{r}</a>
-              </span>
-            ))}
+            Resolution:{" "}
+            {RESOLUTIONS.map((r, i) => {
+              const isCurrent = r.w === width && r.h === height;
+              return (
+                <span key={`${r.w}x${r.h}`}>
+                  {i > 0 && " | "}
+                  {isCurrent ? (
+                    <strong>
+                      {r.w}x{r.h}
+                    </strong>
+                  ) : (
+                    <a href={`/pff/${effieId}?w=${r.w}&h=${r.h}`}>
+                      {r.w}x{r.h}
+                    </a>
+                  )}
+                </span>
+              );
+            })}
           </p>
         </div>
 
@@ -390,14 +418,12 @@ export default function EffiePreviewPage() {
         >
           <EffieCoverPreview
             cover={effie.cover}
+            resolution={coverResolution}
             video={render.videoUrl}
             onPlay={handleVideoPlay}
             style={{
               border: "1px solid black",
               backgroundColor: "#eee",
-              height: 540,
-              objectFit: "cover",
-              aspectRatio: cssAspectRatio,
             }}
           />
 
@@ -564,8 +590,7 @@ export default function EffiePreviewPage() {
           <EffieBackgroundPreview
             background={effie.background}
             resolveSource={resolveSource}
-            aspectRatio={cssAspectRatio}
-            mediaHeight={270}
+            resolution={previewResolution}
           />
         </div>
 
@@ -581,8 +606,7 @@ export default function EffiePreviewPage() {
                 segment={segment}
                 index={i}
                 resolveSource={resolveSource}
-                aspectRatio={cssAspectRatio}
-                mediaHeight={270}
+                resolution={previewResolution}
                 stacking="horizontal"
               />
             ))}

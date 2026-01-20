@@ -1,7 +1,6 @@
 import { deserialize } from "@effing/serde";
 import { effieResponse } from "@effing/effie";
 import { getEffie } from "~/effies";
-import { dimensionsFromAspectRatio } from "~/dimensions.server";
 import type { Route } from "./+types/ff.$segment";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -17,10 +16,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     propsSchema.parse(props);
   }
 
-  // Get aspect ratio from query params
+  // Get dimensions from query params
   const url = new URL(request.url);
-  const aspectRatio = url.searchParams.get("ratio") || "9:16";
-  const { width, height } = dimensionsFromAspectRatio(aspectRatio);
+  const width = parseInt(url.searchParams.get("w") || "1080", 10);
+  const height = parseInt(url.searchParams.get("h") || "1080", 10);
 
   const effieData = await renderer({ props, width, height });
 

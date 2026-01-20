@@ -16,6 +16,8 @@ import { hashUrlToId } from "../utils";
 export type EffieCoverPreviewProps = {
   /** Cover image URL */
   cover: EffieWebUrl;
+  /** Resolution for preview */
+  resolution: { width: number; height: number };
   /** Optional video URL to show instead of cover image (e.g., after rendering) */
   video?: string | null;
   /** Callback when video starts playing */
@@ -34,6 +36,7 @@ export type EffieCoverPreviewProps = {
  */
 export function EffieCoverPreview({
   cover,
+  resolution,
   video,
   onPlay,
   onFullyBuffered,
@@ -68,7 +71,7 @@ export function EffieCoverPreview({
         src={video}
         poster={cover}
         className={className}
-        style={style}
+        style={{ ...style, height: resolution.height }}
         controls
         autoPlay
         onPlay={onPlay}
@@ -77,7 +80,14 @@ export function EffieCoverPreview({
     );
   }
 
-  return <img src={cover} alt="Cover" className={className} style={style} />;
+  return (
+    <img
+      src={cover}
+      alt="Cover"
+      className={className}
+      style={{ ...style, height: resolution.height }}
+    />
+  );
 }
 
 // ============ Background Preview - Compound Components ============
@@ -186,10 +196,8 @@ export type EffieBackgroundPreviewProps = {
   background: EffieBackground<EffieSources>;
   /** Function to resolve source references */
   resolveSource: EffieSourceResolver;
-  /** Aspect ratio for the media element (e.g. "16/9", "1/1") */
-  aspectRatio?: string;
-  /** Media height in pixels */
-  mediaHeight?: number;
+  /** Resolution for preview */
+  resolution: { width: number; height: number };
   /** Class name for the container */
   className?: string;
   /** Style for the container */
@@ -199,8 +207,7 @@ export type EffieBackgroundPreviewProps = {
 function EffieBackgroundPreviewSimple({
   background,
   resolveSource,
-  aspectRatio,
-  mediaHeight = 270,
+  resolution,
   className,
   style,
 }: EffieBackgroundPreviewProps) {
@@ -218,8 +225,8 @@ function EffieBackgroundPreviewSimple({
         resolveSource={resolveSource}
         style={{
           border: "1px solid #ddd",
-          height: mediaHeight,
-          aspectRatio,
+          width: resolution.width,
+          height: resolution.height,
         }}
       />
       <EffieBackgroundPreviewInfo
@@ -276,8 +283,8 @@ type EffieLayerPreviewMediaProps = {
   index: number;
   /** Function to resolve source references */
   resolveSource: EffieSourceResolver;
-  /** Media height in pixels */
-  mediaHeight?: number;
+  /** Resolution for preview */
+  resolution: { width: number; height: number };
   /** Class name for the media element */
   className?: string;
   /** Style for the media element */
@@ -288,7 +295,7 @@ function EffieLayerPreviewMedia({
   layer,
   index,
   resolveSource,
-  mediaHeight = 270,
+  resolution,
   className,
   style,
 }: EffieLayerPreviewMediaProps) {
@@ -296,7 +303,8 @@ function EffieLayerPreviewMedia({
     return (
       <AnniePlayer
         src={resolveSource(layer.source)}
-        height={mediaHeight}
+        height={resolution.height}
+        defaultWidth={resolution.width}
         autoLoad={false}
         autoPlay={true}
         className={className}
@@ -310,7 +318,7 @@ function EffieLayerPreviewMedia({
       src={resolveSource(layer.source)}
       alt={`Layer ${index + 1}`}
       className={className}
-      style={{ ...style, height: mediaHeight }}
+      style={{ ...style, height: resolution.height }}
     />
   );
 }
@@ -357,10 +365,8 @@ export type EffieLayerPreviewProps = {
   index: number;
   /** Function to resolve source references */
   resolveSource: EffieSourceResolver;
-  /** Aspect ratio for the media element (e.g. "16/9", "1/1") */
-  aspectRatio?: string;
-  /** Media height in pixels */
-  mediaHeight?: number;
+  /** Resolution for preview */
+  resolution: { width: number; height: number };
   /** How to stack info relative to media: "horizontal" (default, info beside) or "vertical" (info below) */
   stacking?: "vertical" | "horizontal";
   /** Class name for the container */
@@ -373,8 +379,7 @@ function EffieLayerPreviewSimple({
   layer,
   index,
   resolveSource,
-  aspectRatio,
-  mediaHeight = 270,
+  resolution,
   stacking = "horizontal",
   className,
   style,
@@ -393,10 +398,9 @@ function EffieLayerPreviewSimple({
         layer={layer}
         index={index}
         resolveSource={resolveSource}
-        mediaHeight={mediaHeight}
+        resolution={resolution}
         style={{
           border: "1px solid #ddd",
-          aspectRatio,
         }}
       />
       <EffieLayerPreviewInfo
@@ -490,10 +494,8 @@ export type EffieSegmentPreviewProps = {
   index: number;
   /** Function to resolve source references */
   resolveSource: EffieSourceResolver;
-  /** Preview height for layers in pixels */
-  mediaHeight?: number;
-  /** Aspect ratio for the layer media elements (e.g. "16/9", "1/1") */
-  aspectRatio?: string;
+  /** Resolution for preview */
+  resolution: { width: number; height: number };
   /** How to stack layers: "vertical" (default) or "horizontal" */
   stacking?: "vertical" | "horizontal";
   /** Class name for the container */
@@ -506,8 +508,7 @@ function EffieSegmentPreviewSimple({
   segment,
   index,
   resolveSource,
-  mediaHeight = 270,
-  aspectRatio,
+  resolution,
   stacking = "vertical",
   className,
   style,
@@ -558,8 +559,7 @@ function EffieSegmentPreviewSimple({
             layer={layer}
             index={j}
             resolveSource={resolveSource}
-            aspectRatio={aspectRatio}
-            mediaHeight={mediaHeight}
+            resolution={resolution}
             stacking={layerStacking}
           />
         ))}

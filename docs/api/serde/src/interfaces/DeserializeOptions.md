@@ -6,7 +6,7 @@
 
 # Interface: DeserializeOptions
 
-Defined in: [packages/serde/src/itsdangerous.ts:107](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L107)
+Defined in: [packages/serde/src/itsdangerous.ts:107](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L107)
 
 ## Extends
 
@@ -18,7 +18,7 @@ Defined in: [packages/serde/src/itsdangerous.ts:107](https://github.com/builtbyf
 
 > `optional` **algorithm**: `string`
 
-Defined in: [packages/serde/src/itsdangerous.ts:71](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L71)
+Defined in: [packages/serde/src/itsdangerous.ts:71](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L71)
 
 Hash algorithm for HMAC (default: "sha1")
 
@@ -32,7 +32,7 @@ Hash algorithm for HMAC (default: "sha1")
 
 > `optional` **convertKeysToCamel**: `boolean`
 
-Defined in: [packages/serde/src/itsdangerous.ts:109](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L109)
+Defined in: [packages/serde/src/itsdangerous.ts:109](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L109)
 
 Whether to convert snake_case keys to camelCase (default: true)
 
@@ -42,7 +42,7 @@ Whether to convert snake_case keys to camelCase (default: true)
 
 > `optional` **salt**: `string`
 
-Defined in: [packages/serde/src/itsdangerous.ts:69](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L69)
+Defined in: [packages/serde/src/itsdangerous.ts:69](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L69)
 
 Salt for key derivation (default: "itsdangerous")
 

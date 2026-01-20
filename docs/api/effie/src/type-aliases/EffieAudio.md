@@ -8,7 +8,7 @@
 
 > **EffieAudio**\<`S`, `U`\> = `object`
 
-Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L48)
+Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L48)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effin
 
 > `optional` **fadeIn**: `number`
 
-Defined in: [packages/effie/src/types.ts:54](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L54)
+Defined in: [packages/effie/src/types.ts:54](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L54)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [packages/effie/src/types.ts:54](https://github.com/builtbyfew/effin
 
 > `optional` **fadeOut**: `number`
 
-Defined in: [packages/effie/src/types.ts:55](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L55)
+Defined in: [packages/effie/src/types.ts:55](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L55)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [packages/effie/src/types.ts:55](https://github.com/builtbyfew/effin
 
 > `optional` **seek**: `number`
 
-Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L56)
+Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L56)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effin
 
 > **source**: [`EffieSource`](EffieSource.md)\<`S`, `U`\>
 
-Defined in: [packages/effie/src/types.ts:52](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L52)
+Defined in: [packages/effie/src/types.ts:52](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L52)
 
 ***
 
@@ -58,4 +58,4 @@ Defined in: [packages/effie/src/types.ts:52](https://github.com/builtbyfew/effin
 
 > `optional` **volume**: `number`
 
-Defined in: [packages/effie/src/types.ts:53](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L53)
+Defined in: [packages/effie/src/types.ts:53](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/effie/src/types.ts#L53)

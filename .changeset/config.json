@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@effing/annie",
+      "@effing/effie",
+      "@effing/ffs",
+      "@effing/tween",
+      "@effing/serde",
+      "@effing/create",
+      "@effing/satori",
+      "@effing/annie-player",
+      "@effing/effie-preview"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

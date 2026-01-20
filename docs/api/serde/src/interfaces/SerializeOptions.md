@@ -6,7 +6,7 @@
 
 # Interface: SerializeOptions
 
-Defined in: [packages/serde/src/itsdangerous.ts:67](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L67)
+Defined in: [packages/serde/src/itsdangerous.ts:67](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L67)
 
 ## Extended by
 
@@ -18,7 +18,7 @@ Defined in: [packages/serde/src/itsdangerous.ts:67](https://github.com/builtbyfe
 
 > `optional` **algorithm**: `string`
 
-Defined in: [packages/serde/src/itsdangerous.ts:71](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L71)
+Defined in: [packages/serde/src/itsdangerous.ts:71](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L71)
 
 Hash algorithm for HMAC (default: "sha1")
 
@@ -28,6 +28,6 @@ Hash algorithm for HMAC (default: "sha1")
 
 > `optional` **salt**: `string`
 
-Defined in: [packages/serde/src/itsdangerous.ts:69](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L69)
+Defined in: [packages/serde/src/itsdangerous.ts:69](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L69)
 
 Salt for key derivation (default: "itsdangerous")

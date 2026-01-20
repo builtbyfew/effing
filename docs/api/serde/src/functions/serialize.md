@@ -8,7 +8,7 @@
 
 > **serialize**(`obj`, `secretKey`, `options`): `Promise`\<`string`\>
 
-Defined in: [packages/serde/src/itsdangerous.ts:81](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/serde/src/itsdangerous.ts#L81)
+Defined in: [packages/serde/src/itsdangerous.ts:81](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/serde/src/itsdangerous.ts#L81)
 
 Serialize an object to a URL-safe segment with optional compression and HMAC signature.
 

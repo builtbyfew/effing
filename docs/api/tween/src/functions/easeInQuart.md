@@ -8,7 +8,7 @@
 
 > **easeInQuart**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:65](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/tween/src/easing.ts#L65)
+Defined in: [packages/tween/src/easing.ts:65](https://github.com/builtbyfew/effing/blob/34b1401f7114ae79a6c474a9b83a7523573dcd8d/packages/tween/src/easing.ts#L65)
 
 Ease in using quartic curve
 

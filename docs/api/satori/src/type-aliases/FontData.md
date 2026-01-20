@@ -8,7 +8,7 @@
 
 > **FontData** = `object`
 
-Defined in: [packages/satori/src/index.ts:7](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/satori/src/index.ts#L7)
+Defined in: [packages/satori/src/index.ts:7](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/satori/src/index.ts#L7)
 
 Font data for satori rendering
 
@@ -18,7 +18,7 @@ Font data for satori rendering
 
 > **data**: `Buffer` \| `ArrayBuffer`
 
-Defined in: [packages/satori/src/index.ts:9](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/satori/src/index.ts#L9)
+Defined in: [packages/satori/src/index.ts:9](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/satori/src/index.ts#L9)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [packages/satori/src/index.ts:9](https://github.com/builtbyfew/effin
 
 > **name**: `string`
 
-Defined in: [packages/satori/src/index.ts:8](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/satori/src/index.ts#L8)
+Defined in: [packages/satori/src/index.ts:8](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/satori/src/index.ts#L8)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [packages/satori/src/index.ts:8](https://github.com/builtbyfew/effin
 
 > **style**: `"normal"` \| `"italic"`
 
-Defined in: [packages/satori/src/index.ts:11](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/satori/src/index.ts#L11)
+Defined in: [packages/satori/src/index.ts:11](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/satori/src/index.ts#L11)
 
 ***
 
@@ -42,4 +42,4 @@ Defined in: [packages/satori/src/index.ts:11](https://github.com/builtbyfew/effi
 
 > **weight**: `100` \| `200` \| `300` \| `400` \| `500` \| `600` \| `700` \| `800` \| `900`
 
-Defined in: [packages/satori/src/index.ts:10](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/satori/src/index.ts#L10)
+Defined in: [packages/satori/src/index.ts:10](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/satori/src/index.ts#L10)

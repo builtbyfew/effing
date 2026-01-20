@@ -26,9 +26,9 @@ import type { Route } from "./+types/pff.$effieId";
 // ============ Constants ============
 
 const RESOLUTIONS = [
-  { w: 1080, h: 1080 },
-  { w: 1080, h: 1350 },
-  { w: 1080, h: 1920 },
+  { width: 1080, height: 1080, label: "1:1" },
+  { width: 1080, height: 1350, label: "4:5" },
+  { width: 1080, height: 1920, label: "9:16" },
 ] as const;
 
 const RENDER_SCALES = [
@@ -388,17 +388,17 @@ export default function EffiePreviewPage() {
           <p style={{ color: "#666" }}>
             Resolution:{" "}
             {RESOLUTIONS.map((r, i) => {
-              const isCurrent = r.w === width && r.h === height;
+              const isCurrent = r.width === width && r.height === height;
               return (
-                <span key={`${r.w}x${r.h}`}>
+                <span key={`${r.width}x${r.height}`}>
                   {i > 0 && " | "}
                   {isCurrent ? (
                     <strong>
-                      {r.w}x{r.h}
+                      {r.width}x{r.height} ({r.label})
                     </strong>
                   ) : (
-                    <a href={`/pff/${effieId}?w=${r.w}&h=${r.h}`}>
-                      {r.w}x{r.h}
+                    <a href={`/pff/${effieId}?w=${r.width}&h=${r.height}`}>
+                      {r.width}x{r.height} ({r.label})
                     </a>
                   )}
                 </span>

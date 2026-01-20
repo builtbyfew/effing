@@ -8,7 +8,7 @@
 
 > **deserialize**\<`T`\>(`segment`, `secretKey`, `options`): `Promise`\<`T`\>
 
-Defined in: [packages/serde/src/itsdangerous.ts:117](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/serde/src/itsdangerous.ts#L117)
+Defined in: [packages/serde/src/itsdangerous.ts:117](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/serde/src/itsdangerous.ts#L117)
 
 Deserialize a URL segment, verify its signature, and decompress if needed.
 

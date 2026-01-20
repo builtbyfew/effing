@@ -8,7 +8,7 @@
 
 > **easeOutBounce**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:202](https://github.com/builtbyfew/effing/blob/65076cf01746394f11c666361bc1163baad0b61b/packages/tween/src/easing.ts#L202)
+Defined in: [packages/tween/src/easing.ts:202](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/tween/src/easing.ts#L202)
 
 Ease out with bounce
 

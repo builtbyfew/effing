@@ -8,7 +8,7 @@
 
 > **AnnieStreamOptions** = `object`
 
-Defined in: [packages/annie/src/generate.ts:75](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/annie/src/generate.ts#L75)
+Defined in: [packages/annie/src/generate.ts:75](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/annie/src/generate.ts#L75)
 
 Options for annie stream generation
 
@@ -18,6 +18,6 @@ Options for annie stream generation
 
 > `optional` **signal**: `AbortSignal`
 
-Defined in: [packages/annie/src/generate.ts:77](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/annie/src/generate.ts#L77)
+Defined in: [packages/annie/src/generate.ts:77](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/annie/src/generate.ts#L77)
 
 Abort signal for cancellation

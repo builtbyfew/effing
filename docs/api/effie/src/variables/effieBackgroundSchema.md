@@ -8,4 +8,4 @@
 
 > `const` **effieBackgroundSchema**: `z.ZodType`\<[`EffieBackground`](../type-aliases/EffieBackground.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>\>
 
-Defined in: [packages/effie/src/schema.ts:360](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/effie/src/schema.ts#L360)
+Defined in: [packages/effie/src/schema.ts:360](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/schema.ts#L360)

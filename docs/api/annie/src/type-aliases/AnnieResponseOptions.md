@@ -8,7 +8,7 @@
 
 > **AnnieResponseOptions** = [`AnnieStreamOptions`](AnnieStreamOptions.md) & `object`
 
-Defined in: [packages/annie/src/response.ts:7](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/annie/src/response.ts#L7)
+Defined in: [packages/annie/src/response.ts:7](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/annie/src/response.ts#L7)
 
 Options for annie Response generation
 

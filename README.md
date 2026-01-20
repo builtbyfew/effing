@@ -174,4 +174,4 @@ The API docs are auto-generated from source via a pre-commit hook, so they're al
 
 ## License
 
-O'Saasy
+[O'Saasy](https://osaasy.dev/)

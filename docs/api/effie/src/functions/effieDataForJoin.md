@@ -8,7 +8,7 @@
 
 > **effieDataForJoin**\<`U`, `V`\>(`effieData`, `segmentSourceUrls`): [`EffieData`](../type-aliases/EffieData.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<`U` \| `V`\>, `U` \| `V`\>
 
-Defined in: [packages/effie/src/partition.ts:100](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/effie/src/partition.ts#L100)
+Defined in: [packages/effie/src/partition.ts:100](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/partition.ts#L100)
 
 Returns EffieData for joining pre-rendered segments into a final video.
 Each segment uses its corresponding pre-rendered video as both background and audio source.

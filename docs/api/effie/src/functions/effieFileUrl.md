@@ -8,7 +8,7 @@
 
 > **effieFileUrl**(`url`): `` `file${string}` ``
 
-Defined in: [packages/effie/src/types.ts:146](https://github.com/builtbyfew/effing/blob/8f077567c99a3e89632fcfdc03e0041c112d7a80/packages/effie/src/types.ts#L146)
+Defined in: [packages/effie/src/types.ts:146](https://github.com/builtbyfew/effing/blob/b5e1e4622a3a0b0708dbe10c774bddc25619abc5/packages/effie/src/types.ts#L146)
 
 ## Parameters
 

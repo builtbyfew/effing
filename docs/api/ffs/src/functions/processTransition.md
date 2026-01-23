@@ -8,7 +8,7 @@
 
 > **processTransition**(`transition`): `string`
 
-Defined in: [packages/ffs/src/transition.ts:3](https://github.com/builtbyfew/effing/blob/fb541bfcbc0f706f97f2533a591a5a6943855559/packages/ffs/src/transition.ts#L3)
+Defined in: [packages/ffs/src/transition.ts:3](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/ffs/src/transition.ts#L3)
 
 ## Parameters
 

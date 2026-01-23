@@ -11,11 +11,14 @@
   "scripts": {
     "prebuild": "node scripts/copy-template.js",
     "build": "tsup",
+    "test": "vitest run --exclude '**/*.integration.test.ts' --passWithNoTests",
+    "test:integration": "vitest run integration",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "tsup": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22"

@@ -36,12 +36,12 @@ describe("copy-template", () => {
     expect(templatePkg.license).toBeUndefined();
   });
 
-  test("dotfiles are renamed to underscore-prefixed", async () => {
+  test("dotfiles are renamed to _DOT_ prefixed", async () => {
     const templateDir = path.resolve(__dirname, "../template");
 
-    // Should have _env.example, not .env.example
+    // Should have _DOT_env.example, not .env.example
     await expect(
-      fs.access(path.join(templateDir, "_env.example")),
+      fs.access(path.join(templateDir, "_DOT_env.example")),
     ).resolves.toBeUndefined();
 
     // .env.example should not exist

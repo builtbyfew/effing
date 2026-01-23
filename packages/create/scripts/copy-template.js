@@ -54,9 +54,10 @@ async function copyDir(src, dest) {
     if (EXCLUDE.has(entry.name)) continue;
 
     const srcPath = path.join(src, entry.name);
-    // Rename dotfiles: .gitignore -> _gitignore, .env.example -> _env.example
+    // Rename dotfiles: .gitignore -> _DOT_gitignore, .env.example -> _DOT_env.example
+    // Use _DOT_ prefix to distinguish from legitimate underscore-prefixed files (e.g., _index.tsx)
     const destName = entry.name.startsWith(".")
-      ? "_" + entry.name.slice(1)
+      ? "_DOT_" + entry.name.slice(1)
       : entry.name;
     const destPath = path.join(dest, destName);
 

@@ -13,9 +13,10 @@ async function copyDir(src: string, dest: string): Promise<void> {
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
-    // Restore dotfiles: _gitignore -> .gitignore, _env.example -> .env.example
-    const destName = entry.name.startsWith("_")
-      ? "." + entry.name.slice(1)
+    // Restore dotfiles: _DOT_gitignore -> .gitignore, _DOT_env.example -> .env.example
+    // Only restore _DOT_ prefixed files, preserve legitimate underscore-prefixed files (e.g., _index.tsx)
+    const destName = entry.name.startsWith("_DOT_")
+      ? "." + entry.name.slice(5)
       : entry.name;
     const destPath = path.join(dest, destName);
 

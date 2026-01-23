@@ -8,7 +8,7 @@
 
 > **EffieValidationIssue** = `object`
 
-Defined in: [packages/effie-preview/src/core.ts:34](https://github.com/builtbyfew/effing/blob/6f6d4d59b2bb5b919f5667b1c43ff3cdcd9e6b95/packages/effie-preview/src/core.ts#L34)
+Defined in: [packages/effie-preview/src/core.ts:34](https://github.com/builtbyfew/effing/blob/985f5e231cff68bb9579173c6a825fe1c21f4474/packages/effie-preview/src/core.ts#L34)
 
 Represents a validation issue from EffieData schema validation.
 
@@ -18,7 +18,7 @@ Represents a validation issue from EffieData schema validation.
 
 > **message**: `string`
 
-Defined in: [packages/effie-preview/src/core.ts:38](https://github.com/builtbyfew/effing/blob/6f6d4d59b2bb5b919f5667b1c43ff3cdcd9e6b95/packages/effie-preview/src/core.ts#L38)
+Defined in: [packages/effie-preview/src/core.ts:38](https://github.com/builtbyfew/effing/blob/985f5e231cff68bb9579173c6a825fe1c21f4474/packages/effie-preview/src/core.ts#L38)
 
 Human-readable error message
 
@@ -28,6 +28,6 @@ Human-readable error message
 
 > **path**: `string`
 
-Defined in: [packages/effie-preview/src/core.ts:36](https://github.com/builtbyfew/effing/blob/6f6d4d59b2bb5b919f5667b1c43ff3cdcd9e6b95/packages/effie-preview/src/core.ts#L36)
+Defined in: [packages/effie-preview/src/core.ts:36](https://github.com/builtbyfew/effing/blob/985f5e231cff68bb9579173c6a825fe1c21f4474/packages/effie-preview/src/core.ts#L36)
 
 Path to the field that failed validation (e.g., "segments.0.transition.sweep")

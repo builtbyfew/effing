@@ -8,7 +8,7 @@
 
 > **easeInElastic**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:167](https://github.com/builtbyfew/effing/blob/6f6d4d59b2bb5b919f5667b1c43ff3cdcd9e6b95/packages/tween/src/easing.ts#L167)
+Defined in: [packages/tween/src/easing.ts:167](https://github.com/builtbyfew/effing/blob/985f5e231cff68bb9579173c6a825fe1c21f4474/packages/tween/src/easing.ts#L167)
 
 Ease in with elastic bounce
 

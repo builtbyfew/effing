@@ -8,7 +8,7 @@
 
 > **easeOutQuad**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:36](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/tween/src/easing.ts#L36)
+Defined in: [packages/tween/src/easing.ts:36](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/tween/src/easing.ts#L36)
 
 Ease out using quadratic curve
 

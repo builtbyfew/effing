@@ -8,7 +8,7 @@
 
 > **EffieEffect** = `object` & \{ `start`: `number`; `type`: `"fade-in"`; \} \| \{ `start`: `number`; `type`: `"fade-out"`; \} \| \{ `start`: `number`; `type`: `"saturate-in"`; \} \| \{ `start`: `number`; `type`: `"saturate-out"`; \} \| \{ `direction`: `"left"` \| `"right"` \| `"up"` \| `"down"`; `distance`: `number`; `type`: `"scroll"`; \}
 
-Defined in: [packages/effie/src/types.ts:110](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/effie/src/types.ts#L110)
+Defined in: [packages/effie/src/types.ts:110](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L110)
 
 ## Type Declaration
 

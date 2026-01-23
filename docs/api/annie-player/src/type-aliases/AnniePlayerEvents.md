@@ -8,7 +8,7 @@
 
 > **AnniePlayerEvents** = `object`
 
-Defined in: [packages/annie-player/src/core.ts:12](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L12)
+Defined in: [packages/annie-player/src/core.ts:12](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L12)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/annie-player/src/core.ts:12](https://github.com/builtbyfew
 
 > **error**: `Error`
 
-Defined in: [packages/annie-player/src/core.ts:15](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L15)
+Defined in: [packages/annie-player/src/core.ts:15](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L15)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [packages/annie-player/src/core.ts:15](https://github.com/builtbyfew
 
 > **load**: `object`
 
-Defined in: [packages/annie-player/src/core.ts:14](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L14)
+Defined in: [packages/annie-player/src/core.ts:14](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L14)
 
 #### dimensions
 
@@ -48,4 +48,4 @@ Defined in: [packages/annie-player/src/core.ts:14](https://github.com/builtbyfew
 
 > **statechange**: [`AnniePlayerState`](AnniePlayerState.md)
 
-Defined in: [packages/annie-player/src/core.ts:13](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L13)
+Defined in: [packages/annie-player/src/core.ts:13](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L13)

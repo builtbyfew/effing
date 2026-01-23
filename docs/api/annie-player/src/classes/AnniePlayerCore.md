@@ -6,7 +6,7 @@
 
 # Class: AnniePlayerCore
 
-Defined in: [packages/annie-player/src/core.ts:30](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L30)
+Defined in: [packages/annie-player/src/core.ts:30](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L30)
 
 Framework-agnostic Annie animation player.
 Handles loading TAR archives of image frames and playing them on a canvas.
@@ -17,7 +17,7 @@ Handles loading TAR archives of image frames and playing them on a canvas.
 
 > **new AnniePlayerCore**(`options`): `AnniePlayerCore`
 
-Defined in: [packages/annie-player/src/core.ts:55](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L55)
+Defined in: [packages/annie-player/src/core.ts:55](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L55)
 
 #### Parameters
 
@@ -35,7 +35,7 @@ Defined in: [packages/annie-player/src/core.ts:55](https://github.com/builtbyfew
 
 > **attachCanvas**(`canvas`): `void`
 
-Defined in: [packages/annie-player/src/core.ts:65](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L65)
+Defined in: [packages/annie-player/src/core.ts:65](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L65)
 
 Attach a canvas element to render the animation on.
 
@@ -55,7 +55,7 @@ Attach a canvas element to render the animation on.
 
 > **cleanup**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:301](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L301)
+Defined in: [packages/annie-player/src/core.ts:301](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L301)
 
 Clean up resources (revoke blob URLs).
 
@@ -69,7 +69,7 @@ Clean up resources (revoke blob URLs).
 
 > **destroy**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:313](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L313)
+Defined in: [packages/annie-player/src/core.ts:313](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L313)
 
 Destroy the player and clean up all resources.
 
@@ -83,7 +83,7 @@ Destroy the player and clean up all resources.
 
 > **detachCanvas**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:73](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L73)
+Defined in: [packages/annie-player/src/core.ts:73](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L73)
 
 Detach the canvas and stop playback.
 
@@ -97,7 +97,7 @@ Detach the canvas and stop playback.
 
 > **getState**(): [`AnniePlayerState`](../type-aliases/AnniePlayerState.md)
 
-Defined in: [packages/annie-player/src/core.ts:82](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L82)
+Defined in: [packages/annie-player/src/core.ts:82](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L82)
 
 Get the current state of the player.
 
@@ -111,7 +111,7 @@ Get the current state of the player.
 
 > **load**(): `Promise`\<`void`\>
 
-Defined in: [packages/annie-player/src/core.ts:145](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L145)
+Defined in: [packages/annie-player/src/core.ts:145](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L145)
 
 Load the animation from the source URL.
 
@@ -125,7 +125,7 @@ Load the animation from the source URL.
 
 > **on**\<`K`\>(`event`, `callback`): () => `void`
 
-Defined in: [packages/annie-player/src/core.ts:96](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L96)
+Defined in: [packages/annie-player/src/core.ts:96](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L96)
 
 Subscribe to player events.
 
@@ -159,7 +159,7 @@ Subscribe to player events.
 
 > **pause**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:237](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L237)
+Defined in: [packages/annie-player/src/core.ts:237](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L237)
 
 Pause the animation.
 
@@ -173,7 +173,7 @@ Pause the animation.
 
 > **play**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:224](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L224)
+Defined in: [packages/annie-player/src/core.ts:224](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L224)
 
 Start playing the animation.
 
@@ -187,7 +187,7 @@ Start playing the animation.
 
 > **stop**(): `void`
 
-Defined in: [packages/annie-player/src/core.ts:251](https://github.com/builtbyfew/effing/blob/98562296ca02b7d0acd65ca6b1aa409be4531969/packages/annie-player/src/core.ts#L251)
+Defined in: [packages/annie-player/src/core.ts:251](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/annie-player/src/core.ts#L251)
 
 Stop the animation and reset to the beginning.
 

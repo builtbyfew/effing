@@ -7,6 +7,7 @@ A complete example application demonstrating how to build Annies (animations) an
 ```bash
 cd demos/starter
 pnpm install
+cp .env.example .env
 pnpm dev
 ```
 

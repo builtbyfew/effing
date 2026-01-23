@@ -14,8 +14,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

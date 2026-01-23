@@ -18,8 +18,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@andrewbranch/untar.js": "^1.0.3"

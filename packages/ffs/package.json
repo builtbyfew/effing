@@ -29,8 +29,7 @@
     "dev": "tsx --watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run --exclude '**/*.integration.test.ts'",
-    "test:integration": "vitest run integration",
-    "prepublishOnly": "pnpm build"
+    "test:integration": "vitest run integration"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",

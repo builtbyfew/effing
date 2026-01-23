@@ -14,9 +14,11 @@ npm install @effing/effie-preview @effing/effie @effing/annie-player
 
 ## Quick Start
 
-Components support two usage patterns:
+### React
 
-### Simple API (built-in styles)
+React components are available in `@effing/effie-preview/react`.
+
+#### Simple API (built-in styles)
 
 ```tsx
 import { createEffieSourceResolver } from "@effing/effie-preview";
@@ -54,7 +56,7 @@ function EffiePreview({ effieJson, renderedVideoUrl }) {
 }
 ```
 
-### Compound API (full control)
+#### Compound API (full control)
 
 For custom layouts, use the compound sub-components:
 

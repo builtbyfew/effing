@@ -8,7 +8,7 @@
 
 > **easeOutCirc**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:127](https://github.com/builtbyfew/effing/blob/f576e12e849f0f7e7c7d90346d9460b6b0af8096/packages/tween/src/easing.ts#L127)
+Defined in: [packages/tween/src/easing.ts:127](https://github.com/builtbyfew/effing/blob/fb541bfcbc0f706f97f2533a591a5a6943855559/packages/tween/src/easing.ts#L127)
 
 Ease out using circular curve
 

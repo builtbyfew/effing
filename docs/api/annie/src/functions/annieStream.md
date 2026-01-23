@@ -8,7 +8,7 @@
 
 > **annieStream**(`frames`, `options`): `ReadableStream`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Defined in: [packages/annie/src/generate.ts:158](https://github.com/builtbyfew/effing/blob/f576e12e849f0f7e7c7d90346d9460b6b0af8096/packages/annie/src/generate.ts#L158)
+Defined in: [packages/annie/src/generate.ts:158](https://github.com/builtbyfew/effing/blob/fb541bfcbc0f706f97f2533a591a5a6943855559/packages/annie/src/generate.ts#L158)
 
 Create a ReadableStream that produces an annie (TAR archive of frames)
 

@@ -8,7 +8,7 @@
 
 > **steps**(`count`): `number`[]
 
-Defined in: [packages/tween/src/steps.ts:6](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/tween/src/steps.ts#L6)
+Defined in: [packages/tween/src/steps.ts:6](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/tween/src/steps.ts#L6)
 
 Generate an array of step values for an animation
 

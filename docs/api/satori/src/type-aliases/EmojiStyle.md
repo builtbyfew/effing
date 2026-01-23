@@ -8,6 +8,6 @@
 
 > **EmojiStyle** = `"twemoji"` \| `"openmoji"` \| `"blobmoji"` \| `"noto"` \| `"fluent"` \| `"fluentFlat"`
 
-Defined in: [packages/satori/src/index.ts:17](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/satori/src/index.ts#L17)
+Defined in: [packages/satori/src/index.ts:17](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/satori/src/index.ts#L17)
 
 Emoji style options for rendering

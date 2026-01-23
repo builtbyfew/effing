@@ -8,6 +8,6 @@
 
 > **EffieSourceResolver** = `ReturnType`\<*typeof* [`createEffieSourceResolver`](../functions/createEffieSourceResolver.md)\>
 
-Defined in: [packages/effie-preview/src/core.ts:29](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie-preview/src/core.ts#L29)
+Defined in: [packages/effie-preview/src/core.ts:29](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/effie-preview/src/core.ts#L29)
 
 Type alias for a source resolver function

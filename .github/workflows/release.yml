@@ -32,18 +32,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Debug changesets
-        run: |
-          echo "=== Changeset files ==="
-          ls -la .changeset/
-          echo "=== Testing version command ==="
-          pnpm run version
-          echo "=== Git status after version ==="
-          git status
-          git diff --stat
-          echo "=== Resetting for action ==="
-          git checkout -- .
-
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
@@ -53,3 +41,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+          HUSKY: 0

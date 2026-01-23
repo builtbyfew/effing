@@ -8,7 +8,7 @@
 
 > **processMotion**(`delay`, `motion?`): `string`
 
-Defined in: [packages/ffs/src/motion.ts:168](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/ffs/src/motion.ts#L168)
+Defined in: [packages/ffs/src/motion.ts:168](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/ffs/src/motion.ts#L168)
 
 ## Parameters
 

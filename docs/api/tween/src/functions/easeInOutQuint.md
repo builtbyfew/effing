@@ -8,7 +8,7 @@
 
 > **easeInOutQuint**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:92](https://github.com/builtbyfew/effing/blob/2c0fdf525308a1d8085f0692124014815d18e243/packages/tween/src/easing.ts#L92)
+Defined in: [packages/tween/src/easing.ts:92](https://github.com/builtbyfew/effing/blob/b4a8b52579f78e675e3c5319702e8d716528399c/packages/tween/src/easing.ts#L92)
 
 Ease in-out using quintic curve
 

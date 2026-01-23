@@ -8,7 +8,7 @@
 
 > **TweenInterval** = `object`
 
-Defined in: [packages/tween/src/tween.ts:7](https://github.com/builtbyfew/effing/blob/2c0fdf525308a1d8085f0692124014815d18e243/packages/tween/src/tween.ts#L7)
+Defined in: [packages/tween/src/tween.ts:7](https://github.com/builtbyfew/effing/blob/b4a8b52579f78e675e3c5319702e8d716528399c/packages/tween/src/tween.ts#L7)
 
 Tween interval representing a frame's position in the animation
 
@@ -18,7 +18,7 @@ Tween interval representing a frame's position in the animation
 
 > **lower**: `number`
 
-Defined in: [packages/tween/src/tween.ts:9](https://github.com/builtbyfew/effing/blob/2c0fdf525308a1d8085f0692124014815d18e243/packages/tween/src/tween.ts#L9)
+Defined in: [packages/tween/src/tween.ts:9](https://github.com/builtbyfew/effing/blob/b4a8b52579f78e675e3c5319702e8d716528399c/packages/tween/src/tween.ts#L9)
 
 Lower bound (inclusive), in range [0, 1)
 
@@ -28,6 +28,6 @@ Lower bound (inclusive), in range [0, 1)
 
 > **upper**: `number`
 
-Defined in: [packages/tween/src/tween.ts:11](https://github.com/builtbyfew/effing/blob/2c0fdf525308a1d8085f0692124014815d18e243/packages/tween/src/tween.ts#L11)
+Defined in: [packages/tween/src/tween.ts:11](https://github.com/builtbyfew/effing/blob/b4a8b52579f78e675e3c5319702e8d716528399c/packages/tween/src/tween.ts#L11)
 
 Upper bound (exclusive for all but last frame), in range (0, 1]

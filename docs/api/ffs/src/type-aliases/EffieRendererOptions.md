@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [packages/ffs/src/render.ts:15](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/ffs/src/render.ts#L15)
+Defined in: [packages/ffs/src/render.ts:15](https://github.com/builtbyfew/effing/blob/ba28b98e4b8d1cee14453ddc43bc0c37de0f8355/packages/ffs/src/render.ts#L15)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/ffs/src/render.ts:15](https://github.com/builtbyfew/effing
 
 > `optional` **allowLocalFiles**: `boolean`
 
-Defined in: [packages/ffs/src/render.ts:22](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/ffs/src/render.ts#L22)
+Defined in: [packages/ffs/src/render.ts:22](https://github.com/builtbyfew/effing/blob/ba28b98e4b8d1cee14453ddc43bc0c37de0f8355/packages/ffs/src/render.ts#L22)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -34,7 +34,7 @@ false
 
 > `optional` **cacheStorage**: `CacheStorage`
 
-Defined in: [packages/ffs/src/render.ts:27](https://github.com/builtbyfew/effing/blob/61399b1bef948e96fc2088ddfc84536ac4eb196a/packages/ffs/src/render.ts#L27)
+Defined in: [packages/ffs/src/render.ts:27](https://github.com/builtbyfew/effing/blob/ba28b98e4b8d1cee14453ddc43bc0c37de0f8355/packages/ffs/src/render.ts#L27)
 
 Cache storage instance for source lookups.
 If not provided, a shared lazy-initialized cache will be used.

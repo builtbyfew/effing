@@ -8,7 +8,7 @@
 
 > **EffieData**\<`S`, `U`\> = `object`
 
-Defined in: [packages/effie/src/types.ts:16](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L16)
+Defined in: [packages/effie/src/types.ts:16](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L16)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: [packages/effie/src/types.ts:16](https://github.com/builtbyfew/effin
 
 > `optional` **audio**: [`EffieAudio`](EffieAudio.md)\<`S`, `U`\>
 
-Defined in: [packages/effie/src/types.ts:26](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L26)
+Defined in: [packages/effie/src/types.ts:26](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L26)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [packages/effie/src/types.ts:26](https://github.com/builtbyfew/effin
 
 > **background**: [`EffieBackground`](EffieBackground.md)\<`S`, `U`\>
 
-Defined in: [packages/effie/src/types.ts:25](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L25)
+Defined in: [packages/effie/src/types.ts:25](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L25)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [packages/effie/src/types.ts:25](https://github.com/builtbyfew/effin
 
 > **cover**: [`EffieWebUrl`](EffieWebUrl.md)
 
-Defined in: [packages/effie/src/types.ts:23](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L23)
+Defined in: [packages/effie/src/types.ts:23](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L23)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [packages/effie/src/types.ts:23](https://github.com/builtbyfew/effin
 
 > **fps**: `number`
 
-Defined in: [packages/effie/src/types.ts:22](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L22)
+Defined in: [packages/effie/src/types.ts:22](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L22)
 
 ***
 
@@ -58,7 +58,7 @@ Defined in: [packages/effie/src/types.ts:22](https://github.com/builtbyfew/effin
 
 > **height**: `number`
 
-Defined in: [packages/effie/src/types.ts:21](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L21)
+Defined in: [packages/effie/src/types.ts:21](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L21)
 
 ***
 
@@ -66,7 +66,7 @@ Defined in: [packages/effie/src/types.ts:21](https://github.com/builtbyfew/effin
 
 > **segments**: [`EffieSegment`](EffieSegment.md)\<`S`, `U`\>[]
 
-Defined in: [packages/effie/src/types.ts:27](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L27)
+Defined in: [packages/effie/src/types.ts:27](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L27)
 
 ***
 
@@ -74,7 +74,7 @@ Defined in: [packages/effie/src/types.ts:27](https://github.com/builtbyfew/effin
 
 > `optional` **sources**: `S`
 
-Defined in: [packages/effie/src/types.ts:24](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L24)
+Defined in: [packages/effie/src/types.ts:24](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L24)
 
 ***
 
@@ -82,4 +82,4 @@ Defined in: [packages/effie/src/types.ts:24](https://github.com/builtbyfew/effin
 
 > **width**: `number`
 
-Defined in: [packages/effie/src/types.ts:20](https://github.com/builtbyfew/effing/blob/d4d0b72ff03d40e85501fd9e6ca0b75564cb7252/packages/effie/src/types.ts#L20)
+Defined in: [packages/effie/src/types.ts:20](https://github.com/builtbyfew/effing/blob/42532851c09d29544ea83bfca09fe5633b7b7130/packages/effie/src/types.ts#L20)

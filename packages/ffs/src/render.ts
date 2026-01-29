@@ -43,13 +43,8 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   private async fetchSource(src: string): Promise<Readable> {
-    if (src.startsWith("#")) {
-      const sourceName = src.slice(1);
-      if (!(sourceName in this.effieData.sources!)) {
-        throw new Error(`Named source "${sourceName}" not found`);
-      }
-      src = this.effieData.sources![sourceName];
-    }
+    // src is already a resolved URL - no #ref handling needed
+    // (references are resolved in FFmpegRunner via referenceResolver)
 
     // Handle data URLs (inline, no actual fetch or cache needed)
     if (src.startsWith("data:")) {
@@ -628,6 +623,21 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   /**
+   * Resolves a source reference to its actual URL.
+   * If the source is a #reference, returns the resolved URL.
+   * Otherwise, returns the source as-is.
+   */
+  private resolveReference(src: string): string {
+    if (src.startsWith("#")) {
+      const sourceName = src.slice(1);
+      if (sourceName in this.effieData.sources!) {
+        return this.effieData.sources![sourceName];
+      }
+    }
+    return src;
+  }
+
+  /**
    * Renders the effie data to a video stream.
    * @param scaleFactor - Scale factor for output dimensions
    */
@@ -637,6 +647,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     return this.ffmpegRunner.run(
       async ({ src }) => this.fetchSource(src),
       this.createImageTransformer(scaleFactor),
+      (src) => this.resolveReference(src),
     );
   }
 

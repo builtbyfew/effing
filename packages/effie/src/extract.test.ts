@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { extractEffieSources } from "./extract";
+import { extractEffieSources, extractEffieSourcesWithTypes } from "./extract";
 import type { EffieData, EffieSources } from "./types";
 
 // Helper to create minimal valid EffieData
@@ -462,6 +462,161 @@ describe("extractEffieSources", () => {
       const sources = extractEffieSources(effieData);
 
       expect(sources).toHaveLength(0);
+    });
+  });
+});
+
+describe("extractEffieSourcesWithTypes", () => {
+  test("extracts sources with correct types", () => {
+    const effieData = createBaseEffieData({
+      cover: "https://example.com/cover.png",
+      background: { type: "video", source: "https://example.com/bg.mp4" },
+      audio: { source: "https://example.com/music.mp3" },
+      segments: [
+        {
+          duration: 5,
+          layers: [
+            { type: "image", source: "https://example.com/layer.png" },
+            { type: "animation", source: "https://example.com/anim.tar" },
+          ],
+          audio: { source: "https://example.com/seg-audio.mp3" },
+        },
+      ],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData);
+
+    expect(sources).toContainEqual({
+      url: "https://example.com/cover.png",
+      type: "image",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/bg.mp4",
+      type: "video",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/music.mp3",
+      type: "audio",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/layer.png",
+      type: "image",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/anim.tar",
+      type: "animation",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/seg-audio.mp3",
+      type: "audio",
+    });
+  });
+
+  test("resolves #references with correct types", () => {
+    const effieData = createBaseEffieData({
+      sources: {
+        bgVideo: "https://example.com/bg.mp4",
+        music: "https://example.com/music.mp3",
+      },
+      background: { type: "video", source: "#bgVideo" },
+      audio: { source: "#music" },
+      segments: [{ duration: 5, layers: [] }],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData);
+
+    expect(sources).toContainEqual({
+      url: "https://example.com/bg.mp4",
+      type: "video",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/music.mp3",
+      type: "audio",
+    });
+  });
+
+  test("identifies segment backgrounds by type", () => {
+    const effieData = createBaseEffieData({
+      segments: [
+        {
+          duration: 5,
+          layers: [],
+          background: {
+            type: "image",
+            source: "https://example.com/seg-bg-image.png",
+          },
+        },
+        {
+          duration: 5,
+          layers: [],
+          background: {
+            type: "video",
+            source: "https://example.com/seg-bg-video.mp4",
+          },
+        },
+      ],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData);
+
+    expect(sources).toContainEqual({
+      url: "https://example.com/seg-bg-image.png",
+      type: "image",
+    });
+    expect(sources).toContainEqual({
+      url: "https://example.com/seg-bg-video.mp4",
+      type: "video",
+    });
+  });
+
+  test("deduplicates with first type winning", () => {
+    const effieData = createBaseEffieData({
+      // Cover is first, so "image" type should win
+      cover: "https://example.com/same.png",
+      segments: [
+        {
+          duration: 5,
+          layers: [
+            // Same URL used as animation later - should be ignored
+            { type: "animation", source: "https://example.com/same.png" },
+          ],
+        },
+      ],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData);
+
+    const sameUrl = sources.filter(
+      (s) => s.url === "https://example.com/same.png",
+    );
+    expect(sameUrl).toHaveLength(1);
+    expect(sameUrl[0].type).toBe("image"); // First type wins
+  });
+
+  test("excludes data URLs by default", () => {
+    const effieData = createBaseEffieData({
+      cover: "data:image/png;base64,ABC=",
+      segments: [{ duration: 5, layers: [] }],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData);
+
+    expect(sources).toHaveLength(0);
+  });
+
+  test("includes data URLs when requested", () => {
+    const effieData = createBaseEffieData({
+      cover: "data:image/png;base64,ABC=",
+      segments: [{ duration: 5, layers: [] }],
+    });
+
+    const sources = extractEffieSourcesWithTypes(effieData, {
+      includeDataUrls: true,
+    });
+
+    expect(sources).toContainEqual({
+      url: "data:image/png;base64,ABC=",
+      type: "image",
     });
   });
 });

@@ -21,6 +21,8 @@
 - [EffieSegment](type-aliases/EffieSegment.md)
 - [EffieSource](type-aliases/EffieSource.md)
 - [EffieSources](type-aliases/EffieSources.md)
+- [EffieSourceType](type-aliases/EffieSourceType.md)
+- [EffieSourceWithType](type-aliases/EffieSourceWithType.md)
 - [EffieTransition](type-aliases/EffieTransition.md)
 - [EffieWebUrl](type-aliases/EffieWebUrl.md)
 - [ExtractSourcesOptions](type-aliases/ExtractSourcesOptions.md)
@@ -62,3 +64,4 @@
 - [effieSegment](functions/effieSegment.md)
 - [effieWebUrl](functions/effieWebUrl.md)
 - [extractEffieSources](functions/extractEffieSources.md)
+- [extractEffieSourcesWithTypes](functions/extractEffieSourcesWithTypes.md)

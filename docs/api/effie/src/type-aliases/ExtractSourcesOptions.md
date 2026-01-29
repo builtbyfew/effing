@@ -8,7 +8,7 @@
 
 > **ExtractSourcesOptions** = `object`
 
-Defined in: [packages/effie/src/extract.ts:6](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/extract.ts#L6)
+Defined in: [packages/effie/src/extract.ts:19](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/extract.ts#L19)
 
 Options for extracting sources from EffieData
 
@@ -18,6 +18,6 @@ Options for extracting sources from EffieData
 
 > `optional` **includeDataUrls**: `boolean`
 
-Defined in: [packages/effie/src/extract.ts:8](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/extract.ts#L8)
+Defined in: [packages/effie/src/extract.ts:21](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/extract.ts#L21)
 
 Include data URLs in the result (default: false)

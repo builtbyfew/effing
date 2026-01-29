@@ -77,25 +77,28 @@ export class FFmpegRunner {
   }
 
   async run(
-    sourceResolver: (input: {
+    sourceFetcher: (input: {
       type: FFmpegInput["type"];
       src: string;
     }) => Promise<Readable>,
     imageTransformer?: (imageStream: Readable) => Promise<Readable>,
+    referenceResolver?: (src: string) => string,
   ): Promise<Readable> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-"));
     const fileMapping = new Map<number, string>();
     // Cache for #reference sources to avoid duplicate fetches.
     // Uses promises to handle concurrent requests for the same source.
-    const sourceCache = new Map<string, Promise<string>>();
+    // Key is input.source (the original #ref) to preserve deduplication.
+    const fetchCache = new Map<string, Promise<string>>();
 
     const fetchAndSaveSource = async (
       input: FFmpegInput,
+      sourceUrl: string,
       inputName: string,
     ): Promise<string> => {
-      const stream = await sourceResolver({
+      const stream = await sourceFetcher({
         type: input.type,
-        src: input.source,
+        src: sourceUrl,
       });
 
       if (input.type === "animation") {
@@ -147,20 +150,37 @@ export class FFmpegRunner {
           .toString()
           .padStart(3, "0")}`;
 
-        // Only cache #reference sources (not data URLs or regular URLs to avoid
-        // memory issues with large URL strings as cache keys)
-        const shouldCache = input.source.startsWith("#");
+        // Resolve #references to get the actual URL
+        const sourceUrl = referenceResolver
+          ? referenceResolver(input.source)
+          : input.source;
 
+        // Pass HTTP(S) video/audio URLs directly to FFmpeg without downloading
+        if (
+          (input.type === "video" || input.type === "audio") &&
+          (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://"))
+        ) {
+          fileMapping.set(input.index, sourceUrl);
+          return;
+        }
+
+        // Deduplicate fetches when the same #ref appears multiple times.
+        // Only for #refs since they're short strings; data URLs would bloat the map.
+        const shouldCache = input.source.startsWith("#");
         if (shouldCache) {
-          let fetchPromise = sourceCache.get(input.source);
+          let fetchPromise = fetchCache.get(input.source);
           if (!fetchPromise) {
-            fetchPromise = fetchAndSaveSource(input, inputName);
-            sourceCache.set(input.source, fetchPromise);
+            fetchPromise = fetchAndSaveSource(input, sourceUrl, inputName);
+            fetchCache.set(input.source, fetchPromise);
           }
           const filePath = await fetchPromise;
           fileMapping.set(input.index, filePath);
         } else {
-          const filePath = await fetchAndSaveSource(input, inputName);
+          const filePath = await fetchAndSaveSource(
+            input,
+            sourceUrl,
+            inputName,
+          );
           fileMapping.set(input.index, filePath);
         }
       }),

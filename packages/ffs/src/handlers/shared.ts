@@ -1,7 +1,11 @@
 import express from "express";
 import type { CacheStorage } from "../cache";
 import { createCacheStorage } from "../cache";
-import type { EffieData, EffieSources } from "@effing/effie";
+import type {
+  EffieData,
+  EffieSources,
+  EffieSourceWithType,
+} from "@effing/effie";
 import { effieDataSchema } from "@effing/effie";
 
 export type UploadOptions = {
@@ -10,7 +14,7 @@ export type UploadOptions = {
 };
 
 export type WarmupJob = {
-  sources: string[];
+  sources: EffieSourceWithType[];
 };
 
 export type RenderJob = {

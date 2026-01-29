@@ -3,7 +3,11 @@ import { Readable, Transform } from "stream";
 import { randomUUID } from "crypto";
 import { cacheKeys } from "../cache";
 import { ffsFetch } from "../fetch";
-import { extractEffieSources } from "@effing/effie";
+import {
+  extractEffieSources,
+  extractEffieSourcesWithTypes,
+} from "@effing/effie";
+import type { EffieSourceWithType } from "@effing/effie";
 import type { ServerContext, SSEEventSender, WarmupJob } from "./shared";
 import {
   parseEffieData,
@@ -11,6 +15,14 @@ import {
   setupSSEResponse,
   createSSEEventSender,
 } from "./shared";
+
+/**
+ * Check if a source should be skipped during warmup.
+ * Video/audio sources are passed directly to FFmpeg and don't need caching.
+ */
+function shouldSkipWarmup(source: EffieSourceWithType): boolean {
+  return source.type === "video" || source.type === "audio";
+}
 
 // Track in-flight fetches to avoid duplicate fetches within the same instance
 const inFlightFetches = new Map<string, Promise<void>>();
@@ -31,7 +43,7 @@ export async function createWarmupJob(
       return;
     }
 
-    const sources = extractEffieSources(parseResult.effie);
+    const sources = extractEffieSourcesWithTypes(parseResult.effie);
     const jobId = randomUUID();
 
     // Store job in cache
@@ -125,49 +137,73 @@ export async function purgeCache(
 }
 
 /**
- * Warm up sources by fetching and caching them
+ * Warm up sources by fetching and caching them.
+ * HTTP(S) video/audio sources are skipped as they are passed directly to FFmpeg.
  */
 export async function warmupSources(
-  sources: string[],
+  sources: EffieSourceWithType[],
   sendEvent: SSEEventSender,
   ctx: ServerContext,
 ): Promise<void> {
   const total = sources.length;
-  const sourceCacheKeys = sources.map(cacheKeys.source);
 
   sendEvent("start", { total });
 
-  // Check what's already cached
-  const existsMap = await ctx.cacheStorage.existsMany(sourceCacheKeys);
-
   let cached = 0;
   let failed = 0;
+  let skipped = 0;
+
+  // Separate sources that need caching from those that should be skipped
+  const sourcesToCache: EffieSourceWithType[] = [];
+  for (const source of sources) {
+    if (shouldSkipWarmup(source)) {
+      skipped++;
+      sendEvent("progress", {
+        url: source.url,
+        status: "skipped",
+        reason: "http-video-audio-passthrough",
+        cached,
+        failed,
+        skipped,
+        total,
+      });
+    } else {
+      sourcesToCache.push(source);
+    }
+  }
+
+  // Check what's already cached
+  const sourceCacheKeys = sourcesToCache.map((s) => cacheKeys.source(s.url));
+  const existsMap = await ctx.cacheStorage.existsMany(sourceCacheKeys);
 
   // Report hits immediately
-  for (let i = 0; i < sources.length; i++) {
+  for (let i = 0; i < sourcesToCache.length; i++) {
     if (existsMap.get(sourceCacheKeys[i])) {
       cached++;
       sendEvent("progress", {
-        url: sources[i],
+        url: sourcesToCache[i].url,
         status: "hit",
         cached,
         failed,
+        skipped,
         total,
       });
     }
   }
 
   // Filter to uncached sources
-  const uncached = sources.filter((_, i) => !existsMap.get(sourceCacheKeys[i]));
+  const uncached = sourcesToCache.filter(
+    (_, i) => !existsMap.get(sourceCacheKeys[i]),
+  );
 
   if (uncached.length === 0) {
-    sendEvent("summary", { cached, failed, total });
+    sendEvent("summary", { cached, failed, skipped, total });
     return;
   }
 
   // Keepalive interval for long-running fetches
   const keepalive = setInterval(() => {
-    sendEvent("keepalive", { cached, failed, total });
+    sendEvent("keepalive", { cached, failed, skipped, total });
   }, 25_000);
 
   // Fetch uncached sources with concurrency limit
@@ -176,15 +212,15 @@ export async function warmupSources(
     { length: Math.min(ctx.cacheConcurrency, queue.length) },
     async () => {
       while (queue.length > 0) {
-        const url = queue.shift()!;
-        const cacheKey = cacheKeys.source(url);
+        const source = queue.shift()!;
+        const cacheKey = cacheKeys.source(source.url);
         const startTime = Date.now();
 
         try {
           // Check if another worker is already fetching this
           let fetchPromise = inFlightFetches.get(cacheKey);
           if (!fetchPromise) {
-            fetchPromise = fetchAndCache(url, cacheKey, sendEvent, ctx);
+            fetchPromise = fetchAndCache(source.url, cacheKey, sendEvent, ctx);
             inFlightFetches.set(cacheKey, fetchPromise);
           }
 
@@ -193,10 +229,11 @@ export async function warmupSources(
 
           cached++;
           sendEvent("progress", {
-            url,
+            url: source.url,
             status: "cached",
             cached,
             failed,
+            skipped,
             total,
             ms: Date.now() - startTime,
           });
@@ -204,11 +241,12 @@ export async function warmupSources(
           inFlightFetches.delete(cacheKey);
           failed++;
           sendEvent("progress", {
-            url,
+            url: source.url,
             status: "error",
             error: String(error),
             cached,
             failed,
+            skipped,
             total,
             ms: Date.now() - startTime,
           });
@@ -220,7 +258,7 @@ export async function warmupSources(
   await Promise.all(workers);
   clearInterval(keepalive);
 
-  sendEvent("summary", { cached, failed, total });
+  sendEvent("summary", { cached, failed, skipped, total });
 }
 
 /**

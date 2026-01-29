@@ -8,4 +8,4 @@
 
 > **EffieFileUrl** = `` `file${string}` ``
 
-Defined in: [packages/effie/src/types.ts:5](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L5)
+Defined in: [packages/effie/src/types.ts:5](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/types.ts#L5)

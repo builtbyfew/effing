@@ -30,8 +30,12 @@ export {
 export { effieDataForSegment, effieDataForJoin } from "./partition";
 
 // Extraction helpers
-export type { ExtractSourcesOptions } from "./extract";
-export { extractEffieSources } from "./extract";
+export type {
+  ExtractSourcesOptions,
+  EffieSourceType,
+  EffieSourceWithType,
+} from "./extract";
+export { extractEffieSources, extractEffieSourcesWithTypes } from "./extract";
 
 // Response helper
 export type { EffieResponseOptions } from "./response";

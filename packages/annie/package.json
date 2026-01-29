@@ -1,6 +1,6 @@
 {
   "name": "@effing/annie",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Annie animation frame generator utilities",
   "type": "module",
   "exports": {

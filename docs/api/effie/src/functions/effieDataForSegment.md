@@ -8,7 +8,7 @@
 
 > **effieDataForSegment**(`effieData`, `segmentIndex`): [`EffieData`](../type-aliases/EffieData.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\>
 
-Defined in: [packages/effie/src/partition.ts:7](https://github.com/builtbyfew/effing/blob/b95b8037f746d8f2d1f3d4bcb2f1a6a9f0ee95ec/packages/effie/src/partition.ts#L7)
+Defined in: [packages/effie/src/partition.ts:7](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/partition.ts#L7)
 
 Returns a minimal EffieData containing only what's needed to render a single segment.
 Can be used for distributed rendering where each segment is rendered independently.

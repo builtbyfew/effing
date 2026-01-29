@@ -419,6 +419,14 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       }
     }
 
+    // Identify segments using global background
+    const globalBgSegmentIndices: number[] = [];
+    for (let i = 0; i < this.effieData.segments.length; i++) {
+      if (segmentBgInputIndices[i] === null) {
+        globalBgSegmentIndices.push(i);
+      }
+    }
+
     // Layer inputs:
     for (const segment of this.effieData.segments) {
       for (const layer of segment.layers) {
@@ -467,6 +475,34 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     const filterParts: string[] = [];
     const videoSegmentLabels: string[] = [];
     const audioSegmentLabels: string[] = [];
+
+    // Build split/fifo chain for global background
+    const globalBgFifoLabels: Map<number, string> = new Map();
+    if (globalBgSegmentIndices.length === 1) {
+      // Single segment - no split needed, just fifo
+      const fifoLabel = `bg_fifo_0`;
+      filterParts.push(
+        `[${globalBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},fifo[${fifoLabel}]`,
+      );
+      globalBgFifoLabels.set(globalBgSegmentIndices[0], fifoLabel);
+    } else if (globalBgSegmentIndices.length > 1) {
+      // Multiple segments - use split + fifo
+      const splitCount = globalBgSegmentIndices.length;
+      const splitOutputLabels = globalBgSegmentIndices.map(
+        (_, i) => `bg_split_${i}`,
+      );
+
+      filterParts.push(
+        `[${globalBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},split=${splitCount}${splitOutputLabels.map((l) => `[${l}]`).join("")}`,
+      );
+
+      for (let i = 0; i < splitCount; i++) {
+        const fifoLabel = `bg_fifo_${i}`;
+        filterParts.push(`[${splitOutputLabels[i]}]fifo[${fifoLabel}]`);
+        globalBgFifoLabels.set(globalBgSegmentIndices[i], fifoLabel);
+      }
+    }
+
     for (let segIdx = 0; segIdx < this.effieData.segments.length; segIdx++) {
       const segment = this.effieData.segments[segIdx];
 
@@ -483,10 +519,14 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
           `[${segBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
         );
       } else {
-        // Use global background
-        filterParts.push(
-          `[${globalBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
-        );
+        // Use global background (via split/fifo chain)
+        const fifoLabel = globalBgFifoLabels.get(segIdx);
+        if (fifoLabel) {
+          // fps/scale already applied in split/fifo chain
+          filterParts.push(
+            `[${fifoLabel}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          );
+        }
       }
 
       // Process layers

@@ -212,16 +212,16 @@ importers:
 
   packages/effie-preview:
     dependencies:
-      react:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 19.2.3
-    devDependencies:
       '@effing/annie-player':
         specifier: workspace:*
         version: link:../annie-player
       '@effing/effie':
         specifier: workspace:*
         version: link:../effie
+      react:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.2.3
+    devDependencies:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.7

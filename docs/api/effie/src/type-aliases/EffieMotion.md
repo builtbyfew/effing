@@ -8,7 +8,7 @@
 
 > **EffieMotion** = `object` & \{ `amplitude?`: `number`; `type`: `"bounce"`; \} \| \{ `frequency?`: `number`; `intensity?`: `number`; `type`: `"shake"`; \} \| \{ `direction`: `"left"` \| `"right"` \| `"up"` \| `"down"`; `distance?`: `number`; `easing?`: `"linear"` \| `"ease-in"` \| `"ease-out"` \| `"ease-in-out"`; `reverse?`: `boolean`; `type`: `"slide"`; \}
 
-Defined in: [packages/effie/src/types.ts:124](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/effie/src/types.ts#L124)
+Defined in: [packages/effie/src/types.ts:124](https://github.com/builtbyfew/effing/blob/05a2c5442f4285cc434780987079a8e7a256e33e/packages/effie/src/types.ts#L124)
 
 ## Type Declaration
 

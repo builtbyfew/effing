@@ -16,9 +16,3 @@
 
 - [EffieRendererOptions](type-aliases/EffieRendererOptions.md)
 - [FFmpegInput](type-aliases/FFmpegInput.md)
-
-## Functions
-
-- [processEffects](functions/processEffects.md)
-- [processMotion](functions/processMotion.md)
-- [processTransition](functions/processTransition.md)

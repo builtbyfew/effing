@@ -57,6 +57,8 @@ curl -X POST http://localhost:2000/render \
 curl http://localhost:2000/render/123e4567-e89b-12d3-a456-426614174000 -o output.mp4
 ```
 
+The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux). This is why you might see another server running on a random port.
+
 #### Environment Variables
 
 | Variable                | Description                                   |

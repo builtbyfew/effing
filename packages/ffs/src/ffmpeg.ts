@@ -83,6 +83,7 @@ export class FFmpegRunner {
     }) => Promise<Readable>,
     imageTransformer?: (imageStream: Readable) => Promise<Readable>,
     referenceResolver?: (src: string) => string,
+    urlTransformer?: (url: string) => string,
   ): Promise<Readable> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-"));
     const fileMapping = new Map<number, string>();
@@ -156,11 +157,15 @@ export class FFmpegRunner {
           : input.source;
 
         // Pass HTTP(S) video/audio URLs directly to FFmpeg without downloading
+        // If urlTransformer is provided, transform the URL (e.g., for proxy)
         if (
           (input.type === "video" || input.type === "audio") &&
           (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://"))
         ) {
-          fileMapping.set(input.index, sourceUrl);
+          const finalUrl = urlTransformer
+            ? urlTransformer(sourceUrl)
+            : sourceUrl;
+          fileMapping.set(input.index, finalUrl);
           return;
         }
 

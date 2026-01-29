@@ -160,6 +160,7 @@ export async function streamRenderDirect(
 ): Promise<void> {
   const renderer = new EffieRenderer(job.effie, {
     cacheStorage: ctx.cacheStorage,
+    httpProxy: ctx.httpProxy,
   });
   const videoStream = await renderer.render(job.scale);
 
@@ -252,7 +253,10 @@ export async function renderAndUploadInternal(
 
   // Render effie data to video
   const renderStartTime = Date.now();
-  const renderer = new EffieRenderer(effie, { cacheStorage: ctx.cacheStorage });
+  const renderer = new EffieRenderer(effie, {
+    cacheStorage: ctx.cacheStorage,
+    httpProxy: ctx.httpProxy,
+  });
   const videoStream = await renderer.render(scale);
   const chunks: Buffer[] = [];
   for await (const chunk of videoStream) {

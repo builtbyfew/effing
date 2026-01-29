@@ -8,4 +8,4 @@
 
 > `const` **effieSourceSchema**: `ZodUnion`\<\[`ZodType`\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md), `ZodTypeDef`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>, `ZodType`\<`` `#${string}` ``, `ZodTypeDef`, `` `#${string}` ``\>\]\>
 
-Defined in: [packages/effie/src/schema.ts:358](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/schema.ts#L358)
+Defined in: [packages/effie/src/schema.ts:358](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/schema.ts#L358)

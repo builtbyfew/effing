@@ -8,7 +8,7 @@
 
 > **EffieResponseOptions** = `object`
 
-Defined in: [packages/effie/src/response.ts:6](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/response.ts#L6)
+Defined in: [packages/effie/src/response.ts:6](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/response.ts#L6)
 
 Options for effie Response generation
 
@@ -18,7 +18,7 @@ Options for effie Response generation
 
 > `optional` **cacheControl**: `string`
 
-Defined in: [packages/effie/src/response.ts:10](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/response.ts#L10)
+Defined in: [packages/effie/src/response.ts:10](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/response.ts#L10)
 
 Cache-Control header value (default: "public, max-age=3600")
 
@@ -28,6 +28,6 @@ Cache-Control header value (default: "public, max-age=3600")
 
 > `optional` **headers**: `HeadersInit`
 
-Defined in: [packages/effie/src/response.ts:8](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/response.ts#L8)
+Defined in: [packages/effie/src/response.ts:8](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/response.ts#L8)
 
 Additional headers to include in the response

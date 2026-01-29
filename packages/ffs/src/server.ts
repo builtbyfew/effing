@@ -12,7 +12,8 @@ import {
 const app: express.Express = express();
 app.use(bodyParser.json({ limit: "50mb" })); // Support large JSON requests
 
-const ctx = createServerContext();
+const ctx = await createServerContext();
+console.log(`FFS HTTP proxy listening on port ${ctx.httpProxy.port}`);
 
 function validateAuth(req: express.Request, res: express.Response): boolean {
   const apiKey = process.env.FFS_API_KEY;
@@ -52,6 +53,7 @@ const server = app.listen(port, () => {
 
 function shutdown() {
   console.log("Shutting down FFS server...");
+  ctx.httpProxy.close();
   ctx.cacheStorage.close();
   server.close(() => {
     console.log("FFS server stopped");

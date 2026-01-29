@@ -11,6 +11,7 @@ import { ffsFetch } from "./fetch";
 import { fileURLToPath } from "url";
 import { cacheKeys } from "./cache";
 import type { CacheStorage } from "./cache";
+import type { HttpProxy } from "./proxy";
 
 export type EffieRendererOptions = {
   /**
@@ -25,6 +26,13 @@ export type EffieRendererOptions = {
    * If not provided, a shared lazy-initialized cache will be used.
    */
   cacheStorage?: CacheStorage;
+  /**
+   * HTTP proxy for video/audio URLs.
+   * When provided, HTTP(S) URLs for video/audio inputs will be routed
+   * through this proxy, allowing Node.js to handle DNS resolution
+   * instead of FFmpeg (useful for Alpine Linux with musl libc).
+   */
+  httpProxy?: HttpProxy;
 };
 
 export class EffieRenderer<U extends string = EffieWebUrl> {
@@ -32,6 +40,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   private ffmpegRunner?: FFmpegRunner;
   private allowLocalFiles: boolean;
   private cacheStorage?: CacheStorage;
+  private httpProxy?: HttpProxy;
 
   constructor(
     effieData: EffieData<EffieSources<U>, U>,
@@ -40,6 +49,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     this.effieData = effieData;
     this.allowLocalFiles = options?.allowLocalFiles ?? false;
     this.cacheStorage = options?.cacheStorage;
+    this.httpProxy = options?.httpProxy;
   }
 
   private async fetchSource(src: string): Promise<Readable> {
@@ -644,10 +654,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   async render(scaleFactor = 1): Promise<Readable> {
     const ffmpegCommand = this.buildFFmpegCommand("-", scaleFactor);
     this.ffmpegRunner = new FFmpegRunner(ffmpegCommand);
+
+    // Create URL transformer for proxy if available
+    const urlTransformer = this.httpProxy
+      ? (url: string) => this.httpProxy!.transformUrl(url)
+      : undefined;
+
     return this.ffmpegRunner.run(
       async ({ src }) => this.fetchSource(src),
       this.createImageTransformer(scaleFactor),
       (src) => this.resolveReference(src),
+      urlTransformer,
     );
   }
 

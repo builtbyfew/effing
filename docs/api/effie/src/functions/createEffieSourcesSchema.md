@@ -8,7 +8,7 @@
 
 > **createEffieSourcesSchema**\<`U`\>(`urlSchema`): `ZodRecord`\<`ZodString`, `ZodType`\<`U`, `ZodTypeDef`, `U`\>\>
 
-Defined in: [packages/effie/src/schema.ts:160](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/effie/src/schema.ts#L160)
+Defined in: [packages/effie/src/schema.ts:160](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/schema.ts#L160)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Class: FFmpegRunner
 
-Defined in: [packages/ffs/src/ffmpeg.ts:70](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/ffs/src/ffmpeg.ts#L70)
+Defined in: [packages/ffs/src/ffmpeg.ts:70](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/ffs/src/ffmpeg.ts#L70)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:70](https://github.com/builtbyfew/effing
 
 > **new FFmpegRunner**(`command`): `FFmpegRunner`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:75](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/ffs/src/ffmpeg.ts#L75)
+Defined in: [packages/ffs/src/ffmpeg.ts:75](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/ffs/src/ffmpeg.ts#L75)
 
 #### Parameters
 
@@ -32,7 +32,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:75](https://github.com/builtbyfew/effing
 
 > **close**(): `void`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:212](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/ffs/src/ffmpeg.ts#L212)
+Defined in: [packages/ffs/src/ffmpeg.ts:217](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/ffs/src/ffmpeg.ts#L217)
 
 #### Returns
 
@@ -42,9 +42,9 @@ Defined in: [packages/ffs/src/ffmpeg.ts:212](https://github.com/builtbyfew/effin
 
 ### run()
 
-> **run**(`sourceFetcher`, `imageTransformer?`, `referenceResolver?`): `Promise`\<`Readable`\>
+> **run**(`sourceFetcher`, `imageTransformer?`, `referenceResolver?`, `urlTransformer?`): `Promise`\<`Readable`\>
 
-Defined in: [packages/ffs/src/ffmpeg.ts:79](https://github.com/builtbyfew/effing/blob/2c97f5425b37bd52710264fd620a9facd9749d7a/packages/ffs/src/ffmpeg.ts#L79)
+Defined in: [packages/ffs/src/ffmpeg.ts:79](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/ffs/src/ffmpeg.ts#L79)
 
 #### Parameters
 
@@ -59,6 +59,10 @@ Defined in: [packages/ffs/src/ffmpeg.ts:79](https://github.com/builtbyfew/effing
 ##### referenceResolver?
 
 (`src`) => `string`
+
+##### urlTransformer?
+
+(`url`) => `string`
 
 #### Returns
 

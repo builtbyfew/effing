@@ -1,6 +1,7 @@
 import express from "express";
 import type { CacheStorage } from "../cache";
 import { createCacheStorage } from "../cache";
+import { HttpProxy } from "../proxy";
 import type {
   EffieData,
   EffieSources,
@@ -26,6 +27,7 @@ export type RenderJob = {
 
 export type ServerContext = {
   cacheStorage: CacheStorage;
+  httpProxy: HttpProxy;
   baseUrl: string;
   skipValidation: boolean;
   cacheConcurrency: number;
@@ -40,10 +42,13 @@ export type ParseEffieResult =
 /**
  * Create the server context with configuration from environment variables
  */
-export function createServerContext(): ServerContext {
+export async function createServerContext(): Promise<ServerContext> {
   const port = process.env.FFS_PORT || 2000;
+  const httpProxy = new HttpProxy();
+  await httpProxy.start();
   return {
     cacheStorage: createCacheStorage(),
+    httpProxy,
     baseUrl: process.env.FFS_BASE_URL || `http://localhost:${port}`,
     skipValidation:
       !!process.env.FFS_SKIP_VALIDATION &&

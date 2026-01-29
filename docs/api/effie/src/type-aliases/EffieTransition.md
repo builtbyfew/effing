@@ -8,7 +8,7 @@
 
 > **EffieTransition** = `object` & \{ `easing?`: `"linear"` \| `"ease-in"` \| `"ease-out"`; `type`: `"fade"`; \} \| \{ `through`: `"black"` \| `"white"` \| `"grays"`; `type`: `"fade"`; \} \| \{ `mode?`: `"open"` \| `"close"`; `orientation?`: `"horizontal"` \| `"vertical"`; `type`: `"barn"`; \} \| \{ `mode?`: `"open"` \| `"close"` \| `"crop"`; `type`: `"circle"`; \} \| \{ `direction?`: `"left"` \| `"right"` \| `"up"` \| `"down"`; `type`: `"wipe"` \| `"slide"` \| `"smooth"` \| `"slice"`; \} \| \{ `type`: `"zoom"`; \} \| \{ `type`: `"dissolve"` \| `"pixelize"` \| `"radial"`; \}
 
-Defined in: [packages/effie/src/types.ts:85](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/types.ts#L85)
+Defined in: [packages/effie/src/types.ts:85](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/effie/src/types.ts#L85)
 
 ## Type Declaration
 

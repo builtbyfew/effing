@@ -8,7 +8,7 @@
 
 > **PngFromSatoriOptions** = `object`
 
-Defined in: [packages/satori/src/index.ts:82](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/satori/src/index.ts#L82)
+Defined in: [packages/satori/src/index.ts:82](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/satori/src/index.ts#L82)
 
 Options for pngFromSatori
 
@@ -18,7 +18,7 @@ Options for pngFromSatori
 
 > `optional` **emoji**: [`EmojiStyle`](EmojiStyle.md)
 
-Defined in: [packages/satori/src/index.ts:90](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/satori/src/index.ts#L90)
+Defined in: [packages/satori/src/index.ts:90](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/satori/src/index.ts#L90)
 
 Emoji style to use (default: "twemoji")
 
@@ -28,7 +28,7 @@ Emoji style to use (default: "twemoji")
 
 > **fonts**: [`FontData`](FontData.md)[]
 
-Defined in: [packages/satori/src/index.ts:88](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/satori/src/index.ts#L88)
+Defined in: [packages/satori/src/index.ts:88](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/satori/src/index.ts#L88)
 
 Font data for text rendering
 
@@ -38,7 +38,7 @@ Font data for text rendering
 
 > **height**: `number`
 
-Defined in: [packages/satori/src/index.ts:86](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/satori/src/index.ts#L86)
+Defined in: [packages/satori/src/index.ts:86](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/satori/src/index.ts#L86)
 
 Frame height in pixels
 
@@ -48,6 +48,6 @@ Frame height in pixels
 
 > **width**: `number`
 
-Defined in: [packages/satori/src/index.ts:84](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/satori/src/index.ts#L84)
+Defined in: [packages/satori/src/index.ts:84](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/satori/src/index.ts#L84)
 
 Frame width in pixels

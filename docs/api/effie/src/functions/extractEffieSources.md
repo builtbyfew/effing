@@ -8,7 +8,7 @@
 
 > **extractEffieSources**\<`U`\>(`effieData`, `options`): `string`[]
 
-Defined in: [packages/effie/src/extract.ts:120](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/effie/src/extract.ts#L120)
+Defined in: [packages/effie/src/extract.ts:120](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/effie/src/extract.ts#L120)
 
 Extract all source URLs from an EffieData composition.
 Resolves #references and deduplicates results.

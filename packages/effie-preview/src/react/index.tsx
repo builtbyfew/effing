@@ -142,7 +142,7 @@ function EffieBackgroundPreviewMedia({
         src={resolveSource(background.source)}
         alt="Background"
         className={className}
-        style={style}
+        style={{ objectFit: "cover", ...style }}
       />
     );
   }
@@ -152,7 +152,7 @@ function EffieBackgroundPreviewMedia({
       <video
         src={resolveSource(background.source)}
         className={className}
-        style={style}
+        style={{ objectFit: "cover", ...style }}
         autoPlay
         loop
         muted

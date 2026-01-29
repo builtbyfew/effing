@@ -8,7 +8,7 @@
 
 > **tween**\<`T`\>(`count`, `fn`, `options`): `AsyncGenerator`\<`T`\>
 
-Defined in: [packages/tween/src/tween.ts:21](https://github.com/builtbyfew/effing/blob/5e3417b5327b56ef65ec8a7ca2c6cb048f7bca02/packages/tween/src/tween.ts#L21)
+Defined in: [packages/tween/src/tween.ts:21](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/tween/src/tween.ts#L21)
 
 Tween frames with concurrency control
 

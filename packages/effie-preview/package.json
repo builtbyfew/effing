@@ -21,24 +21,21 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "devDependencies": {
+  "dependencies": {
     "@effing/annie-player": "workspace:*",
-    "@effing/effie": "workspace:*",
+    "@effing/effie": "workspace:*"
+  },
+  "devDependencies": {
     "@types/react": "^19.0.0",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@effing/annie-player": "workspace:*",
-    "@effing/effie": "workspace:*",
     "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
-      "optional": true
-    },
-    "@effing/annie-player": {
       "optional": true
     }
   },

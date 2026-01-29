@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/ffs/src/render.ts#L16)
+Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/ffs/src/render.ts#L16)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing
 
 > `optional` **allowLocalFiles**: `boolean`
 
-Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/ffs/src/render.ts#L23)
+Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/ffs/src/render.ts#L23)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -34,7 +34,7 @@ false
 
 > `optional` **cacheStorage**: `CacheStorage`
 
-Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/ffs/src/render.ts#L28)
+Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/ffs/src/render.ts#L28)
 
 Cache storage instance for source lookups.
 If not provided, a shared lazy-initialized cache will be used.
@@ -45,7 +45,7 @@ If not provided, a shared lazy-initialized cache will be used.
 
 > `optional` **httpProxy**: `HttpProxy`
 
-Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/ffs/src/render.ts#L35)
+Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/ffs/src/render.ts#L35)
 
 HTTP proxy for video/audio URLs.
 When provided, HTTP(S) URLs for video/audio inputs will be routed

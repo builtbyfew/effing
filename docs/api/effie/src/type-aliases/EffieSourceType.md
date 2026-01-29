@@ -8,6 +8,6 @@
 
 > **EffieSourceType** = `"image"` \| `"video"` \| `"audio"` \| `"animation"`
 
-Defined in: [packages/effie/src/extract.ts:6](https://github.com/builtbyfew/effing/blob/e67c47a114d4da26e9638a72bc851315a4011abb/packages/effie/src/extract.ts#L6)
+Defined in: [packages/effie/src/extract.ts:6](https://github.com/builtbyfew/effing/blob/60ed654252a750724cee53d1d0742b66f3eddbea/packages/effie/src/extract.ts#L6)
 
 Source type for extraction

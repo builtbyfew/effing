@@ -478,12 +478,11 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
 
     // Build split/fifo chain for global background
     const globalBgFifoLabels: Map<number, string> = new Map();
+    const bgFilter = `fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight}`;
     if (globalBgSegmentIndices.length === 1) {
       // Single segment - no split needed, just fifo
       const fifoLabel = `bg_fifo_0`;
-      filterParts.push(
-        `[${globalBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},fifo[${fifoLabel}]`,
-      );
+      filterParts.push(`[${globalBgInputIdx}:v]${bgFilter},fifo[${fifoLabel}]`);
       globalBgFifoLabels.set(globalBgSegmentIndices[0], fifoLabel);
     } else if (globalBgSegmentIndices.length > 1) {
       // Multiple segments - use split + fifo
@@ -493,7 +492,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       );
 
       filterParts.push(
-        `[${globalBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},split=${splitCount}${splitOutputLabels.map((l) => `[${l}]`).join("")}`,
+        `[${globalBgInputIdx}:v]${bgFilter},split=${splitCount}${splitOutputLabels.map((l) => `[${l}]`).join("")}`,
       );
 
       for (let i = 0; i < splitCount; i++) {

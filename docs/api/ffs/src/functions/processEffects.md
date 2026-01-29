@@ -8,7 +8,7 @@
 
 > **processEffects**(`effects`, `frameRate`, `frameWidth`, `frameHeight`): `string`
 
-Defined in: [packages/ffs/src/effect.ts:85](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/ffs/src/effect.ts#L85)
+Defined in: [packages/ffs/src/effect.ts:85](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/ffs/src/effect.ts#L85)
 
 ## Parameters
 

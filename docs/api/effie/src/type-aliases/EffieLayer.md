@@ -8,7 +8,7 @@
 
 > **EffieLayer**\<`S`, `U`\> = `object`
 
-Defined in: [packages/effie/src/types.ts:70](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L70)
+Defined in: [packages/effie/src/types.ts:70](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L70)
 
 ## Type Parameters
 
@@ -26,7 +26,7 @@ Defined in: [packages/effie/src/types.ts:70](https://github.com/builtbyfew/effin
 
 > `optional` **delay**: `number`
 
-Defined in: [packages/effie/src/types.ts:78](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L78)
+Defined in: [packages/effie/src/types.ts:78](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L78)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [packages/effie/src/types.ts:78](https://github.com/builtbyfew/effin
 
 > `optional` **effects**: [`EffieEffect`](EffieEffect.md)[]
 
-Defined in: [packages/effie/src/types.ts:81](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L81)
+Defined in: [packages/effie/src/types.ts:81](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L81)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [packages/effie/src/types.ts:81](https://github.com/builtbyfew/effin
 
 > `optional` **from**: `number`
 
-Defined in: [packages/effie/src/types.ts:79](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L79)
+Defined in: [packages/effie/src/types.ts:79](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L79)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [packages/effie/src/types.ts:79](https://github.com/builtbyfew/effin
 
 > `optional` **motion**: [`EffieMotion`](EffieMotion.md)
 
-Defined in: [packages/effie/src/types.ts:82](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L82)
+Defined in: [packages/effie/src/types.ts:82](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L82)
 
 ***
 
@@ -58,7 +58,7 @@ Defined in: [packages/effie/src/types.ts:82](https://github.com/builtbyfew/effin
 
 > **source**: [`EffieSource`](EffieSource.md)\<`S`, `U`\>
 
-Defined in: [packages/effie/src/types.ts:77](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L77)
+Defined in: [packages/effie/src/types.ts:77](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L77)
 
 ***
 
@@ -66,7 +66,7 @@ Defined in: [packages/effie/src/types.ts:77](https://github.com/builtbyfew/effin
 
 > **type**: `"image"` \| `"animation"`
 
-Defined in: [packages/effie/src/types.ts:74](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L74)
+Defined in: [packages/effie/src/types.ts:74](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L74)
 
 ***
 
@@ -74,4 +74,4 @@ Defined in: [packages/effie/src/types.ts:74](https://github.com/builtbyfew/effin
 
 > `optional` **until**: `number`
 
-Defined in: [packages/effie/src/types.ts:80](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L80)
+Defined in: [packages/effie/src/types.ts:80](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L80)

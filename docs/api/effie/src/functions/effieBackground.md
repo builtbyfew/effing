@@ -8,7 +8,7 @@
 
 > **effieBackground**\<`S`\>(`background`): [`EffieBackground`](../type-aliases/EffieBackground.md)\<`S`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [packages/effie/src/types.ts:157](https://github.com/builtbyfew/effing/blob/5e31312c058ac58bac07f46d47a7b20c898cefb4/packages/effie/src/types.ts#L157)
+Defined in: [packages/effie/src/types.ts:157](https://github.com/builtbyfew/effing/blob/e1a56e6fee66fe791a3b58aa0e3d36ac30a91fca/packages/effie/src/types.ts#L157)
 
 ## Type Parameters
 

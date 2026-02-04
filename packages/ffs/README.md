@@ -61,24 +61,25 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 
 #### Environment Variables
 
-| Variable                      | Description                                          |
-| ----------------------------- | ---------------------------------------------------- |
-| `FFS_PORT`                    | Server port (default: 2000)                          |
-| `FFS_BASE_URL`                | Base URL for returned URLs                           |
-| `FFS_API_KEY`                 | API key for authentication (optional)                |
-| `FFS_CACHE_BUCKET`            | S3 bucket for cache (enables S3 mode)                |
-| `FFS_CACHE_ENDPOINT`          | S3-compatible endpoint (for e.g. R2 or MinIO)        |
-| `FFS_CACHE_REGION`            | AWS region (default: "auto")                         |
-| `FFS_CACHE_PREFIX`            | Key prefix for cached objects                        |
-| `FFS_CACHE_ACCESS_KEY`        | S3 access key ID                                     |
-| `FFS_CACHE_SECRET_KEY`        | S3 secret access key                                 |
-| `FFS_CACHE_LOCAL_DIR`         | Local cache directory (when not using S3)            |
-| `FFS_CACHE_TTL_MS`            | Cache TTL in milliseconds (default: 60 min)          |
-| `FFS_CACHE_CONCURRENCY`       | Concurrent fetches during warmup (default: 4)        |
-| `FFS_WARMUP_BACKEND_BASE_URL` | Separate backend for warmup (see Backend Separation) |
-| `FFS_RENDER_BACKEND_BASE_URL` | Separate backend for render (see Backend Separation) |
+| Variable                         | Description                                          |
+| -------------------------------- | ---------------------------------------------------- |
+| `FFS_PORT`                       | Server port (default: 2000)                          |
+| `FFS_BASE_URL`                   | Base URL for returned URLs                           |
+| `FFS_API_KEY`                    | API key for authentication (optional)                |
+| `FFS_TRANSIENT_STORE_BUCKET`     | S3 bucket for transient store (enables S3 mode)      |
+| `FFS_TRANSIENT_STORE_ENDPOINT`   | S3-compatible endpoint (for e.g. R2 or MinIO)        |
+| `FFS_TRANSIENT_STORE_REGION`     | AWS region (default: "auto")                         |
+| `FFS_TRANSIENT_STORE_PREFIX`     | Key prefix for stored objects                        |
+| `FFS_TRANSIENT_STORE_ACCESS_KEY` | S3 access key ID                                     |
+| `FFS_TRANSIENT_STORE_SECRET_KEY` | S3 secret access key                                 |
+| `FFS_TRANSIENT_STORE_LOCAL_DIR`  | Local storage directory (when not using S3)          |
+| `FFS_SOURCE_CACHE_TTL_MS`        | TTL for cached sources in ms (default: 60 min)       |
+| `FFS_JOB_METADATA_TTL_MS`        | TTL for job metadata in ms (default: 8 hours)        |
+| `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4) |
+| `FFS_WARMUP_BACKEND_BASE_URL`    | Separate backend for warmup (see Backend Separation) |
+| `FFS_RENDER_BACKEND_BASE_URL`    | Separate backend for render (see Backend Separation) |
 
-When `FFS_CACHE_BUCKET` is not set, FFS uses the local filesystem for caching (default: system temp directory). Local cache files are automatically cleaned up after the TTL expires.
+When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for storage (default: system temp directory). Local files are automatically cleaned up after the TTL expires.
 
 For S3 storage, the TTL is set as the `Expires` header on objects. Note that this is metadata only. To enable automatic deletion, configure [S3 lifecycle rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) on your bucket to delete expired objects.
 

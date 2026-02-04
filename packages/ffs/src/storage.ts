@@ -14,12 +14,21 @@ import os from "os";
 import crypto from "crypto";
 import type { Readable } from "stream";
 
+/** Default TTL for sources: 60 minutes */
+const DEFAULT_SOURCE_TTL_MS = 60 * 60 * 1000;
+/** Default TTL for job metadata: 8 hours */
+const DEFAULT_JOB_METADATA_TTL_MS = 8 * 60 * 60 * 1000;
+
 /**
- * Cache storage interface
+ * Transient store interface for caching sources and storing ephemeral job metadata.
  */
-export interface CacheStorage {
-  /** Store a stream with the given key */
-  put(key: string, stream: Readable): Promise<void>;
+export interface TransientStore {
+  /** TTL for cached sources in milliseconds */
+  readonly sourceTtlMs: number;
+  /** TTL for job metadata in milliseconds */
+  readonly jobMetadataTtlMs: number;
+  /** Store a stream with the given key and optional TTL override */
+  put(key: string, stream: Readable, ttlMs?: number): Promise<void>;
   /** Get a stream for the given key, or null if not found */
   getStream(key: string): Promise<Readable | null>;
   /** Check if a key exists */
@@ -28,8 +37,8 @@ export interface CacheStorage {
   existsMany(keys: string[]): Promise<Map<string, boolean>>;
   /** Delete a key */
   delete(key: string): Promise<void>;
-  /** Store JSON data */
-  putJson(key: string, data: object): Promise<void>;
+  /** Store JSON data with optional TTL override */
+  putJson(key: string, data: object, ttlMs?: number): Promise<void>;
   /** Get JSON data, or null if not found */
   getJson<T>(key: string): Promise<T | null>;
   /** Close and cleanup resources */
@@ -37,13 +46,14 @@ export interface CacheStorage {
 }
 
 /**
- * S3-compatible cache storage implementation
+ * S3-compatible transient store implementation
  */
-export class S3CacheStorage implements CacheStorage {
+export class S3TransientStore implements TransientStore {
   private client: S3Client;
   private bucket: string;
   private prefix: string;
-  private ttlMs: number;
+  public readonly sourceTtlMs: number;
+  public readonly jobMetadataTtlMs: number;
 
   constructor(options: {
     endpoint?: string;
@@ -52,7 +62,8 @@ export class S3CacheStorage implements CacheStorage {
     prefix?: string;
     accessKeyId?: string;
     secretAccessKey?: string;
-    ttlMs?: number;
+    sourceTtlMs?: number;
+    jobMetadataTtlMs?: number;
   }) {
     this.client = new S3Client({
       endpoint: options.endpoint,
@@ -67,25 +78,27 @@ export class S3CacheStorage implements CacheStorage {
     });
     this.bucket = options.bucket;
     this.prefix = options.prefix ?? "";
-    this.ttlMs = options.ttlMs ?? 60 * 60 * 1000; // Default: 60 minutes
+    this.sourceTtlMs = options.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
+    this.jobMetadataTtlMs =
+      options.jobMetadataTtlMs ?? DEFAULT_JOB_METADATA_TTL_MS;
   }
 
-  private getExpires(): Date {
-    return new Date(Date.now() + this.ttlMs);
+  private getExpires(ttlMs: number): Date {
+    return new Date(Date.now() + ttlMs);
   }
 
   private getFullKey(key: string): string {
     return `${this.prefix}${key}`;
   }
 
-  async put(key: string, stream: Readable): Promise<void> {
+  async put(key: string, stream: Readable, ttlMs?: number): Promise<void> {
     const upload = new Upload({
       client: this.client,
       params: {
         Bucket: this.bucket,
         Key: this.getFullKey(key),
         Body: stream,
-        Expires: this.getExpires(),
+        Expires: this.getExpires(ttlMs ?? this.sourceTtlMs),
       },
     });
     await upload.done();
@@ -169,14 +182,14 @@ export class S3CacheStorage implements CacheStorage {
     }
   }
 
-  async putJson(key: string, data: object): Promise<void> {
+  async putJson(key: string, data: object, ttlMs?: number): Promise<void> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: this.getFullKey(key),
         Body: JSON.stringify(data),
         ContentType: "application/json",
-        Expires: this.getExpires(),
+        Expires: this.getExpires(ttlMs ?? this.jobMetadataTtlMs),
       }),
     );
   }
@@ -213,17 +226,27 @@ export class S3CacheStorage implements CacheStorage {
 }
 
 /**
- * Local filesystem cache storage implementation
+ * Local filesystem transient store implementation
  */
-export class LocalCacheStorage implements CacheStorage {
+export class LocalTransientStore implements TransientStore {
   private baseDir: string;
   private initialized = false;
   private cleanupInterval?: ReturnType<typeof setInterval>;
-  private ttlMs: number;
+  public readonly sourceTtlMs: number;
+  public readonly jobMetadataTtlMs: number;
+  /** For cleanup, use the longer of the two TTLs */
+  private maxTtlMs: number;
 
-  constructor(baseDir?: string, ttlMs: number = 60 * 60 * 1000) {
-    this.baseDir = baseDir ?? path.join(os.tmpdir(), "ffs-cache");
-    this.ttlMs = ttlMs;
+  constructor(options?: {
+    baseDir?: string;
+    sourceTtlMs?: number;
+    jobMetadataTtlMs?: number;
+  }) {
+    this.baseDir = options?.baseDir ?? path.join(os.tmpdir(), "ffs-transient");
+    this.sourceTtlMs = options?.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
+    this.jobMetadataTtlMs =
+      options?.jobMetadataTtlMs ?? DEFAULT_JOB_METADATA_TTL_MS;
+    this.maxTtlMs = Math.max(this.sourceTtlMs, this.jobMetadataTtlMs);
 
     // Cleanup expired files every 5 minutes
     this.cleanupInterval = setInterval(() => {
@@ -232,7 +255,7 @@ export class LocalCacheStorage implements CacheStorage {
   }
 
   /**
-   * Remove files older than TTL
+   * Remove files older than max TTL
    */
   public async cleanupExpired(): Promise<void> {
     if (!this.initialized) return;
@@ -263,7 +286,7 @@ export class LocalCacheStorage implements CacheStorage {
       } else if (entry.isFile()) {
         try {
           const stat = await fs.stat(fullPath);
-          if (now - stat.mtimeMs > this.ttlMs) {
+          if (now - stat.mtimeMs > this.maxTtlMs) {
             await fs.rm(fullPath, { force: true });
           }
         } catch {
@@ -288,7 +311,8 @@ export class LocalCacheStorage implements CacheStorage {
     return `${finalPath}.tmp-${process.pid}-${rand}`;
   }
 
-  async put(key: string, stream: Readable): Promise<void> {
+  async put(key: string, stream: Readable, _ttlMs?: number): Promise<void> {
+    // Note: TTL is not used for local storage; cleanup uses file mtime
     const fp = this.filePath(key);
     await this.ensureDir(fp);
 
@@ -330,7 +354,8 @@ export class LocalCacheStorage implements CacheStorage {
     await fs.rm(this.filePath(key), { force: true });
   }
 
-  async putJson(key: string, data: object): Promise<void> {
+  async putJson(key: string, data: object, _ttlMs?: number): Promise<void> {
+    // Note: TTL is not used for local storage; cleanup uses file mtime
     const fp = this.filePath(key);
     await this.ensureDir(fp);
 
@@ -364,68 +389,76 @@ export class LocalCacheStorage implements CacheStorage {
 }
 
 /**
- * Create a cache storage instance based on environment variables.
- * Uses S3 if FFS_CACHE_BUCKET is set, otherwise uses local filesystem.
+ * Create a transient store instance based on environment variables.
+ * Uses S3 if FFS_TRANSIENT_STORE_BUCKET is set, otherwise uses local filesystem.
  */
-export function createCacheStorage(): CacheStorage {
-  // Parse TTL from env (default: 60 minutes)
-  const ttlMs = process.env.FFS_CACHE_TTL_MS
-    ? parseInt(process.env.FFS_CACHE_TTL_MS, 10)
-    : 60 * 60 * 1000;
+export function createTransientStore(): TransientStore {
+  // Parse TTLs from env
+  const sourceTtlMs = process.env.FFS_SOURCE_CACHE_TTL_MS
+    ? parseInt(process.env.FFS_SOURCE_CACHE_TTL_MS, 10)
+    : DEFAULT_SOURCE_TTL_MS;
+  const jobMetadataTtlMs = process.env.FFS_JOB_METADATA_TTL_MS
+    ? parseInt(process.env.FFS_JOB_METADATA_TTL_MS, 10)
+    : DEFAULT_JOB_METADATA_TTL_MS;
 
-  if (process.env.FFS_CACHE_BUCKET) {
-    return new S3CacheStorage({
-      endpoint: process.env.FFS_CACHE_ENDPOINT,
-      region: process.env.FFS_CACHE_REGION ?? "auto",
-      bucket: process.env.FFS_CACHE_BUCKET,
-      prefix: process.env.FFS_CACHE_PREFIX,
-      accessKeyId: process.env.FFS_CACHE_ACCESS_KEY,
-      secretAccessKey: process.env.FFS_CACHE_SECRET_KEY,
-      ttlMs,
+  if (process.env.FFS_TRANSIENT_STORE_BUCKET) {
+    return new S3TransientStore({
+      endpoint: process.env.FFS_TRANSIENT_STORE_ENDPOINT,
+      region: process.env.FFS_TRANSIENT_STORE_REGION ?? "auto",
+      bucket: process.env.FFS_TRANSIENT_STORE_BUCKET,
+      prefix: process.env.FFS_TRANSIENT_STORE_PREFIX,
+      accessKeyId: process.env.FFS_TRANSIENT_STORE_ACCESS_KEY,
+      secretAccessKey: process.env.FFS_TRANSIENT_STORE_SECRET_KEY,
+      sourceTtlMs,
+      jobMetadataTtlMs,
     });
   }
 
-  return new LocalCacheStorage(process.env.FFS_CACHE_LOCAL_DIR, ttlMs);
+  return new LocalTransientStore({
+    baseDir: process.env.FFS_TRANSIENT_STORE_LOCAL_DIR,
+    sourceTtlMs,
+    jobMetadataTtlMs,
+  });
 }
 
 export function hashUrl(url: string): string {
   return crypto.createHash("sha256").update(url).digest("hex").slice(0, 16);
 }
 
-export type SourceCacheKey = `sources/${string}`;
-export type WarmupJobCacheKey = `jobs/warmup/${string}.json`;
-export type RenderJobCacheKey = `jobs/render/${string}.json`;
-export type WarmupAndRenderJobCacheKey =
+export type SourceStoreKey = `sources/${string}`;
+export type WarmupJobStoreKey = `jobs/warmup/${string}.json`;
+export type RenderJobStoreKey = `jobs/render/${string}.json`;
+export type WarmupAndRenderJobStoreKey =
   `jobs/warmup-and-render/${string}.json`;
 
 /**
- * Build the cache key for a source URL (hashing is handled internally).
+ * Build the store key for a source URL (hashing is handled internally).
  */
-export function sourceCacheKey(url: string): SourceCacheKey {
+export function sourceStoreKey(url: string): SourceStoreKey {
   return `sources/${hashUrl(url)}`;
 }
 
-export function warmupJobCacheKey(jobId: string): WarmupJobCacheKey {
+export function warmupJobStoreKey(jobId: string): WarmupJobStoreKey {
   return `jobs/warmup/${jobId}.json`;
 }
 
-export function renderJobCacheKey(jobId: string): RenderJobCacheKey {
+export function renderJobStoreKey(jobId: string): RenderJobStoreKey {
   return `jobs/render/${jobId}.json`;
 }
 
-export function warmupAndRenderJobCacheKey(
+export function warmupAndRenderJobStoreKey(
   jobId: string,
-): WarmupAndRenderJobCacheKey {
+): WarmupAndRenderJobStoreKey {
   return `jobs/warmup-and-render/${jobId}.json`;
 }
 
 /**
- * Centralized cache key builders for known namespaces.
+ * Centralized store key builders for known namespaces.
  * Prefer using these helpers over manual string interpolation.
  */
-export const cacheKeys = {
-  source: sourceCacheKey,
-  warmupJob: warmupJobCacheKey,
-  renderJob: renderJobCacheKey,
-  warmupAndRenderJob: warmupAndRenderJobCacheKey,
+export const storeKeys = {
+  source: sourceStoreKey,
+  warmupJob: warmupJobStoreKey,
+  renderJob: renderJobStoreKey,
+  warmupAndRenderJob: warmupAndRenderJobStoreKey,
 } as const;

@@ -9,8 +9,8 @@ import type { EffieData, EffieSources, EffieWebUrl } from "@effing/effie";
 import sharp from "sharp";
 import { ffsFetch } from "./fetch";
 import { fileURLToPath } from "url";
-import { cacheKeys } from "./cache";
-import type { CacheStorage } from "./cache";
+import { storeKeys } from "./storage";
+import type { TransientStore } from "./storage";
 import type { HttpProxy } from "./proxy";
 
 export type EffieRendererOptions = {
@@ -22,10 +22,10 @@ export type EffieRendererOptions = {
    */
   allowLocalFiles?: boolean;
   /**
-   * Cache storage instance for source lookups.
-   * If not provided, a shared lazy-initialized cache will be used.
+   * Transient store instance for source lookups.
+   * If not provided, sources will be fetched directly from network.
    */
-  cacheStorage?: CacheStorage;
+  transientStore?: TransientStore;
   /**
    * HTTP proxy for video/audio URLs.
    * When provided, HTTP(S) URLs for video/audio inputs will be routed
@@ -39,7 +39,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   private effieData: EffieData<EffieSources<U>, U>;
   private ffmpegRunner?: FFmpegRunner;
   private allowLocalFiles: boolean;
-  private cacheStorage?: CacheStorage;
+  private transientStore?: TransientStore;
   private httpProxy?: HttpProxy;
 
   constructor(
@@ -48,7 +48,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   ) {
     this.effieData = effieData;
     this.allowLocalFiles = options?.allowLocalFiles ?? false;
-    this.cacheStorage = options?.cacheStorage;
+    this.transientStore = options?.transientStore;
     this.httpProxy = options?.httpProxy;
   }
 
@@ -81,10 +81,10 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       return createReadStream(fileURLToPath(src));
     }
 
-    // If we have a cache, check the cache first
-    if (this.cacheStorage) {
-      const cachedStream = await this.cacheStorage.getStream(
-        cacheKeys.source(src),
+    // If we have a transient store, check the store first
+    if (this.transientStore) {
+      const cachedStream = await this.transientStore.getStream(
+        storeKeys.source(src),
       );
       if (cachedStream) {
         return cachedStream;

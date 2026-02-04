@@ -63,7 +63,7 @@ const server = app.listen(port, () => {
 function shutdown() {
   console.log("Shutting down FFS server...");
   ctx.httpProxy.close();
-  ctx.cacheStorage.close();
+  ctx.transientStore.close();
   server.close(() => {
     console.log("FFS server stopped");
     process.exit(0);

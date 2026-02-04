@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/ffs/src/render.ts#L16)
+Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/2e9a54cdce7ecc77e7980390cfb8bd3f8b6cce3e/packages/ffs/src/render.ts#L16)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing
 
 > `optional` **allowLocalFiles**: `boolean`
 
-Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/ffs/src/render.ts#L23)
+Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/2e9a54cdce7ecc77e7980390cfb8bd3f8b6cce3e/packages/ffs/src/render.ts#L23)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -30,24 +30,24 @@ false
 
 ***
 
-### cacheStorage?
-
-> `optional` **cacheStorage**: `CacheStorage`
-
-Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/ffs/src/render.ts#L28)
-
-Cache storage instance for source lookups.
-If not provided, a shared lazy-initialized cache will be used.
-
-***
-
 ### httpProxy?
 
 > `optional` **httpProxy**: `HttpProxy`
 
-Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/ffs/src/render.ts#L35)
+Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/2e9a54cdce7ecc77e7980390cfb8bd3f8b6cce3e/packages/ffs/src/render.ts#L35)
 
 HTTP proxy for video/audio URLs.
 When provided, HTTP(S) URLs for video/audio inputs will be routed
 through this proxy, allowing Node.js to handle DNS resolution
 instead of FFmpeg (useful for Alpine Linux with musl libc).
+
+***
+
+### transientStore?
+
+> `optional` **transientStore**: `TransientStore`
+
+Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/2e9a54cdce7ecc77e7980390cfb8bd3f8b6cce3e/packages/ffs/src/render.ts#L28)
+
+Transient store instance for source lookups.
+If not provided, sources will be fetched directly from network.

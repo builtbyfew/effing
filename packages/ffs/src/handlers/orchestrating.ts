@@ -1,7 +1,7 @@
 import express from "express";
 import { randomUUID } from "crypto";
 import type { Response as UndiciResponse } from "undici";
-import { cacheKeys } from "../cache";
+import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
 import { extractEffieSourcesWithTypes, effieDataSchema } from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
@@ -95,18 +95,28 @@ export async function createWarmupAndRenderJob(
       createdAt: Date.now(),
     };
 
-    await ctx.cacheStorage.putJson(cacheKeys.warmupAndRenderJob(jobId), job);
+    await ctx.transientStore.putJson(
+      storeKeys.warmupAndRenderJob(jobId),
+      job,
+      ctx.transientStore.jobMetadataTtlMs,
+    );
 
     // Also store sub-jobs for backend execution
-    await ctx.cacheStorage.putJson(cacheKeys.warmupJob(warmupJobId), {
-      sources,
-    });
-    await ctx.cacheStorage.putJson(cacheKeys.renderJob(renderJobId), {
-      effie,
-      scale,
-      upload,
-      createdAt: Date.now(),
-    } satisfies RenderJob);
+    await ctx.transientStore.putJson(
+      storeKeys.warmupJob(warmupJobId),
+      { sources },
+      ctx.transientStore.jobMetadataTtlMs,
+    );
+    await ctx.transientStore.putJson(
+      storeKeys.renderJob(renderJobId),
+      {
+        effie,
+        scale,
+        upload,
+        createdAt: Date.now(),
+      } satisfies RenderJob,
+      ctx.transientStore.jobMetadataTtlMs,
+    );
 
     res.json({
       id: jobId,
@@ -131,10 +141,11 @@ export async function streamWarmupAndRenderJob(
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
-    const jobCacheKey = cacheKeys.warmupAndRenderJob(jobId);
-    const job = await ctx.cacheStorage.getJson<WarmupAndRenderJob>(jobCacheKey);
+    const jobCacheKey = storeKeys.warmupAndRenderJob(jobId);
+    const job =
+      await ctx.transientStore.getJson<WarmupAndRenderJob>(jobCacheKey);
     // Only allow the job to run once
-    ctx.cacheStorage.delete(jobCacheKey);
+    ctx.transientStore.delete(jobCacheKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found" });

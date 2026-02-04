@@ -6,7 +6,11 @@ import {
   afterEach,
   afterAll,
 } from "vitest";
-import { LocalCacheStorage, createCacheStorage, S3CacheStorage } from "./cache";
+import {
+  LocalTransientStore,
+  createTransientStore,
+  S3TransientStore,
+} from "./storage";
 import { Readable } from "stream";
 import fs from "fs/promises";
 import path from "path";
@@ -20,13 +24,15 @@ async function readAll(stream: Readable): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-describe("LocalCacheStorage", () => {
+describe("LocalTransientStore", () => {
   let tempDir: string;
-  let storage: LocalCacheStorage;
+  let storage: LocalTransientStore;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-cache-test-"));
-    storage = new LocalCacheStorage(tempDir, 60 * 60 * 1000);
+    tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "ffs-transient-store-test-"),
+    );
+    storage = new LocalTransientStore({ baseDir: tempDir });
   });
 
   afterEach(async () => {
@@ -36,7 +42,7 @@ describe("LocalCacheStorage", () => {
 
   describe("put and getStream", () => {
     test("stores and retrieves stream data", async () => {
-      const data = Buffer.from("test cache data");
+      const data = Buffer.from("test transient data");
       const stream = Readable.from(data);
 
       await storage.put("test-file", stream);
@@ -45,7 +51,7 @@ describe("LocalCacheStorage", () => {
       expect(retrieved).not.toBeNull();
 
       const result = await readAll(retrieved!);
-      expect(result.toString()).toBe("test cache data");
+      expect(result.toString()).toBe("test transient data");
     });
 
     test("is atomic: final path is only visible after stream completes", async () => {
@@ -161,7 +167,7 @@ describe("LocalCacheStorage", () => {
 
   describe("close", () => {
     test("stops cleanup interval", async () => {
-      const testStorage = new LocalCacheStorage(tempDir);
+      const testStorage = new LocalTransientStore({ baseDir: tempDir });
 
       // Should not throw
       testStorage.close();
@@ -170,13 +176,35 @@ describe("LocalCacheStorage", () => {
       testStorage.close();
     });
   });
+
+  describe("TTL properties", () => {
+    test("exposes default TTL values", () => {
+      expect(storage.sourceTtlMs).toBe(60 * 60 * 1000);
+      expect(storage.jobMetadataTtlMs).toBe(8 * 60 * 60 * 1000);
+    });
+
+    test("uses custom TTL values when provided", () => {
+      const customStorage = new LocalTransientStore({
+        baseDir: tempDir,
+        sourceTtlMs: 30 * 60 * 1000,
+        jobMetadataTtlMs: 2 * 60 * 60 * 1000,
+      });
+
+      expect(customStorage.sourceTtlMs).toBe(30 * 60 * 1000);
+      expect(customStorage.jobMetadataTtlMs).toBe(2 * 60 * 60 * 1000);
+
+      customStorage.close();
+    });
+  });
 });
 
-describe("LocalCacheStorage TTL cleanup", () => {
+describe("LocalTransientStore TTL cleanup", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-cache-ttl-test-"));
+    tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "ffs-transient-ttl-test-"),
+    );
   });
 
   afterEach(async () => {
@@ -184,8 +212,12 @@ describe("LocalCacheStorage TTL cleanup", () => {
   });
 
   test("cleans up files older than TTL", async () => {
-    // Create storage with very short TTL (1ms)
-    const storage = new LocalCacheStorage(tempDir, 1);
+    // Create storage with very short TTL (1ms for both)
+    const storage = new LocalTransientStore({
+      baseDir: tempDir,
+      sourceTtlMs: 1,
+      jobMetadataTtlMs: 1,
+    });
 
     // Store a file
     await storage.put("old-file", Readable.from(Buffer.from("old data")));
@@ -208,19 +240,20 @@ describe("LocalCacheStorage TTL cleanup", () => {
   });
 });
 
-describe("createCacheStorage", () => {
+describe("createTransientStore", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     // Reset relevant env vars
-    delete process.env.FFS_CACHE_BUCKET;
-    delete process.env.FFS_CACHE_ENDPOINT;
-    delete process.env.FFS_CACHE_REGION;
-    delete process.env.FFS_CACHE_PREFIX;
-    delete process.env.FFS_CACHE_ACCESS_KEY;
-    delete process.env.FFS_CACHE_SECRET_KEY;
-    delete process.env.FFS_CACHE_LOCAL_DIR;
-    delete process.env.FFS_CACHE_TTL_MS;
+    delete process.env.FFS_TRANSIENT_STORE_BUCKET;
+    delete process.env.FFS_TRANSIENT_STORE_ENDPOINT;
+    delete process.env.FFS_TRANSIENT_STORE_REGION;
+    delete process.env.FFS_TRANSIENT_STORE_PREFIX;
+    delete process.env.FFS_TRANSIENT_STORE_ACCESS_KEY;
+    delete process.env.FFS_TRANSIENT_STORE_SECRET_KEY;
+    delete process.env.FFS_TRANSIENT_STORE_LOCAL_DIR;
+    delete process.env.FFS_SOURCE_CACHE_TTL_MS;
+    delete process.env.FFS_JOB_METADATA_TTL_MS;
   });
 
   afterAll(() => {
@@ -231,52 +264,56 @@ describe("createCacheStorage", () => {
     Object.assign(process.env, originalEnv);
   });
 
-  test("returns LocalCacheStorage when FFS_CACHE_BUCKET is not set", () => {
-    const storage = createCacheStorage();
+  test("returns LocalTransientStore when FFS_TRANSIENT_STORE_BUCKET is not set", () => {
+    const storage = createTransientStore();
 
-    expect(storage).toBeInstanceOf(LocalCacheStorage);
+    expect(storage).toBeInstanceOf(LocalTransientStore);
     storage.close();
   });
 
-  test("returns S3CacheStorage when FFS_CACHE_BUCKET is set", () => {
-    process.env.FFS_CACHE_BUCKET = "my-bucket";
+  test("returns S3TransientStore when FFS_TRANSIENT_STORE_BUCKET is set", () => {
+    process.env.FFS_TRANSIENT_STORE_BUCKET = "my-bucket";
 
-    const storage = createCacheStorage();
+    const storage = createTransientStore();
 
-    expect(storage).toBeInstanceOf(S3CacheStorage);
+    expect(storage).toBeInstanceOf(S3TransientStore);
     expect((storage as unknown as { bucket: string }).bucket).toBe("my-bucket");
     storage.close();
   });
 
   test("passes S3 configuration from environment", () => {
-    process.env.FFS_CACHE_BUCKET = "my-bucket";
-    process.env.FFS_CACHE_ENDPOINT = "https://s3.example.com";
-    process.env.FFS_CACHE_REGION = "us-west-2";
-    process.env.FFS_CACHE_PREFIX = "cache/v1/";
-    process.env.FFS_CACHE_ACCESS_KEY = "access-key";
-    process.env.FFS_CACHE_SECRET_KEY = "secret-key";
-    process.env.FFS_CACHE_TTL_MS = "1800000";
+    process.env.FFS_TRANSIENT_STORE_BUCKET = "my-bucket";
+    process.env.FFS_TRANSIENT_STORE_ENDPOINT = "https://s3.example.com";
+    process.env.FFS_TRANSIENT_STORE_REGION = "us-west-2";
+    process.env.FFS_TRANSIENT_STORE_PREFIX = "transient/v1/";
+    process.env.FFS_TRANSIENT_STORE_ACCESS_KEY = "access-key";
+    process.env.FFS_TRANSIENT_STORE_SECRET_KEY = "secret-key";
+    process.env.FFS_SOURCE_CACHE_TTL_MS = "1800000";
+    process.env.FFS_JOB_METADATA_TTL_MS = "7200000";
 
-    const storage = createCacheStorage();
+    const storage = createTransientStore();
 
     // Can't easily verify S3 client config, but we can verify it's an S3 storage
-    expect(storage).toBeInstanceOf(S3CacheStorage);
+    expect(storage).toBeInstanceOf(S3TransientStore);
     expect((storage as unknown as { bucket: string }).bucket).toBe("my-bucket");
-    expect((storage as unknown as { prefix: string }).prefix).toBe("cache/v1/");
-    expect((storage as unknown as { ttlMs: number }).ttlMs).toBe(1_800_000);
+    expect((storage as unknown as { prefix: string }).prefix).toBe(
+      "transient/v1/",
+    );
+    expect(storage.sourceTtlMs).toBe(1_800_000);
+    expect(storage.jobMetadataTtlMs).toBe(7_200_000);
     storage.close();
   });
 
-  test("uses custom local directory when FFS_CACHE_LOCAL_DIR is set", async () => {
+  test("uses custom local directory when FFS_TRANSIENT_STORE_LOCAL_DIR is set", async () => {
     const customDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "ffs-custom-cache-"),
+      path.join(os.tmpdir(), "ffs-custom-transient-"),
     );
 
     try {
-      process.env.FFS_CACHE_LOCAL_DIR = customDir;
+      process.env.FFS_TRANSIENT_STORE_LOCAL_DIR = customDir;
 
-      const storage = createCacheStorage();
-      expect(storage).toBeInstanceOf(LocalCacheStorage);
+      const storage = createTransientStore();
+      expect(storage).toBeInstanceOf(LocalTransientStore);
       expect((storage as unknown as { baseDir: string }).baseDir).toBe(
         customDir,
       );
@@ -293,21 +330,29 @@ describe("createCacheStorage", () => {
     }
   });
 
-  test("uses custom TTL from FFS_CACHE_TTL_MS", () => {
-    process.env.FFS_CACHE_TTL_MS = "300000"; // 5 minutes
+  test("uses custom source TTL from FFS_SOURCE_CACHE_TTL_MS", () => {
+    process.env.FFS_SOURCE_CACHE_TTL_MS = "300000"; // 5 minutes
 
-    const storage = createCacheStorage();
-    expect(storage).toBeInstanceOf(LocalCacheStorage);
-    expect((storage as unknown as { ttlMs: number }).ttlMs).toBe(300_000);
+    const storage = createTransientStore();
+    expect(storage).toBeInstanceOf(LocalTransientStore);
+    expect(storage.sourceTtlMs).toBe(300_000);
     storage.close();
   });
 
-  test("uses default TTL of 60 minutes when FFS_CACHE_TTL_MS is not set", () => {
-    const storage = createCacheStorage();
-    expect(storage).toBeInstanceOf(LocalCacheStorage);
-    expect((storage as unknown as { ttlMs: number }).ttlMs).toBe(
-      60 * 60 * 1000,
-    );
+  test("uses custom job metadata TTL from FFS_JOB_METADATA_TTL_MS", () => {
+    process.env.FFS_JOB_METADATA_TTL_MS = "14400000"; // 4 hours
+
+    const storage = createTransientStore();
+    expect(storage).toBeInstanceOf(LocalTransientStore);
+    expect(storage.jobMetadataTtlMs).toBe(14_400_000);
+    storage.close();
+  });
+
+  test("uses default TTLs when env vars are not set", () => {
+    const storage = createTransientStore();
+    expect(storage).toBeInstanceOf(LocalTransientStore);
+    expect(storage.sourceTtlMs).toBe(60 * 60 * 1000); // 60 minutes
+    expect(storage.jobMetadataTtlMs).toBe(8 * 60 * 60 * 1000); // 8 hours
     storage.close();
   });
 });

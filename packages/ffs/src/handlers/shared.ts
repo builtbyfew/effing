@@ -1,6 +1,6 @@
 import express from "express";
-import type { CacheStorage } from "../cache";
-import { createCacheStorage } from "../cache";
+import type { TransientStore } from "../storage";
+import { createTransientStore } from "../storage";
 import { HttpProxy } from "../proxy";
 import type {
   EffieData,
@@ -36,11 +36,11 @@ export type WarmupAndRenderJob = {
 };
 
 export type ServerContext = {
-  cacheStorage: CacheStorage;
+  transientStore: TransientStore;
   httpProxy: HttpProxy;
   baseUrl: string;
   skipValidation: boolean;
-  cacheConcurrency: number;
+  warmupConcurrency: number;
   warmupBackendBaseUrl?: string;
   renderBackendBaseUrl?: string;
 };
@@ -59,13 +59,13 @@ export async function createServerContext(): Promise<ServerContext> {
   const httpProxy = new HttpProxy();
   await httpProxy.start();
   return {
-    cacheStorage: createCacheStorage(),
+    transientStore: createTransientStore(),
     httpProxy,
     baseUrl: process.env.FFS_BASE_URL || `http://localhost:${port}`,
     skipValidation:
       !!process.env.FFS_SKIP_VALIDATION &&
       process.env.FFS_SKIP_VALIDATION !== "false",
-    cacheConcurrency: parseInt(process.env.FFS_CACHE_CONCURRENCY || "4", 10),
+    warmupConcurrency: parseInt(process.env.FFS_WARMUP_CONCURRENCY || "4", 10),
     warmupBackendBaseUrl: process.env.FFS_WARMUP_BACKEND_BASE_URL,
     renderBackendBaseUrl: process.env.FFS_RENDER_BACKEND_BASE_URL,
   };

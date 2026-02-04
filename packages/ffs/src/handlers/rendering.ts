@@ -1,6 +1,6 @@
 import express from "express";
 import { randomUUID } from "crypto";
-import { cacheKeys } from "../cache";
+import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
 import { EffieRenderer } from "../render";
 import { effieDataSchema } from "@effing/effie";
@@ -100,7 +100,11 @@ export async function createRenderJob(
       createdAt: Date.now(),
     };
 
-    await ctx.cacheStorage.putJson(cacheKeys.renderJob(jobId), job);
+    await ctx.transientStore.putJson(
+      storeKeys.renderJob(jobId),
+      job,
+      ctx.transientStore.jobMetadataTtlMs,
+    );
 
     res.json({
       id: jobId,
@@ -132,10 +136,10 @@ export async function streamRenderJob(
       return;
     }
 
-    const jobCacheKey = cacheKeys.renderJob(jobId);
-    const job = await ctx.cacheStorage.getJson<RenderJob>(jobCacheKey);
+    const jobCacheKey = storeKeys.renderJob(jobId);
+    const job = await ctx.transientStore.getJson<RenderJob>(jobCacheKey);
     // only allow the render job to run once
-    ctx.cacheStorage.delete(jobCacheKey);
+    ctx.transientStore.delete(jobCacheKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found or expired" });
@@ -167,7 +171,7 @@ export async function streamRenderDirect(
   ctx: ServerContext,
 ): Promise<void> {
   const renderer = new EffieRenderer(job.effie, {
-    cacheStorage: ctx.cacheStorage,
+    transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
   });
   const videoStream = await renderer.render(job.scale);
@@ -262,7 +266,7 @@ export async function renderAndUploadInternal(
   // Render effie data to video
   const renderStartTime = Date.now();
   const renderer = new EffieRenderer(effie, {
-    cacheStorage: ctx.cacheStorage,
+    transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
   });
   const videoStream = await renderer.render(scale);

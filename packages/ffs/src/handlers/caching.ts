@@ -1,7 +1,7 @@
 import express from "express";
 import { Readable, Transform } from "stream";
 import { randomUUID } from "crypto";
-import { cacheKeys } from "../cache";
+import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
 import {
   extractEffieSources,
@@ -47,8 +47,12 @@ export async function createWarmupJob(
     const sources = extractEffieSourcesWithTypes(parseResult.effie);
     const jobId = randomUUID();
 
-    // Store job in cache
-    await ctx.cacheStorage.putJson(cacheKeys.warmupJob(jobId), { sources });
+    // Store job in cache with job metadata TTL
+    await ctx.transientStore.putJson(
+      storeKeys.warmupJob(jobId),
+      { sources },
+      ctx.transientStore.jobMetadataTtlMs,
+    );
 
     res.json({
       id: jobId,
@@ -91,10 +95,10 @@ export async function streamWarmupJob(
       return;
     }
 
-    const jobCacheKey = cacheKeys.warmupJob(jobId);
-    const job = await ctx.cacheStorage.getJson<WarmupJob>(jobCacheKey);
+    const jobCacheKey = storeKeys.warmupJob(jobId);
+    const job = await ctx.transientStore.getJson<WarmupJob>(jobCacheKey);
     // only allow the warmup job to run once
-    ctx.cacheStorage.delete(jobCacheKey);
+    ctx.transientStore.delete(jobCacheKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found" });
@@ -141,9 +145,9 @@ export async function purgeCache(
 
     let purged = 0;
     for (const url of sources) {
-      const ck = cacheKeys.source(url);
-      if (await ctx.cacheStorage.exists(ck)) {
-        await ctx.cacheStorage.delete(ck);
+      const ck = storeKeys.source(url);
+      if (await ctx.transientStore.exists(ck)) {
+        await ctx.transientStore.delete(ck);
         purged++;
       }
     }
@@ -192,8 +196,8 @@ export async function warmupSources(
   }
 
   // Check what's already cached
-  const sourceCacheKeys = sourcesToCache.map((s) => cacheKeys.source(s.url));
-  const existsMap = await ctx.cacheStorage.existsMany(sourceCacheKeys);
+  const sourceCacheKeys = sourcesToCache.map((s) => storeKeys.source(s.url));
+  const existsMap = await ctx.transientStore.existsMany(sourceCacheKeys);
 
   // Report hits immediately
   for (let i = 0; i < sourcesToCache.length; i++) {
@@ -228,11 +232,11 @@ export async function warmupSources(
   // Fetch uncached sources with concurrency limit
   const queue = [...uncached];
   const workers = Array.from(
-    { length: Math.min(ctx.cacheConcurrency, queue.length) },
+    { length: Math.min(ctx.warmupConcurrency, queue.length) },
     async () => {
       while (queue.length > 0) {
         const source = queue.shift()!;
-        const cacheKey = cacheKeys.source(source.url);
+        const cacheKey = storeKeys.source(source.url);
         const startTime = Date.now();
 
         try {
@@ -325,7 +329,11 @@ export async function fetchAndCache(
     },
   });
 
-  // Pipe through progress tracker to cache storage
+  // Pipe through progress tracker to cache storage with source TTL
   const trackedStream = sourceStream.pipe(progressStream);
-  await ctx.cacheStorage.put(cacheKey, trackedStream);
+  await ctx.transientStore.put(
+    cacheKey,
+    trackedStream,
+    ctx.transientStore.sourceTtlMs,
+  );
 }

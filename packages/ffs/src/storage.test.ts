@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { hashUrl } from "./cache";
+import { hashUrl } from "./storage";
 
 describe("hashUrl", () => {
   test("returns consistent hash for same URL", () => {

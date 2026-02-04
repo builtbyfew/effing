@@ -1,5 +1,24 @@
 # @effing/ffs
 
+## 0.3.0
+
+### Minor Changes
+
+- d2aedba: Add separate TTL configuration for source caching vs job metadata
+  - New `FFS_SOURCE_CACHE_TTL_MS` environment variable for cached sources (default: 60 minutes)
+  - New `FFS_JOB_METADATA_TTL_MS` environment variable for job metadata (default: 8 hours)
+  - Removes `FFS_TRANSIENT_STORE_TTL_MS` in favor of the two separate TTLs
+  - Jobs are deleted after use, so the longer job TTL only applies to orphaned jobs
+
+- d6d2edf: Add unified `/warmup-and-render` endpoint that combines warmup and render into a single SSE stream
+  - New `POST /warmup-and-render` endpoint creates a combined job
+  - New `GET /warmup-and-render/:id` streams progress for both phases with prefixed events (`warmup:*`, `render:*`)
+  - Add backend separation support via `FFS_WARMUP_BACKEND_BASE_URL` and `FFS_RENDER_BACKEND_BASE_URL` environment variables
+
+### Patch Changes
+
+- @effing/effie@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@effing/annie-player",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Annie animation player that runs in the browser",
   "type": "module",
   "exports": {

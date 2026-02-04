@@ -8,7 +8,7 @@
 
 > **EffieSourceWithType** = `object`
 
-Defined in: [packages/effie/src/extract.ts:11](https://github.com/builtbyfew/effing/blob/05a2c5442f4285cc434780987079a8e7a256e33e/packages/effie/src/extract.ts#L11)
+Defined in: [packages/effie/src/extract.ts:11](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/effie/src/extract.ts#L11)
 
 A source with its type information
 
@@ -18,7 +18,7 @@ A source with its type information
 
 > **type**: [`EffieSourceType`](EffieSourceType.md)
 
-Defined in: [packages/effie/src/extract.ts:13](https://github.com/builtbyfew/effing/blob/05a2c5442f4285cc434780987079a8e7a256e33e/packages/effie/src/extract.ts#L13)
+Defined in: [packages/effie/src/extract.ts:13](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/effie/src/extract.ts#L13)
 
 ***
 
@@ -26,4 +26,4 @@ Defined in: [packages/effie/src/extract.ts:13](https://github.com/builtbyfew/eff
 
 > **url**: `string`
 
-Defined in: [packages/effie/src/extract.ts:12](https://github.com/builtbyfew/effing/blob/05a2c5442f4285cc434780987079a8e7a256e33e/packages/effie/src/extract.ts#L12)
+Defined in: [packages/effie/src/extract.ts:12](https://github.com/builtbyfew/effing/blob/b67b25ddc1bdaaae7537371edd678ef1408e5405/packages/effie/src/extract.ts#L12)

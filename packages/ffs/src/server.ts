@@ -7,6 +7,8 @@ import {
   purgeCache,
   createRenderJob,
   streamRenderJob,
+  createWarmupAndRenderJob,
+  streamWarmupAndRenderJob,
 } from "./handlers";
 
 const app: express.Express = express();
@@ -40,10 +42,17 @@ app.post("/render", (req, res) => {
   if (!validateAuth(req, res)) return;
   createRenderJob(req, res, ctx);
 });
+app.post("/warmup-and-render", (req, res) => {
+  if (!validateAuth(req, res)) return;
+  createWarmupAndRenderJob(req, res, ctx);
+});
 
 // Routes without auth (GET endpoints use job ID as capability token)
 app.get("/warmup/:id", (req, res) => streamWarmupJob(req, res, ctx));
 app.get("/render/:id", (req, res) => streamRenderJob(req, res, ctx));
+app.get("/warmup-and-render/:id", (req, res) =>
+  streamWarmupAndRenderJob(req, res, ctx),
+);
 
 // Server lifecycle
 const port = process.env.FFS_PORT || 2000; // ffmpeg was conceived in the year 2000

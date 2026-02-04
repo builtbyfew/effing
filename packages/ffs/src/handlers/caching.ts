@@ -15,6 +15,7 @@ import {
   setupSSEResponse,
   createSSEEventSender,
 } from "./shared";
+import { proxyRemoteSSE } from "./orchestrating";
 
 /**
  * Check if a source should be skipped during warmup.
@@ -72,6 +73,24 @@ export async function streamWarmupJob(
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
+
+    // Proxy to warmup backend if configured
+    if (ctx.warmupBackendBaseUrl) {
+      setupSSEResponse(res);
+      const sendEvent = createSSEEventSender(res);
+      try {
+        await proxyRemoteSSE(
+          `${ctx.warmupBackendBaseUrl}/warmup/${jobId}`,
+          sendEvent,
+          "",
+          res,
+        );
+      } finally {
+        res.end();
+      }
+      return;
+    }
+
     const jobCacheKey = cacheKeys.warmupJob(jobId);
     const job = await ctx.cacheStorage.getJson<WarmupJob>(jobCacheKey);
     // only allow the warmup job to run once

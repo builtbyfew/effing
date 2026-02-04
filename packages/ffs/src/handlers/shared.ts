@@ -25,12 +25,24 @@ export type RenderJob = {
   createdAt: number;
 };
 
+export type WarmupAndRenderJob = {
+  effie: EffieData<EffieSources>;
+  sources: EffieSourceWithType[];
+  scale: number;
+  upload?: UploadOptions;
+  warmupJobId: string;
+  renderJobId: string;
+  createdAt: number;
+};
+
 export type ServerContext = {
   cacheStorage: CacheStorage;
   httpProxy: HttpProxy;
   baseUrl: string;
   skipValidation: boolean;
   cacheConcurrency: number;
+  warmupBackendBaseUrl?: string;
+  renderBackendBaseUrl?: string;
 };
 
 export type SSEEventSender = (event: string, data: object) => void;
@@ -54,6 +66,8 @@ export async function createServerContext(): Promise<ServerContext> {
       !!process.env.FFS_SKIP_VALIDATION &&
       process.env.FFS_SKIP_VALIDATION !== "false",
     cacheConcurrency: parseInt(process.env.FFS_CACHE_CONCURRENCY || "4", 10),
+    warmupBackendBaseUrl: process.env.FFS_WARMUP_BACKEND_BASE_URL,
+    renderBackendBaseUrl: process.env.FFS_RENDER_BACKEND_BASE_URL,
   };
 }
 

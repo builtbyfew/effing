@@ -16,6 +16,7 @@ import {
   setupSSEResponse,
   createSSEEventSender,
 } from "./shared";
+import { proxyBinaryStream } from "./orchestrating";
 
 /**
  * POST /render - Create a render job
@@ -124,6 +125,13 @@ export async function streamRenderJob(
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
+
+    // Proxy to render backend if configured
+    if (ctx.renderBackendBaseUrl) {
+      await proxyRenderFromBackend(res, jobId, ctx);
+      return;
+    }
+
     const jobCacheKey = cacheKeys.renderJob(jobId);
     const job = await ctx.cacheStorage.getJson<RenderJob>(jobCacheKey);
     // only allow the render job to run once
@@ -286,4 +294,83 @@ export async function renderAndUploadInternal(
   timings.uploadTime = Date.now() - uploadStartTime;
 
   return timings;
+}
+
+/**
+ * Proxy render from backend based on Content-Type.
+ * SSE (upload mode) uses proxyRemoteSSE, video stream uses proxyBinaryStream.
+ */
+async function proxyRenderFromBackend(
+  res: express.Response,
+  jobId: string,
+  ctx: ServerContext,
+): Promise<void> {
+  const backendUrl = `${ctx.renderBackendBaseUrl}/render/${jobId}`;
+  const response = await ffsFetch(backendUrl);
+
+  if (!response.ok) {
+    res.status(response.status).json({ error: "Backend render failed" });
+    return;
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("text/event-stream")) {
+    // Upload mode: proxy SSE events
+    setupSSEResponse(res);
+    const sendEvent = createSSEEventSender(res);
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      sendEvent("error", { message: "No response body from backend" });
+      res.end();
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        if (res.destroyed) {
+          reader.cancel();
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let currentEvent = "";
+        let currentData = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7);
+          } else if (line.startsWith("data: ")) {
+            currentData = line.slice(6);
+          } else if (line === "" && currentEvent && currentData) {
+            try {
+              const data = JSON.parse(currentData);
+              sendEvent(currentEvent, data);
+            } catch {
+              // Skip malformed JSON
+            }
+            currentEvent = "";
+            currentData = "";
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+      res.end();
+    }
+  } else {
+    // Non-upload mode: proxy binary video stream
+    await proxyBinaryStream(response, res);
+  }
 }

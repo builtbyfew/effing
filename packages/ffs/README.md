@@ -61,20 +61,22 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 
 #### Environment Variables
 
-| Variable                | Description                                   |
-| ----------------------- | --------------------------------------------- |
-| `FFS_PORT`              | Server port (default: 2000)                   |
-| `FFS_BASE_URL`          | Base URL for returned URLs                    |
-| `FFS_API_KEY`           | API key for authentication (optional)         |
-| `FFS_CACHE_BUCKET`      | S3 bucket for cache (enables S3 mode)         |
-| `FFS_CACHE_ENDPOINT`    | S3-compatible endpoint (for e.g. R2 or MinIO) |
-| `FFS_CACHE_REGION`      | AWS region (default: "auto")                  |
-| `FFS_CACHE_PREFIX`      | Key prefix for cached objects                 |
-| `FFS_CACHE_ACCESS_KEY`  | S3 access key ID                              |
-| `FFS_CACHE_SECRET_KEY`  | S3 secret access key                          |
-| `FFS_CACHE_LOCAL_DIR`   | Local cache directory (when not using S3)     |
-| `FFS_CACHE_TTL_MS`      | Cache TTL in milliseconds (default: 60 min)   |
-| `FFS_CACHE_CONCURRENCY` | Concurrent fetches during warmup (default: 4) |
+| Variable                      | Description                                          |
+| ----------------------------- | ---------------------------------------------------- |
+| `FFS_PORT`                    | Server port (default: 2000)                          |
+| `FFS_BASE_URL`                | Base URL for returned URLs                           |
+| `FFS_API_KEY`                 | API key for authentication (optional)                |
+| `FFS_CACHE_BUCKET`            | S3 bucket for cache (enables S3 mode)                |
+| `FFS_CACHE_ENDPOINT`          | S3-compatible endpoint (for e.g. R2 or MinIO)        |
+| `FFS_CACHE_REGION`            | AWS region (default: "auto")                         |
+| `FFS_CACHE_PREFIX`            | Key prefix for cached objects                        |
+| `FFS_CACHE_ACCESS_KEY`        | S3 access key ID                                     |
+| `FFS_CACHE_SECRET_KEY`        | S3 secret access key                                 |
+| `FFS_CACHE_LOCAL_DIR`         | Local cache directory (when not using S3)            |
+| `FFS_CACHE_TTL_MS`            | Cache TTL in milliseconds (default: 60 min)          |
+| `FFS_CACHE_CONCURRENCY`       | Concurrent fetches during warmup (default: 4)        |
+| `FFS_WARMUP_BACKEND_BASE_URL` | Separate backend for warmup (see Backend Separation) |
+| `FFS_RENDER_BACKEND_BASE_URL` | Separate backend for render (see Backend Separation) |
 
 When `FFS_CACHE_BUCKET` is not set, FFS uses the local filesystem for caching (default: system temp directory). Local cache files are automatically cleaned up after the TTL expires.
 
@@ -269,6 +271,95 @@ Purges cached sources for a given Effie composition.
 { "purged": 3, "total": 5 }
 ```
 
+### `POST /warmup-and-render`
+
+Creates a combined warmup and render job that runs both phases in a single SSE stream. This is useful when you want to warmup sources and render in one request.
+
+**Request:**
+
+```typescript
+type WarmupAndRenderOptions = {
+  effie: EffieData | string; // EffieData object or URL to fetch from
+  scale?: number; // Scale factor (default: 1)
+  upload?: {
+    videoUrl: string; // Pre-signed URL to upload rendered video
+    coverUrl?: string; // Pre-signed URL to upload cover image
+  };
+};
+```
+
+**Response:**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "url": "http://localhost:2000/warmup-and-render/550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+### `GET /warmup-and-render/:id`
+
+Executes the combined warmup and render job, streaming progress via SSE. All events are prefixed with `warmup:` or `render:` to indicate the phase.
+
+**Events:**
+
+| Event                | Phase  | Data                                                              |
+| -------------------- | ------ | ----------------------------------------------------------------- |
+| `warmup:start`       | warmup | `{ "total": 5 }`                                                  |
+| `warmup:progress`    | warmup | `{ "url": "...", "status": "hit"\|"cached"\|"error", ... }`       |
+| `warmup:downloading` | warmup | `{ "url": "...", "status": "downloading", "bytesReceived": ... }` |
+| `warmup:summary`     | warmup | `{ "cached": 5, "failed": 0, "skipped": 0, "total": 5 }`          |
+| `warmup:complete`    | warmup | `{ "status": "ready" }`                                           |
+| `render:started`     | render | `{ "status": "rendering" }`                                       |
+| `keepalive`          | both   | `{ "phase": "warmup" }` or `{ "phase": "render" }`                |
+| `render:complete`    | render | `{ "status": "uploaded", "timings": {...} }` (upload mode)        |
+| `complete`           | -      | `{ "status": "ready", "videoUrl": "..." }` (non-upload mode)      |
+| `error`              | any    | `{ "phase": "warmup"\|"render", "message": "..." }`               |
+
+**Without upload** — Returns a `videoUrl` pointing to `/render/:id` for streaming:
+
+```typescript
+const events = new EventSource(url);
+events.addEventListener("complete", (e) => {
+  const { videoUrl } = JSON.parse(e.data);
+  // Fetch videoUrl to stream the rendered video
+  events.close();
+});
+```
+
+**With upload** — Uploads directly and streams progress:
+
+```typescript
+const events = new EventSource(url);
+events.addEventListener("render:complete", (e) => {
+  const { timings } = JSON.parse(e.data);
+  console.log("Uploaded!", timings);
+  events.close();
+});
+```
+
+## Backend Separation
+
+FFS supports running warmup and render on separate backends, useful for scaling or resource isolation. When backend URLs are configured, the cache storage must be shared between services (e.g., using S3).
+
+**Environment variables:**
+
+- `FFS_WARMUP_BACKEND_BASE_URL` — Base URL for warmup backend (e.g., `https://warmup.your.app`)
+- `FFS_RENDER_BACKEND_BASE_URL` — Base URL for render backend (e.g., `https://render.your.app`)
+
+**Behavior when set:**
+
+| Endpoint                     | Effect                                               |
+| ---------------------------- | ---------------------------------------------------- |
+| `POST /warmup`               | Returns URL pointing to local server (orchestrator)  |
+| `GET /warmup/:id`            | Proxies SSE from warmup backend                      |
+| `POST /render`               | Returns URL pointing to local server (orchestrator)  |
+| `GET /render/:id`            | Proxies from render backend (SSE or video stream)    |
+| `POST /warmup-and-render`    | Returns URL pointing to local server (orchestrator)  |
+| `GET /warmup-and-render/:id` | Proxies SSE from warmup backend, then render backend |
+
+All GET endpoints proxy requests to the configured backend, keeping backend URLs hidden from clients. This ensures compatibility with EventSource (which doesn't follow redirects) and simplifies CORS configuration since only the orchestrator needs to be publicly accessible.
+
 ## Examples
 
 ### Scale Factor for Previews
@@ -360,6 +451,34 @@ const events = new EventSource(url);
 events.addEventListener("complete", (e) => {
   const { timings } = JSON.parse(e.data);
   console.log("Uploaded!", timings);
+  events.close();
+});
+```
+
+**Warmup and render in one stream:**
+
+```typescript
+const { url } = await fetch("http://localhost:2000/warmup-and-render", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ effie: effieData, scale: 0.5 }),
+}).then((r) => r.json());
+
+// Connect to SSE for combined progress
+const events = new EventSource(url);
+
+events.addEventListener("warmup:progress", (e) => {
+  const { url, status, cached, total } = JSON.parse(e.data);
+  console.log(`Warmup: ${cached}/${total} - ${url} ${status}`);
+});
+
+events.addEventListener("render:started", () => {
+  console.log("Rendering started...");
+});
+
+events.addEventListener("complete", (e) => {
+  const { videoUrl } = JSON.parse(e.data);
+  console.log("Ready! Video at:", videoUrl);
   events.close();
 });
 ```

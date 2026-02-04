@@ -395,6 +395,8 @@ export function hashUrl(url: string): string {
 export type SourceCacheKey = `sources/${string}`;
 export type WarmupJobCacheKey = `jobs/warmup/${string}.json`;
 export type RenderJobCacheKey = `jobs/render/${string}.json`;
+export type WarmupAndRenderJobCacheKey =
+  `jobs/warmup-and-render/${string}.json`;
 
 /**
  * Build the cache key for a source URL (hashing is handled internally).
@@ -411,6 +413,12 @@ export function renderJobCacheKey(jobId: string): RenderJobCacheKey {
   return `jobs/render/${jobId}.json`;
 }
 
+export function warmupAndRenderJobCacheKey(
+  jobId: string,
+): WarmupAndRenderJobCacheKey {
+  return `jobs/warmup-and-render/${jobId}.json`;
+}
+
 /**
  * Centralized cache key builders for known namespaces.
  * Prefer using these helpers over manual string interpolation.
@@ -419,4 +427,5 @@ export const cacheKeys = {
   source: sourceCacheKey,
   warmupJob: warmupJobCacheKey,
   renderJob: renderJobCacheKey,
+  warmupAndRenderJob: warmupAndRenderJobCacheKey,
 } as const;

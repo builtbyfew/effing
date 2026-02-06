@@ -310,7 +310,11 @@ async function proxyRenderFromBackend(
   ctx: ServerContext,
 ): Promise<void> {
   const backendUrl = `${ctx.renderBackendBaseUrl}/render/${jobId}`;
-  const response = await ffsFetch(backendUrl);
+  const response = await ffsFetch(backendUrl, {
+    headers: ctx.renderBackendApiKey
+      ? { Authorization: `Bearer ${ctx.renderBackendApiKey}` }
+      : undefined,
+  });
 
   if (!response.ok) {
     res.status(response.status).json({ error: "Backend render failed" });

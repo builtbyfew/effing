@@ -88,6 +88,9 @@ export async function streamWarmupJob(
           sendEvent,
           "",
           res,
+          ctx.warmupBackendApiKey
+            ? { Authorization: `Bearer ${ctx.warmupBackendApiKey}` }
+            : undefined,
         );
       } finally {
         res.end();

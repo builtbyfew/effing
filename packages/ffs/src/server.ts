@@ -55,7 +55,7 @@ app.get("/warmup-and-render/:id", (req, res) =>
 );
 
 // Server lifecycle
-const port = process.env.FFS_PORT || 2000; // ffmpeg was conceived in the year 2000
+const port = process.env.FFS_PORT || process.env.PORT || 2000; // ffmpeg was conceived in the year 2000
 const server = app.listen(port, () => {
   console.log(`FFS server listening on port ${port}`);
 });

@@ -43,6 +43,8 @@ export type ServerContext = {
   warmupConcurrency: number;
   warmupBackendBaseUrl?: string;
   renderBackendBaseUrl?: string;
+  warmupBackendApiKey?: string;
+  renderBackendApiKey?: string;
 };
 
 export type SSEEventSender = (event: string, data: object) => void;
@@ -55,7 +57,7 @@ export type ParseEffieResult =
  * Create the server context with configuration from environment variables
  */
 export async function createServerContext(): Promise<ServerContext> {
-  const port = process.env.FFS_PORT || 2000;
+  const port = process.env.FFS_PORT || process.env.PORT || 2000;
   const httpProxy = new HttpProxy();
   await httpProxy.start();
   return {
@@ -68,6 +70,8 @@ export async function createServerContext(): Promise<ServerContext> {
     warmupConcurrency: parseInt(process.env.FFS_WARMUP_CONCURRENCY || "4", 10),
     warmupBackendBaseUrl: process.env.FFS_WARMUP_BACKEND_BASE_URL,
     renderBackendBaseUrl: process.env.FFS_RENDER_BACKEND_BASE_URL,
+    warmupBackendApiKey: process.env.FFS_WARMUP_BACKEND_API_KEY,
+    renderBackendApiKey: process.env.FFS_RENDER_BACKEND_API_KEY,
   };
 }
 

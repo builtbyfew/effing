@@ -170,6 +170,9 @@ export async function streamWarmupAndRenderJob(
           sendEvent,
           "warmup:",
           res,
+          ctx.warmupBackendApiKey
+            ? { Authorization: `Bearer ${ctx.warmupBackendApiKey}` }
+            : undefined,
         );
       } else {
         // Local warmup execution
@@ -188,6 +191,9 @@ export async function streamWarmupAndRenderJob(
           sendEvent,
           "render:",
           res,
+          ctx.renderBackendApiKey
+            ? { Authorization: `Bearer ${ctx.renderBackendApiKey}` }
+            : undefined,
         );
       } else {
         // Local render execution
@@ -254,10 +260,12 @@ export async function proxyRemoteSSE(
   sendEvent: SSEEventSender,
   prefix: string,
   res: express.Response,
+  headers?: Record<string, string>,
 ): Promise<void> {
   const response = await ffsFetch(url, {
     headers: {
       Accept: "text/event-stream",
+      ...headers,
     },
   });
 

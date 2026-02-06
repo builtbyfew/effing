@@ -63,7 +63,7 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 
 | Variable                         | Description                                          |
 | -------------------------------- | ---------------------------------------------------- |
-| `FFS_PORT`                       | Server port (default: 2000)                          |
+| `FFS_PORT`                       | Server port (default: 2000, falls back to `PORT`)    |
 | `FFS_BASE_URL`                   | Base URL for returned URLs                           |
 | `FFS_API_KEY`                    | API key for authentication (optional)                |
 | `FFS_TRANSIENT_STORE_BUCKET`     | S3 bucket for transient store (enables S3 mode)      |
@@ -78,6 +78,8 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 | `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4) |
 | `FFS_WARMUP_BACKEND_BASE_URL`    | Separate backend for warmup (see Backend Separation) |
 | `FFS_RENDER_BACKEND_BASE_URL`    | Separate backend for render (see Backend Separation) |
+| `FFS_WARMUP_BACKEND_API_KEY`     | API key for authenticating to the warmup backend     |
+| `FFS_RENDER_BACKEND_API_KEY`     | API key for authenticating to the render backend     |
 
 When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for storage (default: system temp directory). Local files are automatically cleaned up after the TTL expires.
 
@@ -360,6 +362,8 @@ FFS supports running warmup and render on separate backends, useful for scaling 
 | `GET /warmup-and-render/:id` | Proxies SSE from warmup backend, then render backend |
 
 All GET endpoints proxy requests to the configured backend, keeping backend URLs hidden from clients. This ensures compatibility with EventSource (which doesn't follow redirects) and simplifies CORS configuration since only the orchestrator needs to be publicly accessible.
+
+If the backends have `FFS_API_KEY` set, configure `FFS_WARMUP_BACKEND_API_KEY` and/or `FFS_RENDER_BACKEND_API_KEY` on the orchestrator so it can authenticate when proxying requests. The orchestrator sends these as `Authorization: Bearer <key>` headers.
 
 ## Examples
 

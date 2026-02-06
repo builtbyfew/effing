@@ -1,5 +1,14 @@
 # @effing/ffs
 
+## 0.4.1
+
+### Patch Changes
+
+- 93b824f: Print FFmpeg version on FFS startup
+  - Log the FFmpeg version string at server boot for easier debugging
+  - Centralize FFmpeg binary path resolution into a module-level constant
+  - @effing/effie@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

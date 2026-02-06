@@ -1,5 +1,12 @@
 # @effing/effie-preview
 
+## 0.4.1
+
+### Patch Changes
+
+- @effing/effie@0.4.1
+- @effing/annie-player@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

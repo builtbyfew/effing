@@ -1,5 +1,5 @@
 import type { ChildProcess } from "child_process";
-import { spawn } from "child_process";
+import { execFileSync, spawn } from "child_process";
 import type { Readable } from "stream";
 import { pipeline } from "stream";
 import fs from "fs/promises";
@@ -11,6 +11,14 @@ import { createWriteStream } from "fs";
 import { promisify } from "util";
 
 const pump = promisify(pipeline);
+
+const ffmpegBin = process.env.FFMPEG ?? pathToFFmpeg!;
+
+export function getFFmpegVersion(): string {
+  return execFileSync(ffmpegBin, ["-version"], { encoding: "utf8" })
+    .split("\n")[0]
+    .trim();
+}
 
 /**
  * Each input is represented by its index, its source, and the pre–arguments
@@ -197,7 +205,7 @@ export class FFmpegRunner {
         throw new Error(`File for input index ${input.index} not found`);
       return filePath;
     });
-    const ffmpegProc = spawn(process.env.FFMPEG ?? pathToFFmpeg!, finalArgs);
+    const ffmpegProc = spawn(ffmpegBin, finalArgs);
     ffmpegProc.stderr!.on("data", (data) => {
       console.error(data.toString());
     });

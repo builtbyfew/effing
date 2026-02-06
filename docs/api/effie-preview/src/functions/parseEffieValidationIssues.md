@@ -8,7 +8,7 @@
 
 > **parseEffieValidationIssues**(`issues`): [`EffieValidationIssue`](../type-aliases/EffieValidationIssue.md)[] \| `undefined`
 
-Defined in: [packages/effie-preview/src/core.ts:53](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/effie-preview/src/core.ts#L53)
+Defined in: [packages/effie-preview/src/core.ts:53](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/effie-preview/src/core.ts#L53)
 
 Parse an unknown value as an array of validation issues.
 

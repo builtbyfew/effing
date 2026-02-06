@@ -1,5 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
+import { getFFmpegVersion } from "./ffmpeg";
 import {
   createServerContext,
   createWarmupJob,
@@ -10,6 +11,8 @@ import {
   createWarmupAndRenderJob,
   streamWarmupAndRenderJob,
 } from "./handlers";
+
+console.log("FFS", getFFmpegVersion());
 
 const app: express.Express = express();
 app.use(bodyParser.json({ limit: "50mb" })); // Support large JSON requests

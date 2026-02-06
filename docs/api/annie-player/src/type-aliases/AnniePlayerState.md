@@ -8,7 +8,7 @@
 
 > **AnniePlayerState** = `object`
 
-Defined in: [packages/annie-player/src/core.ts:3](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L3)
+Defined in: [packages/annie-player/src/core.ts:3](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L3)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/annie-player/src/core.ts:3](https://github.com/builtbyfew/
 
 > **dimensions**: \{ `height`: `number`; `width`: `number`; \} \| `null`
 
-Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L9)
+Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L9)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/
 
 > **error**: `string` \| `null`
 
-Defined in: [packages/annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L5)
+Defined in: [packages/annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L5)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [packages/annie-player/src/core.ts:5](https://github.com/builtbyfew/
 
 > **frameCount**: `number`
 
-Defined in: [packages/annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L8)
+Defined in: [packages/annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L8)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [packages/annie-player/src/core.ts:8](https://github.com/builtbyfew/
 
 > **isLoading**: `boolean`
 
-Defined in: [packages/annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L6)
+Defined in: [packages/annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L6)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [packages/annie-player/src/core.ts:6](https://github.com/builtbyfew/
 
 > **isPlaying**: `boolean`
 
-Defined in: [packages/annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L7)
+Defined in: [packages/annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L7)
 
 ***
 
@@ -56,4 +56,4 @@ Defined in: [packages/annie-player/src/core.ts:7](https://github.com/builtbyfew/
 
 > **status**: `string`
 
-Defined in: [packages/annie-player/src/core.ts:4](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/annie-player/src/core.ts#L4)
+Defined in: [packages/annie-player/src/core.ts:4](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/annie-player/src/core.ts#L4)

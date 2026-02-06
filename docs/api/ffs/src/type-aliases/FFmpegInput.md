@@ -8,7 +8,7 @@
 
 > **FFmpegInput** = `object`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:19](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/ffs/src/ffmpeg.ts#L19)
+Defined in: [packages/ffs/src/ffmpeg.ts:27](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/ffs/src/ffmpeg.ts#L27)
 
 Each input is represented by its index, its source, and the pre–arguments
 that must appear immediately before its "-i" option.
@@ -19,7 +19,7 @@ that must appear immediately before its "-i" option.
 
 > **index**: `number`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:20](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/ffs/src/ffmpeg.ts#L20)
+Defined in: [packages/ffs/src/ffmpeg.ts:28](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/ffs/src/ffmpeg.ts#L28)
 
 ***
 
@@ -27,7 +27,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:20](https://github.com/builtbyfew/effing
 
 > **preArgs**: `string`[]
 
-Defined in: [packages/ffs/src/ffmpeg.ts:22](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/ffs/src/ffmpeg.ts#L22)
+Defined in: [packages/ffs/src/ffmpeg.ts:30](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/ffs/src/ffmpeg.ts#L30)
 
 ***
 
@@ -35,7 +35,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:22](https://github.com/builtbyfew/effing
 
 > **source**: `string`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:21](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/ffs/src/ffmpeg.ts#L21)
+Defined in: [packages/ffs/src/ffmpeg.ts:29](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/ffs/src/ffmpeg.ts#L29)
 
 ***
 
@@ -43,4 +43,4 @@ Defined in: [packages/ffs/src/ffmpeg.ts:21](https://github.com/builtbyfew/effing
 
 > **type**: `"image"` \| `"video"` \| `"audio"` \| `"color"` \| `"animation"`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:23](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/ffs/src/ffmpeg.ts#L23)
+Defined in: [packages/ffs/src/ffmpeg.ts:31](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/ffs/src/ffmpeg.ts#L31)

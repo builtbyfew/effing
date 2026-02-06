@@ -8,7 +8,7 @@
 
 > **effieResponse**\<`S`\>(`data`, `options`): `Response`
 
-Defined in: [packages/effie/src/response.ts:32](https://github.com/builtbyfew/effing/blob/b46122bc8e003db755cd7f9a9ac0b2b2179d2bdf/packages/effie/src/response.ts#L32)
+Defined in: [packages/effie/src/response.ts:32](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/effie/src/response.ts#L32)
 
 Create an HTTP Response containing effie JSON data
 

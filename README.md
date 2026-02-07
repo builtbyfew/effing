@@ -21,6 +21,7 @@ The “why” and design constraints are described in more detail in [`RATIONALE
 | [`@effing/effie`](packages/effie/README.md)                 | Types and helpers for defining video compositions   |
 | [`@effing/annie`](packages/annie/README.md)                 | Generate TARs of PNG or JPEG frames for animations  |
 | [`@effing/ffs`](packages/ffs/README.md)                     | FFmpeg render Service (library or HTTP server)      |
+| [`@effing/ffmpeg`](packages/ffmpeg/README.md)               | Self-managed FFmpeg binary download                 |
 | [`@effing/annie-player`](packages/annie-player/README.md)   | Browser player for Annie animations                 |
 | [`@effing/effie-preview`](packages/effie-preview/README.md) | React components for previewing Effie compositions  |
 | [`@effing/tween`](packages/tween/README.md)                 | Easing functions and step iteration for animations  |

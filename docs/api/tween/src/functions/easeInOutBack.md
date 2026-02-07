@@ -8,7 +8,7 @@
 
 > **easeInOutBack**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:155](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/tween/src/easing.ts#L155)
+Defined in: [packages/tween/src/easing.ts:155](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/tween/src/easing.ts#L155)
 
 Ease in-out with overshoot (back)
 

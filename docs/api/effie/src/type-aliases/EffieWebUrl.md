@@ -8,4 +8,4 @@
 
 > **EffieWebUrl** = [`EffieHttpUrl`](EffieHttpUrl.md) \| [`EffieDataUrl`](EffieDataUrl.md)
 
-Defined in: [packages/effie/src/types.ts:1](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/effie/src/types.ts#L1)
+Defined in: [packages/effie/src/types.ts:1](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L1)

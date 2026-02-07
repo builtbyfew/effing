@@ -8,7 +8,7 @@
 
 > **effieData**\<`S`\>(`data`): [`EffieData`](../type-aliases/EffieData.md)\<`S`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [packages/effie/src/types.ts:153](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/effie/src/types.ts#L153)
+Defined in: [packages/effie/src/types.ts:153](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L153)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **createEffieSourceResolver**(`sources?`): (`src`) => `string`
 
-Defined in: [packages/effie-preview/src/core.ts:16](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/effie-preview/src/core.ts#L16)
+Defined in: [packages/effie-preview/src/core.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/core.ts#L16)
 
 Create a source resolver function that handles #reference lookups
 in effie source fields.

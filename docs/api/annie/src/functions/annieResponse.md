@@ -8,7 +8,7 @@
 
 > **annieResponse**(`frames`, `options`): `Response`
 
-Defined in: [packages/annie/src/response.ts:38](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/annie/src/response.ts#L38)
+Defined in: [packages/annie/src/response.ts:38](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/response.ts#L38)
 
 Create an HTTP Response that streams an annie
 

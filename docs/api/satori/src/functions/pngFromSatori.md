@@ -8,7 +8,7 @@
 
 > **pngFromSatori**(`template`, `options`): `Promise`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Defined in: [packages/satori/src/index.ts:108](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/satori/src/index.ts#L108)
+Defined in: [packages/satori/src/index.ts:108](https://github.com/builtbyfew/effing/blob/main/packages/satori/src/index.ts#L108)
 
 Render a React/JSX template to a PNG buffer using Satori
 

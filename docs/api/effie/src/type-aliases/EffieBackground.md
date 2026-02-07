@@ -8,7 +8,7 @@
 
 > **EffieBackground**\<`S`, `U`\> = \{ `source`: [`EffieSource`](EffieSource.md)\<`S`, `U`\>; `type`: `"image"`; \} \| \{ `seek?`: `number`; `source`: [`EffieSource`](EffieSource.md)\<`S`, `U`\>; `type`: `"video"`; \} \| \{ `color`: `string`; `type`: `"color"`; \}
 
-Defined in: [packages/effie/src/types.ts:30](https://github.com/builtbyfew/effing/blob/d1e41c9d99a08f9b11cbccfdd7d9ed3d2ec8f9ae/packages/effie/src/types.ts#L30)
+Defined in: [packages/effie/src/types.ts:30](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L30)
 
 ## Type Parameters
 

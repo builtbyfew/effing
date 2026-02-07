@@ -24,5 +24,6 @@
   "excludeExternals": true,
   "categorizeByGroup": true,
   "githubPages": false,
-  "logLevel": "Error"
+  "logLevel": "Error",
+  "gitRevision": "main"
 }

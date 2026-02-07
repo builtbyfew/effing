@@ -12,7 +12,8 @@
       "@effing/create",
       "@effing/satori",
       "@effing/annie-player",
-      "@effing/effie-preview"
+      "@effing/effie-preview",
+      "@effing/ffmpeg"
     ]
   ],
   "linked": [],

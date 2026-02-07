@@ -8,7 +8,7 @@
 
 > **extractEffieSourcesWithTypes**\<`U`\>(`effieData`, `options`): [`EffieSourceWithType`](../type-aliases/EffieSourceWithType.md)[]
 
-Defined in: [packages/effie/src/extract.ts:38](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/effie/src/extract.ts#L38)
+Defined in: [packages/effie/src/extract.ts:38](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/effie/src/extract.ts#L38)
 
 Extract all source URLs from an EffieData composition with their types.
 Resolves #references and deduplicates results.

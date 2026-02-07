@@ -37,7 +37,7 @@
     "@effing/effie": "workspace:*",
     "body-parser": "^1.20.3",
     "express": "^4.21.2",
-    "ffmpeg-static": "^5.2.0",
+    "@effing/ffmpeg": "workspace:*",
     "sharp": "^0.33.5",
     "tar-stream": "^3.1.7",
     "undici": "^7.3.0",

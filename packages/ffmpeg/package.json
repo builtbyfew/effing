@@ -1,0 +1,33 @@
+{
+  "name": "@effing/ffmpeg",
+  "version": "0.4.0",
+  "description": "FFmpeg binary downloader for Effing",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "install.mjs"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "install": "node install.mjs"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  },
+  "keywords": [
+    "ffmpeg",
+    "binary"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

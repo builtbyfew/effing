@@ -8,7 +8,7 @@
 
 > **easeInCubic**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:48](https://github.com/builtbyfew/effing/blob/a716c0bc2d46c5344c27a6b5712297f176bdf57a/packages/tween/src/easing.ts#L48)
+Defined in: [packages/tween/src/easing.ts:48](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/tween/src/easing.ts#L48)
 
 Ease in using cubic curve
 

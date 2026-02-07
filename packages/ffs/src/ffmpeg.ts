@@ -5,7 +5,7 @@ import { pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import pathToFFmpeg from "ffmpeg-static";
+import { pathToFFmpeg } from "@effing/ffmpeg";
 import tar from "tar-stream";
 import { createWriteStream } from "fs";
 import { promisify } from "util";

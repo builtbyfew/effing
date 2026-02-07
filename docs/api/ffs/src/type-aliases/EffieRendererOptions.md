@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/ffs/src/render.ts#L16)
+Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/ffs/src/render.ts#L16)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/ffs/src/render.ts:16](https://github.com/builtbyfew/effing
 
 > `optional` **allowLocalFiles**: `boolean`
 
-Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/ffs/src/render.ts#L23)
+Defined in: [packages/ffs/src/render.ts:23](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/ffs/src/render.ts#L23)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -34,7 +34,7 @@ false
 
 > `optional` **httpProxy**: `HttpProxy`
 
-Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/ffs/src/render.ts#L35)
+Defined in: [packages/ffs/src/render.ts:35](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/ffs/src/render.ts#L35)
 
 HTTP proxy for video/audio URLs.
 When provided, HTTP(S) URLs for video/audio inputs will be routed
@@ -47,7 +47,7 @@ instead of FFmpeg (useful for Alpine Linux with musl libc).
 
 > `optional` **transientStore**: `TransientStore`
 
-Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/ffs/src/render.ts#L28)
+Defined in: [packages/ffs/src/render.ts:28](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/ffs/src/render.ts#L28)
 
 Transient store instance for source lookups.
 If not provided, sources will be fetched directly from network.

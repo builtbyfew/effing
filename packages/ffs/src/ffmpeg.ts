@@ -1,23 +1,35 @@
 import type { ChildProcess } from "child_process";
-import { execFileSync, spawn } from "child_process";
+import { spawn } from "child_process";
 import type { Readable } from "stream";
 import { pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import { pathToFFmpeg } from "@effing/ffmpeg";
+
 import tar from "tar-stream";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
 const pump = promisify(pipeline);
 
-const ffmpegBin = process.env.FFMPEG ?? pathToFFmpeg!;
-
-export function getFFmpegVersion(): string {
-  return execFileSync(ffmpegBin, ["-version"], { encoding: "utf8" })
-    .split("\n")[0]
-    .trim();
+let resolvedBin: string | undefined;
+async function getFFmpegBin(): Promise<string> {
+  if (resolvedBin) return resolvedBin;
+  if (process.env.FFMPEG) {
+    resolvedBin = process.env.FFMPEG;
+    return resolvedBin;
+  }
+  try {
+    const { pathToFFmpeg } = await import("@effing/ffmpeg");
+    if (pathToFFmpeg) {
+      resolvedBin = pathToFFmpeg;
+      return resolvedBin;
+    }
+  } catch {
+    // @effing/ffmpeg not installed
+  }
+  resolvedBin = "ffmpeg";
+  return resolvedBin;
 }
 
 /**
@@ -205,7 +217,7 @@ export class FFmpegRunner {
         throw new Error(`File for input index ${input.index} not found`);
       return filePath;
     });
-    const ffmpegProc = spawn(ffmpegBin, finalArgs);
+    const ffmpegProc = spawn(await getFFmpegBin(), finalArgs);
     ffmpegProc.stderr!.on("data", (data) => {
       console.error(data.toString());
     });

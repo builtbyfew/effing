@@ -8,7 +8,7 @@
 
 > **EffieSources**\<`U`\> = `object`
 
-Defined in: [packages/effie/src/types.ts:7](https://github.com/builtbyfew/effing/blob/57e26752bafe0001bb1627bb2259be5df6af5f61/packages/effie/src/types.ts#L7)
+Defined in: [packages/effie/src/types.ts:7](https://github.com/builtbyfew/effing/blob/a59284f037523b29f88f0c9065447ea4615ffb00/packages/effie/src/types.ts#L7)
 
 ## Type Parameters
 

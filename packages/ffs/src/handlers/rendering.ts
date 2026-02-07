@@ -2,7 +2,6 @@ import express from "express";
 import { randomUUID } from "crypto";
 import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
-import { EffieRenderer } from "../render";
 import { effieDataSchema } from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
 import type {
@@ -170,6 +169,7 @@ export async function streamRenderDirect(
   job: RenderJob,
   ctx: ServerContext,
 ): Promise<void> {
+  const { EffieRenderer } = await import("../render");
   const renderer = new EffieRenderer(job.effie, {
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
@@ -265,6 +265,7 @@ export async function renderAndUploadInternal(
 
   // Render effie data to video
   const renderStartTime = Date.now();
+  const { EffieRenderer } = await import("../render");
   const renderer = new EffieRenderer(effie, {
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,

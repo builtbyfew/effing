@@ -37,7 +37,7 @@ export type WarmupAndRenderJob = {
 
 export type ServerContext = {
   transientStore: TransientStore;
-  httpProxy: HttpProxy;
+  httpProxy?: HttpProxy;
   baseUrl: string;
   skipValidation: boolean;
   warmupConcurrency: number;
@@ -58,8 +58,12 @@ export type ParseEffieResult =
  */
 export async function createServerContext(): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
-  const httpProxy = new HttpProxy();
-  await httpProxy.start();
+  const renderBackendBaseUrl = process.env.FFS_RENDER_BACKEND_BASE_URL;
+  let httpProxy: HttpProxy | undefined;
+  if (!renderBackendBaseUrl) {
+    httpProxy = new HttpProxy();
+    await httpProxy.start();
+  }
   return {
     transientStore: createTransientStore(),
     httpProxy,

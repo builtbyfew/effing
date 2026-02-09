@@ -14,8 +14,24 @@ export type UploadOptions = {
   coverUrl?: string;
 };
 
+export type BackendConfig = {
+  baseUrl: string;
+  apiKey?: string;
+};
+
+export type WarmupBackendResolver = (
+  sources: EffieSourceWithType[],
+  metadata?: Record<string, unknown>,
+) => BackendConfig | null;
+
+export type RenderBackendResolver = (
+  effie: EffieData<EffieSources>,
+  metadata?: Record<string, unknown>,
+) => BackendConfig | null;
+
 export type WarmupJob = {
   sources: EffieSourceWithType[];
+  metadata?: Record<string, unknown>;
 };
 
 export type RenderJob = {
@@ -23,6 +39,7 @@ export type RenderJob = {
   scale: number;
   upload?: UploadOptions;
   createdAt: number;
+  metadata?: Record<string, unknown>;
 };
 
 export type WarmupAndRenderJob = {
@@ -33,6 +50,7 @@ export type WarmupAndRenderJob = {
   warmupJobId: string;
   renderJobId: string;
   createdAt: number;
+  metadata?: Record<string, unknown>;
 };
 
 export type ServerContext = {
@@ -41,10 +59,8 @@ export type ServerContext = {
   baseUrl: string;
   skipValidation: boolean;
   warmupConcurrency: number;
-  warmupBackendBaseUrl?: string;
-  renderBackendBaseUrl?: string;
-  warmupBackendApiKey?: string;
-  renderBackendApiKey?: string;
+  warmupBackendResolver?: WarmupBackendResolver;
+  renderBackendResolver?: RenderBackendResolver;
 };
 
 export type SSEEventSender = (event: string, data: object) => void;
@@ -56,11 +72,15 @@ export type ParseEffieResult =
 /**
  * Create the server context with configuration from environment variables
  */
-export async function createServerContext(): Promise<ServerContext> {
+export async function createServerContext(options?: {
+  warmupBackendResolver?: WarmupBackendResolver;
+  renderBackendResolver?: RenderBackendResolver;
+  httpProxy?: boolean;
+}): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
-  const renderBackendBaseUrl = process.env.FFS_RENDER_BACKEND_BASE_URL;
+  const enableHttpProxy = options?.httpProxy ?? !options?.renderBackendResolver;
   let httpProxy: HttpProxy | undefined;
-  if (!renderBackendBaseUrl) {
+  if (enableHttpProxy) {
     httpProxy = new HttpProxy();
     await httpProxy.start();
   }
@@ -72,10 +92,8 @@ export async function createServerContext(): Promise<ServerContext> {
       !!process.env.FFS_SKIP_VALIDATION &&
       process.env.FFS_SKIP_VALIDATION !== "false",
     warmupConcurrency: parseInt(process.env.FFS_WARMUP_CONCURRENCY || "4", 10),
-    warmupBackendBaseUrl: process.env.FFS_WARMUP_BACKEND_BASE_URL,
-    renderBackendBaseUrl: process.env.FFS_RENDER_BACKEND_BASE_URL,
-    warmupBackendApiKey: process.env.FFS_WARMUP_BACKEND_API_KEY,
-    renderBackendApiKey: process.env.FFS_RENDER_BACKEND_API_KEY,
+    warmupBackendResolver: options?.warmupBackendResolver,
+    renderBackendResolver: options?.renderBackendResolver,
   };
 }
 

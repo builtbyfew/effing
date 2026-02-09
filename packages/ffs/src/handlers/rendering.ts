@@ -7,6 +7,7 @@ import type { EffieData, EffieSources } from "@effing/effie";
 import type {
   ServerContext,
   SSEEventSender,
+  BackendConfig,
   RenderJob,
   UploadOptions,
 } from "./shared";
@@ -25,6 +26,7 @@ export async function createRenderJob(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
+  options?: { metadata?: Record<string, unknown> },
 ): Promise<void> {
   try {
     // Wrapped format has `effie` property,
@@ -97,12 +99,13 @@ export async function createRenderJob(
       scale,
       upload,
       createdAt: Date.now(),
+      metadata: options?.metadata,
     };
 
     await ctx.transientStore.putJson(
       storeKeys.renderJob(jobId),
       job,
-      ctx.transientStore.jobMetadataTtlMs,
+      ctx.transientStore.jobDataTtlMs,
     );
 
     res.json({
@@ -129,21 +132,25 @@ export async function streamRenderJob(
 
     const jobId = req.params.id;
 
-    // Proxy to render backend if configured
-    if (ctx.renderBackendBaseUrl) {
-      await proxyRenderFromBackend(res, jobId, ctx);
-      return;
-    }
-
-    const jobCacheKey = storeKeys.renderJob(jobId);
-    const job = await ctx.transientStore.getJson<RenderJob>(jobCacheKey);
-    // only allow the render job to run once
-    ctx.transientStore.delete(jobCacheKey);
+    const jobStoreKey = storeKeys.renderJob(jobId);
+    const job = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found or expired" });
       return;
     }
+
+    // Proxy to render backend if resolver is configured
+    if (ctx.renderBackendResolver) {
+      const backend = ctx.renderBackendResolver(job.effie, job.metadata);
+      if (backend) {
+        await proxyRenderFromBackend(res, jobId, backend);
+        return;
+      }
+    }
+
+    // Render locally — only allow the render job to run once
+    ctx.transientStore.delete(jobStoreKey);
 
     // Dispatch based on upload mode
     if (job.upload) {
@@ -308,12 +315,12 @@ export async function renderAndUploadInternal(
 async function proxyRenderFromBackend(
   res: express.Response,
   jobId: string,
-  ctx: ServerContext,
+  backend: BackendConfig,
 ): Promise<void> {
-  const backendUrl = `${ctx.renderBackendBaseUrl}/render/${jobId}`;
+  const backendUrl = `${backend.baseUrl}/render/${jobId}`;
   const response = await ffsFetch(backendUrl, {
-    headers: ctx.renderBackendApiKey
-      ? { Authorization: `Bearer ${ctx.renderBackendApiKey}` }
+    headers: backend.apiKey
+      ? { Authorization: `Bearer ${backend.apiKey}` }
       : undefined,
   });
 

@@ -16,17 +16,17 @@ import type { Readable } from "stream";
 
 /** Default TTL for sources: 60 minutes */
 const DEFAULT_SOURCE_TTL_MS = 60 * 60 * 1000;
-/** Default TTL for job metadata: 8 hours */
-const DEFAULT_JOB_METADATA_TTL_MS = 8 * 60 * 60 * 1000;
+/** Default TTL for job data: 8 hours */
+const DEFAULT_JOB_DATA_TTL_MS = 8 * 60 * 60 * 1000;
 
 /**
- * Transient store interface for caching sources and storing ephemeral job metadata.
+ * Transient store interface for caching sources and storing ephemeral job data.
  */
 export interface TransientStore {
   /** TTL for cached sources in milliseconds */
   readonly sourceTtlMs: number;
-  /** TTL for job metadata in milliseconds */
-  readonly jobMetadataTtlMs: number;
+  /** TTL for job data in milliseconds */
+  readonly jobDataTtlMs: number;
   /** Store a stream with the given key and optional TTL override */
   put(key: string, stream: Readable, ttlMs?: number): Promise<void>;
   /** Get a stream for the given key, or null if not found */
@@ -53,7 +53,7 @@ export class S3TransientStore implements TransientStore {
   private bucket: string;
   private prefix: string;
   public readonly sourceTtlMs: number;
-  public readonly jobMetadataTtlMs: number;
+  public readonly jobDataTtlMs: number;
 
   constructor(options: {
     endpoint?: string;
@@ -63,7 +63,7 @@ export class S3TransientStore implements TransientStore {
     accessKeyId?: string;
     secretAccessKey?: string;
     sourceTtlMs?: number;
-    jobMetadataTtlMs?: number;
+    jobDataTtlMs?: number;
   }) {
     this.client = new S3Client({
       endpoint: options.endpoint,
@@ -79,8 +79,7 @@ export class S3TransientStore implements TransientStore {
     this.bucket = options.bucket;
     this.prefix = options.prefix ?? "";
     this.sourceTtlMs = options.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
-    this.jobMetadataTtlMs =
-      options.jobMetadataTtlMs ?? DEFAULT_JOB_METADATA_TTL_MS;
+    this.jobDataTtlMs = options.jobDataTtlMs ?? DEFAULT_JOB_DATA_TTL_MS;
   }
 
   private getExpires(ttlMs: number): Date {
@@ -189,7 +188,7 @@ export class S3TransientStore implements TransientStore {
         Key: this.getFullKey(key),
         Body: JSON.stringify(data),
         ContentType: "application/json",
-        Expires: this.getExpires(ttlMs ?? this.jobMetadataTtlMs),
+        Expires: this.getExpires(ttlMs ?? this.jobDataTtlMs),
       }),
     );
   }
@@ -233,20 +232,19 @@ export class LocalTransientStore implements TransientStore {
   private initialized = false;
   private cleanupInterval?: ReturnType<typeof setInterval>;
   public readonly sourceTtlMs: number;
-  public readonly jobMetadataTtlMs: number;
+  public readonly jobDataTtlMs: number;
   /** For cleanup, use the longer of the two TTLs */
   private maxTtlMs: number;
 
   constructor(options?: {
     baseDir?: string;
     sourceTtlMs?: number;
-    jobMetadataTtlMs?: number;
+    jobDataTtlMs?: number;
   }) {
     this.baseDir = options?.baseDir ?? path.join(os.tmpdir(), "ffs-transient");
     this.sourceTtlMs = options?.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
-    this.jobMetadataTtlMs =
-      options?.jobMetadataTtlMs ?? DEFAULT_JOB_METADATA_TTL_MS;
-    this.maxTtlMs = Math.max(this.sourceTtlMs, this.jobMetadataTtlMs);
+    this.jobDataTtlMs = options?.jobDataTtlMs ?? DEFAULT_JOB_DATA_TTL_MS;
+    this.maxTtlMs = Math.max(this.sourceTtlMs, this.jobDataTtlMs);
 
     // Cleanup expired files every 5 minutes
     this.cleanupInterval = setInterval(() => {
@@ -397,9 +395,9 @@ export function createTransientStore(): TransientStore {
   const sourceTtlMs = process.env.FFS_SOURCE_CACHE_TTL_MS
     ? parseInt(process.env.FFS_SOURCE_CACHE_TTL_MS, 10)
     : DEFAULT_SOURCE_TTL_MS;
-  const jobMetadataTtlMs = process.env.FFS_JOB_METADATA_TTL_MS
-    ? parseInt(process.env.FFS_JOB_METADATA_TTL_MS, 10)
-    : DEFAULT_JOB_METADATA_TTL_MS;
+  const jobDataTtlMs = process.env.FFS_JOB_DATA_TTL_MS
+    ? parseInt(process.env.FFS_JOB_DATA_TTL_MS, 10)
+    : DEFAULT_JOB_DATA_TTL_MS;
 
   if (process.env.FFS_TRANSIENT_STORE_BUCKET) {
     return new S3TransientStore({
@@ -410,14 +408,14 @@ export function createTransientStore(): TransientStore {
       accessKeyId: process.env.FFS_TRANSIENT_STORE_ACCESS_KEY,
       secretAccessKey: process.env.FFS_TRANSIENT_STORE_SECRET_KEY,
       sourceTtlMs,
-      jobMetadataTtlMs,
+      jobDataTtlMs,
     });
   }
 
   return new LocalTransientStore({
     baseDir: process.env.FFS_TRANSIENT_STORE_LOCAL_DIR,
     sourceTtlMs,
-    jobMetadataTtlMs,
+    jobDataTtlMs,
   });
 }
 

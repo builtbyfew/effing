@@ -1,6 +1,9 @@
 export { createServerContext } from "./shared";
 export type {
   ServerContext,
+  BackendConfig,
+  WarmupBackendResolver,
+  RenderBackendResolver,
   WarmupJob,
   RenderJob,
   WarmupAndRenderJob,

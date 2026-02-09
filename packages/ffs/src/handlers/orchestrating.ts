@@ -28,19 +28,20 @@ export async function createWarmupAndRenderJob(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
+  options?: { metadata?: Record<string, unknown> },
 ): Promise<void> {
   try {
     // Parse request body
-    const options = req.body as {
+    const body = req.body as {
       effie: unknown;
       scale?: number;
       upload?: UploadOptions;
     };
 
     let rawEffieData: unknown;
-    if (typeof options.effie === "string") {
+    if (typeof body.effie === "string") {
       // Effie is a URL to fetch the EffieData from
-      const response = await ffsFetch(options.effie);
+      const response = await ffsFetch(body.effie);
       if (!response.ok) {
         throw new Error(
           `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
@@ -48,7 +49,7 @@ export async function createWarmupAndRenderJob(
       }
       rawEffieData = await response.json();
     } else {
-      rawEffieData = options.effie;
+      rawEffieData = body.effie;
     }
 
     // Validate/parse effie data
@@ -76,8 +77,8 @@ export async function createWarmupAndRenderJob(
     }
 
     const sources = extractEffieSourcesWithTypes(effie);
-    const scale = options.scale ?? 1;
-    const upload = options.upload;
+    const scale = body.scale ?? 1;
+    const upload = body.upload;
 
     // Create IDs for warmup and render sub-jobs
     const jobId = randomUUID();
@@ -93,19 +94,20 @@ export async function createWarmupAndRenderJob(
       warmupJobId,
       renderJobId,
       createdAt: Date.now(),
+      metadata: options?.metadata,
     };
 
     await ctx.transientStore.putJson(
       storeKeys.warmupAndRenderJob(jobId),
       job,
-      ctx.transientStore.jobMetadataTtlMs,
+      ctx.transientStore.jobDataTtlMs,
     );
 
     // Also store sub-jobs for backend execution
     await ctx.transientStore.putJson(
       storeKeys.warmupJob(warmupJobId),
-      { sources },
-      ctx.transientStore.jobMetadataTtlMs,
+      { sources, metadata: options?.metadata },
+      ctx.transientStore.jobDataTtlMs,
     );
     await ctx.transientStore.putJson(
       storeKeys.renderJob(renderJobId),
@@ -114,8 +116,9 @@ export async function createWarmupAndRenderJob(
         scale,
         upload,
         createdAt: Date.now(),
+        metadata: options?.metadata,
       } satisfies RenderJob,
-      ctx.transientStore.jobMetadataTtlMs,
+      ctx.transientStore.jobDataTtlMs,
     );
 
     res.json({
@@ -141,16 +144,24 @@ export async function streamWarmupAndRenderJob(
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
-    const jobCacheKey = storeKeys.warmupAndRenderJob(jobId);
+    const jobStoreKey = storeKeys.warmupAndRenderJob(jobId);
     const job =
-      await ctx.transientStore.getJson<WarmupAndRenderJob>(jobCacheKey);
+      await ctx.transientStore.getJson<WarmupAndRenderJob>(jobStoreKey);
     // Only allow the job to run once
-    ctx.transientStore.delete(jobCacheKey);
+    ctx.transientStore.delete(jobStoreKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
+
+    // Resolve backends up front
+    const warmupBackend = ctx.warmupBackendResolver
+      ? ctx.warmupBackendResolver(job.sources, job.metadata)
+      : null;
+    const renderBackend = ctx.renderBackendResolver
+      ? ctx.renderBackendResolver(job.effie, job.metadata)
+      : null;
 
     setupSSEResponse(res);
     const sendEvent = createSSEEventSender(res);
@@ -163,15 +174,15 @@ export async function streamWarmupAndRenderJob(
 
     try {
       // Phase 1: Warmup
-      if (ctx.warmupBackendBaseUrl) {
+      if (warmupBackend) {
         // Proxy warmup from remote backend
         await proxyRemoteSSE(
-          `${ctx.warmupBackendBaseUrl}/warmup/${job.warmupJobId}`,
+          `${warmupBackend.baseUrl}/warmup/${job.warmupJobId}`,
           sendEvent,
           "warmup:",
           res,
-          ctx.warmupBackendApiKey
-            ? { Authorization: `Bearer ${ctx.warmupBackendApiKey}` }
+          warmupBackend.apiKey
+            ? { Authorization: `Bearer ${warmupBackend.apiKey}` }
             : undefined,
         );
       } else {
@@ -184,15 +195,15 @@ export async function streamWarmupAndRenderJob(
       // Phase 2: Render
       keepalivePhase = "render";
 
-      if (ctx.renderBackendBaseUrl) {
+      if (renderBackend) {
         // Proxy render from remote backend
         await proxyRemoteSSE(
-          `${ctx.renderBackendBaseUrl}/render/${job.renderJobId}`,
+          `${renderBackend.baseUrl}/render/${job.renderJobId}`,
           sendEvent,
           "render:",
           res,
-          ctx.renderBackendApiKey
-            ? { Authorization: `Bearer ${ctx.renderBackendApiKey}` }
+          renderBackend.apiKey
+            ? { Authorization: `Bearer ${renderBackend.apiKey}` }
             : undefined,
         );
       } else {
@@ -218,7 +229,7 @@ export async function streamWarmupAndRenderJob(
       }
 
       // Final complete event (only for upload mode, non-upload already sent complete)
-      if (job.upload && !ctx.renderBackendBaseUrl) {
+      if (job.upload && !renderBackend) {
         sendEvent("complete", { status: "done" });
       }
     } catch (error) {

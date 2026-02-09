@@ -47,7 +47,7 @@ describe("S3TransientStore", () => {
         accessKeyId: "access-key",
         secretAccessKey: "secret-key",
         sourceTtlMs: 3600000,
-        jobMetadataTtlMs: 28800000,
+        jobDataTtlMs: 28800000,
       });
 
       expect(S3Client).toHaveBeenCalledWith({
@@ -441,7 +441,7 @@ describe("S3TransientStore", () => {
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
-        jobMetadataTtlMs: 2 * 60 * 60 * 1000, // 2 hours
+        jobDataTtlMs: 2 * 60 * 60 * 1000, // 2 hours
       });
 
       const beforeTime = Date.now();
@@ -496,11 +496,11 @@ describe("S3TransientStore", () => {
       const storage = new S3TransientStore({
         bucket: "my-bucket",
         sourceTtlMs: 30 * 60 * 1000,
-        jobMetadataTtlMs: 4 * 60 * 60 * 1000,
+        jobDataTtlMs: 4 * 60 * 60 * 1000,
       });
 
       expect(storage.sourceTtlMs).toBe(30 * 60 * 1000);
-      expect(storage.jobMetadataTtlMs).toBe(4 * 60 * 60 * 1000);
+      expect(storage.jobDataTtlMs).toBe(4 * 60 * 60 * 1000);
     });
   });
 

@@ -74,12 +74,8 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 | `FFS_TRANSIENT_STORE_SECRET_KEY` | S3 secret access key                                 |
 | `FFS_TRANSIENT_STORE_LOCAL_DIR`  | Local storage directory (when not using S3)          |
 | `FFS_SOURCE_CACHE_TTL_MS`        | TTL for cached sources in ms (default: 60 min)       |
-| `FFS_JOB_METADATA_TTL_MS`        | TTL for job metadata in ms (default: 8 hours)        |
+| `FFS_JOB_DATA_TTL_MS`            | TTL for job data in ms (default: 8 hours)            |
 | `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4) |
-| `FFS_WARMUP_BACKEND_BASE_URL`    | Separate backend for warmup (see Backend Separation) |
-| `FFS_RENDER_BACKEND_BASE_URL`    | Separate backend for render (see Backend Separation) |
-| `FFS_WARMUP_BACKEND_API_KEY`     | API key for authenticating to the warmup backend     |
-| `FFS_RENDER_BACKEND_API_KEY`     | API key for authenticating to the render backend     |
 
 When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for storage (default: system temp directory). Local files are automatically cleaned up after the TTL expires.
 
@@ -343,27 +339,47 @@ events.addEventListener("render:complete", (e) => {
 
 ## Backend Separation
 
-FFS supports running warmup and render on separate backends, useful for scaling or resource isolation. When backend URLs are configured, the cache storage must be shared between services (e.g., using S3).
+FFS supports running warmup and render on separate backends via resolver callbacks.
+When backends are configured, the transient storage must be shared between services (e.g., using S3).
 
-**Environment variables:**
+### Setup
 
-- `FFS_WARMUP_BACKEND_BASE_URL` — Base URL for warmup backend (e.g., `https://warmup.your.app`)
-- `FFS_RENDER_BACKEND_BASE_URL` — Base URL for render backend (e.g., `https://render.your.app`)
+Pass resolvers to `createServerContext`:
 
-**Behavior when set:**
+```typescript
+import { createServerContext } from "@effing/ffs/handlers";
+import type {
+  RenderBackendResolver,
+  WarmupBackendResolver,
+} from "@effing/ffs/handlers";
 
-| Endpoint                     | Effect                                               |
-| ---------------------------- | ---------------------------------------------------- |
-| `POST /warmup`               | Returns URL pointing to local server (orchestrator)  |
-| `GET /warmup/:id`            | Proxies SSE from warmup backend                      |
-| `POST /render`               | Returns URL pointing to local server (orchestrator)  |
-| `GET /render/:id`            | Proxies from render backend (SSE or video stream)    |
-| `POST /warmup-and-render`    | Returns URL pointing to local server (orchestrator)  |
-| `GET /warmup-and-render/:id` | Proxies SSE from warmup backend, then render backend |
+const renderBackendResolver: RenderBackendResolver = (effie, metadata) => ({
+  baseUrl: "https://render.your.app",
+  apiKey: "secret",
+});
 
-All GET endpoints proxy requests to the configured backend, keeping backend URLs hidden from clients. This ensures compatibility with EventSource (which doesn't follow redirects) and simplifies CORS configuration since only the orchestrator needs to be publicly accessible.
+const warmupBackendResolver: WarmupBackendResolver = (sources, metadata) => ({
+  baseUrl: "https://warmup.your.app",
+  apiKey: "secret",
+});
 
-If the backends have `FFS_API_KEY` set, configure `FFS_WARMUP_BACKEND_API_KEY` and/or `FFS_RENDER_BACKEND_API_KEY` on the orchestrator so it can authenticate when proxying requests. The orchestrator sends these as `Authorization: Bearer <key>` headers.
+const ctx = await createServerContext({
+  renderBackendResolver,
+  warmupBackendResolver,
+});
+```
+
+The render resolver receives the effie data; the warmup resolver receives the source list.
+Both receive optional metadata (passed via handler options). Return `null` to handle locally.
+
+### Job metadata
+
+Pass server-side metadata to be stored with the job and forwarded to the resolver:
+
+```typescript
+createRenderJob(req, res, ctx, { metadata: { tenantId: "abc" } });
+createWarmupJob(req, res, ctx, { metadata: { tenantId: "abc" } });
+```
 
 ## Examples
 

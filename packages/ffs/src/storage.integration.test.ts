@@ -180,18 +180,18 @@ describe("LocalTransientStore", () => {
   describe("TTL properties", () => {
     test("exposes default TTL values", () => {
       expect(storage.sourceTtlMs).toBe(60 * 60 * 1000);
-      expect(storage.jobMetadataTtlMs).toBe(8 * 60 * 60 * 1000);
+      expect(storage.jobDataTtlMs).toBe(8 * 60 * 60 * 1000);
     });
 
     test("uses custom TTL values when provided", () => {
       const customStorage = new LocalTransientStore({
         baseDir: tempDir,
         sourceTtlMs: 30 * 60 * 1000,
-        jobMetadataTtlMs: 2 * 60 * 60 * 1000,
+        jobDataTtlMs: 2 * 60 * 60 * 1000,
       });
 
       expect(customStorage.sourceTtlMs).toBe(30 * 60 * 1000);
-      expect(customStorage.jobMetadataTtlMs).toBe(2 * 60 * 60 * 1000);
+      expect(customStorage.jobDataTtlMs).toBe(2 * 60 * 60 * 1000);
 
       customStorage.close();
     });
@@ -216,7 +216,7 @@ describe("LocalTransientStore TTL cleanup", () => {
     const storage = new LocalTransientStore({
       baseDir: tempDir,
       sourceTtlMs: 1,
-      jobMetadataTtlMs: 1,
+      jobDataTtlMs: 1,
     });
 
     // Store a file
@@ -253,7 +253,7 @@ describe("createTransientStore", () => {
     delete process.env.FFS_TRANSIENT_STORE_SECRET_KEY;
     delete process.env.FFS_TRANSIENT_STORE_LOCAL_DIR;
     delete process.env.FFS_SOURCE_CACHE_TTL_MS;
-    delete process.env.FFS_JOB_METADATA_TTL_MS;
+    delete process.env.FFS_JOB_DATA_TTL_MS;
   });
 
   afterAll(() => {
@@ -289,7 +289,7 @@ describe("createTransientStore", () => {
     process.env.FFS_TRANSIENT_STORE_ACCESS_KEY = "access-key";
     process.env.FFS_TRANSIENT_STORE_SECRET_KEY = "secret-key";
     process.env.FFS_SOURCE_CACHE_TTL_MS = "1800000";
-    process.env.FFS_JOB_METADATA_TTL_MS = "7200000";
+    process.env.FFS_JOB_DATA_TTL_MS = "7200000";
 
     const storage = createTransientStore();
 
@@ -300,7 +300,7 @@ describe("createTransientStore", () => {
       "transient/v1/",
     );
     expect(storage.sourceTtlMs).toBe(1_800_000);
-    expect(storage.jobMetadataTtlMs).toBe(7_200_000);
+    expect(storage.jobDataTtlMs).toBe(7_200_000);
     storage.close();
   });
 
@@ -339,12 +339,12 @@ describe("createTransientStore", () => {
     storage.close();
   });
 
-  test("uses custom job metadata TTL from FFS_JOB_METADATA_TTL_MS", () => {
-    process.env.FFS_JOB_METADATA_TTL_MS = "14400000"; // 4 hours
+  test("uses custom job data TTL from FFS_JOB_DATA_TTL_MS", () => {
+    process.env.FFS_JOB_DATA_TTL_MS = "14400000"; // 4 hours
 
     const storage = createTransientStore();
     expect(storage).toBeInstanceOf(LocalTransientStore);
-    expect(storage.jobMetadataTtlMs).toBe(14_400_000);
+    expect(storage.jobDataTtlMs).toBe(14_400_000);
     storage.close();
   });
 
@@ -352,7 +352,7 @@ describe("createTransientStore", () => {
     const storage = createTransientStore();
     expect(storage).toBeInstanceOf(LocalTransientStore);
     expect(storage.sourceTtlMs).toBe(60 * 60 * 1000); // 60 minutes
-    expect(storage.jobMetadataTtlMs).toBe(8 * 60 * 60 * 1000); // 8 hours
+    expect(storage.jobDataTtlMs).toBe(8 * 60 * 60 * 1000); // 8 hours
     storage.close();
   });
 });

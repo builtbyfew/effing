@@ -36,6 +36,7 @@ export async function createWarmupJob(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
+  options?: { metadata?: Record<string, unknown> },
 ): Promise<void> {
   try {
     const parseResult = parseEffieData(req.body, ctx.skipValidation);
@@ -47,11 +48,11 @@ export async function createWarmupJob(
     const sources = extractEffieSourcesWithTypes(parseResult.effie);
     const jobId = randomUUID();
 
-    // Store job in cache with job metadata TTL
+    const job: WarmupJob = { sources, metadata: options?.metadata };
     await ctx.transientStore.putJson(
       storeKeys.warmupJob(jobId),
-      { sources },
-      ctx.transientStore.jobMetadataTtlMs,
+      job,
+      ctx.transientStore.jobDataTtlMs,
     );
 
     res.json({
@@ -78,35 +79,39 @@ export async function streamWarmupJob(
 
     const jobId = req.params.id;
 
-    // Proxy to warmup backend if configured
-    if (ctx.warmupBackendBaseUrl) {
-      setupSSEResponse(res);
-      const sendEvent = createSSEEventSender(res);
-      try {
-        await proxyRemoteSSE(
-          `${ctx.warmupBackendBaseUrl}/warmup/${jobId}`,
-          sendEvent,
-          "",
-          res,
-          ctx.warmupBackendApiKey
-            ? { Authorization: `Bearer ${ctx.warmupBackendApiKey}` }
-            : undefined,
-        );
-      } finally {
-        res.end();
-      }
-      return;
-    }
-
-    const jobCacheKey = storeKeys.warmupJob(jobId);
-    const job = await ctx.transientStore.getJson<WarmupJob>(jobCacheKey);
-    // only allow the warmup job to run once
-    ctx.transientStore.delete(jobCacheKey);
+    const jobStoreKey = storeKeys.warmupJob(jobId);
+    const job = await ctx.transientStore.getJson<WarmupJob>(jobStoreKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
+
+    // Proxy to warmup backend if resolver is configured
+    if (ctx.warmupBackendResolver) {
+      const backend = ctx.warmupBackendResolver(job.sources, job.metadata);
+      if (backend) {
+        setupSSEResponse(res);
+        const sendEvent = createSSEEventSender(res);
+        try {
+          await proxyRemoteSSE(
+            `${backend.baseUrl}/warmup/${jobId}`,
+            sendEvent,
+            "",
+            res,
+            backend.apiKey
+              ? { Authorization: `Bearer ${backend.apiKey}` }
+              : undefined,
+          );
+        } finally {
+          res.end();
+        }
+        return;
+      }
+    }
+
+    // Local warmup — only allow the warmup job to run once
+    ctx.transientStore.delete(jobStoreKey);
 
     setupSSEResponse(res);
     const sendEvent = createSSEEventSender(res);

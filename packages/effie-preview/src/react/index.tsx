@@ -70,6 +70,7 @@ export function EffieCoverPreview({
       <video
         src={video}
         poster={cover}
+        crossOrigin="anonymous"
         className={className}
         style={{ ...style, height: resolution.height }}
         controls

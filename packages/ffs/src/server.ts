@@ -12,6 +12,7 @@ import {
 } from "./handlers";
 
 const app: express.Express = express();
+app.disable("x-powered-by");
 app.use(bodyParser.json({ limit: "50mb" })); // Support large JSON requests
 
 const ctx = await createServerContext();

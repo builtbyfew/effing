@@ -189,6 +189,7 @@ export async function streamRenderDirect(
   });
 
   res.set("Content-Type", "video/mp4");
+  res.set("Cache-Control", "public, immutable, max-age=86400");
   videoStream.pipe(res);
 }
 

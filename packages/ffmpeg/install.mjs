@@ -74,12 +74,18 @@ function get(url, redirects = 0) {
   return new Promise((resolve, reject) => {
     https
       .get(url, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
           res.resume(); // discard body
           resolve(get(res.headers.location, redirects + 1));
         } else if (res.statusCode !== 200) {
           res.resume();
-          reject(new Error(`Download failed: HTTP ${res.statusCode} for ${url}`));
+          reject(
+            new Error(`Download failed: HTTP ${res.statusCode} for ${url}`),
+          );
         } else {
           resolve(res);
         }

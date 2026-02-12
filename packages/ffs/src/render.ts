@@ -520,7 +520,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
             ? (segment.background.seek ?? 0)
             : 0;
         filterParts.push(
-          `[${segBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          `[${segBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
         );
       } else {
         // Use global background (via split/fifo chain)

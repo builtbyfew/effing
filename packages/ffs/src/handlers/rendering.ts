@@ -141,13 +141,14 @@ export async function streamRenderProgress(
     const jobId = req.params.id;
     const jobStoreKey = storeKeys.renderJob(jobId);
     const job = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
-    // Only allow the job to run once
-    ctx.transientStore.delete(jobStoreKey);
 
     if (!job) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
+
+    // Only allow the job to run once
+    ctx.transientStore.delete(jobStoreKey);
 
     // Resolve backends up front
     const warmupBackend = ctx.warmupBackendResolver
@@ -374,13 +375,27 @@ async function uploadRenderedVideo(
   // Fetch and upload cover if coverUrl provided
   if (upload.coverUrl) {
     const fetchCoverStartTime = Date.now();
-    const coverFetchResponse = await ffsFetch(effie.cover);
-    if (!coverFetchResponse.ok) {
-      throw new Error(
-        `Failed to fetch cover image: ${coverFetchResponse.status} ${coverFetchResponse.statusText}`,
-      );
+    let coverBuffer: Buffer;
+    if (effie.cover.startsWith("data:")) {
+      const commaIndex = effie.cover.indexOf(",");
+      if (commaIndex === -1) {
+        throw new Error("Invalid cover data URL");
+      }
+      const meta = effie.cover.slice(5, commaIndex); // after "data:"
+      const isBase64 = meta.endsWith(";base64");
+      const data = effie.cover.slice(commaIndex + 1);
+      coverBuffer = isBase64
+        ? Buffer.from(data, "base64")
+        : Buffer.from(decodeURIComponent(data));
+    } else {
+      const coverFetchResponse = await ffsFetch(effie.cover);
+      if (!coverFetchResponse.ok) {
+        throw new Error(
+          `Failed to fetch cover image: ${coverFetchResponse.status} ${coverFetchResponse.statusText}`,
+        );
+      }
+      coverBuffer = Buffer.from(await coverFetchResponse.arrayBuffer());
     }
-    const coverBuffer = Buffer.from(await coverFetchResponse.arrayBuffer());
     timings.fetchCoverTime = Date.now() - fetchCoverStartTime;
 
     const uploadCoverStartTime = Date.now();

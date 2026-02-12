@@ -44,7 +44,7 @@ npx @effing/ffs
 FFS_PORT=8080 npx @effing/ffs
 ```
 
-Rendering is a two-step process: POST to create a job, then connect to the SSE progress stream to track warmup and rendering. The video URL is revealed in the `complete` event.
+Rendering is a two-step process: POST to create a job, then connect to the SSE progress stream to track warmup and rendering. The video URL is revealed in the `ready` event.
 
 ```bash
 # 1. Create a render job

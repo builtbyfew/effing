@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.7.0
+
+### Patch Changes
+
+- dedccc7: Fix service worker cache pruning in the starter template: track insertion order explicitly instead of relying on unspecified `cache.keys()` ordering, and run pruning in the background via `event.waitUntil` to avoid blocking the response.
+
 ## 0.6.1
 
 ### Patch Changes

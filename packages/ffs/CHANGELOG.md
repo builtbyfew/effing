@@ -1,5 +1,14 @@
 # @effing/ffs
 
+## 0.7.3
+
+### Patch Changes
+
+- 6008f66: fix(ffs): fix S3 transient store key construction
+
+  `S3TransientStore.getFullKey` now joins prefix and key with `/` instead of concatenating them directly. The prefix is also normalized to strip trailing slashes on construction.
+  - @effing/effie@0.7.3
+
 ## 0.7.2
 
 ### Patch Changes

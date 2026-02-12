@@ -199,43 +199,63 @@ export async function streamRenderProgress(
       // Phase 2: Render
       keepalivePhase = "render";
 
-      if (renderBackend) {
-        // Proxy render from remote backend
-        await proxyRemoteSSE(
-          `${renderBackend.baseUrl}/render/${jobId}/progress`,
-          sendEvent,
-          "render:",
-          res,
-          renderBackend.apiKey
-            ? { Authorization: `Bearer ${renderBackend.apiKey}` }
-            : undefined,
-        );
-      } else {
-        if (job.upload) {
-          // Upload mode: render and upload, emit SSE events
-          const renderSender = prefixEventSender(sendEvent, "render:");
-          renderSender("started", { status: "rendering" });
-          const timings = await renderAndUploadInternal(
-            job.effie,
-            job.scale,
-            job.upload,
-            renderSender,
-            ctx,
-          );
-          renderSender("complete", { status: "uploaded", timings });
-          sendEvent("complete", { status: "done" });
-        } else {
-          // Non-upload mode: write video sub-job, then emit complete with videoUrl
-          const videoJob: VideoJob = { effie: job.effie, scale: job.scale };
+      if (job.upload) {
+        if (renderBackend) {
+          // Upload + backend: store VideoJob for backend to render,
+          // fetch binary video from backend, upload locally.
+          const videoJob: VideoJob = {
+            effie: job.effie,
+            scale: job.scale,
+          };
           await ctx.transientStore.putJson(
             storeKeys.videoJob(jobId),
             videoJob,
             ctx.transientStore.ttlMs,
           );
 
-          const videoUrl = `${ctx.baseUrl}/render/${jobId}/video`;
-          sendEvent("ready", { videoUrl });
+          const backendUrl = `${renderBackend.baseUrl}/render/${jobId}/video`;
+          const response = await ffsFetch(backendUrl, {
+            headers: renderBackend.apiKey
+              ? { Authorization: `Bearer ${renderBackend.apiKey}` }
+              : undefined,
+          });
+          if (!response.ok) {
+            throw new Error(`Backend render failed: ${response.status}`);
+          }
+          const videoBuffer = Buffer.from(await response.arrayBuffer());
+
+          const timings = await uploadRenderedVideo(
+            videoBuffer,
+            job.effie,
+            job.upload,
+            sendEvent,
+          );
+          sendEvent("render:complete", timings);
+        } else {
+          // Upload + no backend: render and upload locally (no VideoJob stored)
+          const timings = await renderAndUploadInternal(
+            job.effie,
+            job.scale,
+            job.upload,
+            sendEvent,
+            ctx,
+          );
+          sendEvent("render:complete", timings);
         }
+        sendEvent("complete", { status: "done" });
+      } else {
+        // Non-upload mode: store VideoJob for on-demand fetch via /render/:id/video
+        const videoJob: VideoJob = {
+          effie: job.effie,
+          scale: job.scale,
+        };
+        await ctx.transientStore.putJson(
+          storeKeys.videoJob(jobId),
+          videoJob,
+          ctx.transientStore.ttlMs,
+        );
+        const videoUrl = `${ctx.baseUrl}/render/${jobId}/video`;
+        sendEvent("ready", { videoUrl });
       }
     } catch (error) {
       sendEvent("error", {
@@ -277,10 +297,8 @@ export async function streamRenderVideo(
       return;
     }
 
-    // Delete the video job (one-time use)
-    ctx.transientStore.delete(videoJobKey);
-
     // Proxy to render backend if resolver is configured
+    // Don't delete — the backend reads/deletes the VideoJob from shared store
     if (ctx.renderBackendResolver) {
       const backend = ctx.renderBackendResolver(videoJob.effie);
       if (backend) {
@@ -300,6 +318,9 @@ export async function streamRenderVideo(
         return;
       }
     }
+
+    // Local render — safe to delete the video job (one-time use)
+    ctx.transientStore.delete(videoJobKey);
 
     // Render locally
     await streamRenderDirect(res, videoJob, ctx);
@@ -339,15 +360,14 @@ async function streamRenderDirect(
 }
 
 /**
- * Internal render and upload logic
- * Returns timings for the SSE complete event
+ * Upload a rendered video buffer (and optional cover) to presigned URLs.
+ * Shared between local render+upload and backend render+upload flows.
  */
-export async function renderAndUploadInternal(
+async function uploadRenderedVideo(
+  videoBuffer: Buffer,
   effie: EffieData<EffieSources>,
-  scale: number,
   upload: UploadOptions,
   sendEvent: SSEEventSender,
-  ctx: ServerContext,
 ): Promise<Record<string, number>> {
   const timings: Record<string, number> = {};
 
@@ -380,21 +400,6 @@ export async function renderAndUploadInternal(
     timings.uploadCoverTime = Date.now() - uploadCoverStartTime;
   }
 
-  // Render effie data to video
-  const renderStartTime = Date.now();
-  const { EffieRenderer } = await import("../render");
-  const renderer = new EffieRenderer(effie, {
-    transientStore: ctx.transientStore,
-    httpProxy: ctx.httpProxy,
-  });
-  const videoStream = await renderer.render(scale);
-  const chunks: Buffer[] = [];
-  for await (const chunk of videoStream) {
-    chunks.push(Buffer.from(chunk));
-  }
-  const videoBuffer = Buffer.concat(chunks);
-  timings.renderTime = Date.now() - renderStartTime;
-
   // Update keepalive status for upload phase
   sendEvent("keepalive", { status: "uploading" });
 
@@ -414,6 +419,44 @@ export async function renderAndUploadInternal(
     );
   }
   timings.uploadTime = Date.now() - uploadStartTime;
+
+  return timings;
+}
+
+/**
+ * Internal render and upload logic
+ * Returns timings for the SSE complete event
+ */
+export async function renderAndUploadInternal(
+  effie: EffieData<EffieSources>,
+  scale: number,
+  upload: UploadOptions,
+  sendEvent: SSEEventSender,
+  ctx: ServerContext,
+): Promise<Record<string, number>> {
+  // Render effie data to video buffer
+  const renderStartTime = Date.now();
+  const { EffieRenderer } = await import("../render");
+  const renderer = new EffieRenderer(effie, {
+    transientStore: ctx.transientStore,
+    httpProxy: ctx.httpProxy,
+  });
+  const videoStream = await renderer.render(scale);
+  const chunks: Buffer[] = [];
+  for await (const chunk of videoStream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  const videoBuffer = Buffer.concat(chunks);
+  const renderTime = Date.now() - renderStartTime;
+
+  // Upload video (and cover)
+  const timings = await uploadRenderedVideo(
+    videoBuffer,
+    effie,
+    upload,
+    sendEvent,
+  );
+  timings.renderTime = renderTime;
 
   return timings;
 }

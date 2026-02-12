@@ -8,6 +8,10 @@ vi.mock("./render", () => ({
   EffieRenderer: vi.fn(),
 }));
 
+vi.mock("./fetch", () => ({
+  ffsFetch: vi.fn(),
+}));
+
 function mockRequest(params: Record<string, string> = {}): Request {
   return { params } as unknown as Request;
 }
@@ -148,6 +152,57 @@ describe("streamRenderVideo", () => {
     expect(ctx.transientStore.delete).toHaveBeenCalledWith(
       storeKeys.videoJob(jobId),
     );
+  });
+
+  test("does not delete video job when proxying to render backend", async () => {
+    const videoJob: VideoJob = {
+      effie: {
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "#000000" },
+        segments: [],
+        sources: {},
+      },
+      scale: 1,
+    };
+
+    const jobId = "backend-proxy-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.videoJob(jobId)]: videoJob,
+    };
+
+    // Mock ffsFetch to return a fake binary response for the backend proxy
+    const { ffsFetch } = await import("./fetch");
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        "content-type": "video/mp4",
+        "content-length": "1234",
+      }),
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+          releaseLock: vi.fn(),
+          cancel: vi.fn(),
+        }),
+      },
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const { streamRenderVideo } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.renderBackendResolver = () => ({
+      baseUrl: "http://backend:3000",
+    });
+
+    await streamRenderVideo(req, res, ctx);
+
+    // Should NOT have deleted the video job — the backend handles deletion
+    expect(ctx.transientStore.delete).not.toHaveBeenCalled();
   });
 });
 

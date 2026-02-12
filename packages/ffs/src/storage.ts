@@ -71,7 +71,7 @@ export class S3TransientStore implements TransientStore {
       forcePathStyle: !!options.endpoint,
     });
     this.bucket = options.bucket;
-    this.prefix = options.prefix ?? "";
+    this.prefix = (options.prefix ?? "").replace(/\/+$/, "");
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
   }
 
@@ -80,7 +80,7 @@ export class S3TransientStore implements TransientStore {
   }
 
   private getFullKey(key: string): string {
-    return `${this.prefix}${key}`;
+    return this.prefix ? `${this.prefix}/${key}` : key;
   }
 
   async put(key: string, stream: Readable, ttlMs?: number): Promise<void> {

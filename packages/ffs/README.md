@@ -164,20 +164,25 @@ Streams warmup and render progress via SSE. All warmup events are prefixed with 
 
 **Events:**
 
-| Event                | Phase  | Data                                                              |
-| -------------------- | ------ | ----------------------------------------------------------------- |
-| `purge:complete`     | purge  | `{ "purged": 3, "total": 5 }`                                     |
-| `warmup:start`       | warmup | `{ "total": 5 }`                                                  |
-| `warmup:progress`    | warmup | `{ "url": "...", "status": "hit"\|"cached"\|"error", ... }`       |
-| `warmup:downloading` | warmup | `{ "url": "...", "status": "downloading", "bytesReceived": ... }` |
-| `warmup:summary`     | warmup | `{ "cached": 5, "failed": 0, "skipped": 0, "total": 5 }`          |
-| `warmup:complete`    | warmup | `{ "status": "ready" }`                                           |
-| `render:started`     | render | `{ "status": "rendering" }`                                       |
-| `keepalive`          | both   | `{ "phase": "warmup" }` or `{ "phase": "render" }`                |
-| `render:complete`    | render | `{ "status": "uploaded", "timings": {...} }` (upload mode)        |
-| `ready`              | -      | `{ "videoUrl": "..." }` (non-upload mode)                         |
-| `complete`           | -      | `{ "status": "done" }` (upload mode)                              |
-| `error`              | any    | `{ "phase": "warmup"\|"render", "message": "..." }`               |
+| Event                | Phase  | Data                                                                                                 |
+| -------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `purge:complete`     | purge  | `{ purged: number, total: number }`                                                                  |
+| `warmup:start`       | warmup | `{ total: number }`                                                                                  |
+| `warmup:progress`    | warmup | `{ url, status: "skipped", reason: "http-video-audio-passthrough", cached, failed, skipped, total }` |
+|                      |        | `{ url, status: "hit", cached, failed, skipped, total }`                                             |
+|                      |        | `{ url, status: "cached", cached, failed, skipped, total, ms }`                                      |
+|                      |        | `{ url, status: "error", error, cached, failed, skipped, total, ms }`                                |
+| `warmup:downloading` | warmup | `{ url, status: "started", bytesReceived: 0 }` — sent once when download begins                      |
+|                      |        | `{ url, status: "downloading", bytesReceived }` — sent every ~10 s during download                   |
+| `warmup:keepalive`   | warmup | `{ cached, failed, skipped, total }` — sent every ~25 s during source fetching                       |
+| `warmup:summary`     | warmup | `{ cached, failed, skipped, total }`                                                                 |
+| `warmup:complete`    | warmup | `{ status: "ready" }`                                                                                |
+| `keepalive`          | both   | `{ phase: "warmup" \| "render" }` — sent every ~25 s                                                 |
+|                      |        | `{ status: "uploading" }` — sent once before video upload begins                                     |
+| `render:complete`    | render | `{ renderTime?, fetchCoverTime?, uploadCoverTime?, uploadTime }` (upload mode; all values in ms)     |
+| `ready`              | —      | `{ videoUrl }` (non-upload mode)                                                                     |
+| `complete`           | —      | `{ status: "done" }` (upload mode)                                                                   |
+| `error`              | any    | `{ phase: "warmup" \| "render", message }`                                                           |
 
 **Without upload** — The `ready` event provides a `videoUrl` pointing to `/render/:id/video`. The actual rendering happens when you fetch that URL:
 
@@ -232,14 +237,19 @@ Runs the cache warmup job and streams the progress via Server-Sent Events (SSE).
 
 **Events:**
 
-| Event         | Data                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| `start`       | `{ "total": 5 }`                                                                             |
-| `progress`    | `{ "url": "...", "status": "hit"\|"cached"\|"error", "cached": 2, "failed": 0, "total": 5 }` |
-| `downloading` | `{ "url": "...", "status": "downloading", "bytesReceived": 1048576 }`                        |
-| `keepalive`   | `{ "cached": 2, "failed": 0, "total": 5 }`                                                   |
-| `summary`     | `{ "cached": 5, "failed": 0, "total": 5 }`                                                   |
-| `complete`    | `{ "status": "ready" }`                                                                      |
+| Event         | Data                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| `start`       | `{ total: number }`                                                                                  |
+| `progress`    | `{ url, status: "skipped", reason: "http-video-audio-passthrough", cached, failed, skipped, total }` |
+|               | `{ url, status: "hit", cached, failed, skipped, total }`                                             |
+|               | `{ url, status: "cached", cached, failed, skipped, total, ms }`                                      |
+|               | `{ url, status: "error", error, cached, failed, skipped, total, ms }`                                |
+| `downloading` | `{ url, status: "started", bytesReceived: 0 }` — sent once when download begins                      |
+|               | `{ url, status: "downloading", bytesReceived }` — sent every ~10 s during download                   |
+| `keepalive`   | `{ cached, failed, skipped, total }` — sent every ~25 s during source fetching                       |
+| `summary`     | `{ cached, failed, skipped, total }`                                                                 |
+| `complete`    | `{ status: "ready" }`                                                                                |
+| `error`       | `{ message }`                                                                                        |
 
 **Example:**
 

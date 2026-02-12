@@ -46,8 +46,7 @@ describe("S3TransientStore", () => {
         prefix: "cache/",
         accessKeyId: "access-key",
         secretAccessKey: "secret-key",
-        sourceTtlMs: 3600000,
-        jobDataTtlMs: 28800000,
+        ttlMs: 3600000,
       });
 
       expect(S3Client).toHaveBeenCalledWith({
@@ -354,7 +353,7 @@ describe("S3TransientStore", () => {
   });
 
   describe("TTL configuration", () => {
-    test("uses default source TTL of 60 minutes for put()", async () => {
+    test("uses default TTL of 60 minutes for put()", async () => {
       const { Upload } = await import("@aws-sdk/lib-storage");
       const { S3TransientStore } = await import("./storage");
 
@@ -375,12 +374,12 @@ describe("S3TransientStore", () => {
       };
       const expiresTime = callParams.params.Expires.getTime();
 
-      // Should be approximately 60 minutes in the future (default source TTL)
+      // Should be approximately 60 minutes in the future (default TTL)
       expect(expiresTime).toBeGreaterThanOrEqual(beforeTime + 60 * 60 * 1000);
       expect(expiresTime).toBeLessThanOrEqual(afterTime + 60 * 60 * 1000);
     });
 
-    test("uses default job metadata TTL of 8 hours for putJson()", async () => {
+    test("uses default TTL of 60 minutes for putJson()", async () => {
       const { PutObjectCommand } = await import("@aws-sdk/client-s3");
       const { S3TransientStore } = await import("./storage");
 
@@ -397,14 +396,12 @@ describe("S3TransientStore", () => {
       };
       const expiresTime = callParams.Expires.getTime();
 
-      // Should be approximately 8 hours in the future (default job metadata TTL)
-      expect(expiresTime).toBeGreaterThanOrEqual(
-        beforeTime + 8 * 60 * 60 * 1000,
-      );
-      expect(expiresTime).toBeLessThanOrEqual(afterTime + 8 * 60 * 60 * 1000);
+      // Should be approximately 60 minutes in the future (default TTL)
+      expect(expiresTime).toBeGreaterThanOrEqual(beforeTime + 60 * 60 * 1000);
+      expect(expiresTime).toBeLessThanOrEqual(afterTime + 60 * 60 * 1000);
     });
 
-    test("uses custom source TTL when provided", async () => {
+    test("uses custom TTL when provided", async () => {
       const { Upload } = await import("@aws-sdk/lib-storage");
       const { S3TransientStore } = await import("./storage");
 
@@ -415,7 +412,7 @@ describe("S3TransientStore", () => {
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
-        sourceTtlMs: 30 * 60 * 1000, // 30 minutes
+        ttlMs: 30 * 60 * 1000, // 30 minutes
       });
       const stream = Readable.from(Buffer.from("test"));
 
@@ -433,33 +430,6 @@ describe("S3TransientStore", () => {
       expect(expiresTime).toBeLessThanOrEqual(afterTime + 30 * 60 * 1000);
     });
 
-    test("uses custom job metadata TTL when provided", async () => {
-      const { PutObjectCommand } = await import("@aws-sdk/client-s3");
-      const { S3TransientStore } = await import("./storage");
-
-      mockS3Send.mockResolvedValueOnce({});
-
-      const storage = new S3TransientStore({
-        bucket: "my-bucket",
-        jobDataTtlMs: 2 * 60 * 60 * 1000, // 2 hours
-      });
-
-      const beforeTime = Date.now();
-      await storage.putJson("job.json", { test: true });
-      const afterTime = Date.now();
-
-      const callParams = vi.mocked(PutObjectCommand).mock.calls[0][0] as {
-        Expires: Date;
-      };
-      const expiresTime = callParams.Expires.getTime();
-
-      // Should be approximately 2 hours in the future
-      expect(expiresTime).toBeGreaterThanOrEqual(
-        beforeTime + 2 * 60 * 60 * 1000,
-      );
-      expect(expiresTime).toBeLessThanOrEqual(afterTime + 2 * 60 * 60 * 1000);
-    });
-
     test("allows overriding TTL per operation", async () => {
       const { Upload } = await import("@aws-sdk/lib-storage");
       const { S3TransientStore } = await import("./storage");
@@ -471,7 +441,7 @@ describe("S3TransientStore", () => {
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
-        sourceTtlMs: 60 * 60 * 1000, // 60 minutes default
+        ttlMs: 60 * 60 * 1000, // 60 minutes default
       });
       const stream = Readable.from(Buffer.from("test"));
 
@@ -490,17 +460,15 @@ describe("S3TransientStore", () => {
       expect(expiresTime).toBeLessThanOrEqual(afterTime + 15 * 60 * 1000);
     });
 
-    test("exposes TTL values as public properties", async () => {
+    test("exposes TTL value as public property", async () => {
       const { S3TransientStore } = await import("./storage");
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
-        sourceTtlMs: 30 * 60 * 1000,
-        jobDataTtlMs: 4 * 60 * 60 * 1000,
+        ttlMs: 30 * 60 * 1000,
       });
 
-      expect(storage.sourceTtlMs).toBe(30 * 60 * 1000);
-      expect(storage.jobDataTtlMs).toBe(4 * 60 * 60 * 1000);
+      expect(storage.ttlMs).toBe(30 * 60 * 1000);
     });
   });
 

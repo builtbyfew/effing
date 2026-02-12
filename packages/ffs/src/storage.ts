@@ -14,19 +14,15 @@ import os from "os";
 import crypto from "crypto";
 import type { Readable } from "stream";
 
-/** Default TTL for sources: 60 minutes */
-const DEFAULT_SOURCE_TTL_MS = 60 * 60 * 1000;
-/** Default TTL for job data: 8 hours */
-const DEFAULT_JOB_DATA_TTL_MS = 8 * 60 * 60 * 1000;
+/** Default TTL: 60 minutes */
+const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Transient store interface for caching sources and storing ephemeral job data.
  */
 export interface TransientStore {
-  /** TTL for cached sources in milliseconds */
-  readonly sourceTtlMs: number;
-  /** TTL for job data in milliseconds */
-  readonly jobDataTtlMs: number;
+  /** TTL in milliseconds */
+  readonly ttlMs: number;
   /** Store a stream with the given key and optional TTL override */
   put(key: string, stream: Readable, ttlMs?: number): Promise<void>;
   /** Get a stream for the given key, or null if not found */
@@ -52,8 +48,7 @@ export class S3TransientStore implements TransientStore {
   private client: S3Client;
   private bucket: string;
   private prefix: string;
-  public readonly sourceTtlMs: number;
-  public readonly jobDataTtlMs: number;
+  public readonly ttlMs: number;
 
   constructor(options: {
     endpoint?: string;
@@ -62,8 +57,7 @@ export class S3TransientStore implements TransientStore {
     prefix?: string;
     accessKeyId?: string;
     secretAccessKey?: string;
-    sourceTtlMs?: number;
-    jobDataTtlMs?: number;
+    ttlMs?: number;
   }) {
     this.client = new S3Client({
       endpoint: options.endpoint,
@@ -78,8 +72,7 @@ export class S3TransientStore implements TransientStore {
     });
     this.bucket = options.bucket;
     this.prefix = options.prefix ?? "";
-    this.sourceTtlMs = options.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
-    this.jobDataTtlMs = options.jobDataTtlMs ?? DEFAULT_JOB_DATA_TTL_MS;
+    this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
   }
 
   private getExpires(ttlMs: number): Date {
@@ -97,7 +90,7 @@ export class S3TransientStore implements TransientStore {
         Bucket: this.bucket,
         Key: this.getFullKey(key),
         Body: stream,
-        Expires: this.getExpires(ttlMs ?? this.sourceTtlMs),
+        Expires: this.getExpires(ttlMs ?? this.ttlMs),
       },
     });
     await upload.done();
@@ -188,7 +181,7 @@ export class S3TransientStore implements TransientStore {
         Key: this.getFullKey(key),
         Body: JSON.stringify(data),
         ContentType: "application/json",
-        Expires: this.getExpires(ttlMs ?? this.jobDataTtlMs),
+        Expires: this.getExpires(ttlMs ?? this.ttlMs),
       }),
     );
   }
@@ -231,20 +224,11 @@ export class LocalTransientStore implements TransientStore {
   private baseDir: string;
   private initialized = false;
   private cleanupInterval?: ReturnType<typeof setInterval>;
-  public readonly sourceTtlMs: number;
-  public readonly jobDataTtlMs: number;
-  /** For cleanup, use the longer of the two TTLs */
-  private maxTtlMs: number;
+  public readonly ttlMs: number;
 
-  constructor(options?: {
-    baseDir?: string;
-    sourceTtlMs?: number;
-    jobDataTtlMs?: number;
-  }) {
+  constructor(options?: { baseDir?: string; ttlMs?: number }) {
     this.baseDir = options?.baseDir ?? path.join(os.tmpdir(), "ffs-transient");
-    this.sourceTtlMs = options?.sourceTtlMs ?? DEFAULT_SOURCE_TTL_MS;
-    this.jobDataTtlMs = options?.jobDataTtlMs ?? DEFAULT_JOB_DATA_TTL_MS;
-    this.maxTtlMs = Math.max(this.sourceTtlMs, this.jobDataTtlMs);
+    this.ttlMs = options?.ttlMs ?? DEFAULT_TTL_MS;
 
     // Cleanup expired files every 5 minutes
     this.cleanupInterval = setInterval(() => {
@@ -284,7 +268,7 @@ export class LocalTransientStore implements TransientStore {
       } else if (entry.isFile()) {
         try {
           const stat = await fs.stat(fullPath);
-          if (now - stat.mtimeMs > this.maxTtlMs) {
+          if (now - stat.mtimeMs > this.ttlMs) {
             await fs.rm(fullPath, { force: true });
           }
         } catch {
@@ -391,13 +375,9 @@ export class LocalTransientStore implements TransientStore {
  * Uses S3 if FFS_TRANSIENT_STORE_BUCKET is set, otherwise uses local filesystem.
  */
 export function createTransientStore(): TransientStore {
-  // Parse TTLs from env
-  const sourceTtlMs = process.env.FFS_SOURCE_CACHE_TTL_MS
-    ? parseInt(process.env.FFS_SOURCE_CACHE_TTL_MS, 10)
-    : DEFAULT_SOURCE_TTL_MS;
-  const jobDataTtlMs = process.env.FFS_JOB_DATA_TTL_MS
-    ? parseInt(process.env.FFS_JOB_DATA_TTL_MS, 10)
-    : DEFAULT_JOB_DATA_TTL_MS;
+  const ttlMs = process.env.FFS_TRANSIENT_STORE_TTL_MS
+    ? parseInt(process.env.FFS_TRANSIENT_STORE_TTL_MS, 10)
+    : DEFAULT_TTL_MS;
 
   if (process.env.FFS_TRANSIENT_STORE_BUCKET) {
     return new S3TransientStore({
@@ -407,15 +387,13 @@ export function createTransientStore(): TransientStore {
       prefix: process.env.FFS_TRANSIENT_STORE_PREFIX,
       accessKeyId: process.env.FFS_TRANSIENT_STORE_ACCESS_KEY,
       secretAccessKey: process.env.FFS_TRANSIENT_STORE_SECRET_KEY,
-      sourceTtlMs,
-      jobDataTtlMs,
+      ttlMs,
     });
   }
 
   return new LocalTransientStore({
     baseDir: process.env.FFS_TRANSIENT_STORE_LOCAL_DIR,
-    sourceTtlMs,
-    jobDataTtlMs,
+    ttlMs,
   });
 }
 
@@ -426,8 +404,7 @@ export function hashUrl(url: string): string {
 export type SourceStoreKey = `sources/${string}`;
 export type WarmupJobStoreKey = `jobs/warmup/${string}.json`;
 export type RenderJobStoreKey = `jobs/render/${string}.json`;
-export type WarmupAndRenderJobStoreKey =
-  `jobs/warmup-and-render/${string}.json`;
+export type VideoJobStoreKey = `jobs/video/${string}.json`;
 
 /**
  * Build the store key for a source URL (hashing is handled internally).
@@ -444,10 +421,8 @@ export function renderJobStoreKey(jobId: string): RenderJobStoreKey {
   return `jobs/render/${jobId}.json`;
 }
 
-export function warmupAndRenderJobStoreKey(
-  jobId: string,
-): WarmupAndRenderJobStoreKey {
-  return `jobs/warmup-and-render/${jobId}.json`;
+export function videoJobStoreKey(jobId: string): VideoJobStoreKey {
+  return `jobs/video/${jobId}.json`;
 }
 
 /**
@@ -458,5 +433,5 @@ export const storeKeys = {
   source: sourceStoreKey,
   warmupJob: warmupJobStoreKey,
   renderJob: renderJobStoreKey,
-  warmupAndRenderJob: warmupAndRenderJobStoreKey,
+  videoJob: videoJobStoreKey,
 } as const;

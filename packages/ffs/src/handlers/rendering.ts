@@ -2,25 +2,32 @@ import express from "express";
 import { randomUUID } from "crypto";
 import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
-import { effieDataSchema } from "@effing/effie";
+import {
+  extractEffieSourcesWithTypes,
+  extractEffieSources,
+  effieDataSchema,
+} from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
 import type {
   ServerContext,
   SSEEventSender,
-  BackendConfig,
   RenderJob,
+  VideoJob,
   UploadOptions,
 } from "./shared";
 import {
   setupCORSHeaders,
   setupSSEResponse,
   createSSEEventSender,
+  prefixEventSender,
+  proxyRemoteSSE,
+  proxyBinaryStream,
 } from "./shared";
-import { proxyBinaryStream } from "./orchestrating";
+import { warmupSources, purgeCachedSources } from "./caching";
 
 /**
- * POST /render - Create a render job
- * Returns a job ID and URL for streaming the rendered video
+ * POST /render - Create a render job (warmup + render, optional purge)
+ * Returns a job ID and progress URL for SSE streaming
  */
 export async function createRenderJob(
   req: express.Request,
@@ -29,45 +36,29 @@ export async function createRenderJob(
   options?: { metadata?: Record<string, unknown> },
 ): Promise<void> {
   try {
-    // Wrapped format has `effie` property,
-    // otherwise it's just raw EffieData (which doesn't have an `effie` property)
-    const isWrapped = "effie" in req.body;
+    // Parse request body
+    const body = req.body as {
+      effie: unknown;
+      scale?: number;
+      upload?: UploadOptions;
+      purge?: boolean;
+    };
 
     let rawEffieData: unknown;
-    let scale: number;
-    let upload: UploadOptions | undefined;
-
-    if (isWrapped) {
-      // Wrapped format: { effie: EffieData | string, scale?, upload? }
-      const options = req.body as {
-        effie: unknown;
-        scale?: number;
-        upload?: UploadOptions;
-      };
-
-      if (typeof options.effie === "string") {
-        // Effie is a string, so it's a URL to fetch the EffieData from
-        const response = await ffsFetch(options.effie);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
-          );
-        }
-        rawEffieData = await response.json();
-      } else {
-        // Effie is an EffieData object
-        rawEffieData = options.effie;
+    if (typeof body.effie === "string") {
+      // Effie is a URL to fetch the EffieData from
+      const response = await ffsFetch(body.effie);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
+        );
       }
-
-      scale = options.scale ?? 1;
-      upload = options.upload;
+      rawEffieData = await response.json();
     } else {
-      // Body is the EffieData, options in query params
-      rawEffieData = req.body;
-      scale = parseFloat(req.query.scale?.toString() || "1");
+      rawEffieData = body.effie;
     }
 
-    // Validate/parse effie data (validation can be disabled by setting FFS_SKIP_VALIDATION)
+    // Validate/parse effie data
     let effie: EffieData<EffieSources>;
     if (!ctx.skipValidation) {
       const result = effieDataSchema.safeParse(rawEffieData);
@@ -83,7 +74,6 @@ export async function createRenderJob(
       }
       effie = result.data;
     } else {
-      // Minimal validation when schema validation is disabled
       const data = rawEffieData as EffieData<EffieSources>;
       if (!data?.segments) {
         res.status(400).json({ error: "Invalid effie data: missing segments" });
@@ -92,12 +82,23 @@ export async function createRenderJob(
       effie = data;
     }
 
-    // Create render job
+    const sources = extractEffieSourcesWithTypes(effie);
+    const scale = body.scale ?? 1;
+    const upload = body.upload;
+    const purge = body.purge;
+
+    // Create IDs
     const jobId = randomUUID();
+    const warmupJobId = randomUUID();
+
+    // Store the render job
     const job: RenderJob = {
       effie,
+      sources,
       scale,
       upload,
+      purge,
+      warmupJobId,
       createdAt: Date.now(),
       metadata: options?.metadata,
     };
@@ -105,12 +106,19 @@ export async function createRenderJob(
     await ctx.transientStore.putJson(
       storeKeys.renderJob(jobId),
       job,
-      ctx.transientStore.jobDataTtlMs,
+      ctx.transientStore.ttlMs,
+    );
+
+    // Store warmup sub-job for backend execution
+    await ctx.transientStore.putJson(
+      storeKeys.warmupJob(warmupJobId),
+      { sources, metadata: options?.metadata },
+      ctx.transientStore.ttlMs,
     );
 
     res.json({
       id: jobId,
-      url: `${ctx.baseUrl}/render/${jobId}`,
+      progressUrl: `${ctx.baseUrl}/render/${jobId}/progress`,
     });
   } catch (error) {
     console.error("Error creating render job:", error);
@@ -119,10 +127,10 @@ export async function createRenderJob(
 }
 
 /**
- * GET /render/:id - Execute render job
- * Streams video directly (no upload) or SSE progress events (with upload)
+ * GET /render/:id/progress - Stream render progress via SSE
+ * Orchestrates warmup (local or remote) followed by render (local or remote)
  */
-export async function streamRenderJob(
+export async function streamRenderProgress(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
@@ -131,37 +139,174 @@ export async function streamRenderJob(
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
-
     const jobStoreKey = storeKeys.renderJob(jobId);
     const job = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
+    // Only allow the job to run once
+    ctx.transientStore.delete(jobStoreKey);
 
     if (!job) {
-      res.status(404).json({ error: "Job not found or expired" });
+      res.status(404).json({ error: "Job not found" });
       return;
     }
 
+    // Resolve backends up front
+    const warmupBackend = ctx.warmupBackendResolver
+      ? ctx.warmupBackendResolver(job.sources, job.metadata)
+      : null;
+    const renderBackend = ctx.renderBackendResolver
+      ? ctx.renderBackendResolver(job.effie, job.metadata)
+      : null;
+
+    setupSSEResponse(res);
+    const sendEvent = createSSEEventSender(res);
+
+    // Keepalive interval for long-running operations
+    let keepalivePhase: "warmup" | "render" = "warmup";
+    const keepalive = setInterval(() => {
+      sendEvent("keepalive", { phase: keepalivePhase });
+    }, 25_000);
+
+    try {
+      // Phase 0: Purge (if requested)
+      if (job.purge) {
+        const sourceUrls = extractEffieSources(job.effie);
+        const purgeResult = await purgeCachedSources(
+          sourceUrls,
+          ctx.transientStore,
+        );
+        sendEvent("purge:complete", purgeResult);
+      }
+
+      // Phase 1: Warmup
+      if (warmupBackend) {
+        // Proxy warmup from remote backend
+        await proxyRemoteSSE(
+          `${warmupBackend.baseUrl}/warmup/${job.warmupJobId}/progress`,
+          sendEvent,
+          "warmup:",
+          res,
+          warmupBackend.apiKey
+            ? { Authorization: `Bearer ${warmupBackend.apiKey}` }
+            : undefined,
+        );
+      } else {
+        // Local warmup execution
+        const warmupSender = prefixEventSender(sendEvent, "warmup:");
+        await warmupSources(job.sources, warmupSender, ctx);
+        warmupSender("complete", { status: "ready" });
+      }
+
+      // Phase 2: Render
+      keepalivePhase = "render";
+
+      if (renderBackend) {
+        // Proxy render from remote backend
+        await proxyRemoteSSE(
+          `${renderBackend.baseUrl}/render/${jobId}/progress`,
+          sendEvent,
+          "render:",
+          res,
+          renderBackend.apiKey
+            ? { Authorization: `Bearer ${renderBackend.apiKey}` }
+            : undefined,
+        );
+      } else {
+        if (job.upload) {
+          // Upload mode: render and upload, emit SSE events
+          const renderSender = prefixEventSender(sendEvent, "render:");
+          renderSender("started", { status: "rendering" });
+          const timings = await renderAndUploadInternal(
+            job.effie,
+            job.scale,
+            job.upload,
+            renderSender,
+            ctx,
+          );
+          renderSender("complete", { status: "uploaded", timings });
+          sendEvent("complete", { status: "done" });
+        } else {
+          // Non-upload mode: write video sub-job, then emit complete with videoUrl
+          const videoJob: VideoJob = { effie: job.effie, scale: job.scale };
+          await ctx.transientStore.putJson(
+            storeKeys.videoJob(jobId),
+            videoJob,
+            ctx.transientStore.ttlMs,
+          );
+
+          const videoUrl = `${ctx.baseUrl}/render/${jobId}/video`;
+          sendEvent("ready", { videoUrl });
+        }
+      }
+    } catch (error) {
+      sendEvent("error", {
+        phase: keepalivePhase,
+        message: String(error),
+      });
+    } finally {
+      clearInterval(keepalive);
+      res.end();
+    }
+  } catch (error) {
+    console.error("Error in render progress streaming:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Render progress streaming failed" });
+    } else {
+      res.end();
+    }
+  }
+}
+
+/**
+ * GET /render/:id/video - Stream rendered video
+ * Reads the video sub-job from the store, deletes it (one-time use), and streams the MP4.
+ */
+export async function streamRenderVideo(
+  req: express.Request,
+  res: express.Response,
+  ctx: ServerContext,
+): Promise<void> {
+  try {
+    setupCORSHeaders(res);
+
+    const jobId = req.params.id;
+    const videoJobKey = storeKeys.videoJob(jobId);
+    const videoJob = await ctx.transientStore.getJson<VideoJob>(videoJobKey);
+
+    if (!videoJob) {
+      res.status(404).json({ error: "Video not found or expired" });
+      return;
+    }
+
+    // Delete the video job (one-time use)
+    ctx.transientStore.delete(videoJobKey);
+
     // Proxy to render backend if resolver is configured
     if (ctx.renderBackendResolver) {
-      const backend = ctx.renderBackendResolver(job.effie, job.metadata);
+      const backend = ctx.renderBackendResolver(videoJob.effie);
       if (backend) {
-        await proxyRenderFromBackend(res, jobId, backend);
+        const backendUrl = `${backend.baseUrl}/render/${jobId}/video`;
+        const response = await ffsFetch(backendUrl, {
+          headers: backend.apiKey
+            ? { Authorization: `Bearer ${backend.apiKey}` }
+            : undefined,
+        });
+
+        if (!response.ok) {
+          res.status(response.status).json({ error: "Backend render failed" });
+          return;
+        }
+
+        await proxyBinaryStream(response, res);
         return;
       }
     }
 
-    // Render locally — only allow the render job to run once
-    ctx.transientStore.delete(jobStoreKey);
-
-    // Dispatch based on upload mode
-    if (job.upload) {
-      await streamRenderWithUpload(res, job, ctx);
-    } else {
-      await streamRenderDirect(res, job, ctx);
-    }
+    // Render locally
+    await streamRenderDirect(res, videoJob, ctx);
   } catch (error) {
-    console.error("Error in render:", error);
+    console.error("Error streaming video:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Rendering failed" });
+      res.status(500).json({ error: "Video streaming failed" });
     } else {
       res.end();
     }
@@ -171,9 +316,9 @@ export async function streamRenderJob(
 /**
  * Stream video directly to the response (no upload)
  */
-export async function streamRenderDirect(
+async function streamRenderDirect(
   res: express.Response,
-  job: RenderJob,
+  job: VideoJob,
   ctx: ServerContext,
 ): Promise<void> {
   const { EffieRenderer } = await import("../render");
@@ -191,42 +336,6 @@ export async function streamRenderDirect(
   res.set("Content-Type", "video/mp4");
   res.set("Cache-Control", "public, immutable, max-age=86400");
   videoStream.pipe(res);
-}
-
-/**
- * Render and upload, streaming SSE progress events
- */
-export async function streamRenderWithUpload(
-  res: express.Response,
-  job: RenderJob,
-  ctx: ServerContext,
-): Promise<void> {
-  setupSSEResponse(res);
-  const sendEvent = createSSEEventSender(res);
-
-  // Keepalive interval for long-running renders
-  const keepalive = setInterval(() => {
-    sendEvent("keepalive", { status: "rendering" });
-  }, 25_000);
-
-  try {
-    sendEvent("started", { status: "rendering" });
-
-    const timings = await renderAndUploadInternal(
-      job.effie,
-      job.scale,
-      job.upload!,
-      sendEvent,
-      ctx,
-    );
-
-    sendEvent("complete", { status: "uploaded", timings });
-  } catch (error) {
-    sendEvent("error", { message: String(error) });
-  } finally {
-    clearInterval(keepalive);
-    res.end();
-  }
 }
 
 /**
@@ -307,87 +416,4 @@ export async function renderAndUploadInternal(
   timings.uploadTime = Date.now() - uploadStartTime;
 
   return timings;
-}
-
-/**
- * Proxy render from backend based on Content-Type.
- * SSE (upload mode) uses proxyRemoteSSE, video stream uses proxyBinaryStream.
- */
-async function proxyRenderFromBackend(
-  res: express.Response,
-  jobId: string,
-  backend: BackendConfig,
-): Promise<void> {
-  const backendUrl = `${backend.baseUrl}/render/${jobId}`;
-  const response = await ffsFetch(backendUrl, {
-    headers: backend.apiKey
-      ? { Authorization: `Bearer ${backend.apiKey}` }
-      : undefined,
-  });
-
-  if (!response.ok) {
-    res.status(response.status).json({ error: "Backend render failed" });
-    return;
-  }
-
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("text/event-stream")) {
-    // Upload mode: proxy SSE events
-    setupSSEResponse(res);
-    const sendEvent = createSSEEventSender(res);
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      sendEvent("error", { message: "No response body from backend" });
-      res.end();
-      return;
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        if (res.destroyed) {
-          reader.cancel();
-          break;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        let currentEvent = "";
-        let currentData = "";
-
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith("data: ")) {
-            currentData = line.slice(6);
-          } else if (line === "" && currentEvent && currentData) {
-            try {
-              const data = JSON.parse(currentData);
-              sendEvent(currentEvent, data);
-            } catch {
-              // Skip malformed JSON
-            }
-            currentEvent = "";
-            currentData = "";
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
-      res.end();
-    }
-  } else {
-    // Non-upload mode: proxy binary video stream
-    await proxyBinaryStream(response, res);
-  }
 }

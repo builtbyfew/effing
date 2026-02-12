@@ -1,6 +1,7 @@
 import express from "express";
 import { Readable, Transform } from "stream";
 import { randomUUID } from "crypto";
+import type { TransientStore } from "../storage";
 import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
 import {
@@ -15,7 +16,7 @@ import {
   setupSSEResponse,
   createSSEEventSender,
 } from "./shared";
-import { proxyRemoteSSE } from "./orchestrating";
+import { proxyRemoteSSE } from "./shared";
 
 /**
  * Check if a source should be skipped during warmup.
@@ -52,12 +53,12 @@ export async function createWarmupJob(
     await ctx.transientStore.putJson(
       storeKeys.warmupJob(jobId),
       job,
-      ctx.transientStore.jobDataTtlMs,
+      ctx.transientStore.ttlMs,
     );
 
     res.json({
       id: jobId,
-      url: `${ctx.baseUrl}/warmup/${jobId}`,
+      progressUrl: `${ctx.baseUrl}/warmup/${jobId}/progress`,
     });
   } catch (error) {
     console.error("Error creating warmup job:", error);
@@ -66,10 +67,10 @@ export async function createWarmupJob(
 }
 
 /**
- * GET /warmup/:id - Stream warmup progress via SSE
+ * GET /warmup/:id/progress - Stream warmup progress via SSE
  * Fetches and caches sources, emitting progress events
  */
-export async function streamWarmupJob(
+export async function streamWarmupProgress(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
@@ -95,7 +96,7 @@ export async function streamWarmupJob(
         const sendEvent = createSSEEventSender(res);
         try {
           await proxyRemoteSSE(
-            `${backend.baseUrl}/warmup/${jobId}`,
+            `${backend.baseUrl}/warmup/${jobId}/progress`,
             sendEvent,
             "",
             res,
@@ -135,6 +136,25 @@ export async function streamWarmupJob(
 }
 
 /**
+ * Purge cached sources by URL list.
+ * Returns the number purged and total.
+ */
+export async function purgeCachedSources(
+  urls: string[],
+  store: TransientStore,
+): Promise<{ purged: number; total: number }> {
+  let purged = 0;
+  for (const url of urls) {
+    const ck = storeKeys.source(url);
+    if (await store.exists(ck)) {
+      await store.delete(ck);
+      purged++;
+    }
+  }
+  return { purged, total: urls.length };
+}
+
+/**
  * POST /purge - Purge cached sources for an Effie composition
  */
 export async function purgeCache(
@@ -150,17 +170,9 @@ export async function purgeCache(
     }
 
     const sources = extractEffieSources(parseResult.effie);
+    const result = await purgeCachedSources(sources, ctx.transientStore);
 
-    let purged = 0;
-    for (const url of sources) {
-      const ck = storeKeys.source(url);
-      if (await ctx.transientStore.exists(ck)) {
-        await ctx.transientStore.delete(ck);
-        purged++;
-      }
-    }
-
-    res.json({ purged, total: sources.length });
+    res.json(result);
   } catch (error) {
     console.error("Error purging cache:", error);
     res.status(500).json({ error: "Failed to purge cache" });
@@ -342,6 +354,6 @@ export async function fetchAndCache(
   await ctx.transientStore.put(
     cacheKey,
     trackedStream,
-    ctx.transientStore.sourceTtlMs,
+    ctx.transientStore.ttlMs,
   );
 }

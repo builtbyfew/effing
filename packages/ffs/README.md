@@ -44,17 +44,21 @@ npx @effing/ffs
 FFS_PORT=8080 npx @effing/ffs
 ```
 
-Rendering is a two-step process with the HTTP server: first obtain a stream URL, then stream that URL to get the video.
+Rendering is a two-step process: POST to create a job, then connect to the SSE progress stream to track warmup and rendering. The video URL is revealed in the `complete` event.
 
 ```bash
-# 1. Obtain a stream URL
+# 1. Create a render job
 curl -X POST http://localhost:2000/render \
   -H "Content-Type: application/json" \
-  -d @composition.json
-# Returns: { "id": "...", "url": "http://localhost:2000/render/123e4567-e89b-12d3-a456-426614174000" }
+  -d '{"effie": ...}'
+# Returns: { "id": "...", "progressUrl": "http://localhost:2000/render/.../progress" }
 
-# 2. Stream the URL to get the video
-curl http://localhost:2000/render/123e4567-e89b-12d3-a456-426614174000 -o output.mp4
+# 2. Connect to SSE progress stream (or use EventSource in browser)
+curl http://localhost:2000/render/.../progress
+# SSE events: warmup:start, warmup:progress, warmup:complete, ready (with videoUrl)
+
+# 3. Fetch the video
+curl http://localhost:2000/render/.../video -o output.mp4
 ```
 
 The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux). This is why you might see another server running on a random port.
@@ -73,8 +77,7 @@ The server uses an internal HTTP proxy for video/audio URLs to ensure reliable D
 | `FFS_TRANSIENT_STORE_ACCESS_KEY` | S3 access key ID                                     |
 | `FFS_TRANSIENT_STORE_SECRET_KEY` | S3 secret access key                                 |
 | `FFS_TRANSIENT_STORE_LOCAL_DIR`  | Local storage directory (when not using S3)          |
-| `FFS_SOURCE_CACHE_TTL_MS`        | TTL for cached sources in ms (default: 60 min)       |
-| `FFS_JOB_DATA_TTL_MS`            | TTL for job data in ms (default: 8 hours)            |
+| `FFS_TRANSIENT_STORE_TTL_MS`     | TTL for all transient data in ms (default: 60 min)   |
 | `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4) |
 
 When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for storage (default: system temp directory). Local files are automatically cleaned up after the TTL expires.
@@ -141,20 +144,15 @@ When running as an HTTP server, FFS provides endpoints for rendering, cache warm
 
 ### `POST /render`
 
-Creates a render job and returns a stream URL to execute it. Supports two request formats:
+Creates a render job that includes warmup and render phases. Supports optional cache purging.
 
-**Raw EffieData**: Body is raw EffieData, options in query params.
-
-| Query Param | Effect                    |
-| ----------- | ------------------------- |
-| `scale`     | Scale factor (default: 1) |
-
-**Wrapped format**: Body contains `effie` plus options.
+**Request:**
 
 ```typescript
 type RenderOptions = {
   effie: EffieData | string; // EffieData object or URL to fetch from
   scale?: number; // Scale factor (default: 1)
+  purge?: boolean; // Purge cached sources before warmup
   upload?: {
     videoUrl: string; // Pre-signed URL to upload rendered video
     coverUrl?: string; // Pre-signed URL to upload cover image
@@ -162,70 +160,84 @@ type RenderOptions = {
 };
 ```
 
-| Option         | Effect                                         |
-| -------------- | ---------------------------------------------- |
-| `effie` as URL | Fetches EffieData from the URL before storing  |
-| `upload`       | GET will upload and stream SSE progress events |
-
 **Response:**
 
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "url": "http://localhost:2000/render/550e8400-e29b-41d4-a716-446655440000"
+  "progressUrl": "http://localhost:2000/render/550e8400-e29b-41d4-a716-446655440000/progress"
 }
 ```
 
-### `GET /render/:id`
+### `GET /render/:id/progress`
 
-Executes the render job. Behavior depends on whether `upload` was specified:
+Streams warmup and render progress via SSE. All warmup events are prefixed with `warmup:`, render events with `render:`.
 
-**Without upload** — Streams the MP4 video directly:
+**Events:**
 
-```bash
-curl http://localhost:2000/render/550e8400-... -o output.mp4
-```
+| Event                | Phase  | Data                                                              |
+| -------------------- | ------ | ----------------------------------------------------------------- |
+| `purge:complete`     | purge  | `{ "purged": 3, "total": 5 }`                                     |
+| `warmup:start`       | warmup | `{ "total": 5 }`                                                  |
+| `warmup:progress`    | warmup | `{ "url": "...", "status": "hit"\|"cached"\|"error", ... }`       |
+| `warmup:downloading` | warmup | `{ "url": "...", "status": "downloading", "bytesReceived": ... }` |
+| `warmup:summary`     | warmup | `{ "cached": 5, "failed": 0, "skipped": 0, "total": 5 }`          |
+| `warmup:complete`    | warmup | `{ "status": "ready" }`                                           |
+| `render:started`     | render | `{ "status": "rendering" }`                                       |
+| `keepalive`          | both   | `{ "phase": "warmup" }` or `{ "phase": "render" }`                |
+| `render:complete`    | render | `{ "status": "uploaded", "timings": {...} }` (upload mode)        |
+| `ready`              | -      | `{ "videoUrl": "..." }` (non-upload mode)                         |
+| `complete`           | -      | `{ "status": "done" }` (upload mode)                              |
+| `error`              | any    | `{ "phase": "warmup"\|"render", "message": "..." }`               |
 
-**With upload** — Streams progress via Server-Sent Events (SSE) while uploading:
-
-| Event       | Data                                                       |
-| ----------- | ---------------------------------------------------------- |
-| `started`   | `{ "status": "rendering" }`                                |
-| `keepalive` | `{ "status": "rendering" }` or `{ "status": "uploading" }` |
-| `complete`  | `{ "status": "uploaded", "timings": {...} }`               |
-| `error`     | `{ "message": "..." }`                                     |
-
-**Example:**
+**Without upload** — The `ready` event provides a `videoUrl` pointing to `/render/:id/video`. The actual rendering happens when you fetch that URL:
 
 ```typescript
-// Create render job
-const { url } = await fetch("/render", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ effie: effieData, scale: 0.5 }),
-}).then((r) => r.json());
+const events = new EventSource(progressUrl);
+events.addEventListener("ready", (e) => {
+  const { videoUrl } = JSON.parse(e.data);
+  // Fetch videoUrl to stream the rendered video
+  events.close();
+});
+```
 
-// Stream video directly
-const videoResponse = await fetch(url);
-const videoBlob = await videoResponse.blob();
+**With upload** — Uploads directly and streams progress:
+
+```typescript
+const events = new EventSource(progressUrl);
+events.addEventListener("render:complete", (e) => {
+  const { timings } = JSON.parse(e.data);
+  console.log("Uploaded!", timings);
+});
+events.addEventListener("complete", () => {
+  events.close();
+});
+```
+
+### `GET /render/:id/video`
+
+Streams the rendered MP4 video (non-upload mode only). Returns 404 until the warmup phase completes and the video sub-job is created.
+
+```bash
+curl http://localhost:2000/render/550e8400-.../video -o output.mp4
 ```
 
 ### `POST /warmup`
 
-Creates a warmup job for pre-fetching and caching the sources from an Effie composition. Use this to avoid render timeouts when sources (especially annies) take a long time to generate.
+Creates a standalone warmup job for pre-fetching and caching the sources from an Effie composition.
 
-**Request:** Same format as `/render` (raw or wrapped EffieData with `effie` field).
+**Request:** Same format as `/render` (wrapped EffieData with `effie` field).
 
 **Response:**
 
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "url": "http://localhost:2000/warmup/550e8400-e29b-41d4-a716-446655440000"
+  "progressUrl": "http://localhost:2000/warmup/550e8400-e29b-41d4-a716-446655440000/progress"
 }
 ```
 
-### `GET /warmup/:id`
+### `GET /warmup/:id/progress`
 
 Runs the cache warmup job and streams the progress via Server-Sent Events (SSE). Connect with `EventSource` for real-time updates.
 
@@ -244,14 +256,14 @@ Runs the cache warmup job and streams the progress via Server-Sent Events (SSE).
 
 ```typescript
 // Create warmup job
-const { url } = await fetch("/warmup", {
+const { progressUrl } = await fetch("/warmup", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ effie: effieData }),
 }).then((r) => r.json());
 
-// Stream progress (url is a full URL)
-const events = new EventSource(url);
+// Stream progress
+const events = new EventSource(progressUrl);
 events.addEventListener("complete", () => {
   events.close();
   // Now safe to call /render
@@ -262,79 +274,12 @@ events.addEventListener("complete", () => {
 
 Purges cached sources for a given Effie composition.
 
-**Request:** Same format as `/render` (raw or wrapped EffieData with `effie` field).
+**Request:** Same format as `/render` (wrapped EffieData with `effie` field).
 
 **Response:**
 
 ```json
 { "purged": 3, "total": 5 }
-```
-
-### `POST /warmup-and-render`
-
-Creates a combined warmup and render job that runs both phases in a single SSE stream. This is useful when you want to warmup sources and render in one request.
-
-**Request:**
-
-```typescript
-type WarmupAndRenderOptions = {
-  effie: EffieData | string; // EffieData object or URL to fetch from
-  scale?: number; // Scale factor (default: 1)
-  upload?: {
-    videoUrl: string; // Pre-signed URL to upload rendered video
-    coverUrl?: string; // Pre-signed URL to upload cover image
-  };
-};
-```
-
-**Response:**
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "url": "http://localhost:2000/warmup-and-render/550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-### `GET /warmup-and-render/:id`
-
-Executes the combined warmup and render job, streaming progress via SSE. All events are prefixed with `warmup:` or `render:` to indicate the phase.
-
-**Events:**
-
-| Event                | Phase  | Data                                                              |
-| -------------------- | ------ | ----------------------------------------------------------------- |
-| `warmup:start`       | warmup | `{ "total": 5 }`                                                  |
-| `warmup:progress`    | warmup | `{ "url": "...", "status": "hit"\|"cached"\|"error", ... }`       |
-| `warmup:downloading` | warmup | `{ "url": "...", "status": "downloading", "bytesReceived": ... }` |
-| `warmup:summary`     | warmup | `{ "cached": 5, "failed": 0, "skipped": 0, "total": 5 }`          |
-| `warmup:complete`    | warmup | `{ "status": "ready" }`                                           |
-| `render:started`     | render | `{ "status": "rendering" }`                                       |
-| `keepalive`          | both   | `{ "phase": "warmup" }` or `{ "phase": "render" }`                |
-| `render:complete`    | render | `{ "status": "uploaded", "timings": {...} }` (upload mode)        |
-| `complete`           | -      | `{ "status": "ready", "videoUrl": "..." }` (non-upload mode)      |
-| `error`              | any    | `{ "phase": "warmup"\|"render", "message": "..." }`               |
-
-**Without upload** — Returns a `videoUrl` pointing to `/render/:id` for streaming:
-
-```typescript
-const events = new EventSource(url);
-events.addEventListener("complete", (e) => {
-  const { videoUrl } = JSON.parse(e.data);
-  // Fetch videoUrl to stream the rendered video
-  events.close();
-});
-```
-
-**With upload** — Uploads directly and streams progress:
-
-```typescript
-const events = new EventSource(url);
-events.addEventListener("render:complete", (e) => {
-  const { timings } = JSON.parse(e.data);
-  console.log("Uploaded!", timings);
-  events.close();
-});
 ```
 
 ## Backend Separation
@@ -369,8 +314,9 @@ const ctx = await createServerContext({
 });
 ```
 
-The render resolver receives the effie data; the warmup resolver receives the source list.
-Both receive optional metadata (passed via handler options). Return `null` to handle locally.
+The `warmupBackendResolver` determines where warmup _work_ happens — used by `/warmup/:id/progress` and the warmup phase within `/render/:id/progress`. The `renderBackendResolver` determines where video rendering _work_ happens — used by `/render/:id/video` and the render+upload phase in upload mode.
+
+Both resolvers receive optional metadata (passed via handler options). Return `null` to handle locally.
 
 ### Job metadata
 
@@ -429,33 +375,36 @@ const finalStream = await joinRenderer.render();
 
 ```typescript
 // Create render job
-const { url } = await fetch("http://localhost:2000/render", {
+const { progressUrl } = await fetch("http://localhost:2000/render", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ effie: effieData, scale: 0.5 }),
 }).then((r) => r.json());
 
-// Stream the video
-const video = await fetch(url).then((r) => r.blob());
+// Connect to SSE progress
+const events = new EventSource(progressUrl);
+events.addEventListener("ready", (e) => {
+  const { videoUrl } = JSON.parse(e.data);
+  // Fetch the video (rendering happens on-demand)
+  const video = await fetch(videoUrl).then((r) => r.blob());
+  events.close();
+});
 ```
 
-**Fetch from URL and render:**
+**Render with cache purge:**
 
 ```typescript
-const { url } = await fetch("http://localhost:2000/render", {
+const { progressUrl } = await fetch("http://localhost:2000/render", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    effie: "https://example.com/composition.json",
-    scale: 0.5,
-  }),
+  body: JSON.stringify({ effie: effieData, scale: 0.5, purge: true }),
 }).then((r) => r.json());
 ```
 
 **Render and upload to S3 (SSE progress):**
 
 ```typescript
-const { url } = await fetch("http://localhost:2000/render", {
+const { progressUrl } = await fetch("http://localhost:2000/render", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -468,39 +417,28 @@ const { url } = await fetch("http://localhost:2000/render", {
 }).then((r) => r.json());
 
 // Connect to SSE for progress
-const events = new EventSource(url);
-events.addEventListener("complete", (e) => {
-  const { timings } = JSON.parse(e.data);
-  console.log("Uploaded!", timings);
+const events = new EventSource(progressUrl);
+events.addEventListener("complete", () => {
+  console.log("Done!");
   events.close();
 });
 ```
 
-**Warmup and render in one stream:**
+**Warmup and render (two-step):**
 
 ```typescript
-const { url } = await fetch("http://localhost:2000/warmup-and-render", {
+// 1. Start warmup
+const { progressUrl: warmupUrl } = await fetch("http://localhost:2000/warmup", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ effie: effieData, scale: 0.5 }),
+  body: JSON.stringify({ effie: effieData }),
 }).then((r) => r.json());
 
-// Connect to SSE for combined progress
-const events = new EventSource(url);
-
-events.addEventListener("warmup:progress", (e) => {
-  const { url, status, cached, total } = JSON.parse(e.data);
-  console.log(`Warmup: ${cached}/${total} - ${url} ${status}`);
-});
-
-events.addEventListener("render:started", () => {
-  console.log("Rendering started...");
-});
-
-events.addEventListener("complete", (e) => {
-  const { videoUrl } = JSON.parse(e.data);
-  console.log("Ready! Video at:", videoUrl);
-  events.close();
+const warmup = new EventSource(warmupUrl);
+warmup.addEventListener("complete", () => {
+  warmup.close();
+  // 2. Now render
+  startRender();
 });
 ```
 

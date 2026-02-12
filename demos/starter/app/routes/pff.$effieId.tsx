@@ -42,7 +42,7 @@ const RENDER_SCALES = [
 
 type RenderSuccess = {
   renderSuccess: true;
-  videoUrl: string;
+  progressUrl: string;
   renderScale: number;
 };
 type RenderError = {
@@ -113,7 +113,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
       if (warmupResponse.ok) {
         const warmupData = await warmupResponse.json();
-        warmupStreamUrl = warmupData.url;
+        warmupStreamUrl = warmupData.progressUrl;
       }
     } catch {
       // Warmup is best-effort, don't fail the page load
@@ -212,8 +212,8 @@ async function handleRender(
       }
     }
 
-    const { url } = await createResponse.json();
-    return { renderSuccess: true, renderScale: scale, videoUrl: url };
+    const { progressUrl } = await createResponse.json();
+    return { renderSuccess: true, renderScale: scale, progressUrl };
   } catch (err) {
     return {
       renderSuccess: false,
@@ -274,15 +274,34 @@ export default function EffiePreviewPage() {
     return () => clearInterval(interval);
   }, [render.startTime, render.playbackTime]);
 
-  // Update render state when action completes successfully
+  // Connect to SSE progress when render action completes
   useEffect(() => {
-    if (actionData && isRenderSuccess(actionData)) {
-      setRender((prev) => ({
-        ...prev,
-        videoUrl: actionData.videoUrl,
-        scale: actionData.renderScale,
-      }));
-    }
+    if (!actionData || !isRenderSuccess(actionData)) return;
+
+    const { progressUrl, renderScale } = actionData;
+    const eventSource = new EventSource(progressUrl);
+
+    eventSource.addEventListener("ready", (e) => {
+      try {
+        const { videoUrl } = JSON.parse(e.data);
+        setRender((prev) => ({
+          ...prev,
+          videoUrl,
+          scale: renderScale,
+        }));
+      } catch {
+        // Ignore parse errors
+      }
+      eventSource.close();
+    });
+
+    eventSource.addEventListener("error", () => {
+      eventSource.close();
+    });
+
+    return () => {
+      eventSource.close();
+    };
   }, [actionData]);
 
   const warmup = useEffieWarmup(warmupStreamUrl);

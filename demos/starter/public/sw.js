@@ -7,7 +7,7 @@
 // response so those subsequent requests are served from cache.
 
 const CACHE_NAME = "ffs-render-cache";
-const RENDER_URL_PATTERN = /\/render\/[0-9a-f-]{36}$/;
+const RENDER_URL_PATTERN = /\/render\/[0-9a-f-]{36}\/video$/;
 const MAX_ENTRIES = 5;
 
 /** @type {string[]} URLs in insertion order — reset on activate alongside the cache. */

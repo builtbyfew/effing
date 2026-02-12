@@ -6,16 +6,15 @@ export type {
   RenderBackendResolver,
   WarmupJob,
   RenderJob,
-  WarmupAndRenderJob,
+  VideoJob,
   UploadOptions,
   SSEEventSender,
 } from "./shared";
 
-export { createWarmupJob, streamWarmupJob, purgeCache } from "./caching";
-export { createRenderJob, streamRenderJob } from "./rendering";
+export { createWarmupJob, streamWarmupProgress, purgeCache } from "./caching";
 export {
-  createWarmupAndRenderJob,
-  streamWarmupAndRenderJob,
-  proxyRemoteSSE,
-  proxyBinaryStream,
-} from "./orchestrating";
+  createRenderJob,
+  streamRenderProgress,
+  streamRenderVideo,
+} from "./rendering";
+export { proxyRemoteSSE, proxyBinaryStream } from "./shared";

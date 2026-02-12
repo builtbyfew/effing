@@ -84,17 +84,6 @@ When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for 
 
 For S3 storage, the TTL is set as the `Expires` header on objects. Note that this is metadata only. To enable automatic deletion, configure [S3 lifecycle rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) on your bucket to delete expired objects.
 
-## Concepts
-
-### EffieRenderer
-
-The main class that orchestrates video rendering:
-
-1. **Builds FFmpeg command** — Constructs complex filter graphs for overlays, transitions, effects
-2. **Fetches sources** — Downloads images, animations, and audio from URLs
-3. **Processes layers** — Applies motion, effects, and timing to each layer
-4. **Outputs video** — Streams H.264/AAC MP4 to stdout or file
-
 ## API Overview
 
 ### EffieRenderer
@@ -421,24 +410,6 @@ const events = new EventSource(progressUrl);
 events.addEventListener("complete", () => {
   console.log("Done!");
   events.close();
-});
-```
-
-**Warmup and render (two-step):**
-
-```typescript
-// 1. Start warmup
-const { progressUrl: warmupUrl } = await fetch("http://localhost:2000/warmup", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ effie: effieData }),
-}).then((r) => r.json());
-
-const warmup = new EventSource(warmupUrl);
-warmup.addEventListener("complete", () => {
-  warmup.close();
-  // 2. Now render
-  startRender();
 });
 ```
 

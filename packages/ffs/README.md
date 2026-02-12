@@ -12,7 +12,7 @@ Takes an `EffieData` composition and renders it to an MP4 video using FFmpeg. Us
 npm install @effing/ffs
 ```
 
-FFmpeg is bundled via `ffmpeg-static` — no system installation required.
+FFmpeg is bundled via `@effing/ffmpeg` — no system installation required.
 
 ## Quick Start
 

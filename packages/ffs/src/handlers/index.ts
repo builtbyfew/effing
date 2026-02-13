@@ -8,7 +8,7 @@ export type {
   RenderJob,
   VideoJob,
   UploadOptions,
-  SSEEventSender,
+  EventSender,
 } from "./shared";
 
 export { createWarmupJob, streamWarmupProgress, purgeCache } from "./caching";

@@ -26,6 +26,7 @@
     "@effing/effie": "workspace:*"
   },
   "devDependencies": {
+    "@effing/ffs": "workspace:*",
     "@types/react": "^19.0.0",
     "tsup": "catalog:",
     "typescript": "catalog:",

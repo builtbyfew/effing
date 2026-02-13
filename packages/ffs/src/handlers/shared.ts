@@ -4,6 +4,8 @@ import type { TransientStore } from "../storage";
 import { createTransientStore } from "../storage";
 import { HttpProxy } from "../proxy";
 import { ffsFetch } from "../fetch";
+import type { TypedEventSender, EventSender } from "../sse";
+export type { EventSender } from "../sse";
 import type {
   EffieData,
   EffieSources,
@@ -62,8 +64,6 @@ export type ServerContext = {
   warmupBackendResolver?: WarmupBackendResolver;
   renderBackendResolver?: RenderBackendResolver;
 };
-
-export type SSEEventSender = (event: string, data: object) => void;
 
 export type ParseEffieResult =
   | { effie: EffieData<EffieSources> }
@@ -151,7 +151,11 @@ export function setupSSEResponse(res: express.Response): void {
 /**
  * Create an SSE event sender function for a response
  */
-export function createSSEEventSender(res: express.Response): SSEEventSender {
+export function createEventSender(res: express.Response): EventSender;
+export function createEventSender<TMap extends Record<string, unknown>>(
+  res: express.Response,
+): TypedEventSender<TMap>;
+export function createEventSender(res: express.Response): EventSender {
   return (event: string, data: object) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
@@ -160,13 +164,13 @@ export function createSSEEventSender(res: express.Response): SSEEventSender {
 /**
  * Create a prefixed event sender that adds a prefix to event names
  */
-export function prefixEventSender(
-  sendEvent: SSEEventSender,
+export function prefixEventSender<TMap extends Record<string, unknown>>(
+  sendEvent: EventSender,
   prefix: string,
-): SSEEventSender {
-  return (event: string, data: object) => {
+): TypedEventSender<TMap> {
+  return ((event: string, data: object) => {
     sendEvent(`${prefix}${event}`, data);
-  };
+  }) as TypedEventSender<TMap>;
 }
 
 /**
@@ -174,7 +178,7 @@ export function prefixEventSender(
  */
 export async function proxyRemoteSSE(
   url: string,
-  sendEvent: SSEEventSender,
+  sendEvent: EventSender,
   prefix: string,
   res: express.Response,
   headers?: Record<string, string>,

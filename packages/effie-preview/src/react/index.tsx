@@ -694,6 +694,7 @@ export function useEffieWarmup(streamUrl: string | null): UseEffieWarmupResult {
     total: 0,
     cached: 0,
     failed: 0,
+    skipped: 0,
     downloading: new Map(),
   });
 
@@ -709,6 +710,7 @@ export function useEffieWarmup(streamUrl: string | null): UseEffieWarmupResult {
       total: 0,
       cached: 0,
       failed: 0,
+      skipped: 0,
       downloading: new Map(),
       startTime: Date.now(),
     });
@@ -718,7 +720,7 @@ export function useEffieWarmup(streamUrl: string | null): UseEffieWarmupResult {
       setState((prev) => {
         switch (event.type) {
           case "start":
-            return { ...prev, status: "warming", total: event.total };
+            return { ...prev, status: "warming", total: event.data.total };
 
           case "progress": {
             const newDownloading = new Map(prev.downloading);
@@ -727,6 +729,7 @@ export function useEffieWarmup(streamUrl: string | null): UseEffieWarmupResult {
               ...prev,
               cached: event.data.cached,
               failed: event.data.failed,
+              skipped: event.data.skipped,
               downloading: newDownloading,
             };
           }
@@ -741,24 +744,19 @@ export function useEffieWarmup(streamUrl: string | null): UseEffieWarmupResult {
           }
 
           case "keepalive":
-            return {
-              ...prev,
-              cached: event.cached,
-              failed: event.failed,
-            };
-
           case "summary":
             return {
               ...prev,
-              cached: event.cached,
-              failed: event.failed,
+              cached: event.data.cached,
+              failed: event.data.failed,
+              skipped: event.data.skipped,
             };
 
           case "complete":
             return { ...prev, status: "ready", endTime: Date.now() };
 
           case "error":
-            return { ...prev, status: "error", error: event.message };
+            return { ...prev, status: "error", error: event.data.message };
 
           default:
             return prev;

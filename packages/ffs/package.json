@@ -15,6 +15,10 @@
     "./handlers": {
       "types": "./dist/handlers/index.d.ts",
       "import": "./dist/handlers/index.js"
+    },
+    "./sse": {
+      "types": "./dist/sse.d.ts",
+      "import": "./dist/sse.js"
     }
   },
   "bin": {

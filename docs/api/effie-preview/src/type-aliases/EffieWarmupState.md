@@ -8,7 +8,7 @@
 
 > **EffieWarmupState** = `object`
 
-Defined in: [packages/effie-preview/src/warmup.ts:32](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L32)
+Defined in: [packages/effie-preview/src/warmup.ts:15](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L15)
 
 Current warmup state
 
@@ -18,7 +18,7 @@ Current warmup state
 
 > **cached**: `number`
 
-Defined in: [packages/effie-preview/src/warmup.ts:35](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L35)
+Defined in: [packages/effie-preview/src/warmup.ts:18](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L18)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [packages/effie-preview/src/warmup.ts:35](https://github.com/builtby
 
 > **downloading**: `Map`\<`string`, \{ `bytesReceived`: `number`; `url`: `string`; \}\>
 
-Defined in: [packages/effie-preview/src/warmup.ts:37](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L37)
+Defined in: [packages/effie-preview/src/warmup.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L21)
 
 ***
 
@@ -34,7 +34,7 @@ Defined in: [packages/effie-preview/src/warmup.ts:37](https://github.com/builtby
 
 > `optional` **endTime**: `number`
 
-Defined in: [packages/effie-preview/src/warmup.ts:40](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L40)
+Defined in: [packages/effie-preview/src/warmup.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L24)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [packages/effie-preview/src/warmup.ts:40](https://github.com/builtby
 
 > `optional` **error**: `string`
 
-Defined in: [packages/effie-preview/src/warmup.ts:38](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L38)
+Defined in: [packages/effie-preview/src/warmup.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L22)
 
 ***
 
@@ -50,7 +50,15 @@ Defined in: [packages/effie-preview/src/warmup.ts:38](https://github.com/builtby
 
 > **failed**: `number`
 
-Defined in: [packages/effie-preview/src/warmup.ts:36](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L36)
+Defined in: [packages/effie-preview/src/warmup.ts:19](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L19)
+
+***
+
+### skipped
+
+> **skipped**: `number`
+
+Defined in: [packages/effie-preview/src/warmup.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L20)
 
 ***
 
@@ -58,7 +66,7 @@ Defined in: [packages/effie-preview/src/warmup.ts:36](https://github.com/builtby
 
 > `optional` **startTime**: `number`
 
-Defined in: [packages/effie-preview/src/warmup.ts:39](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L39)
+Defined in: [packages/effie-preview/src/warmup.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L23)
 
 ***
 
@@ -66,7 +74,7 @@ Defined in: [packages/effie-preview/src/warmup.ts:39](https://github.com/builtby
 
 > **status**: `"idle"` \| `"connecting"` \| `"warming"` \| `"ready"` \| `"error"`
 
-Defined in: [packages/effie-preview/src/warmup.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L33)
+Defined in: [packages/effie-preview/src/warmup.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L16)
 
 ***
 
@@ -74,4 +82,4 @@ Defined in: [packages/effie-preview/src/warmup.ts:33](https://github.com/builtby
 
 > **total**: `number`
 
-Defined in: [packages/effie-preview/src/warmup.ts:34](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L34)
+Defined in: [packages/effie-preview/src/warmup.ts:17](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L17)

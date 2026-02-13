@@ -8,9 +8,9 @@ import {
   effieDataSchema,
 } from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
+import type { RenderEventMap, RenderEventSender, WarmupEventMap } from "../sse";
 import type {
   ServerContext,
-  SSEEventSender,
   RenderJob,
   VideoJob,
   UploadOptions,
@@ -18,7 +18,7 @@ import type {
 import {
   setupCORSHeaders,
   setupSSEResponse,
-  createSSEEventSender,
+  createEventSender,
   prefixEventSender,
   proxyRemoteSSE,
   proxyBinaryStream,
@@ -159,7 +159,8 @@ export async function streamRenderProgress(
       : null;
 
     setupSSEResponse(res);
-    const sendEvent = createSSEEventSender(res);
+    const sendEvent = createEventSender<RenderEventMap>(res);
+    const rawSendEvent = createEventSender(res);
 
     // Keepalive interval for long-running operations
     let keepalivePhase: "warmup" | "render" = "warmup";
@@ -183,7 +184,7 @@ export async function streamRenderProgress(
         // Proxy warmup from remote backend
         await proxyRemoteSSE(
           `${warmupBackend.baseUrl}/warmup/${job.warmupJobId}/progress`,
-          sendEvent,
+          rawSendEvent,
           "warmup:",
           res,
           warmupBackend.apiKey
@@ -192,7 +193,10 @@ export async function streamRenderProgress(
         );
       } else {
         // Local warmup execution
-        const warmupSender = prefixEventSender(sendEvent, "warmup:");
+        const warmupSender = prefixEventSender<WarmupEventMap>(
+          rawSendEvent,
+          "warmup:",
+        );
         await warmupSources(job.sources, warmupSender, ctx);
         warmupSender("complete", { status: "ready" });
       }
@@ -232,7 +236,10 @@ export async function streamRenderProgress(
             job.upload,
             sendEvent,
           );
-          sendEvent("render:complete", timings);
+          sendEvent(
+            "render:complete",
+            timings as RenderEventMap["render:complete"],
+          );
         } else {
           // Upload + no backend: render and upload locally (no VideoJob stored)
           const timings = await renderAndUploadInternal(
@@ -242,7 +249,10 @@ export async function streamRenderProgress(
             sendEvent,
             ctx,
           );
-          sendEvent("render:complete", timings);
+          sendEvent(
+            "render:complete",
+            timings as RenderEventMap["render:complete"],
+          );
         }
         sendEvent("complete", { status: "done" });
       } else {
@@ -373,7 +383,7 @@ async function uploadRenderedVideo(
   videoBuffer: Buffer,
   effie: EffieData<EffieSources>,
   upload: UploadOptions,
-  sendEvent: SSEEventSender,
+  sendEvent: RenderEventSender,
 ): Promise<Record<string, number>> {
   const timings: Record<string, number> = {};
 
@@ -451,7 +461,7 @@ export async function renderAndUploadInternal(
   effie: EffieData<EffieSources>,
   scale: number,
   upload: UploadOptions,
-  sendEvent: SSEEventSender,
+  sendEvent: RenderEventSender,
   ctx: ServerContext,
 ): Promise<Record<string, number>> {
   // Render effie data to video buffer

@@ -6,8 +6,10 @@
 
 # Type Alias: EffieWarmupEvent
 
-> **EffieWarmupEvent** = \{ `total`: `number`; `type`: `"start"`; \} \| \{ `data`: `EffieWarmupProgressEvent`; `type`: `"progress"`; \} \| \{ `data`: `EffieWarmupDownloadingEvent`; `type`: `"downloading"`; \} \| \{ `cached`: `number`; `failed`: `number`; `total`: `number`; `type`: `"keepalive"`; \} \| \{ `cached`: `number`; `failed`: `number`; `total`: `number`; `type`: `"summary"`; \} \| \{ `status`: `"ready"`; `type`: `"complete"`; \} \| \{ `message`: `string`; `type`: `"error"`; \}
+> **EffieWarmupEvent** = `{ [K in keyof WarmupEventMap & string]: { data: WarmupEventMap[K]; type: K } }`\[keyof `WarmupEventMap` & `string`\]
 
-Defined in: [packages/effie-preview/src/warmup.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L22)
+Defined in: [packages/effie-preview/src/warmup.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L10)
 
-Union of all SSE event types
+Union of all warmup SSE event types, derived from the server-side
+`WarmupEventMap` so the client stays in sync automatically.
+Each variant is `{ type: K; data: WarmupEventMap[K] }`.

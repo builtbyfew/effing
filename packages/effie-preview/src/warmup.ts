@@ -1,32 +1,15 @@
+import type { WarmupEventMap } from "@effing/ffs/sse";
+
 // ============ Types ============
 
-/** Progress event when a source is processed */
-export type EffieWarmupProgressEvent = {
-  url: string;
-  status: "hit" | "cached" | "error";
-  cached: number;
-  failed: number;
-  total: number;
-  ms?: number;
-  error?: string;
-};
-
-/** Downloading event during source fetch */
-export type EffieWarmupDownloadingEvent = {
-  url: string;
-  status: "started" | "downloading";
-  bytesReceived: number;
-};
-
-/** Union of all SSE event types */
-export type EffieWarmupEvent =
-  | { type: "start"; total: number }
-  | { type: "progress"; data: EffieWarmupProgressEvent }
-  | { type: "downloading"; data: EffieWarmupDownloadingEvent }
-  | { type: "keepalive"; cached: number; failed: number; total: number }
-  | { type: "summary"; cached: number; failed: number; total: number }
-  | { type: "complete"; status: "ready" }
-  | { type: "error"; message: string };
+/**
+ * Union of all warmup SSE event types, derived from the server-side
+ * `WarmupEventMap` so the client stays in sync automatically.
+ * Each variant is `{ type: K; data: WarmupEventMap[K] }`.
+ */
+export type EffieWarmupEvent = {
+  [K in keyof WarmupEventMap & string]: { type: K; data: WarmupEventMap[K] };
+}[keyof WarmupEventMap & string];
 
 /** Current warmup state */
 export type EffieWarmupState = {
@@ -34,6 +17,7 @@ export type EffieWarmupState = {
   total: number;
   cached: number;
   failed: number;
+  skipped: number;
   downloading: Map<string, { url: string; bytesReceived: number }>;
   error?: string;
   startTime?: number;
@@ -56,52 +40,35 @@ export function connectEffieWarmupStream(
   const eventSource = new EventSource(streamUrl);
 
   eventSource.addEventListener("start", (e) => {
-    const data = JSON.parse((e as MessageEvent).data);
-    onEvent({ type: "start", total: data.total });
+    onEvent({ type: "start", data: JSON.parse((e as MessageEvent).data) });
   });
 
   eventSource.addEventListener("progress", (e) => {
-    const data = JSON.parse(
-      (e as MessageEvent).data,
-    ) as EffieWarmupProgressEvent;
-    onEvent({ type: "progress", data });
+    onEvent({ type: "progress", data: JSON.parse((e as MessageEvent).data) });
   });
 
   eventSource.addEventListener("downloading", (e) => {
-    const data = JSON.parse(
-      (e as MessageEvent).data,
-    ) as EffieWarmupDownloadingEvent;
-    onEvent({ type: "downloading", data });
+    onEvent({
+      type: "downloading",
+      data: JSON.parse((e as MessageEvent).data),
+    });
   });
 
   eventSource.addEventListener("keepalive", (e) => {
-    const data = JSON.parse((e as MessageEvent).data);
-    onEvent({
-      type: "keepalive",
-      cached: data.cached,
-      failed: data.failed,
-      total: data.total,
-    });
+    onEvent({ type: "keepalive", data: JSON.parse((e as MessageEvent).data) });
   });
 
   eventSource.addEventListener("summary", (e) => {
-    const data = JSON.parse((e as MessageEvent).data);
-    onEvent({
-      type: "summary",
-      cached: data.cached,
-      failed: data.failed,
-      total: data.total,
-    });
+    onEvent({ type: "summary", data: JSON.parse((e as MessageEvent).data) });
   });
 
   eventSource.addEventListener("complete", (e) => {
-    const data = JSON.parse((e as MessageEvent).data);
-    onEvent({ type: "complete", status: data.status });
+    onEvent({ type: "complete", data: JSON.parse((e as MessageEvent).data) });
     eventSource.close();
   });
 
   eventSource.addEventListener("error", () => {
-    onEvent({ type: "error", message: "Connection lost" });
+    onEvent({ type: "error", data: { message: "Connection lost" } });
     eventSource.close();
   });
 

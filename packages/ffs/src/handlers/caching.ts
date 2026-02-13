@@ -9,12 +9,13 @@ import {
   extractEffieSourcesWithTypes,
 } from "@effing/effie";
 import type { EffieSourceWithType } from "@effing/effie";
-import type { ServerContext, SSEEventSender, WarmupJob } from "./shared";
+import type { WarmupEventMap, WarmupEventSender } from "../sse";
+import type { ServerContext, WarmupJob } from "./shared";
 import {
   parseEffieData,
   setupCORSHeaders,
   setupSSEResponse,
-  createSSEEventSender,
+  createEventSender,
 } from "./shared";
 import { proxyRemoteSSE } from "./shared";
 
@@ -93,7 +94,7 @@ export async function streamWarmupProgress(
       const backend = ctx.warmupBackendResolver(job.sources, job.metadata);
       if (backend) {
         setupSSEResponse(res);
-        const sendEvent = createSSEEventSender(res);
+        const sendEvent = createEventSender(res);
         try {
           await proxyRemoteSSE(
             `${backend.baseUrl}/warmup/${jobId}/progress`,
@@ -115,7 +116,7 @@ export async function streamWarmupProgress(
     ctx.transientStore.delete(jobStoreKey);
 
     setupSSEResponse(res);
-    const sendEvent = createSSEEventSender(res);
+    const sendEvent = createEventSender<WarmupEventMap>(res);
 
     try {
       await warmupSources(job.sources, sendEvent, ctx);
@@ -185,7 +186,7 @@ export async function purgeCache(
  */
 export async function warmupSources(
   sources: EffieSourceWithType[],
-  sendEvent: SSEEventSender,
+  sendEvent: WarmupEventSender,
   ctx: ServerContext,
 ): Promise<void> {
   const total = sources.length;
@@ -310,7 +311,7 @@ export async function warmupSources(
 export async function fetchAndCache(
   url: string,
   cacheKey: string,
-  sendEvent: SSEEventSender,
+  sendEvent: WarmupEventSender,
   ctx: ServerContext,
 ): Promise<void> {
   const response = await ffsFetch(url, {

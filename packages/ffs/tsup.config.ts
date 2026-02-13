@@ -2,7 +2,12 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: ["src/index.ts", "src/server.ts", "src/handlers/index.ts"],
+    entry: [
+      "src/index.ts",
+      "src/server.ts",
+      "src/handlers/index.ts",
+      "src/sse.ts",
+    ],
     format: ["esm"],
     dts: true,
     clean: true,

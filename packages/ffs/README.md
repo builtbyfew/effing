@@ -281,6 +281,37 @@ Purges cached sources for a given Effie composition.
 { "purged": 3, "total": 5 }
 ```
 
+### Error Responses
+
+All HTTP error responses share a unified JSON shape:
+
+```typescript
+type ApiError = {
+  error: string; // Human-readable message
+  code: ErrorCode; // Machine-readable code
+  issues?: Array<{ path: string; message: string }>; // Validation details (Zod failures only)
+};
+```
+
+| Code             | Status | Description                               |
+| ---------------- | ------ | ----------------------------------------- |
+| `UNAUTHORIZED`   | 401    | Missing or invalid API key                |
+| `INVALID_EFFIE`  | 400    | Effie data validation or structural error |
+| `NOT_FOUND`      | 404    | Job or video not found                    |
+| `BACKEND_FAILED` | varies | Remote render backend returned an error   |
+| `FETCH_FAILED`   | 500    | Failed to fetch remote Effie data URL     |
+| `INTERNAL_ERROR` | 500    | Catch-all for unhandled exceptions        |
+
+For `INVALID_EFFIE` errors caused by schema validation, the `issues` array contains the specific validation failures:
+
+```json
+{
+  "error": "Invalid effie data",
+  "code": "INVALID_EFFIE",
+  "issues": [{ "path": "segments.0.layers.0.x", "message": "Required" }]
+}
+```
+
 ## Backend Separation
 
 FFS supports running warmup and render on separate backends via resolver callbacks.

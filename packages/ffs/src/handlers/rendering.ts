@@ -24,6 +24,7 @@ import {
   proxyBinaryStream,
 } from "./shared";
 import { warmupSources, purgeCachedSources } from "./caching";
+import { sendError, ErrorCode } from "./errors";
 
 /**
  * POST /render - Create a render job (warmup + render, optional purge)
@@ -63,20 +64,28 @@ export async function createRenderJob(
     if (!ctx.skipValidation) {
       const result = effieDataSchema.safeParse(rawEffieData);
       if (!result.success) {
-        res.status(400).json({
-          error: "Invalid effie data",
-          issues: result.error.issues.map((issue) => ({
+        sendError(
+          res,
+          400,
+          ErrorCode.INVALID_EFFIE,
+          "Invalid effie data",
+          result.error.issues.map((issue) => ({
             path: issue.path.join("."),
             message: issue.message,
           })),
-        });
+        );
         return;
       }
       effie = result.data;
     } else {
       const data = rawEffieData as EffieData<EffieSources>;
       if (!data?.segments) {
-        res.status(400).json({ error: "Invalid effie data: missing segments" });
+        sendError(
+          res,
+          400,
+          ErrorCode.INVALID_EFFIE,
+          "Invalid effie data: missing segments",
+        );
         return;
       }
       effie = data;
@@ -122,7 +131,12 @@ export async function createRenderJob(
     });
   } catch (error) {
     console.error("Error creating render job:", error);
-    res.status(500).json({ error: "Failed to create render job" });
+    sendError(
+      res,
+      500,
+      ErrorCode.INTERNAL_ERROR,
+      "Failed to create render job",
+    );
   }
 }
 
@@ -143,7 +157,7 @@ export async function streamRenderProgress(
     const job = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
 
     if (!job) {
-      res.status(404).json({ error: "Job not found" });
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Job not found");
       return;
     }
 
@@ -282,7 +296,12 @@ export async function streamRenderProgress(
   } catch (error) {
     console.error("Error in render progress streaming:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Render progress streaming failed" });
+      sendError(
+        res,
+        500,
+        ErrorCode.INTERNAL_ERROR,
+        "Render progress streaming failed",
+      );
     } else {
       res.end();
     }
@@ -306,7 +325,7 @@ export async function streamRenderVideo(
     const videoJob = await ctx.transientStore.getJson<VideoJob>(videoJobKey);
 
     if (!videoJob) {
-      res.status(404).json({ error: "Video not found or expired" });
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Video not found or expired");
       return;
     }
 
@@ -326,7 +345,12 @@ export async function streamRenderVideo(
         });
 
         if (!response.ok) {
-          res.status(response.status).json({ error: "Backend render failed" });
+          sendError(
+            res,
+            response.status,
+            ErrorCode.BACKEND_FAILED,
+            "Backend render failed",
+          );
           return;
         }
 
@@ -343,7 +367,7 @@ export async function streamRenderVideo(
   } catch (error) {
     console.error("Error streaming video:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Video streaming failed" });
+      sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Video streaming failed");
     } else {
       res.end();
     }

@@ -8,6 +8,8 @@ import {
   createRenderJob,
   streamRenderProgress,
   streamRenderVideo,
+  sendError,
+  ErrorCode,
 } from "./handlers";
 
 const app: express.Express = express();
@@ -25,7 +27,7 @@ function validateAuth(req: express.Request, res: express.Response): boolean {
 
   const authHeader = req.headers.authorization;
   if (!authHeader || authHeader !== `Bearer ${apiKey}`) {
-    res.status(401).json({ error: "Unauthorized" });
+    sendError(res, 401, ErrorCode.UNAUTHORIZED, "Unauthorized");
     return false;
   }
   return true;

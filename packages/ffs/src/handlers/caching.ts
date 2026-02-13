@@ -18,6 +18,7 @@ import {
   createEventSender,
 } from "./shared";
 import { proxyRemoteSSE } from "./shared";
+import { sendError, ErrorCode } from "./errors";
 
 /**
  * Check if a source should be skipped during warmup.
@@ -63,7 +64,12 @@ export async function createWarmupJob(
     });
   } catch (error) {
     console.error("Error creating warmup job:", error);
-    res.status(500).json({ error: "Failed to create warmup job" });
+    sendError(
+      res,
+      500,
+      ErrorCode.INTERNAL_ERROR,
+      "Failed to create warmup job",
+    );
   }
 }
 
@@ -85,7 +91,7 @@ export async function streamWarmupProgress(
     const job = await ctx.transientStore.getJson<WarmupJob>(jobStoreKey);
 
     if (!job) {
-      res.status(404).json({ error: "Job not found" });
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Job not found");
       return;
     }
 
@@ -129,7 +135,7 @@ export async function streamWarmupProgress(
   } catch (error) {
     console.error("Error in warmup streaming:", error);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Warmup streaming failed" });
+      sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Warmup streaming failed");
     } else {
       res.end();
     }
@@ -176,7 +182,7 @@ export async function purgeCache(
     res.json(result);
   } catch (error) {
     console.error("Error purging cache:", error);
-    res.status(500).json({ error: "Failed to purge cache" });
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to purge cache");
   }
 }
 

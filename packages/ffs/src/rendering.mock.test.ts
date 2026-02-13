@@ -101,7 +101,10 @@ describe("streamRenderVideo", () => {
     await streamRenderVideo(req, res, ctx);
 
     expect(res.statusCode).toBe(404);
-    expect(res.body).toEqual({ error: "Video not found or expired" });
+    expect(res.body).toEqual({
+      error: "Video not found or expired",
+      code: "NOT_FOUND",
+    });
   });
 
   test("serves video when video job exists", async () => {

@@ -12,6 +12,8 @@ import type {
   EffieSourceWithType,
 } from "@effing/effie";
 import { effieDataSchema } from "@effing/effie";
+import { ErrorCode } from "./errors";
+import type { ErrorCode as ErrorCodeType } from "./errors";
 
 export type UploadOptions = {
   videoUrl: string;
@@ -67,7 +69,11 @@ export type ServerContext = {
 
 export type ParseEffieResult =
   | { effie: EffieData<EffieSources> }
-  | { error: string; issues?: object[] };
+  | {
+      error: string;
+      code: ErrorCodeType;
+      issues?: Array<{ path: string; message: string }>;
+    };
 
 /**
  * Create the server context with configuration from environment variables
@@ -114,6 +120,7 @@ export function parseEffieData(
     if (!result.success) {
       return {
         error: "Invalid effie data",
+        code: ErrorCode.INVALID_EFFIE,
         issues: result.error.issues.map((issue) => ({
           path: issue.path.join("."),
           message: issue.message,
@@ -124,7 +131,10 @@ export function parseEffieData(
   } else {
     const effie = rawEffieData as EffieData<EffieSources>;
     if (!effie?.segments) {
-      return { error: "Invalid effie data: missing segments" };
+      return {
+        error: "Invalid effie data: missing segments",
+        code: ErrorCode.INVALID_EFFIE,
+      };
     }
     return { effie };
   }

@@ -18,3 +18,5 @@ export {
   streamRenderVideo,
 } from "./rendering";
 export { proxyRemoteSSE, proxyBinaryStream } from "./shared";
+export { ErrorCode, sendError } from "./errors";
+export type { ApiError } from "./errors";

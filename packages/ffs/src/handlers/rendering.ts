@@ -5,7 +5,6 @@ import { ffsFetch } from "../fetch";
 import {
   extractEffieSourcesWithTypes,
   extractEffieSources,
-  effieDataSchema,
 } from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
 import type { RenderEventMap, RenderEventSender, WarmupEventMap } from "../sse";
@@ -16,6 +15,7 @@ import type {
   UploadOptions,
 } from "./shared";
 import {
+  parseEffieData,
   setupCORSHeaders,
   setupSSEResponse,
   createEventSender,
@@ -38,63 +38,43 @@ export async function createRenderJob(
 ): Promise<void> {
   try {
     // Parse request body
-    const body = req.body as {
-      effie: unknown;
-      scale?: number;
-      upload?: UploadOptions;
-      purge?: boolean;
-    };
+    const body = req.body as Record<string, unknown>;
 
-    let rawEffieData: unknown;
+    // URL handling (wrapped format only): fetch remote EffieData
     if (typeof body.effie === "string") {
-      // Effie is a URL to fetch the EffieData from
       const response = await ffsFetch(body.effie);
       if (!response.ok) {
         throw new Error(
           `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
         );
       }
-      rawEffieData = await response.json();
-    } else {
-      rawEffieData = body.effie;
+      body.effie = await response.json();
     }
 
-    // Validate/parse effie data
-    let effie: EffieData<EffieSources>;
-    if (!ctx.skipValidation) {
-      const result = effieDataSchema.safeParse(rawEffieData);
-      if (!result.success) {
-        sendError(
-          res,
-          400,
-          ErrorCode.INVALID_EFFIE,
-          "Invalid effie data",
-          result.error.issues.map((issue) => ({
-            path: issue.path.join("."),
-            message: issue.message,
-          })),
-        );
-        return;
-      }
-      effie = result.data;
-    } else {
-      const data = rawEffieData as EffieData<EffieSources>;
-      if (!data?.segments) {
-        sendError(
-          res,
-          400,
-          ErrorCode.INVALID_EFFIE,
-          "Invalid effie data: missing segments",
-        );
-        return;
-      }
-      effie = data;
+    // Parse & validate effie data (supports both wrapped and raw formats)
+    const parseResult = parseEffieData(body, ctx.skipValidation);
+    if ("error" in parseResult) {
+      sendError(
+        res,
+        400,
+        parseResult.code,
+        parseResult.error,
+        parseResult.issues,
+      );
+      return;
     }
+    const effie = parseResult.effie;
 
     const sources = extractEffieSourcesWithTypes(effie);
-    const scale = body.scale ?? 1;
-    const upload = body.upload;
-    const purge = body.purge;
+    const scale =
+      (body.scale as number | undefined) ??
+      (req.query?.scale ? parseFloat(req.query.scale as string) : undefined) ??
+      1;
+    const purge =
+      (body.purge as boolean | undefined) ??
+      (req.query?.purge === "true" ? true : undefined) ??
+      false;
+    const upload = body.upload as UploadOptions | undefined;
 
     // Create IDs
     const jobId = randomUUID();

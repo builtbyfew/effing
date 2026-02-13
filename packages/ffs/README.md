@@ -149,6 +149,8 @@ type RenderOptions = {
 };
 ```
 
+Alternatively, raw `EffieData` can be sent directly as the request body. When using the raw format, `scale` and `purge` can be passed as query parameters: `?scale=0.5&purge=true`.
+
 **Response:**
 
 ```json
@@ -220,7 +222,7 @@ curl http://localhost:2000/render/550e8400-.../video -o output.mp4
 
 Creates a standalone warmup job for pre-fetching and caching the sources from an Effie composition.
 
-**Request:** Same format as `/render` (wrapped EffieData with `effie` field).
+**Request:** Same format as `/render` — wrapped EffieData with `effie` field, or raw `EffieData` directly as the body.
 
 **Response:**
 
@@ -273,7 +275,7 @@ events.addEventListener("complete", () => {
 
 Purges cached sources for a given Effie composition.
 
-**Request:** Same format as `/render` (wrapped EffieData with `effie` field).
+**Request:** Same format as `/render` — wrapped EffieData with `effie` field, or raw `EffieData` directly as the body.
 
 **Response:**
 

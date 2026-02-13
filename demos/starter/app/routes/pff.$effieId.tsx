@@ -108,7 +108,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           Authorization: `Bearer ${process.env.FFS_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ effie }),
+        body: JSON.stringify(effie),
       });
 
       if (warmupResponse.ok) {
@@ -157,7 +157,7 @@ async function handleReload(effieJson: string): Promise<ReloadResult> {
         Authorization: `Bearer ${process.env.FFS_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ effie: JSON.parse(effieJson) }),
+      body: effieJson,
     });
 
     if (!purgeResponse.ok) {
@@ -187,17 +187,17 @@ async function handleRender(
   }
 
   try {
-    const createResponse = await fetch(`${process.env.FFS_BASE_URL}/render`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.FFS_API_KEY}`,
-        "Content-Type": "application/json",
+    const createResponse = await fetch(
+      `${process.env.FFS_BASE_URL}/render?scale=${scale}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.FFS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: effieJson,
       },
-      body: JSON.stringify({
-        effie: JSON.parse(effieJson),
-        scale,
-      }),
-    });
+    );
 
     if (!createResponse.ok) {
       try {

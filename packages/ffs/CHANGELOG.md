@@ -1,5 +1,20 @@
 # @effing/ffs
 
+## 0.9.0
+
+### Minor Changes
+
+- 5b96977: Accept raw EffieData as request body for /render, /warmup, and /purge
+
+  All three endpoints now accept raw `EffieData` directly as the JSON body, in addition to the existing wrapped `{ effie: ... }` format. When using the raw format, `scale` and `purge` can be passed as query parameters (`?scale=0.5&purge=true`). The starter demo has been updated to use the raw format, eliminating unnecessary parse/re-stringify round-trips.
+
+### Patch Changes
+
+- 026c78e: Return FETCH_FAILED error code when remote Effie URL fetch fails
+
+  When `createRenderJob` receives a string URL for `body.effie` and the fetch fails (network error or non-OK response), the endpoint now returns HTTP 502 with `ErrorCode.FETCH_FAILED` instead of falling through to the generic 500 `INTERNAL_ERROR` catch-all. This lets clients distinguish "your URL was unreachable" from "something broke internally."
+  - @effing/effie@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes

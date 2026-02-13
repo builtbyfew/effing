@@ -461,22 +461,26 @@ export async function renderAndUploadInternal(
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
   });
-  const videoStream = await renderer.render(scale);
-  const chunks: Buffer[] = [];
-  for await (const chunk of videoStream) {
-    chunks.push(Buffer.from(chunk));
+  try {
+    const videoStream = await renderer.render(scale);
+    const chunks: Buffer[] = [];
+    for await (const chunk of videoStream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    const videoBuffer = Buffer.concat(chunks);
+    const renderTime = Date.now() - renderStartTime;
+
+    // Upload video (and cover)
+    const timings = await uploadRenderedVideo(
+      videoBuffer,
+      effie,
+      upload,
+      sendEvent,
+    );
+    timings.renderTime = renderTime;
+
+    return timings;
+  } finally {
+    renderer.close();
   }
-  const videoBuffer = Buffer.concat(chunks);
-  const renderTime = Date.now() - renderStartTime;
-
-  // Upload video (and cover)
-  const timings = await uploadRenderedVideo(
-    videoBuffer,
-    effie,
-    upload,
-    sendEvent,
-  );
-  timings.renderTime = renderTime;
-
-  return timings;
 }

@@ -78,7 +78,7 @@ export async function createServerContext(options?: {
   httpProxy?: boolean;
 }): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
-  const enableHttpProxy = options?.httpProxy ?? !options?.renderBackendResolver;
+  const enableHttpProxy = options?.httpProxy ?? true;
   let httpProxy: HttpProxy | undefined;
   if (enableHttpProxy) {
     httpProxy = new HttpProxy();
@@ -197,6 +197,8 @@ export async function proxyRemoteSSE(
 
   const decoder = new TextDecoder();
   let buffer = "";
+  let currentEvent = "";
+  let currentData = "";
 
   try {
     while (true) {
@@ -214,9 +216,6 @@ export async function proxyRemoteSSE(
       // Parse SSE events from buffer
       const lines = buffer.split("\n");
       buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-      let currentEvent = "";
-      let currentData = "";
 
       for (const line of lines) {
         if (line.startsWith("event: ")) {

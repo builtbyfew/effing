@@ -139,6 +139,9 @@ export class FFmpegRunner {
               transformedStream.pipe(writeStream);
               writeStream.on("finish", next);
               writeStream.on("error", reject);
+            } else {
+              stream.resume();
+              next();
             }
           });
           extract.on("finish", resolve);

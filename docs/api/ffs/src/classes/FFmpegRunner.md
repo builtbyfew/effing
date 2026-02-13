@@ -32,7 +32,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:95](https://github.com/builtbyfew/effing
 
 > **close**(): `void`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:237](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L237)
+Defined in: [packages/ffs/src/ffmpeg.ts:240](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L240)
 
 #### Returns
 

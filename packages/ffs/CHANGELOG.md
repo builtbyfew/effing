@@ -1,5 +1,42 @@
 # @effing/ffs
 
+## 0.8.0
+
+### Minor Changes
+
+- 3008ef2: Consolidate SSE event types to reduce stringly-typed event drift
+
+  Export `WarmupEventMap`, `RenderEventMap`, and typed sender utilities from a new `@effing/ffs/sse` entrypoint. Replace the untyped `SSEEventSender` with a generic `TypedEventSender<TMap>` so `createEventSender` and `prefixEventSender` enforce correct payloads per event name at compile time. A plain `EventSender` remains for wire boundaries like `proxyRemoteSSE`.
+
+  On the client in `@effing/effie-preview`, derive `EffieWarmupEvent` from `WarmupEventMap` via a mapped type and normalise all variants to `{ type, data }` so the client union stays in sync with the server automatically.
+
+- 0922e98: Unify HTTP error responses with machine-readable error codes
+
+  All JSON error responses now include a `code` field with a machine-readable identifier (`UNAUTHORIZED`, `INVALID_EFFIE`, `NOT_FOUND`, `BACKEND_FAILED`, `FETCH_FAILED`, `INTERNAL_ERROR`). The `error` and `issues` fields are unchanged, so existing consumers are not affected. New `ApiError` type and `sendError` helper are exported from `@effing/ffs/handlers`.
+
+### Patch Changes
+
+- 893a38c: Enable HTTP proxy by default even when render backend resolver is configured
+
+  Previously, configuring a `renderBackendResolver` implicitly disabled the HTTP proxy. This caused local-fallback jobs (where the resolver returns `null`) to lose proxy URL transformation. The proxy now starts by default regardless of resolver presence; pass `httpProxy: false` to explicitly disable it.
+
+- 893a38c: Close `EffieRenderer` in `renderAndUploadInternal` on failure
+
+  `EffieRenderer` was not closed if rendering or upload threw, leaving ffmpeg resources alive longer than intended. Wrap render/upload in `try/finally` so `renderer.close()` runs unconditionally.
+
+- 893a38c: Preserve SSE parser state across chunks in `proxyRemoteSSE`
+
+  `currentEvent`/`currentData` were reinitialized on every read chunk, so SSE events whose terminating blank line arrived in a subsequent chunk were silently dropped. Move parser state outside the read loop so events spanning chunk boundaries are correctly forwarded.
+
+- 893a38c: Drain non-frame tar entries during Annie extraction
+
+  Non-frame tar entries (e.g. directory entries, metadata) were not drained or advanced, which could stall extraction. Now these entries are resumed and skipped.
+
+- 01a7bce: Pass metadata to render backend resolver in `streamRenderVideo`
+
+  The `renderBackendResolver` in `streamRenderVideo` was called without the `metadata` argument, so backend routing decisions that depend on metadata would fail. `VideoJob` now carries `metadata` and all call sites pass it through.
+  - @effing/effie@0.8.0
+
 ## 0.7.3
 
 ### Patch Changes

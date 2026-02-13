@@ -42,11 +42,26 @@ export async function createRenderJob(
 
     // URL handling (wrapped format only): fetch remote EffieData
     if (typeof body.effie === "string") {
-      const response = await ffsFetch(body.effie);
+      let response;
+      try {
+        response = await ffsFetch(body.effie);
+      } catch (error) {
+        sendError(
+          res,
+          502,
+          ErrorCode.FETCH_FAILED,
+          `Failed to fetch Effie data: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return;
+      }
       if (!response.ok) {
-        throw new Error(
+        sendError(
+          res,
+          502,
+          ErrorCode.FETCH_FAILED,
           `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
         );
+        return;
       }
       body.effie = await response.json();
     }

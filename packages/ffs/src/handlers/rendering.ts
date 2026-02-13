@@ -207,6 +207,7 @@ export async function streamRenderProgress(
           const videoJob: VideoJob = {
             effie: job.effie,
             scale: job.scale,
+            metadata: job.metadata,
           };
           await ctx.transientStore.putJson(
             storeKeys.videoJob(jobId),
@@ -249,6 +250,7 @@ export async function streamRenderProgress(
         const videoJob: VideoJob = {
           effie: job.effie,
           scale: job.scale,
+          metadata: job.metadata,
         };
         await ctx.transientStore.putJson(
           storeKeys.videoJob(jobId),
@@ -301,7 +303,10 @@ export async function streamRenderVideo(
     // Proxy to render backend if resolver is configured
     // Don't delete — the backend reads/deletes the VideoJob from shared store
     if (ctx.renderBackendResolver) {
-      const backend = ctx.renderBackendResolver(videoJob.effie);
+      const backend = ctx.renderBackendResolver(
+        videoJob.effie,
+        videoJob.metadata,
+      );
       if (backend) {
         const backendUrl = `${backend.baseUrl}/render/${jobId}/video`;
         const response = await ffsFetch(backendUrl, {

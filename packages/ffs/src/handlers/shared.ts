@@ -50,6 +50,7 @@ export type RenderJob = {
 export type VideoJob = {
   effie: EffieData<EffieSources>;
   scale: number;
+  metadata?: Record<string, unknown>;
 };
 
 export type ServerContext = {

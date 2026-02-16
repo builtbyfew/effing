@@ -7,7 +7,11 @@ import type satori from "satori";
 import Tinypool from "tinypool";
 
 import type { EmojiStyle } from "../emoji.ts";
-import { expandElement, serializeElement } from "../serde/index.ts";
+import {
+  ensureSingleElement,
+  expandElement,
+  serializeElement,
+} from "../serde/index.ts";
 
 export type SatoriPoolOptions = {
   /** Minimum number of worker threads (default: 1) */
@@ -91,7 +95,9 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
 
   return {
     async renderToPng(element, opts) {
-      const serialized = serializeElement(expandElement(element as ReactNode));
+      const serialized = serializeElement(
+        ensureSingleElement(expandElement(element as ReactNode)),
+      );
       const result = await pool.run(
         {
           element: serialized,
@@ -106,7 +112,9 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
     },
 
     async renderToSvg(element, opts) {
-      const serialized = serializeElement(expandElement(element as ReactNode));
+      const serialized = serializeElement(
+        ensureSingleElement(expandElement(element as ReactNode)),
+      );
       return pool.run(
         {
           element: serialized,

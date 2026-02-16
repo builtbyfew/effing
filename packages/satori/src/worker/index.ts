@@ -3,7 +3,7 @@ import satori, { type Font } from "satori";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { makeLoadAdditionalAsset } from "../emoji.ts";
-import { deserializeElement } from "../serde/index.ts";
+import { deserializeElement, ensureSingleElement } from "../serde/index.ts";
 
 export async function renderToPng({
   element,
@@ -18,9 +18,9 @@ export async function renderToPng({
   fonts: Array<{ name: string; data: Buffer; weight: number; style: string }>;
   emoji?: EmojiStyle;
 }): Promise<Uint8Array> {
-  const reactElement = deserializeElement(element) as Parameters<
-    typeof satori
-  >[0];
+  const reactElement = ensureSingleElement(
+    deserializeElement(element),
+  ) as Parameters<typeof satori>[0];
   const svg = await satori(reactElement, {
     width,
     height,
@@ -44,9 +44,9 @@ export async function renderToSvg({
   fonts: Array<{ name: string; data: Buffer; weight: number; style: string }>;
   emoji?: EmojiStyle;
 }): Promise<string> {
-  const reactElement = deserializeElement(element) as Parameters<
-    typeof satori
-  >[0];
+  const reactElement = ensureSingleElement(
+    deserializeElement(element),
+  ) as Parameters<typeof satori>[0];
   return satori(reactElement, {
     width,
     height,

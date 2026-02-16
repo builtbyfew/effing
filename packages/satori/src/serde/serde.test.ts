@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import React, { type ReactElement, type ReactNode } from "react";
 import {
+  ensureSingleElement,
   expandElement,
   serializeElement,
   deserializeElement,
@@ -209,6 +210,37 @@ describe("deserializeElement", () => {
   });
 });
 
+describe("ensureSingleElement", () => {
+  test("wraps an array in a display:contents div", () => {
+    const children = [
+      React.createElement("span", null, "a"),
+      React.createElement("span", null, "b"),
+    ];
+    const result = ensureSingleElement(children) as El;
+
+    expect(React.isValidElement(result)).toBe(true);
+    expect(result.type).toBe("div");
+    expect(result.props.style).toStrictEqual({ display: "contents" });
+    const inner = result.props.children as El[];
+    expect(inner).toHaveLength(2);
+    expect(inner[0].type).toBe("span");
+    expect(inner[1].type).toBe("span");
+  });
+
+  test("passes through a single element unchanged", () => {
+    const el = React.createElement("div", null, "hello");
+    expect(ensureSingleElement(el)).toBe(el);
+  });
+
+  test("passes through null unchanged", () => {
+    expect(ensureSingleElement(null)).toBeNull();
+  });
+
+  test("passes through a string unchanged", () => {
+    expect(ensureSingleElement("text")).toBe("text");
+  });
+});
+
 describe("roundtrip", () => {
   test("expand → serialize → deserialize produces a valid React element", () => {
     function Badge({ label }: { label: string }) {
@@ -229,6 +261,34 @@ describe("roundtrip", () => {
     const child = restored.props.children as El;
     expect(child.type).toBe("span");
     expect(child.props.children).toBe("OK");
+  });
+
+  test("roundtrip with root-level Fragment", () => {
+    const fragment = React.createElement(
+      React.Fragment,
+      null,
+      React.createElement("span", null, "a"),
+      React.createElement("span", null, "b"),
+    );
+
+    const expanded = expandElement(fragment);
+    const wrapped = ensureSingleElement(expanded) as El;
+
+    expect(React.isValidElement(wrapped)).toBe(true);
+    expect(wrapped.type).toBe("div");
+    expect(wrapped.props.style).toStrictEqual({ display: "contents" });
+
+    const serialized = serializeElement(wrapped);
+    const restored = deserializeElement(serialized) as El;
+
+    expect(React.isValidElement(restored)).toBe(true);
+    expect(restored.type).toBe("div");
+    const children = restored.props.children as El[];
+    expect(children).toHaveLength(2);
+    expect(children[0].type).toBe("span");
+    expect(children[0].props.children).toBe("a");
+    expect(children[1].type).toBe("span");
+    expect(children[1].props.children).toBe("b");
   });
 
   test("roundtrip with Fragments", () => {

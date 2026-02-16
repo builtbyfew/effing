@@ -1,5 +1,20 @@
 import React, { type ReactElement, type ReactNode } from "react";
 
+/**
+ * Wrap a root-level array (e.g. from a top-level Fragment) in a
+ * layout-transparent div so satori always receives a single element.
+ */
+export function ensureSingleElement(node: ReactNode): ReactNode {
+  if (Array.isArray(node)) {
+    return React.createElement(
+      "div",
+      { style: { display: "contents" } },
+      ...node,
+    );
+  }
+  return node;
+}
+
 const ELEMENT_MARKER = "__react_element__";
 
 type SerializedElement = {

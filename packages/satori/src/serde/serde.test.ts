@@ -84,6 +84,28 @@ describe("expandElement", () => {
     expect(result.props.children).toBe("deep");
   });
 
+  test("flattens Fragment with siblings in an array", () => {
+    const tree = React.createElement(
+      "div",
+      null,
+      React.createElement("p", null, "before"),
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement("span", null, "a"),
+        React.createElement("span", null, "b"),
+      ),
+      React.createElement("p", null, "after"),
+    );
+    const expanded = expandElement(tree) as El;
+    const children = expanded.props.children as El[];
+    expect(children).toHaveLength(4);
+    expect(children[0].type).toBe("p");
+    expect(children[1].type).toBe("span");
+    expect(children[2].type).toBe("span");
+    expect(children[3].type).toBe("p");
+  });
+
   test("returns null for empty Fragment", () => {
     const fragment = React.createElement(React.Fragment);
     expect(expandElement(fragment)).toBeNull();

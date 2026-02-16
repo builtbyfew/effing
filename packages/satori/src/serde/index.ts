@@ -16,7 +16,12 @@ type SerializedElement = {
 export function expandElement(node: ReactNode): ReactNode {
   if (node == null || typeof node === "boolean") return node;
   if (typeof node === "string" || typeof node === "number") return node;
-  if (Array.isArray(node)) return node.map(expandElement);
+  if (Array.isArray(node)) {
+    return node.flatMap((child) => {
+      const result = expandElement(child);
+      return Array.isArray(result) ? result : [result];
+    });
+  }
 
   if (!React.isValidElement(node)) return node;
 

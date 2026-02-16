@@ -57,6 +57,37 @@ describe("expandElement", () => {
     expect(result[0]).toBe("text");
     expect((result[1] as El).type).toBe("div");
   });
+
+  test("unwraps a Fragment to its children", () => {
+    const fragment = React.createElement(
+      React.Fragment,
+      null,
+      React.createElement("div", null, "a"),
+      React.createElement("span", null, "b"),
+    );
+    const result = expandElement(fragment) as El[];
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(2);
+    expect(result[0].type).toBe("div");
+    expect(result[1].type).toBe("span");
+  });
+
+  test("unwraps nested Fragments", () => {
+    const inner = React.createElement(
+      React.Fragment,
+      null,
+      React.createElement("b", null, "deep"),
+    );
+    const outer = React.createElement(React.Fragment, null, inner);
+    const result = expandElement(outer) as El;
+    expect(result.type).toBe("b");
+    expect(result.props.children).toBe("deep");
+  });
+
+  test("returns null for empty Fragment", () => {
+    const fragment = React.createElement(React.Fragment);
+    expect(expandElement(fragment)).toBeNull();
+  });
 });
 
 describe("serializeElement", () => {
@@ -95,6 +126,18 @@ describe("serializeElement", () => {
 
     expect(() => serializeElement(el)).toThrow(
       /Cannot serialize function component "MyComp"/,
+    );
+  });
+
+  test("throws on unexpanded Fragment", () => {
+    const fragment = React.createElement(
+      React.Fragment,
+      null,
+      React.createElement("div"),
+    );
+
+    expect(() => serializeElement(fragment)).toThrow(
+      /Cannot serialize element with type.*Call expandElement first/,
     );
   });
 
@@ -164,5 +207,31 @@ describe("roundtrip", () => {
     const child = restored.props.children as El;
     expect(child.type).toBe("span");
     expect(child.props.children).toBe("OK");
+  });
+
+  test("roundtrip with Fragments", () => {
+    const original = React.createElement(
+      "div",
+      null,
+      React.createElement(
+        React.Fragment,
+        null,
+        React.createElement("span", null, "a"),
+        React.createElement("span", null, "b"),
+      ),
+    );
+
+    const expanded = expandElement(original) as El;
+    const serialized = serializeElement(expanded);
+    const restored = deserializeElement(serialized) as El;
+
+    expect(React.isValidElement(restored)).toBe(true);
+    expect(restored.type).toBe("div");
+    const children = restored.props.children as El[];
+    expect(children).toHaveLength(2);
+    expect(children[0].type).toBe("span");
+    expect(children[0].props.children).toBe("a");
+    expect(children[1].type).toBe("span");
+    expect(children[1].props.children).toBe("b");
   });
 });

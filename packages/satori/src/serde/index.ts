@@ -22,6 +22,13 @@ export function expandElement(node: ReactNode): ReactNode {
 
   const element = node as ReactElement;
 
+  if (element.type === React.Fragment) {
+    const children = (element.props as Record<string, unknown>)
+      .children as ReactNode;
+    if (children == null) return null;
+    return expandElement(children);
+  }
+
   if (typeof element.type === "function") {
     const result = (element.type as (props: unknown) => ReactNode)(
       element.props,
@@ -57,6 +64,12 @@ export function serializeElement(node: ReactNode): unknown {
     throw new Error(
       `Cannot serialize function component "${element.type.name || "anonymous"}". ` +
         "Call expandElement first.",
+    );
+  }
+
+  if (typeof element.type !== "string") {
+    throw new Error(
+      `Cannot serialize element with type "${String(element.type)}". Call expandElement first.`,
     );
   }
 

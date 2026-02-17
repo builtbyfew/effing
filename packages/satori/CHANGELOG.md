@@ -1,5 +1,16 @@
 # @effing/satori
 
+## 0.12.0
+
+### Minor Changes
+
+- ddb758b: Move tinypool from optional peer dependency to regular dependency and upgrade to v2
+
+### Patch Changes
+
+- 852e7bc: Replace regex-based `createSatoriPool()` rewriting with AST-based transform to avoid false matches in strings, comments, shadowed identifiers, and unrelated same-name functions
+- e72bcfb: Fix satori worker file not found when SSR chunks are emitted to a subdirectory
+
 ## 0.11.2
 
 ### Patch Changes

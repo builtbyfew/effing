@@ -1,6 +1,6 @@
 {
   "name": "@effing/ffmpeg",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "FFmpeg binary downloader for Effing",
   "type": "module",
   "exports": {

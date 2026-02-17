@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.11.1
+
+### Patch Changes
+
+- fe7c86f: Add Vite 7 to supported peer dependency range for `@effing/satori/vite`
+
 ## 0.11.0
 
 ### Minor Changes

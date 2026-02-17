@@ -1,4 +1,5 @@
-import { fileURLToPath } from "url";
+import { posix } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type { Plugin, ResolvedConfig } from "vite";
 
@@ -43,14 +44,29 @@ export function satoriPoolPlugin(): Plugin {
       const result = code.replace(pattern, (_match, capture: string) => {
         matched = true;
         if (capture === ")") {
-          return 'createSatoriPool({ workerFile: import.meta.dirname + "/satori-worker.js" })';
+          return 'createSatoriPool({ workerFile: "__SATORI_WORKER_FILE__" })';
         }
         // capture === "{"
-        return 'createSatoriPool({ workerFile: import.meta.dirname + "/satori-worker.js", ';
+        return 'createSatoriPool({ workerFile: "__SATORI_WORKER_FILE__", ';
       });
 
       if (!matched) return;
       return { code: result, map: null };
+    },
+
+    renderChunk(code, chunk) {
+      const placeholder = '"__SATORI_WORKER_FILE__"';
+      if (!code.includes(placeholder)) return;
+
+      const chunkDir = posix.dirname(chunk.fileName);
+      const relToRoot = chunkDir === "." ? "." : posix.relative(chunkDir, ".");
+      const workerRel = posix.join(relToRoot, "satori-worker.js");
+      const expr = `import.meta.dirname + ${JSON.stringify("/" + workerRel)}`;
+
+      return {
+        code: code.replaceAll(placeholder, expr),
+        map: null,
+      };
     },
 
     async writeBundle(outputOptions) {

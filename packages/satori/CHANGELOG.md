@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.10.4
+
+### Patch Changes
+
+- 20603d7: Widen `satori` dependency range from `^0.19.2` to `>=0.10.0 <1.0.0`
+
 ## 0.10.3
 
 ### Patch Changes

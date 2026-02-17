@@ -27,6 +27,10 @@ export function satoriPoolPlugin(): Plugin {
     name: "@effing/satori:worker",
     apply: "build",
 
+    config() {
+      return { ssr: { external: ["tinypool"] } };
+    },
+
     configResolved(config) {
       resolvedConfig = config;
     },

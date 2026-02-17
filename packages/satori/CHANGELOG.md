@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.10.5
+
+### Patch Changes
+
+- e57215f: Externalize satori from worker bundle so consumers can control the satori version at runtime
+
 ## 0.10.4
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @effing/satori
 
+## 0.11.0
+
+### Minor Changes
+
+- a511248: Move `@resvg/resvg-js` from dependencies to peerDependencies so it is always resolvable from the consumer's project root (required for pnpm and SSR builds that externalize native addons)
+- a511248: Add `satoriPoolPlugin()` Vite plugin (`@effing/satori/vite`) that bundles the satori worker into the SSR output and rewrites `createSatoriPool()` calls to point at it
+
+### Patch Changes
+
+- a511248: Widen `SatoriPool` font `data` type from `Buffer` to `Buffer | ArrayBuffer` to match `FontData`
+
 ## 0.10.5
 
 ### Patch Changes

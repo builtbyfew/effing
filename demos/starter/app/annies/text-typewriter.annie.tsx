@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { interBold, loadFonts } from "~/fonts.server";
-import { pngFromSatori } from "@effing/satori";
 import { tween } from "@effing/tween";
+import { satoriPool } from "~/pool.server";
 import type { AnnieRendererArgs } from ".";
 
 export const propsSchema = z.object({
@@ -50,7 +50,7 @@ export async function* renderer({
   yield* tween(typingFrameCount, async ({ lower: p }) => {
     const charsShown = Math.floor(p * text.length);
     const textToShow = text.slice(0, charsShown);
-    return pngFromSatori(
+    return satoriPool.renderToPng(
       <TextTypewriterOverlay
         text={textToShow}
         fontSize={fontSize}
@@ -67,7 +67,7 @@ export async function* renderer({
   // Blinking cursor phase
   yield* tween(blinkingFrameCount, async ({ lower: p }) => {
     const cursorShown = Math.floor(p * 5) % 2 === 1;
-    return pngFromSatori(
+    return satoriPool.renderToPng(
       <TextTypewriterOverlay
         text={text}
         fontSize={fontSize}

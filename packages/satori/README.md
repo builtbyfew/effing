@@ -120,6 +120,23 @@ await pool.destroy();
 
 **Peer dependencies:** The pool and serde sub-paths require `react` and `tinypool` to be installed. They are listed as optional peer dependencies so the main `@effing/satori` entry works without them.
 
+### Vite Plugin (SSR)
+
+**The `@effing/satori/vite` plugin is required when using the worker pool in production SSR builds.** Without it, the worker file path breaks after Vite bundles the pool code, because `import.meta.url` points at the build output directory instead of `node_modules`.
+
+The plugin bundles the worker into a self-contained file in the SSR output and rewrites `createSatoriPool()` calls to point at it.
+
+```typescript
+// vite.config.ts
+import { satoriPoolPlugin } from "@effing/satori/vite";
+
+export default defineConfig({
+  plugins: [satoriPoolPlugin()],
+});
+```
+
+In dev mode the plugin is inert — `import.meta.url` still resolves into `node_modules` correctly, so no rewriting is needed.
+
 ## API Overview
 
 ### `pngFromSatori(template, options)`
@@ -184,6 +201,16 @@ function createSatoriPool(options?: SatoriPoolOptions): SatoriPool;
 - `renderToSvg(element, options)` — Render JSX to SVG string
 - `rasterizeSvgToPng(svg, options?)` — Rasterize SVG to PNG buffer
 - `destroy()` — Shut down the pool
+
+### `@effing/satori/vite`
+
+#### `satoriPoolPlugin()`
+
+Vite plugin that bundles the satori worker into the SSR output. Required for production SSR builds using the worker pool.
+
+```typescript
+function satoriPoolPlugin(): Plugin;
+```
 
 ### `@effing/satori/serde`
 

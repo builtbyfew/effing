@@ -18,6 +18,8 @@ export type SatoriPoolOptions = {
   minThreads?: number;
   /** Maximum number of worker threads (default: os.cpus().length) */
   maxThreads?: number;
+  /** Absolute path to a bundled worker file (set automatically by the Vite plugin) */
+  workerFile?: string;
 };
 
 export type SatoriPool = {
@@ -29,7 +31,7 @@ export type SatoriPool = {
       height: number;
       fonts: Array<{
         name: string;
-        data: Buffer;
+        data: Buffer | ArrayBuffer;
         weight: number;
         style: string;
       }>;
@@ -45,7 +47,7 @@ export type SatoriPool = {
       height: number;
       fonts: Array<{
         name: string;
-        data: Buffer;
+        data: Buffer | ArrayBuffer;
         weight: number;
         style: string;
       }>;
@@ -82,10 +84,12 @@ export type SatoriPool = {
  * @returns A `SatoriPool` with `renderToPng`, `renderToSvg`, `rasterizeSvgToPng`, and `destroy`
  */
 export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
-  const workerFile = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "../worker/index.js",
-  );
+  const workerFile =
+    options?.workerFile ??
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../worker/index.js",
+    );
 
   const pool = new Tinypool({
     filename: workerFile,

@@ -1,5 +1,11 @@
 # @effing/ffmpeg
 
+## 0.11.2
+
+### Patch Changes
+
+- 8cabdce: Add CJS export so the package works when bundled in CommonJS format
+
 ## 0.11.1
 
 ## 0.11.0

@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.11.2
+
+### Patch Changes
+
+- cd83322: Externalize tinypool from SSR bundle in Vite plugin to fix broken worker path resolution
+
 ## 0.11.1
 
 ### Patch Changes

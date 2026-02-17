@@ -15,11 +15,10 @@ export default defineConfig([
     external: ["react", "tinypool"],
   },
   {
-    // Stage 2: worker bundle (satori bundled in, native addons external)
+    // Stage 2: worker bundle (native addons external)
     entry: { "worker/index": "src/worker/index.ts" },
     format: ["esm"],
-    noExternal: ["satori"],
-    external: ["@resvg/resvg-js", "react"],
+    external: ["@resvg/resvg-js", "react", "satori"],
     dts: false,
     sourcemap: false,
     clean: false,

@@ -5,7 +5,7 @@ import {
   useNavigation,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import invariant from "tiny-invariant";
 import { serialize } from "@effing/serde";
 import {
@@ -40,38 +40,59 @@ const RENDER_SCALES = [
 
 // ============ Types ============
 
-type RenderSuccess = {
-  renderSuccess: true;
-  progressUrl: string;
-  renderScale: number;
-};
-type RenderError = {
-  renderSuccess: false;
-  error: string;
-  issues?: EffieValidationIssue[];
-};
-type RenderResult = RenderSuccess | RenderError;
+type ActionResult =
+  | {
+      intent: "render";
+      success: true;
+      progressUrl: string;
+      renderScale: number;
+    }
+  | {
+      intent: "render";
+      success: false;
+      error: string;
+      issues?: EffieValidationIssue[];
+    }
+  | { intent: "reload"; success: true; purged: number; total: number }
+  | { intent: "reload"; success: false; error: string };
 
-type ReloadSuccess = { reloadSuccess: true; purged: number; total: number };
-type ReloadError = { reloadSuccess: false; error: string };
-type ReloadResult = ReloadSuccess | ReloadError;
+type RenderState =
+  | { step: "idle" }
+  | { step: "started"; startedAt: number }
+  | { step: "ready"; startedAt: number; videoUrl: string; scale: number }
+  | {
+      step: "done";
+      startedAt: number;
+      videoUrl: string;
+      scale: number;
+      playbackAt: number;
+    };
 
-type ActionResult = RenderResult | ReloadResult;
+type RenderAction =
+  | { type: "start" }
+  | { type: "ready"; videoUrl: string; scale: number }
+  | { type: "play" }
+  | { type: "error" };
 
-function isRenderSuccess(data: ActionResult): data is RenderSuccess {
-  return "renderSuccess" in data && data.renderSuccess;
+function renderReducer(state: RenderState, action: RenderAction): RenderState {
+  switch (action.type) {
+    case "start":
+      return { step: "started", startedAt: Date.now() };
+    case "ready":
+      if (state.step !== "started") return state;
+      return {
+        step: "ready",
+        startedAt: state.startedAt,
+        videoUrl: action.videoUrl,
+        scale: action.scale,
+      };
+    case "play":
+      if (state.step !== "ready") return state;
+      return { ...state, step: "done", playbackAt: Date.now() };
+    case "error":
+      return { step: "idle" };
+  }
 }
-
-function isRenderError(data: ActionResult): data is RenderError {
-  return "renderSuccess" in data && !data.renderSuccess;
-}
-
-type RenderState = {
-  videoUrl: string | null;
-  startTime: number | null;
-  playbackTime: number | null;
-  scale: number | null;
-};
 
 // ============ Loader ============
 
@@ -80,9 +101,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const width = parseInt(requestUrl.searchParams.get("w") || "1080", 10);
   const height = parseInt(requestUrl.searchParams.get("h") || "1080", 10);
 
-  const { previewProps, renderer, propsSchema } = await getEffie(
-    params.effieId,
-  );
+  const {
+    previewProps,
+    renderer: generateEffie,
+    propsSchema,
+  } = await getEffie(params.effieId);
 
   if (propsSchema) {
     invariant(
@@ -96,10 +119,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     process.env.SECRET_KEY!,
   );
 
-  const effie = await renderer({ props: previewProps, width, height });
+  const effie = await generateEffie({ props: previewProps, width, height });
 
   // Create warmup job if FFS is configured
-  let warmupStreamUrl: string | null = null;
+  let warmupUrl: string | null = null;
   if (process.env.FFS_BASE_URL && process.env.FFS_API_KEY) {
     try {
       const warmupResponse = await fetch(`${process.env.FFS_BASE_URL}/warmup`, {
@@ -113,7 +136,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
       if (warmupResponse.ok) {
         const warmupData = await warmupResponse.json();
-        warmupStreamUrl = warmupData.progressUrl;
+        warmupUrl = warmupData.progressUrl;
       }
     } catch {
       // Warmup is best-effort, don't fail the page load
@@ -126,7 +149,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     height,
     effie,
     jsonUrl: `/ff/${urlSegment}?w=${width}&h=${height}`,
-    warmupStreamUrl,
+    warmupUrl,
   };
 }
 
@@ -145,9 +168,9 @@ export function shouldRevalidate({
 
 // ============ Action ============
 
-async function handleReload(effieJson: string): Promise<ReloadResult> {
+async function handleReload(effieJson: string): Promise<ActionResult> {
   if (!process.env.FFS_BASE_URL || !process.env.FFS_API_KEY) {
-    return { reloadSuccess: false, error: "FFS not configured" };
+    return { intent: "reload", success: false, error: "FFS not configured" };
   }
 
   try {
@@ -161,18 +184,24 @@ async function handleReload(effieJson: string): Promise<ReloadResult> {
     });
 
     if (!purgeResponse.ok) {
-      return { reloadSuccess: false, error: "Failed to purge cache" };
+      return {
+        intent: "reload",
+        success: false,
+        error: "Failed to purge cache",
+      };
     }
 
     const purgeData = await purgeResponse.json();
     return {
-      reloadSuccess: true,
+      intent: "reload",
+      success: true,
       purged: purgeData.purged,
       total: purgeData.total,
     };
   } catch (err) {
     return {
-      reloadSuccess: false,
+      intent: "reload",
+      success: false,
       error: err instanceof Error ? err.message : "Unknown error",
     };
   }
@@ -181,9 +210,9 @@ async function handleReload(effieJson: string): Promise<ReloadResult> {
 async function handleRender(
   effieJson: string,
   scale: number,
-): Promise<RenderResult> {
+): Promise<ActionResult> {
   if (!process.env.FFS_BASE_URL || !process.env.FFS_API_KEY) {
-    return { renderSuccess: false, error: "FFS not configured" };
+    return { intent: "render", success: false, error: "FFS not configured" };
   }
 
   try {
@@ -203,20 +232,26 @@ async function handleRender(
       try {
         const errorBody = await createResponse.json();
         return {
-          renderSuccess: false,
+          intent: "render",
+          success: false,
           error: errorBody.error || createResponse.statusText,
           issues: parseEffieValidationIssues(errorBody.issues),
         };
       } catch {
-        return { renderSuccess: false, error: createResponse.statusText };
+        return {
+          intent: "render",
+          success: false,
+          error: createResponse.statusText,
+        };
       }
     }
 
     const { progressUrl } = await createResponse.json();
-    return { renderSuccess: true, renderScale: scale, progressUrl };
+    return { intent: "render", success: true, renderScale: scale, progressUrl };
   } catch (err) {
     return {
-      renderSuccess: false,
+      intent: "render",
+      success: false,
       error: err instanceof Error ? err.message : "Unknown error",
     };
   }
@@ -230,7 +265,7 @@ export async function action({
   const effieJson = formData.get("effie")?.toString();
 
   if (!effieJson) {
-    return { renderSuccess: false, error: "Missing effie data" };
+    return { intent: "render", success: false, error: "Missing effie data" };
   }
 
   if (intent === "reload") {
@@ -244,39 +279,35 @@ export async function action({
 // ============ Component ============
 
 export default function EffiePreviewPage() {
-  const { effie, jsonUrl, effieId, width, height, warmupStreamUrl } =
+  const { effie, jsonUrl, effieId, width, height, warmupUrl } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
 
-  const [render, setRender] = useState<RenderState>({
-    videoUrl: null,
-    startTime: null,
-    playbackTime: null,
-    scale: null,
-  });
+  const [render, dispatch] = useReducer(renderReducer, { step: "idle" });
   const [elapsedToPlay, setElapsedToPlay] = useState<number | null>(null);
 
   // Update elapsed time while rendering is in progress
   useEffect(() => {
-    if (render.startTime === null) {
+    if (render.step === "idle") {
       setElapsedToPlay(null);
       return;
     }
-    if (render.playbackTime !== null) {
-      setElapsedToPlay((render.playbackTime - render.startTime) / 1000);
+    if (render.step === "done") {
+      setElapsedToPlay((render.playbackAt - render.startedAt) / 1000);
       return;
     }
     const update = () =>
-      setElapsedToPlay((Date.now() - render.startTime!) / 1000);
+      setElapsedToPlay((Date.now() - render.startedAt) / 1000);
     update();
     const interval = setInterval(update, 100);
     return () => clearInterval(interval);
-  }, [render.startTime, render.playbackTime]);
+  }, [render]);
 
   // Connect to SSE progress when render action completes
   useEffect(() => {
-    if (!actionData || !isRenderSuccess(actionData)) return;
+    if (!actionData || actionData.intent !== "render" || !actionData.success)
+      return;
 
     const { progressUrl, renderScale } = actionData;
     const eventSource = new EventSource(progressUrl);
@@ -284,11 +315,7 @@ export default function EffiePreviewPage() {
     eventSource.addEventListener("ready", (e) => {
       try {
         const { videoUrl } = JSON.parse(e.data);
-        setRender((prev) => ({
-          ...prev,
-          videoUrl,
-          scale: renderScale,
-        }));
+        dispatch({ type: "ready", videoUrl, scale: renderScale });
       } catch {
         // Ignore parse errors
       }
@@ -296,6 +323,7 @@ export default function EffiePreviewPage() {
     });
 
     eventSource.addEventListener("error", () => {
+      dispatch({ type: "error" });
       eventSource.close();
     });
 
@@ -304,7 +332,7 @@ export default function EffiePreviewPage() {
     };
   }, [actionData]);
 
-  const warmup = useEffieWarmup(warmupStreamUrl);
+  const warmup = useEffieWarmup(warmupUrl);
   const resolveSource = createEffieSourceResolver(effie.sources);
 
   // Compute scaled resolution for preview (540px height for cover)
@@ -325,7 +353,7 @@ export default function EffiePreviewPage() {
   const isReloading =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "reload";
-  const isReloadPending = isLoading || isReloading || warmup.isWarming;
+  const isReloadProhibited = isLoading || isReloading || warmup.isWarming;
 
   const warmupElapsed =
     warmup.state.startTime && warmup.state.status !== "idle"
@@ -348,21 +376,14 @@ export default function EffiePreviewPage() {
   const showProgressBar = warmup.state.status === "warming";
 
   const handleVideoPlay = () => {
-    if (render.startTime !== null && render.playbackTime === null) {
-      setRender((prev) => ({ ...prev, playbackTime: Date.now() }));
-    }
+    dispatch({ type: "play" });
   };
 
   const handleRenderSubmit = () => {
-    setRender({
-      videoUrl: null,
-      startTime: Date.now(),
-      playbackTime: null,
-      scale: null,
-    });
+    dispatch({ type: "start" });
   };
 
-  const formatWarmupUrl = (url: string, maxLen = 70) => {
+  const formatSourceUrl = (url: string, maxLen = 70) => {
     if (url.length <= maxLen) return url;
     const keepStart = Math.max(20, Math.floor(maxLen * 0.6));
     const keepEnd = Math.max(10, maxLen - keepStart - 5);
@@ -438,7 +459,7 @@ export default function EffiePreviewPage() {
           <EffieCoverPreview
             cover={effie.cover}
             resolution={coverResolution}
-            video={render.videoUrl}
+            video={"videoUrl" in render ? render.videoUrl : null}
             onPlay={handleVideoPlay}
             style={{
               border: "1px solid black",
@@ -490,32 +511,6 @@ export default function EffiePreviewPage() {
                 alignItems: "flex-start",
               }}
             >
-              <Form method="post">
-                <input
-                  type="hidden"
-                  name="effie"
-                  value={JSON.stringify(effie)}
-                />
-                <button
-                  type="submit"
-                  name="intent"
-                  value="reload"
-                  disabled={isReloadPending}
-                  style={{
-                    padding: "0.4rem 0.75rem",
-                    backgroundColor: "#fff",
-                    color: "#222",
-                    border: "1px solid black",
-                    borderRadius: 4,
-                    fontSize: "14px",
-                    cursor: isReloadPending ? "wait" : "pointer",
-                    opacity: isReloadPending ? 0.6 : 1,
-                  }}
-                >
-                  {isReloadPending ? "Reloading sources..." : "Reload sources"}
-                </button>
-              </Form>
-
               <Form
                 method="post"
                 style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
@@ -563,10 +558,36 @@ export default function EffiePreviewPage() {
                   ))}
                 </select>
               </Form>
+
+              <Form method="post">
+                <input
+                  type="hidden"
+                  name="effie"
+                  value={JSON.stringify(effie)}
+                />
+                <button
+                  type="submit"
+                  name="intent"
+                  value="reload"
+                  disabled={isReloadProhibited}
+                  style={{
+                    padding: "0.4rem 0.75rem",
+                    backgroundColor: "#fff",
+                    color: "#222",
+                    border: "1px solid black",
+                    borderRadius: 4,
+                    fontSize: "14px",
+                    cursor: isReloadProhibited ? "wait" : "pointer",
+                    opacity: isReloadProhibited ? 0.6 : 1,
+                  }}
+                >
+                  {isReloadProhibited ? "Loading sources..." : "Reload sources"}
+                </button>
+              </Form>
             </div>
 
             {/* Render Error */}
-            {actionData && isRenderError(actionData) && (
+            {actionData?.intent === "render" && !actionData.success && (
               <EffieValidationErrors
                 error={actionData.error}
                 issues={actionData.issues}
@@ -574,7 +595,7 @@ export default function EffiePreviewPage() {
             )}
 
             {/* Render Success */}
-            {render.scale !== null && elapsedToPlay !== null && (
+            {render.step === "done" && elapsedToPlay !== null && (
               <div style={{ color: "#4CAE4C" }}>
                 Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
                 {Math.round(render.scale * 100)}%)
@@ -595,7 +616,7 @@ export default function EffiePreviewPage() {
                 {warmupDownloadingItems.map((d, i) => (
                   <span key={d.url}>
                     {i > 0 ? ", " : ""}
-                    <span title={d.url}>{formatWarmupUrl(d.url)}</span>
+                    <span title={d.url}>{formatSourceUrl(d.url)}</span>
                   </span>
                 ))}
               </div>

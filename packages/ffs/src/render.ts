@@ -199,7 +199,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       "-c:a",
       "aac",
       "-movflags",
-      "frag_keyframe+empty_moov",
+      "frag_keyframe+empty_moov+default_base_moof",
       "-f",
       "mp4",
       outputFilename,

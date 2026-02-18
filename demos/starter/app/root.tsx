@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { MetaFunction } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
@@ -8,12 +7,6 @@ export const meta: MetaFunction = () => [
 ];
 
 export default function App() {
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js");
-    }
-  }, []);
-
   return (
     <html lang="en">
       <head>

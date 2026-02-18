@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.13.0
+
+### Minor Changes
+
+- 2f98ad6: Replace tinypool with a direct `worker_threads` implementation, eliminating the dependency resolution issues when the Vite plugin externalizes tinypool in strict pnpm consumers
+
 ## 0.12.0
 
 ### Minor Changes

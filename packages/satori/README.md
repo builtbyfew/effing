@@ -100,7 +100,7 @@ The package automatically loads emoji SVGs from CDNs. Supported styles:
 
 ### Worker Pool
 
-When rendering many frames (e.g. for animations), you can parallelize rendering across CPU cores using the worker pool. This can provide up to 4x speedups depending on render complexity.
+When rendering many frames (e.g. for animations), you can parallelize rendering across CPU cores using the worker pool. This can provide up to 5x speedups depending on render complexity.
 
 The pool handles React element serialization automatically — you pass JSX in and get PNG/SVG buffers out, just like the single-threaded API.
 

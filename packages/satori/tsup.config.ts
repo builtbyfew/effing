@@ -2,10 +2,10 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    // Stage 1: main + serde + pool (with .d.ts)
+    // Stage 1: main + elements + pool (with .d.ts)
     entry: {
       index: "src/index.ts",
-      "serde/index": "src/serde/index.ts",
+      "elements/index": "src/elements/index.ts",
       "pool/index": "src/pool/index.ts",
       "vite/index": "src/vite/index.ts",
     },

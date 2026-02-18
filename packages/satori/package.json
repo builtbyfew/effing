@@ -8,9 +8,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./serde": {
-      "types": "./dist/serde/index.d.ts",
-      "import": "./dist/serde/index.js"
+    "./elements": {
+      "types": "./dist/elements/index.d.ts",
+      "import": "./dist/elements/index.js"
     },
     "./pool": {
       "types": "./dist/pool/index.d.ts",

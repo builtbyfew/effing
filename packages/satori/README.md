@@ -118,7 +118,7 @@ const png = await pool.renderToPng(
 await pool.destroy();
 ```
 
-**Peer dependencies:** The pool and serde sub-paths require `react` to be installed. It is listed as an optional peer dependency so the main `@effing/satori` entry works without it.
+**Peer dependencies:** The pool and elements sub-paths require `react` to be installed. It is listed as an optional peer dependency so the main `@effing/satori` entry works without it.
 
 ### Vite Plugin (SSR)
 
@@ -212,7 +212,7 @@ Vite plugin that bundles the satori worker into the SSR output. Required for pro
 function satoriPoolPlugin(): Plugin;
 ```
 
-### `@effing/satori/serde`
+### `@effing/satori/elements`
 
 React element serialization for cross-thread communication. Used internally by the pool, but available for custom worker setups.
 

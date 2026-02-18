@@ -3,7 +3,7 @@ import satori, { type Font } from "satori";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { makeLoadAdditionalAsset } from "../emoji.ts";
-import { deserializeElement, ensureSingleElement } from "../serde/index.ts";
+import { deserializeElement, ensureSingleElement } from "../elements/index.ts";
 
 export async function renderToPng({
   element,

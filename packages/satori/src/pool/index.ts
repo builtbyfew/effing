@@ -10,7 +10,7 @@ import {
   ensureSingleElement,
   expandElement,
   serializeElement,
-} from "../serde/index.ts";
+} from "../elements/index.ts";
 import { WorkerPool } from "./worker-pool.ts";
 
 export type SatoriPoolOptions = {

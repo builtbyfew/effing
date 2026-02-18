@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.14.1
+
+### Patch Changes
+
+- 44f1cd2: Rename `@effing/satori/serde` subpackage to `@effing/satori/elements` to avoid confusion with the separate `@effing/serde` package
+
 ## 0.14.0
 
 ## 0.13.1

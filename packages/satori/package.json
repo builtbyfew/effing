@@ -30,8 +30,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "satori": ">=0.10.0 <1.0.0",
-    "tinypool": "^2.0.0"
+    "satori": ">=0.10.0 <1.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

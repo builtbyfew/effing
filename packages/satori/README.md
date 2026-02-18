@@ -15,7 +15,7 @@ npm install @effing/satori
 For worker pool support (optional):
 
 ```bash
-npm install @effing/satori react tinypool
+npm install @effing/satori react
 ```
 
 ## Quick Start
@@ -118,7 +118,7 @@ const png = await pool.renderToPng(
 await pool.destroy();
 ```
 
-**Peer dependencies:** The pool and serde sub-paths require `react` and `tinypool` to be installed. They are listed as optional peer dependencies so the main `@effing/satori` entry works without them.
+**Peer dependencies:** The pool and serde sub-paths require `react` to be installed. It is listed as an optional peer dependency so the main `@effing/satori` entry works without it.
 
 ### Vite Plugin (SSR)
 

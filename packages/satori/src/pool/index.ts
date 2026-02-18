@@ -4,7 +4,6 @@ import path from "path";
 
 import type { ReactNode } from "react";
 import type satori from "satori";
-import Tinypool from "tinypool";
 
 import type { EmojiStyle } from "../emoji.ts";
 import {
@@ -12,6 +11,7 @@ import {
   expandElement,
   serializeElement,
 } from "../serde/index.ts";
+import { WorkerPool } from "./worker-pool.ts";
 
 export type SatoriPoolOptions = {
   /** Minimum number of worker threads (default: 1) */
@@ -91,8 +91,8 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
       "../worker/index.js",
     );
 
-  const pool = new Tinypool({
-    filename: workerFile,
+  const pool = new WorkerPool({
+    workerFile,
     minThreads: options?.minThreads ?? 1,
     maxThreads: options?.maxThreads ?? os.cpus().length,
   });
@@ -102,7 +102,7 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
       const serialized = serializeElement(
         ensureSingleElement(expandElement(element as ReactNode)),
       );
-      const result = await pool.run(
+      const result = (await pool.run(
         {
           element: serialized,
           width: opts.width,
@@ -111,7 +111,7 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
           emoji: opts.emoji,
         },
         { name: "renderToPng" },
-      );
+      )) as Uint8Array;
       return Buffer.from(result);
     },
 
@@ -119,7 +119,7 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
       const serialized = serializeElement(
         ensureSingleElement(expandElement(element as ReactNode)),
       );
-      return pool.run(
+      return (await pool.run(
         {
           element: serialized,
           width: opts.width,
@@ -128,14 +128,14 @@ export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
           emoji: opts.emoji,
         },
         { name: "renderToSvg" },
-      );
+      )) as string;
     },
 
     async rasterizeSvgToPng(svg, opts) {
-      const result = await pool.run(
+      const result = (await pool.run(
         { svg, options: opts },
         { name: "rasterizeSvgToPng" },
-      );
+      )) as Uint8Array;
       return Buffer.from(result);
     },
 

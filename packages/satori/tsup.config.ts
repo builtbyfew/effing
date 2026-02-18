@@ -13,7 +13,7 @@ export default defineConfig([
     dts: true,
     clean: true,
     sourcemap: true,
-    external: ["react", "tinypool", "vite"],
+    external: ["react", "vite"],
   },
   {
     // Stage 2: worker bundle (native addons external)

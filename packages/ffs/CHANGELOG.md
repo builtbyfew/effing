@@ -1,5 +1,12 @@
 # @effing/ffs
 
+## 0.13.1
+
+### Patch Changes
+
+- 1aaa59b: Add `default_base_moof` movflag to fragmented MP4 output for broader player compatibility
+  - @effing/effie@0.13.1
+
 ## 0.13.0
 
 ### Patch Changes

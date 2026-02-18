@@ -145,9 +145,24 @@ type EffieSourceResolver = (src: string) => string;
 
 All preview components support both simple and compound usage patterns.
 
+#### `EffieVideoPreview`
+
+Standalone video player that streams a video via MSE (with blob fallback) so the entire file is buffered in memory. This avoids follow-up network requests on seek, which is critical for one-time-consumption URLs like FFS render endpoints.
+
+```tsx
+<EffieVideoPreview
+  url={string}                // Video URL to stream
+  poster={string}             // Optional poster image URL
+  onPlay={() => void}         // Callback when video starts playing
+  onFullyBuffered={() => void} // Callback when video is fully buffered
+  className={string}          // Class name for the video element
+  style={CSSProperties}       // Style for the video element
+/>
+```
+
 #### `EffieCoverPreview`
 
-Display the cover image, or a video player if a rendered video is available.
+Display the cover image, or a video player if a rendered video is available. Uses `EffieVideoPreview` internally when a video URL is provided.
 
 ```tsx
 <EffieCoverPreview

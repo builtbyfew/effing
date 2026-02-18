@@ -10,6 +10,70 @@ import { AnniePlayer } from "@effing/annie-player/react";
 import type { EffieSourceResolver, EffieValidationIssue } from "../core";
 import { connectEffieWarmupStream, type EffieWarmupState } from "../warmup";
 import { hashUrlToId } from "../utils";
+export { useVideoStream } from "./use-video-stream";
+export type { UseVideoStreamResult } from "./use-video-stream";
+import { useVideoStream } from "./use-video-stream";
+
+// ============ Video Preview ============
+
+export type EffieVideoPreviewProps = {
+  /** Video URL to stream via MSE */
+  url: string;
+  /** Optional poster image URL */
+  poster?: string;
+  /** Callback when video starts playing */
+  onPlay?: () => void;
+  /** Callback when video is fully buffered (entire video downloaded) */
+  onFullyBuffered?: () => void;
+  /** Class name for the video element */
+  className?: string;
+  /** Style for the video element */
+  style?: React.CSSProperties;
+};
+
+/**
+ * Streams a video via MSE (with blob fallback) so the entire file is buffered
+ * in memory. This avoids follow-up network requests on seek, which is critical
+ * for one-time-consumption URLs like FFS render endpoints.
+ */
+export function EffieVideoPreview({
+  url,
+  poster,
+  onPlay,
+  onFullyBuffered,
+  className,
+  style,
+}: EffieVideoPreviewProps) {
+  const { videoRef, isFullyBuffered } = useVideoStream(url);
+  const firedRef = useRef(false);
+
+  // Reset fired flag when URL changes
+  const lastUrlRef = useRef(url);
+  if (url !== lastUrlRef.current) {
+    lastUrlRef.current = url;
+    firedRef.current = false;
+  }
+
+  useEffect(() => {
+    if (isFullyBuffered && onFullyBuffered && !firedRef.current) {
+      firedRef.current = true;
+      onFullyBuffered();
+    }
+  }, [isFullyBuffered, onFullyBuffered]);
+
+  return (
+    <video
+      ref={videoRef}
+      poster={poster}
+      crossOrigin="anonymous"
+      className={className}
+      style={style}
+      controls
+      autoPlay
+      onPlay={onPlay}
+    />
+  );
+}
 
 // ============ Cover Preview ============
 
@@ -32,7 +96,8 @@ export type EffieCoverPreviewProps = {
 
 /**
  * Displays the effie cover image, or a video if provided.
- * Simple component with built-in inline styles.
+ * When a video URL is given, renders an {@link EffieVideoPreview} with the
+ * cover as poster image. Otherwise renders a static `<img>`.
  */
 export function EffieCoverPreview({
   cover,
@@ -43,40 +108,15 @@ export function EffieCoverPreview({
   className,
   style,
 }: EffieCoverPreviewProps) {
-  const fullyBufferedRef = useRef(false);
-  const lastVideoRef = useRef<string | null>(null);
-
-  // Reset the fully buffered flag when video URL changes
-  if (video !== lastVideoRef.current) {
-    lastVideoRef.current = video ?? null;
-    fullyBufferedRef.current = false;
-  }
-
-  const handleProgress = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (fullyBufferedRef.current || !onFullyBuffered) return;
-
-    const vid = e.currentTarget;
-    if (vid.buffered.length > 0 && vid.duration > 0) {
-      const bufferedEnd = vid.buffered.end(vid.buffered.length - 1);
-      if (bufferedEnd >= vid.duration) {
-        fullyBufferedRef.current = true;
-        onFullyBuffered();
-      }
-    }
-  };
-
   if (video) {
     return (
-      <video
-        src={video}
+      <EffieVideoPreview
+        url={video}
         poster={cover}
-        crossOrigin="anonymous"
+        onPlay={onPlay}
+        onFullyBuffered={onFullyBuffered}
         className={className}
         style={{ ...style, height: resolution.height }}
-        controls
-        autoPlay
-        onPlay={onPlay}
-        onProgress={handleProgress}
       />
     );
   }

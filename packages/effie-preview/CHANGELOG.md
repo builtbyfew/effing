@@ -1,5 +1,16 @@
 # @effing/effie-preview
 
+## 0.14.0
+
+### Minor Changes
+
+- 8225851: Extract standalone `EffieVideoPreview` component for MSE video playback, simplify `EffieCoverPreview` to use it internally
+
+### Patch Changes
+
+- @effing/effie@0.14.0
+- @effing/annie-player@0.14.0
+
 ## 0.13.1
 
 ### Patch Changes

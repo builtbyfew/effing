@@ -1,5 +1,15 @@
 # @effing/create
 
+## 0.14.0
+
+### Patch Changes
+
+- a776e90: Clean up pff preview route code
+  - Replace action result type guards with `intent`/`success` discriminated union
+  - Refactor render state tracking from `useState` to `useReducer`
+  - Rename variables for clarity
+  - Reorder form controls
+
 ## 0.13.1
 
 ## 0.13.0

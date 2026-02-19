@@ -5,7 +5,7 @@ import {
   useNavigation,
   type ShouldRevalidateFunctionArgs,
 } from "react-router";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import invariant from "tiny-invariant";
 import { serialize } from "@effing/serde";
 import {
@@ -59,20 +59,28 @@ type ActionResult =
 type RenderState =
   | { step: "idle" }
   | { step: "started"; startedAt: number }
-  | { step: "ready"; startedAt: number; videoUrl: string; scale: number }
+  | {
+      step: "ready";
+      startedAt: number;
+      videoUrl: string;
+      scale: number;
+      downloadUrl?: string;
+    }
   | {
       step: "done";
       startedAt: number;
       videoUrl: string;
       scale: number;
       playbackAt: number;
+      downloadUrl?: string;
     };
 
 type RenderAction =
   | { type: "start" }
   | { type: "ready"; videoUrl: string; scale: number }
   | { type: "play" }
-  | { type: "error" };
+  | { type: "error" }
+  | { type: "buffered"; downloadUrl: string };
 
 function renderReducer(state: RenderState, action: RenderAction): RenderState {
   switch (action.type) {
@@ -89,6 +97,10 @@ function renderReducer(state: RenderState, action: RenderAction): RenderState {
     case "play":
       if (state.step !== "ready") return state;
       return { ...state, step: "done", playbackAt: Date.now() };
+    case "buffered":
+      if (state.step === "ready" || state.step === "done")
+        return { ...state, downloadUrl: action.downloadUrl };
+      return state;
     case "error":
       return { step: "idle" };
   }
@@ -286,6 +298,7 @@ export default function EffiePreviewPage() {
 
   const [render, dispatch] = useReducer(renderReducer, { step: "idle" });
   const [elapsedToPlay, setElapsedToPlay] = useState<number | null>(null);
+  const prevDownloadUrlRef = useRef<string | null>(null);
 
   // Update elapsed time while rendering is in progress
   useEffect(() => {
@@ -381,6 +394,19 @@ export default function EffiePreviewPage() {
 
   const handleRenderSubmit = () => {
     dispatch({ type: "start" });
+    if (prevDownloadUrlRef.current) {
+      URL.revokeObjectURL(prevDownloadUrlRef.current);
+      prevDownloadUrlRef.current = null;
+    }
+  };
+
+  const handleFullyBuffered = (blob: Blob) => {
+    if (prevDownloadUrlRef.current) {
+      URL.revokeObjectURL(prevDownloadUrlRef.current);
+    }
+    const downloadUrl = URL.createObjectURL(blob);
+    prevDownloadUrlRef.current = downloadUrl;
+    dispatch({ type: "buffered", downloadUrl });
   };
 
   const formatSourceUrl = (url: string, maxLen = 70) => {
@@ -461,6 +487,7 @@ export default function EffiePreviewPage() {
             resolution={coverResolution}
             video={"videoUrl" in render ? render.videoUrl : null}
             onPlay={handleVideoPlay}
+            onFullyBuffered={handleFullyBuffered}
             style={{
               border: "1px solid black",
               backgroundColor: "#eee",
@@ -603,12 +630,41 @@ export default function EffiePreviewPage() {
               )}
 
             {/* Render Success */}
-            {render.step === "done" && elapsedToPlay !== null && (
-              <div style={{ color: "#4CAE4C" }}>
-                Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
-                {Math.round(render.scale * 100)}%)
-              </div>
-            )}
+            {(render.step === "ready" || render.step === "done") &&
+              elapsedToPlay !== null && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "1rem",
+                  }}
+                >
+                  {render.step === "done" && (
+                    <span style={{ color: "#4CAE4C" }}>
+                      Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
+                      {Math.round(render.scale * 100)}%)
+                    </span>
+                  )}
+                  {render.downloadUrl && (
+                    <a
+                      href={render.downloadUrl}
+                      download={`${effieId}-${width}x${height}.mp4`}
+                      style={{
+                        padding: "0.4rem 0.75rem",
+                        backgroundColor: "#fff",
+                        color: "#4CAE4C",
+                        border: "1px solid #4CAE4C",
+                        borderRadius: 4,
+                        fontSize: "14px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Download video
+                    </a>
+                  )}
+                </div>
+              )}
 
             {/* Downloading Status */}
             {warmupDownloadingItems.length > 0 && (

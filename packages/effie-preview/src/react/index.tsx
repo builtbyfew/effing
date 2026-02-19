@@ -24,7 +24,7 @@ export type EffieVideoPreviewProps = {
   /** Callback when video starts playing */
   onPlay?: () => void;
   /** Callback when video is fully buffered (entire video downloaded) */
-  onFullyBuffered?: () => void;
+  onFullyBuffered?: (blob: Blob) => void;
   /** Class name for the video element */
   className?: string;
   /** Style for the video element */
@@ -44,7 +44,7 @@ export function EffieVideoPreview({
   className,
   style,
 }: EffieVideoPreviewProps) {
-  const { videoRef, isFullyBuffered } = useVideoStream(url);
+  const { videoRef, isFullyBuffered, blobRef } = useVideoStream(url);
   const firedRef = useRef(false);
 
   // Reset fired flag when URL changes
@@ -55,9 +55,14 @@ export function EffieVideoPreview({
   }
 
   useEffect(() => {
-    if (isFullyBuffered && onFullyBuffered && !firedRef.current) {
+    if (
+      isFullyBuffered &&
+      onFullyBuffered &&
+      !firedRef.current &&
+      blobRef.current
+    ) {
       firedRef.current = true;
-      onFullyBuffered();
+      onFullyBuffered(blobRef.current);
     }
   }, [isFullyBuffered, onFullyBuffered]);
 
@@ -87,7 +92,7 @@ export type EffieCoverPreviewProps = {
   /** Callback when video starts playing */
   onPlay?: () => void;
   /** Callback when video is fully buffered (entire video downloaded) */
-  onFullyBuffered?: () => void;
+  onFullyBuffered?: (blob: Blob) => void;
   /** Class name for the img/video element */
   className?: string;
   /** Style for the img/video element */

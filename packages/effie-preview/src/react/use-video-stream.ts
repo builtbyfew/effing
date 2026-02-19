@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 export type UseVideoStreamResult = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isFullyBuffered: boolean;
+  blobRef: React.RefObject<Blob | null>;
 };
 
 /**
@@ -14,6 +15,7 @@ export type UseVideoStreamResult = {
  */
 export function useVideoStream(url: string | null): UseVideoStreamResult {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const blobRef = useRef<Blob | null>(null);
   const [isFullyBuffered, setIsFullyBuffered] = useState(false);
   const lastUrlRef = useRef<string | null>(null);
 
@@ -21,6 +23,7 @@ export function useVideoStream(url: string | null): UseVideoStreamResult {
   if (url !== lastUrlRef.current) {
     lastUrlRef.current = url;
     if (isFullyBuffered) setIsFullyBuffered(false);
+    blobRef.current = null;
   }
 
   useEffect(() => {
@@ -112,6 +115,7 @@ export function useVideoStream(url: string | null): UseVideoStreamResult {
         mediaSource.endOfStream();
       }
 
+      blobRef.current = new Blob(chunks as BlobPart[], { type: "video/mp4" });
       setIsFullyBuffered(true);
     };
 
@@ -140,5 +144,5 @@ export function useVideoStream(url: string | null): UseVideoStreamResult {
     };
   }, [url]);
 
-  return { videoRef, isFullyBuffered };
+  return { videoRef, isFullyBuffered, blobRef };
 }

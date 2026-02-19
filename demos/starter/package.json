@@ -20,6 +20,7 @@
     "@effing/satori": "workspace:*",
     "@resvg/resvg-js": "^2.6.2",
     "@effing/serde": "workspace:*",
+    "satori": "^0.19.2",
     "@effing/tween": "workspace:*",
     "@react-router/node": "^7.0.0",
     "@react-router/serve": "^7.0.0",

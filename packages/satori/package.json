@@ -28,9 +28,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "dependencies": {
-    "satori": ">=0.10.0 <1.0.0"
-  },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "tsup": "catalog:",
@@ -39,7 +36,8 @@
   },
   "peerDependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "react": "^18.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "satori": ">=0.10.0 <1.0.0"
   },
   "peerDependenciesMeta": {
     "react": {

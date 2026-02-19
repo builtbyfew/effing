@@ -1,5 +1,11 @@
 # @effing/satori
 
+## 0.15.0
+
+### Minor Changes
+
+- bf082a6: Remove `satoriPoolPlugin` Vite plugin in favor of resolving the worker file from `node_modules` at runtime via `import.meta.resolve`, falling back to relative URL resolution in Vite dev
+
 ## 0.14.1
 
 ### Patch Changes

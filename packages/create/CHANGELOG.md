@@ -1,5 +1,17 @@
 # @effing/create
 
+## 0.15.0
+
+### Minor Changes
+
+- 639a093: Add Dockerfile and .dockerignore to starter template for container deployment
+- adf62db: Add video download button to the effie preview page. After a render finishes buffering, a "Download video" link appears that saves the MP4 via a blob URL. The download URL is managed inside the render reducer (`downloadUrl` on `ready`/`done` variants, cleared automatically on re-render) with a ref for `revokeObjectURL` cleanup.
+- bf082a6: Remove `satoriPoolPlugin` Vite plugin in favor of resolving the worker file from `node_modules` at runtime via `import.meta.resolve`, falling back to relative URL resolution in Vite dev
+
+### Patch Changes
+
+- b35600d: Show elapsed time ticker during render progress in effie preview page
+
 ## 0.14.1
 
 ## 0.14.0

@@ -7,13 +7,12 @@ export default defineConfig([
       index: "src/index.ts",
       "elements/index": "src/elements/index.ts",
       "pool/index": "src/pool/index.ts",
-      "vite/index": "src/vite/index.ts",
     },
     format: ["esm"],
     dts: true,
     clean: true,
     sourcemap: true,
-    external: ["react", "vite"],
+    external: ["react"],
   },
   {
     // Stage 2: worker bundle (native addons external)

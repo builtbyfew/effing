@@ -1,6 +1,5 @@
 import os from "os";
 import { fileURLToPath } from "url";
-import path from "path";
 
 import type { ReactNode } from "react";
 import type satori from "satori";
@@ -84,12 +83,16 @@ export type SatoriPool = {
  * @returns A `SatoriPool` with `renderToPng`, `renderToSvg`, `rasterizeSvgToPng`, and `destroy`
  */
 export function createSatoriPool(options?: SatoriPoolOptions): SatoriPool {
-  const workerFile =
-    options?.workerFile ??
-    path.resolve(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "../worker/index.js",
-    );
+  let resolvedWorkerUrl: string;
+  try {
+    resolvedWorkerUrl = import.meta.resolve("@effing/satori/worker");
+  } catch {
+    // Vite's SSR module runner doesn't support import.meta.resolve;
+    // fall back to relative resolution (works in dev where import.meta.url
+    // still points at the source file inside node_modules).
+    resolvedWorkerUrl = new URL("../worker/index.js", import.meta.url).href;
+  }
+  const workerFile = options?.workerFile ?? fileURLToPath(resolvedWorkerUrl);
 
   const pool = new WorkerPool({
     workerFile,

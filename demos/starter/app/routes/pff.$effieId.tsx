@@ -594,6 +594,14 @@ export default function EffiePreviewPage() {
               />
             )}
 
+            {/* Render Progress */}
+            {(render.step === "started" || render.step === "ready") &&
+              elapsedToPlay !== null && (
+                <div style={{ color: "#4CAE4C" }}>
+                  Rendering... {elapsedToPlay.toFixed(1)}s
+                </div>
+              )}
+
             {/* Render Success */}
             {render.step === "done" && elapsedToPlay !== null && (
               <div style={{ color: "#4CAE4C" }}>

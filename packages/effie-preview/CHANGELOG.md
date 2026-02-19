@@ -1,5 +1,16 @@
 # @effing/effie-preview
 
+## 0.15.0
+
+### Minor Changes
+
+- adf62db: Expose downloaded video blob via `onFullyBuffered` callback. `useVideoStream` now collects all streamed chunks into a `blobRef` and `EffieVideoPreview`/`EffieCoverPreview` pass the `Blob` to `onFullyBuffered(blob)`, enabling consumers to create a download link without re-fetching.
+
+### Patch Changes
+
+- @effing/effie@0.15.0
+- @effing/annie-player@0.15.0
+
 ## 0.14.1
 
 ### Patch Changes

@@ -82,8 +82,8 @@ async function main(): Promise<void> {
 
   console.log("Done! To get started:\n");
   console.log(`  cd ${projectName}`);
-  console.log("  npm install");
-  console.log("  npm run dev\n");
+  console.log("  npm install    # or: pnpm install");
+  console.log("  npm run dev    # or: pnpm run dev\n");
   console.log("Then open http://localhost:3839 to see your project.\n");
 }
 

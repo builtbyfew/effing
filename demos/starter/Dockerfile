@@ -7,8 +7,10 @@ FROM base AS build
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
       pnpm install --frozen-lockfile; \
-    else \
+    elif [ -f package-lock.json ]; then \
       npm ci; \
+    else \
+      npm install; \
     fi
 COPY . .
 RUN npm run build
@@ -18,8 +20,10 @@ FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
       pnpm install --frozen-lockfile --prod; \
-    else \
+    elif [ -f package-lock.json ]; then \
       npm ci --omit=dev; \
+    else \
+      npm install --omit=dev; \
     fi
 
 # Stage: final runtime image

@@ -17,7 +17,7 @@ export type SatoriPoolOptions = {
   minThreads?: number;
   /** Maximum number of worker threads (default: os.cpus().length) */
   maxThreads?: number;
-  /** Absolute path to a bundled worker file (set automatically by the Vite plugin) */
+  /** Absolute path to a bundled worker file */
   workerFile?: string;
 };
 

@@ -48,7 +48,7 @@ export async function createRenderJob(
       } catch (error) {
         sendError(
           res,
-          502,
+          422,
           ErrorCode.FETCH_FAILED,
           `Failed to fetch Effie data: ${error instanceof Error ? error.message : String(error)}`,
         );
@@ -57,7 +57,7 @@ export async function createRenderJob(
       if (!response.ok) {
         sendError(
           res,
-          502,
+          422,
           ErrorCode.FETCH_FAILED,
           `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
         );

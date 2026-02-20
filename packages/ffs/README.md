@@ -301,7 +301,7 @@ type ApiError = {
 | `INVALID_EFFIE`  | 400    | Effie data validation or structural error |
 | `NOT_FOUND`      | 404    | Job or video not found                    |
 | `BACKEND_FAILED` | varies | Remote render backend returned an error   |
-| `FETCH_FAILED`   | 502    | Failed to fetch remote Effie data URL     |
+| `FETCH_FAILED`   | 422    | Failed to fetch remote Effie data URL     |
 | `INTERNAL_ERROR` | 500    | Catch-all for unhandled exceptions        |
 
 For `INVALID_EFFIE` errors caused by schema validation, the `issues` array contains the specific validation failures:

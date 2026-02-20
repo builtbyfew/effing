@@ -57,52 +57,72 @@ type ActionResult =
   | { intent: "reload"; success: false; error: string };
 
 type RenderState =
-  | { step: "idle" }
-  | { step: "started"; startedAt: number }
+  | { step: "idle"; error: string | null }
+  | { step: "starting"; startedAt: number }
   | {
-      step: "ready";
+      step: "streaming";
       startedAt: number;
       videoUrl: string;
       scale: number;
-      downloadUrl?: string;
+    }
+  | {
+      step: "playing";
+      startedAt: number;
+      videoUrl: string;
+      scale: number;
+      playbackAt: number;
     }
   | {
       step: "done";
       startedAt: number;
       videoUrl: string;
       scale: number;
-      playbackAt: number;
-      downloadUrl?: string;
+      playbackAt: number | null;
+      downloadUrl: string;
     };
 
 type RenderAction =
   | { type: "start" }
-  | { type: "ready"; videoUrl: string; scale: number }
+  | { type: "stream"; videoUrl: string; scale: number }
   | { type: "play" }
-  | { type: "error" }
-  | { type: "buffered"; downloadUrl: string };
+  | { type: "finish"; downloadUrl: string }
+  | { type: "error"; error?: string };
+
+const INITIAL_RENDER_STATE: RenderState = { step: "idle", error: null };
 
 function renderReducer(state: RenderState, action: RenderAction): RenderState {
   switch (action.type) {
     case "start":
-      return { step: "started", startedAt: Date.now() };
-    case "ready":
-      if (state.step !== "started") return state;
+      return { step: "starting", startedAt: Date.now() };
+    case "stream":
+      if (state.step !== "starting") return state;
       return {
-        step: "ready",
+        step: "streaming",
         startedAt: state.startedAt,
         videoUrl: action.videoUrl,
         scale: action.scale,
       };
     case "play":
-      if (state.step !== "ready") return state;
-      return { ...state, step: "done", playbackAt: Date.now() };
-    case "buffered":
-      if (state.step === "ready" || state.step === "done")
+      if (state.step === "streaming")
+        return { ...state, step: "playing", playbackAt: Date.now() };
+      if (state.step === "done" && state.playbackAt === null)
+        return { ...state, playbackAt: Date.now() };
+      return state;
+    case "finish":
+      if (state.step === "streaming")
+        return {
+          ...state,
+          step: "done",
+          playbackAt: null,
+          downloadUrl: action.downloadUrl,
+        };
+      if (state.step === "playing")
+        return { ...state, step: "done", downloadUrl: action.downloadUrl };
+      if (state.step === "done")
         return { ...state, downloadUrl: action.downloadUrl };
       return state;
     case "error":
-      return { step: "idle" };
+      return { step: "idle", error: action.error ?? "Render failed" };
   }
 }
 
@@ -296,25 +316,32 @@ export default function EffiePreviewPage() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
 
-  const [render, dispatch] = useReducer(renderReducer, { step: "idle" });
+  const [render, dispatch] = useReducer(renderReducer, INITIAL_RENDER_STATE);
   const [elapsedToPlay, setElapsedToPlay] = useState<number | null>(null);
   const prevDownloadUrlRef = useRef<string | null>(null);
 
   // Update elapsed time while rendering is in progress
   useEffect(() => {
-    if (render.step === "idle") {
-      setElapsedToPlay(null);
-      return;
+    switch (render.step) {
+      case "idle":
+        setElapsedToPlay(null);
+        return;
+      case "playing":
+        setElapsedToPlay((render.playbackAt - render.startedAt) / 1000);
+        return;
+      case "done":
+        if (render.playbackAt !== null)
+          setElapsedToPlay((render.playbackAt - render.startedAt) / 1000);
+        return;
+      case "starting":
+      case "streaming": {
+        const update = () =>
+          setElapsedToPlay((Date.now() - render.startedAt) / 1000);
+        update();
+        const interval = setInterval(update, 100);
+        return () => clearInterval(interval);
+      }
     }
-    if (render.step === "done") {
-      setElapsedToPlay((render.playbackAt - render.startedAt) / 1000);
-      return;
-    }
-    const update = () =>
-      setElapsedToPlay((Date.now() - render.startedAt) / 1000);
-    update();
-    const interval = setInterval(update, 100);
-    return () => clearInterval(interval);
   }, [render]);
 
   // Connect to SSE progress when render action completes
@@ -328,15 +355,23 @@ export default function EffiePreviewPage() {
     eventSource.addEventListener("ready", (e) => {
       try {
         const { videoUrl } = JSON.parse(e.data);
-        dispatch({ type: "ready", videoUrl, scale: renderScale });
+        dispatch({ type: "stream", videoUrl, scale: renderScale });
       } catch {
         // Ignore parse errors
       }
       eventSource.close();
     });
 
-    eventSource.addEventListener("error", () => {
-      dispatch({ type: "error" });
+    eventSource.addEventListener("error", (e) => {
+      let error = "Render failed";
+      if (e instanceof MessageEvent) {
+        try {
+          error = JSON.parse(e.data).message;
+        } catch {
+          // use default
+        }
+      }
+      dispatch({ type: "error", error });
       eventSource.close();
     });
 
@@ -406,7 +441,7 @@ export default function EffiePreviewPage() {
     }
     const downloadUrl = URL.createObjectURL(blob);
     prevDownloadUrlRef.current = downloadUrl;
-    dispatch({ type: "buffered", downloadUrl });
+    dispatch({ type: "finish", downloadUrl });
   };
 
   const formatSourceUrl = (url: string, maxLen = 70) => {
@@ -485,7 +520,13 @@ export default function EffiePreviewPage() {
           <EffieCoverPreview
             cover={effie.cover}
             resolution={coverResolution}
-            video={"videoUrl" in render ? render.videoUrl : null}
+            video={
+              render.step === "streaming" ||
+              render.step === "playing" ||
+              render.step === "done"
+                ? render.videoUrl
+                : null
+            }
             onPlay={handleVideoPlay}
             onFullyBuffered={handleFullyBuffered}
             style={{
@@ -620,9 +661,12 @@ export default function EffiePreviewPage() {
                 issues={actionData.issues}
               />
             )}
+            {render.step === "idle" && render.error && (
+              <div style={{ color: "#E44444" }}>{render.error}</div>
+            )}
 
             {/* Render Progress */}
-            {(render.step === "started" || render.step === "ready") &&
+            {(render.step === "starting" || render.step === "streaming") &&
               elapsedToPlay !== null && (
                 <div style={{ color: "#4CAE4C" }}>
                   Rendering... {elapsedToPlay.toFixed(1)}s
@@ -630,41 +674,40 @@ export default function EffiePreviewPage() {
               )}
 
             {/* Render Success */}
-            {(render.step === "ready" || render.step === "done") &&
-              elapsedToPlay !== null && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: "1rem",
-                  }}
-                >
-                  {render.step === "done" && (
-                    <span style={{ color: "#4CAE4C" }}>
-                      Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
-                      {Math.round(render.scale * 100)}%)
-                    </span>
-                  )}
-                  {render.downloadUrl && (
-                    <a
-                      href={render.downloadUrl}
-                      download={`${effieId}-${width}x${height}.mp4`}
-                      style={{
-                        padding: "0.4rem 0.75rem",
-                        backgroundColor: "#fff",
-                        color: "#4CAE4C",
-                        border: "1px solid #4CAE4C",
-                        borderRadius: 4,
-                        fontSize: "14px",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Download video
-                    </a>
-                  )}
-                </div>
-              )}
+            {(render.step === "playing" || render.step === "done") && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: "1rem",
+                }}
+              >
+                {render.playbackAt !== null && elapsedToPlay !== null && (
+                  <span style={{ color: "#4CAE4C" }}>
+                    Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
+                    {Math.round(render.scale * 100)}%)
+                  </span>
+                )}
+                {render.step === "done" && (
+                  <a
+                    href={render.downloadUrl}
+                    download={`${effieId}-${width}x${height}.mp4`}
+                    style={{
+                      padding: "0.4rem 0.75rem",
+                      backgroundColor: "#fff",
+                      color: "#4CAE4C",
+                      border: "1px solid #4CAE4C",
+                      borderRadius: 4,
+                      fontSize: "14px",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Download video
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Downloading Status */}
             {warmupDownloadingItems.length > 0 && (

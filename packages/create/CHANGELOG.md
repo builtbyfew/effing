@@ -1,5 +1,12 @@
 # @effing/create
 
+## 0.15.1
+
+### Patch Changes
+
+- ea08f55: Move `satori` from a direct dependency to a peer dependency of `@effing/satori`, giving consumers control over the installed version. The starter template now lists `satori` as an explicit dependency.
+- 31f1900: Bundle satori worker for production: add `vite.config.satori.ts` build step and use pre-built worker file in `pool.server.ts`.
+
 ## 0.15.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @effing/ffs
 
+## 0.15.1
+
+### Patch Changes
+
+- adc5abd: Change `FETCH_FAILED` error status from 502 to 422 so CDNs treat it as a client error instead of an origin failure.
+  - @effing/effie@0.15.1
+
 ## 0.15.0
 
 ### Patch Changes

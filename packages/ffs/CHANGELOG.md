@@ -1,5 +1,16 @@
 # @effing/ffs
 
+## 0.16.0
+
+### Minor Changes
+
+- b5a388b: Add optional `timings` parameter to `createRenderJob`, `createWarmupJob`, and `purgeCache` handlers for measuring operation durations
+- 06949ba: Deferred Effie URL fetching: when `effie` is a URL string, the fetch is deferred to the SSE progress stream with `effie:fetching`/`effie:fetched` events. Introduces `ResolvedRenderJob` and `DeferredRenderJob` types (exported). Also renames keepalive phase `"uploading"` to `"upload"` for consistency, and adds `"upload"` to the error event's phase union so upload failures report the correct phase.
+
+### Patch Changes
+
+- @effing/effie@0.16.0
+
 ## 0.15.1
 
 ### Patch Changes

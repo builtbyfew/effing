@@ -39,10 +39,17 @@ export async function createWarmupJob(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
-  options?: { metadata?: Record<string, unknown> },
+  options?: {
+    metadata?: Record<string, unknown>;
+    timings?: Record<string, number>;
+  },
 ): Promise<void> {
   try {
+    const validationStart = performance.now();
     const parseResult = parseEffieData(req.body, ctx.skipValidation);
+    if (options?.timings) {
+      options.timings.validation = performance.now() - validationStart;
+    }
     if ("error" in parseResult) {
       res.status(400).json(parseResult);
       return;
@@ -52,11 +59,15 @@ export async function createWarmupJob(
     const jobId = randomUUID();
 
     const job: WarmupJob = { sources, metadata: options?.metadata };
+    const storeJobStart = performance.now();
     await ctx.transientStore.putJson(
       storeKeys.warmupJob(jobId),
       job,
       ctx.transientStore.ttlMs,
     );
+    if (options?.timings) {
+      options.timings.storeJob = performance.now() - storeJobStart;
+    }
 
     res.json({
       id: jobId,
@@ -168,16 +179,25 @@ export async function purgeCache(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
+  options?: { timings?: Record<string, number> },
 ): Promise<void> {
   try {
+    const validationStart = performance.now();
     const parseResult = parseEffieData(req.body, ctx.skipValidation);
+    if (options?.timings) {
+      options.timings.validation = performance.now() - validationStart;
+    }
     if ("error" in parseResult) {
       res.status(400).json(parseResult);
       return;
     }
 
     const sources = extractEffieSources(parseResult.effie);
+    const purgeStart = performance.now();
     const result = await purgeCachedSources(sources, ctx.transientStore);
+    if (options?.timings) {
+      options.timings.purge = performance.now() - purgeStart;
+    }
 
     res.json(result);
   } catch (error) {

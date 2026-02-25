@@ -34,13 +34,17 @@ export async function createRenderJob(
   req: express.Request,
   res: express.Response,
   ctx: ServerContext,
-  options?: { metadata?: Record<string, unknown> },
+  options?: {
+    metadata?: Record<string, unknown>;
+    timings?: Record<string, number>;
+  },
 ): Promise<void> {
   try {
     // Parse request body
     const body = req.body as Record<string, unknown>;
 
     // URL handling (wrapped format only): fetch remote EffieData
+    const effieFetchStart = performance.now();
     if (typeof body.effie === "string") {
       let response;
       try {
@@ -64,10 +68,17 @@ export async function createRenderJob(
         return;
       }
       body.effie = await response.json();
+      if (options?.timings) {
+        options.timings.effieFetch = performance.now() - effieFetchStart;
+      }
     }
 
     // Parse & validate effie data (supports both wrapped and raw formats)
+    const validationStart = performance.now();
     const parseResult = parseEffieData(body, ctx.skipValidation);
+    if (options?.timings) {
+      options.timings.validation = performance.now() - validationStart;
+    }
     if ("error" in parseResult) {
       sendError(
         res,
@@ -107,6 +118,7 @@ export async function createRenderJob(
       metadata: options?.metadata,
     };
 
+    const storeJobStart = performance.now();
     await ctx.transientStore.putJson(
       storeKeys.renderJob(jobId),
       job,
@@ -119,6 +131,9 @@ export async function createRenderJob(
       { sources, metadata: options?.metadata },
       ctx.transientStore.ttlMs,
     );
+    if (options?.timings) {
+      options.timings.storeJob = performance.now() - storeJobStart;
+    }
 
     res.json({
       id: jobId,

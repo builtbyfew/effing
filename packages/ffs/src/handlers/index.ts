@@ -4,6 +4,7 @@ export type {
   BackendConfig,
   WarmupBackendResolver,
   RenderBackendResolver,
+  OnRenderComplete,
   WarmupJob,
   RenderJob,
   ResolvedRenderJob,

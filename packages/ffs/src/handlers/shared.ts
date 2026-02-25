@@ -15,6 +15,12 @@ import { effieDataSchema } from "@effing/effie";
 import { ErrorCode } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
 
+export type OnRenderComplete = (result: {
+  effie: EffieData<EffieSources>;
+  metadata?: Record<string, unknown>;
+  timings: Record<string, number>;
+}) => void | Promise<void>;
+
 export type UploadOptions = {
   videoUrl: string;
   coverUrl?: string;
@@ -79,6 +85,7 @@ export type ServerContext = {
   warmupConcurrency: number;
   warmupBackendResolver?: WarmupBackendResolver;
   renderBackendResolver?: RenderBackendResolver;
+  onRenderComplete?: OnRenderComplete;
 };
 
 export type ParseEffieResult =
@@ -96,6 +103,7 @@ export async function createServerContext(options?: {
   warmupBackendResolver?: WarmupBackendResolver;
   renderBackendResolver?: RenderBackendResolver;
   httpProxy?: boolean;
+  onRenderComplete?: OnRenderComplete;
 }): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
   const enableHttpProxy = options?.httpProxy ?? true;
@@ -114,6 +122,7 @@ export async function createServerContext(options?: {
     warmupConcurrency: parseInt(process.env.FFS_WARMUP_CONCURRENCY || "4", 10),
     warmupBackendResolver: options?.warmupBackendResolver,
     renderBackendResolver: options?.renderBackendResolver,
+    onRenderComplete: options?.onRenderComplete,
   };
 }
 

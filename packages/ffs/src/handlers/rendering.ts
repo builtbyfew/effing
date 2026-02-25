@@ -240,11 +240,16 @@ export async function streamRenderProgress(
     }, 25_000);
 
     try {
+      const progressStart = performance.now();
+      const timings: Record<string, number> = {};
+
       // Phase -1: Resolve deferred Effie URL if needed
       // Backward compat: jobs without `kind` (from before deploy) are treated as resolved
       let job: ResolvedRenderJob;
       if (storedJob.kind === "deferred") {
+        const effieFetchStart = performance.now();
         job = await resolveEffieUrl(storedJob, sendEvent, ctx);
+        timings.effieFetch = performance.now() - effieFetchStart;
 
         // Store warmup sub-job now that we have sources
         await ctx.transientStore.putJson(
@@ -278,6 +283,7 @@ export async function streamRenderProgress(
       }
 
       // Phase 1: Warmup
+      const warmupStart = performance.now();
       if (warmupBackend) {
         // Proxy warmup from remote backend
         await proxyRemoteSSE(
@@ -298,6 +304,7 @@ export async function streamRenderProgress(
         await warmupSources(job.sources, warmupSender, ctx);
         warmupSender("complete", { status: "ready" });
       }
+      timings.warmup = performance.now() - warmupStart;
 
       // Phase 2: Render
       keepalivePhase = "render";
@@ -329,30 +336,46 @@ export async function streamRenderProgress(
           }
           const videoBuffer = Buffer.from(await response.arrayBuffer());
 
-          const timings = await uploadRenderedVideo(
+          const phaseTimings = await uploadRenderedVideo(
             videoBuffer,
             job.effie,
             job.upload,
             sendEvent,
           );
+          Object.assign(timings, phaseTimings);
           sendEvent(
             "render:complete",
-            timings as RenderEventMap["render:complete"],
+            phaseTimings as RenderEventMap["render:complete"],
           );
         } else {
           // Upload + no backend: render and upload locally (no VideoJob stored)
-          const timings = await renderAndUploadInternal(
+          const phaseTimings = await renderAndUploadInternal(
             job.effie,
             job.scale,
             job.upload,
             sendEvent,
             ctx,
           );
+          Object.assign(timings, phaseTimings);
           sendEvent(
             "render:complete",
-            timings as RenderEventMap["render:complete"],
+            phaseTimings as RenderEventMap["render:complete"],
           );
         }
+
+        timings.total = performance.now() - progressStart;
+        if (ctx.onRenderComplete) {
+          try {
+            await ctx.onRenderComplete({
+              effie: job.effie,
+              metadata: job.metadata,
+              timings,
+            });
+          } catch (err) {
+            console.error("onRenderComplete hook error:", err);
+          }
+        }
+
         sendEvent("complete", { status: "done" });
       } else {
         // Non-upload mode: store VideoJob for on-demand fetch via /render/:id/video
@@ -367,6 +390,20 @@ export async function streamRenderProgress(
           ctx.transientStore.ttlMs,
         );
         const videoUrl = `${ctx.baseUrl}/render/${jobId}/video`;
+
+        timings.total = performance.now() - progressStart;
+        if (ctx.onRenderComplete) {
+          try {
+            await ctx.onRenderComplete({
+              effie: job.effie,
+              metadata: job.metadata,
+              timings,
+            });
+          } catch (err) {
+            console.error("onRenderComplete hook error:", err);
+          }
+        }
+
         sendEvent("ready", { videoUrl });
       }
     } catch (error) {

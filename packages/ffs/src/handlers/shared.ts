@@ -40,7 +40,8 @@ export type WarmupJob = {
   metadata?: Record<string, unknown>;
 };
 
-export type RenderJob = {
+export type ResolvedRenderJob = {
+  kind: "resolved";
   effie: EffieData<EffieSources>;
   sources: EffieSourceWithType[];
   scale: number;
@@ -50,6 +51,19 @@ export type RenderJob = {
   createdAt: number;
   metadata?: Record<string, unknown>;
 };
+
+export type DeferredRenderJob = {
+  kind: "deferred";
+  effieUrl: string;
+  scale: number;
+  upload?: UploadOptions;
+  purge?: boolean;
+  warmupJobId: string;
+  createdAt: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type RenderJob = ResolvedRenderJob | DeferredRenderJob;
 
 export type VideoJob = {
   effie: EffieData<EffieSources>;

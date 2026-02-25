@@ -6,6 +6,8 @@ export type {
   RenderBackendResolver,
   WarmupJob,
   RenderJob,
+  ResolvedRenderJob,
+  DeferredRenderJob,
   VideoJob,
   UploadOptions,
   EventSender,

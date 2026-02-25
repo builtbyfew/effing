@@ -151,6 +151,8 @@ type RenderOptions = {
 
 Alternatively, raw `EffieData` can be sent directly as the request body. When using the raw format, `scale` and `purge` can be passed as query parameters: `?scale=0.5&purge=true`.
 
+When `effie` is a URL, the fetch is deferred to the progress stream (`GET /render/:id/progress`). The POST returns immediately, and the `effie:fetching`/`effie:fetched` SSE events report fetch progress. Any fetch or validation errors are reported as SSE `error` events with `phase: "effie"`.
+
 **Response:**
 
 ```json
@@ -168,6 +170,8 @@ Streams warmup and render progress via SSE. All warmup events are prefixed with 
 
 | Event                | Phase  | Data                                                                                                 |
 | -------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `effie:fetching`     | effie  | `{ url }` — sent when fetching a deferred Effie URL                                                  |
+| `effie:fetched`      | effie  | `{ url }` — sent after the Effie URL has been fetched and validated                                  |
 | `purge:complete`     | purge  | `{ purged: number, total: number }`                                                                  |
 | `warmup:start`       | warmup | `{ total: number }`                                                                                  |
 | `warmup:progress`    | warmup | `{ url, status: "skipped", reason: "http-video-audio-passthrough", cached, failed, skipped, total }` |
@@ -179,12 +183,11 @@ Streams warmup and render progress via SSE. All warmup events are prefixed with 
 | `warmup:keepalive`   | warmup | `{ cached, failed, skipped, total }` — sent every ~25 s during source fetching                       |
 | `warmup:summary`     | warmup | `{ cached, failed, skipped, total }`                                                                 |
 | `warmup:complete`    | warmup | `{ status: "ready" }`                                                                                |
-| `keepalive`          | both   | `{ phase: "warmup" \| "render" }` — sent every ~25 s                                                 |
-|                      |        | `{ status: "uploading" }` — sent once before video upload begins                                     |
+| `keepalive`          | all    | `{ phase: "effie" \| "warmup" \| "render" \| "upload" }` — sent every ~25 s                          |
 | `render:complete`    | render | `{ renderTime?, fetchCoverTime?, uploadCoverTime?, uploadTime }` (upload mode; all values in ms)     |
 | `ready`              | —      | `{ videoUrl }` (non-upload mode)                                                                     |
 | `complete`           | —      | `{ status: "done" }` (upload mode)                                                                   |
-| `error`              | any    | `{ phase: "warmup" \| "render", message }`                                                           |
+| `error`              | any    | `{ phase: "effie" \| "warmup" \| "render" \| "upload", message }`                                    |
 
 **Without upload** — The `ready` event provides a `videoUrl` pointing to `/render/:id/video`. The actual rendering happens when you fetch that URL:
 
@@ -301,7 +304,6 @@ type ApiError = {
 | `INVALID_EFFIE`  | 400    | Effie data validation or structural error |
 | `NOT_FOUND`      | 404    | Job or video not found                    |
 | `BACKEND_FAILED` | varies | Remote render backend returned an error   |
-| `FETCH_FAILED`   | 422    | Failed to fetch remote Effie data URL     |
 | `INTERNAL_ERROR` | 500    | Catch-all for unhandled exceptions        |
 
 For `INVALID_EFFIE` errors caused by schema validation, the `issues` array contains the specific validation failures:

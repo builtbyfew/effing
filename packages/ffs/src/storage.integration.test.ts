@@ -291,7 +291,7 @@ describe("createTransientStore", () => {
     expect(storage).toBeInstanceOf(S3TransientStore);
     expect((storage as unknown as { bucket: string }).bucket).toBe("my-bucket");
     expect((storage as unknown as { prefix: string }).prefix).toBe(
-      "transient/v1/",
+      "transient/v1",
     );
     expect(storage.ttlMs).toBe(1_800_000);
     storage.close();

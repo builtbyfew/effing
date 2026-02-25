@@ -11,6 +11,8 @@ import type { RenderEventMap, RenderEventSender, WarmupEventMap } from "../sse";
 import type {
   ServerContext,
   RenderJob,
+  ResolvedRenderJob,
+  DeferredRenderJob,
   VideoJob,
   UploadOptions,
 } from "./shared";
@@ -43,34 +45,48 @@ export async function createRenderJob(
     // Parse request body
     const body = req.body as Record<string, unknown>;
 
-    // URL handling (wrapped format only): fetch remote EffieData
-    const effieFetchStart = performance.now();
+    const scale =
+      (body.scale as number | undefined) ??
+      (req.query?.scale ? parseFloat(req.query.scale as string) : undefined) ??
+      1;
+    const purge =
+      (body.purge as boolean | undefined) ??
+      (req.query?.purge === "true" ? true : undefined) ??
+      false;
+    const upload = body.upload as UploadOptions | undefined;
+
+    // Create IDs
+    const jobId = randomUUID();
+    const warmupJobId = randomUUID();
+
+    // URL handling: defer fetch to progress stream
     if (typeof body.effie === "string") {
-      let response;
-      try {
-        response = await ffsFetch(body.effie);
-      } catch (error) {
-        sendError(
-          res,
-          422,
-          ErrorCode.FETCH_FAILED,
-          `Failed to fetch Effie data: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        return;
-      }
-      if (!response.ok) {
-        sendError(
-          res,
-          422,
-          ErrorCode.FETCH_FAILED,
-          `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
-        );
-        return;
-      }
-      body.effie = await response.json();
+      const job: DeferredRenderJob = {
+        kind: "deferred",
+        effieUrl: body.effie,
+        scale,
+        upload,
+        purge,
+        warmupJobId,
+        createdAt: Date.now(),
+        metadata: options?.metadata,
+      };
+
+      const storeJobStart = performance.now();
+      await ctx.transientStore.putJson(
+        storeKeys.renderJob(jobId),
+        job,
+        ctx.transientStore.ttlMs,
+      );
       if (options?.timings) {
-        options.timings.effieFetch = performance.now() - effieFetchStart;
+        options.timings.storeJob = performance.now() - storeJobStart;
       }
+
+      res.json({
+        id: jobId,
+        progressUrl: `${ctx.baseUrl}/render/${jobId}/progress`,
+      });
+      return;
     }
 
     // Parse & validate effie data (supports both wrapped and raw formats)
@@ -92,22 +108,10 @@ export async function createRenderJob(
     const effie = parseResult.effie;
 
     const sources = extractEffieSourcesWithTypes(effie);
-    const scale =
-      (body.scale as number | undefined) ??
-      (req.query?.scale ? parseFloat(req.query.scale as string) : undefined) ??
-      1;
-    const purge =
-      (body.purge as boolean | undefined) ??
-      (req.query?.purge === "true" ? true : undefined) ??
-      false;
-    const upload = body.upload as UploadOptions | undefined;
-
-    // Create IDs
-    const jobId = randomUUID();
-    const warmupJobId = randomUUID();
 
     // Store the render job
-    const job: RenderJob = {
+    const job: ResolvedRenderJob = {
+      kind: "resolved",
       effie,
       sources,
       scale,
@@ -151,6 +155,56 @@ export async function createRenderJob(
 }
 
 /**
+ * Resolve a deferred Effie URL: fetch, parse, validate, extract sources.
+ * Emits effie:fetching/effie:fetched SSE events. Throws on failure.
+ */
+async function resolveEffieUrl(
+  deferred: DeferredRenderJob,
+  sendEvent: ReturnType<typeof createEventSender<RenderEventMap>>,
+  ctx: ServerContext,
+): Promise<ResolvedRenderJob> {
+  const url = deferred.effieUrl;
+  sendEvent("effie:fetching", { url });
+
+  let response;
+  try {
+    response = await ffsFetch(url);
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch Effie data: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const body = { effie: await response.json() };
+  const parseResult = parseEffieData(body, ctx.skipValidation);
+  if ("error" in parseResult) {
+    throw new Error(parseResult.error);
+  }
+
+  const effie = parseResult.effie;
+  const sources = extractEffieSourcesWithTypes(effie);
+
+  sendEvent("effie:fetched", { url });
+
+  return {
+    kind: "resolved",
+    effie,
+    sources,
+    scale: deferred.scale,
+    upload: deferred.upload,
+    purge: deferred.purge,
+    warmupJobId: deferred.warmupJobId,
+    createdAt: deferred.createdAt,
+    metadata: deferred.metadata,
+  };
+}
+
+/**
  * GET /render/:id/progress - Stream render progress via SSE
  * Orchestrates warmup (local or remote) followed by render (local or remote)
  */
@@ -164,9 +218,9 @@ export async function streamRenderProgress(
 
     const jobId = req.params.id;
     const jobStoreKey = storeKeys.renderJob(jobId);
-    const job = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
+    const storedJob = await ctx.transientStore.getJson<RenderJob>(jobStoreKey);
 
-    if (!job) {
+    if (!storedJob) {
       sendError(res, 404, ErrorCode.NOT_FOUND, "Job not found");
       return;
     }
@@ -174,25 +228,45 @@ export async function streamRenderProgress(
     // Only allow the job to run once
     ctx.transientStore.delete(jobStoreKey);
 
-    // Resolve backends up front
-    const warmupBackend = ctx.warmupBackendResolver
-      ? ctx.warmupBackendResolver(job.sources, job.metadata)
-      : null;
-    const renderBackend = ctx.renderBackendResolver
-      ? ctx.renderBackendResolver(job.effie, job.metadata)
-      : null;
-
     setupSSEResponse(res);
     const sendEvent = createEventSender<RenderEventMap>(res);
     const rawSendEvent = createEventSender(res);
 
     // Keepalive interval for long-running operations
-    let keepalivePhase: "warmup" | "render" = "warmup";
+    let keepalivePhase: "effie" | "warmup" | "render" | "upload" =
+      storedJob.kind === "deferred" ? "effie" : "warmup";
     const keepalive = setInterval(() => {
       sendEvent("keepalive", { phase: keepalivePhase });
     }, 25_000);
 
     try {
+      // Phase -1: Resolve deferred Effie URL if needed
+      // Backward compat: jobs without `kind` (from before deploy) are treated as resolved
+      let job: ResolvedRenderJob;
+      if (storedJob.kind === "deferred") {
+        job = await resolveEffieUrl(storedJob, sendEvent, ctx);
+
+        // Store warmup sub-job now that we have sources
+        await ctx.transientStore.putJson(
+          storeKeys.warmupJob(job.warmupJobId),
+          { sources: job.sources, metadata: job.metadata },
+          ctx.transientStore.ttlMs,
+        );
+
+        keepalivePhase = "warmup";
+      } else {
+        // resolved or legacy (no kind field)
+        job = storedJob as ResolvedRenderJob;
+      }
+
+      // Resolve backends up front
+      const warmupBackend = ctx.warmupBackendResolver
+        ? ctx.warmupBackendResolver(job.sources, job.metadata)
+        : null;
+      const renderBackend = ctx.renderBackendResolver
+        ? ctx.renderBackendResolver(job.effie, job.metadata)
+        : null;
+
       // Phase 0: Purge (if requested)
       if (job.purge) {
         const sourceUrls = extractEffieSources(job.effie);
@@ -229,6 +303,7 @@ export async function streamRenderProgress(
       keepalivePhase = "render";
 
       if (job.upload) {
+        keepalivePhase = "upload";
         if (renderBackend) {
           // Upload + backend: store VideoJob for backend to render,
           // fetch binary video from backend, upload locally.
@@ -465,7 +540,7 @@ async function uploadRenderedVideo(
   }
 
   // Update keepalive status for upload phase
-  sendEvent("keepalive", { status: "uploading" });
+  sendEvent("keepalive", { phase: "upload" });
 
   // Upload rendered video
   const uploadStartTime = Date.now();

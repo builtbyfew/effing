@@ -25,7 +25,9 @@ export type WarmupEventMap = {
 
 // Render SSE events (sent by /render/:id/progress, excluding prefixed warmup events)
 export type RenderEventMap = {
-  keepalive: { phase: "warmup" | "render" } | { status: "uploading" };
+  "effie:fetching": { url: string };
+  "effie:fetched": { url: string };
+  keepalive: { phase: "effie" | "warmup" | "render" | "upload" };
   "purge:complete": { purged: number; total: number };
   "render:complete": {
     renderTime?: number;
@@ -35,7 +37,7 @@ export type RenderEventMap = {
   };
   complete: { status: "done" };
   ready: { videoUrl: string };
-  error: { phase: "warmup" | "render"; message: string };
+  error: { phase: "effie" | "warmup" | "render" | "upload"; message: string };
 };
 
 // Typed event sender — constrains event name and payload together

@@ -2,7 +2,12 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 import type { TransientStore } from "./storage";
 import { storeKeys } from "./storage";
-import type { ServerContext, VideoJob } from "./handlers/shared";
+import type {
+  ServerContext,
+  VideoJob,
+  ResolvedRenderJob,
+  DeferredRenderJob,
+} from "./handlers/shared";
 
 vi.mock("./render", () => ({
   EffieRenderer: vi.fn(),
@@ -10,6 +15,11 @@ vi.mock("./render", () => ({
 
 vi.mock("./fetch", () => ({
   ffsFetch: vi.fn(),
+}));
+
+vi.mock("./handlers/caching", () => ({
+  warmupSources: vi.fn(async () => {}),
+  purgeCachedSources: vi.fn(async () => ({ purged: 0, total: 0 })),
 }));
 
 function mockRequest(params: Record<string, string> = {}): Request {
@@ -265,8 +275,179 @@ describe("video job gating", () => {
     const videoJobKey = storeKeys.videoJob(responseBody.id);
     expect(storeData[videoJobKey]).toBeUndefined();
 
-    // But render job should exist
+    // But render job should exist with kind: "resolved"
     const renderJobKey = storeKeys.renderJob(responseBody.id);
     expect(storeData[renderJobKey]).toBeDefined();
+    expect((storeData[renderJobKey] as ResolvedRenderJob).kind).toBe(
+      "resolved",
+    );
+  });
+
+  test("URL effie stores DeferredRenderJob without calling ffsFetch", async () => {
+    const { ffsFetch } = await import("./fetch");
+    const { createRenderJob } = await import("./handlers/rendering");
+
+    const storeData: Record<string, unknown> = {};
+    const ctx = mockContext(storeData);
+
+    const req = {
+      body: { effie: "https://example.com/effie.json", scale: 2 },
+    } as unknown as Request;
+    const res = mockResponse();
+
+    await createRenderJob(req, res, ctx);
+
+    expect(res.statusCode).toBe(200);
+    const responseBody = res.body as { id: string; progressUrl: string };
+    expect(responseBody.id).toBeDefined();
+
+    // ffsFetch should NOT have been called
+    expect(ffsFetch).not.toHaveBeenCalled();
+
+    // Render job should be deferred
+    const renderJobKey = storeKeys.renderJob(responseBody.id);
+    const job = storeData[renderJobKey] as DeferredRenderJob;
+    expect(job.kind).toBe("deferred");
+    expect(job.effieUrl).toBe("https://example.com/effie.json");
+    expect(job.scale).toBe(2);
+
+    // No warmup job should exist (deferred)
+    const warmupJobKey = storeKeys.warmupJob(job.warmupJobId);
+    expect(storeData[warmupJobKey]).toBeUndefined();
+  });
+});
+
+describe("streamRenderProgress with deferred jobs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  function parseSSEEvents(res: ReturnType<typeof mockResponse>) {
+    const events: Array<{ event: string; data: unknown }> = [];
+    const writeMock = res.write as unknown as ReturnType<typeof vi.fn>;
+    for (const call of writeMock.mock.calls) {
+      const text = call[0] as string;
+      const eventMatch = text.match(/^event: (.+)$/m);
+      const dataMatch = text.match(/^data: (.+)$/m);
+      if (eventMatch && dataMatch) {
+        events.push({
+          event: eventMatch[1],
+          data: JSON.parse(dataMatch[1]),
+        });
+      }
+    }
+    return events;
+  }
+
+  test("resolves deferred job, emits effie:fetching/effie:fetched", async () => {
+    const { ffsFetch } = await import("./fetch");
+
+    const effieData = {
+      width: 1080,
+      height: 1080,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color" as const, color: "#000000" },
+      segments: [
+        {
+          layers: [
+            {
+              type: "image" as const,
+              source: "#bg",
+              x: 0,
+              y: 0,
+              width: 1080,
+              height: 1080,
+              startFrame: 0,
+              endFrame: 30,
+            },
+          ],
+        },
+      ],
+      sources: { bg: "https://example.com/bg.png" },
+    };
+
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(effieData),
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const jobId = "deferred-job-id";
+    const warmupJobId = "deferred-warmup-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.renderJob(jobId)]: {
+        kind: "deferred",
+        effieUrl: "https://example.com/effie.json",
+        scale: 1,
+        warmupJobId,
+        createdAt: Date.now(),
+      } satisfies DeferredRenderJob,
+    };
+
+    const { streamRenderProgress } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+
+    // Should have emitted effie:fetching and effie:fetched
+    expect(events.find((e) => e.event === "effie:fetching")).toEqual({
+      event: "effie:fetching",
+      data: { url: "https://example.com/effie.json" },
+    });
+    expect(events.find((e) => e.event === "effie:fetched")).toEqual({
+      event: "effie:fetched",
+      data: { url: "https://example.com/effie.json" },
+    });
+
+    // Should have stored a warmup job after resolving
+    const warmupJobKey = storeKeys.warmupJob(warmupJobId);
+    expect(ctx.transientStore.putJson).toHaveBeenCalledWith(
+      warmupJobKey,
+      expect.objectContaining({ sources: expect.any(Array) }),
+      ctx.transientStore.ttlMs,
+    );
+
+    // Should have ended with ready (non-upload mode)
+    expect(events.find((e) => e.event === "ready")).toBeDefined();
+  });
+
+  test("deferred fetch failure emits SSE error with phase effie", async () => {
+    const { ffsFetch } = await import("./fetch");
+
+    vi.mocked(ffsFetch).mockRejectedValue(new Error("Network error"));
+
+    const jobId = "deferred-fail-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.renderJob(jobId)]: {
+        kind: "deferred",
+        effieUrl: "https://example.com/bad.json",
+        scale: 1,
+        warmupJobId: "unused-warmup-id",
+        createdAt: Date.now(),
+      } satisfies DeferredRenderJob,
+    };
+
+    const { streamRenderProgress } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+
+    const errorEvent = events.find((e) => e.event === "error");
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent!.data).toEqual({
+      phase: "effie",
+      message: expect.stringContaining("Failed to fetch Effie data"),
+    });
   });
 });

@@ -1,5 +1,15 @@
 # @effing/ffs
 
+## 0.17.0
+
+### Minor Changes
+
+- 686ddfb: feat(ffs): add `onRenderComplete` callback hook with per-phase timings
+
+### Patch Changes
+
+- @effing/effie@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

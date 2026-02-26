@@ -18,7 +18,7 @@ import type { ErrorCode as ErrorCodeType } from "./errors";
 export type OnRenderComplete = (result: {
   effie: EffieData<EffieSources>;
   metadata?: Record<string, unknown>;
-  timings: Record<string, number>;
+  wallClockTime: number;
 }) => void | Promise<void>;
 
 export type UploadOptions = {

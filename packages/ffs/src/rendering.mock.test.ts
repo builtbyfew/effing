@@ -59,7 +59,9 @@ function mockResponse(): Response & {
     }),
     flushHeaders: vi.fn(),
     pipe: vi.fn(),
-    on: vi.fn(),
+    on: vi.fn((event: string, cb: () => void) => {
+      if (event === "finish") process.nextTick(cb);
+    }),
     destroyed: false,
   };
   return res as unknown as Response & {
@@ -165,6 +167,169 @@ describe("streamRenderVideo", () => {
     expect(ctx.transientStore.delete).toHaveBeenCalledWith(
       storeKeys.videoJob(jobId),
     );
+  });
+
+  test("local direct-stream fires onRenderComplete", async () => {
+    const { Readable } = await import("stream");
+
+    const videoJob: VideoJob = {
+      effie: {
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "#000000" },
+        segments: [],
+        sources: {},
+      },
+      scale: 1,
+    };
+
+    const jobId = "local-render-complete-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.videoJob(jobId)]: videoJob,
+    };
+
+    const mockVideoStream = new Readable({ read() {} });
+    mockVideoStream.pipe = vi.fn();
+
+    const mockRenderer = {
+      render: vi.fn().mockResolvedValue(mockVideoStream),
+      close: vi.fn(),
+    };
+
+    const { EffieRenderer } = await import("./render");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const { streamRenderVideo } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.onRenderComplete = vi.fn();
+
+    await streamRenderVideo(req, res, ctx);
+
+    expect(ctx.onRenderComplete).toHaveBeenCalledOnce();
+    expect(ctx.onRenderComplete).toHaveBeenCalledWith({
+      effie: videoJob.effie,
+      metadata: undefined,
+      wallClockTime: expect.any(Number),
+    });
+    const arg = vi.mocked(ctx.onRenderComplete).mock.calls[0][0];
+    expect(arg.wallClockTime).toBeGreaterThan(0);
+  });
+
+  test("backend proxy fires onRenderComplete", async () => {
+    const videoJob: VideoJob = {
+      effie: {
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "#000000" },
+        segments: [],
+        sources: {},
+      },
+      scale: 1,
+    };
+
+    const jobId = "backend-render-complete-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.videoJob(jobId)]: videoJob,
+    };
+
+    const { ffsFetch } = await import("./fetch");
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        "content-type": "video/mp4",
+        "content-length": "1234",
+      }),
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+          releaseLock: vi.fn(),
+          cancel: vi.fn(),
+        }),
+      },
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const { streamRenderVideo } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.renderBackendResolver = () => ({
+      baseUrl: "http://backend:3000",
+    });
+    ctx.onRenderComplete = vi.fn();
+
+    await streamRenderVideo(req, res, ctx);
+
+    expect(ctx.onRenderComplete).toHaveBeenCalledOnce();
+    expect(ctx.onRenderComplete).toHaveBeenCalledWith({
+      effie: videoJob.effie,
+      metadata: undefined,
+      wallClockTime: expect.any(Number),
+    });
+    const arg = vi.mocked(ctx.onRenderComplete).mock.calls[0][0];
+    expect(arg.wallClockTime).toBeGreaterThan(0);
+  });
+
+  test("onRenderComplete error is caught and does not crash the handler", async () => {
+    const { Readable } = await import("stream");
+
+    const videoJob: VideoJob = {
+      effie: {
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "#000000" },
+        segments: [],
+        sources: {},
+      },
+      scale: 1,
+    };
+
+    const jobId = "hook-error-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.videoJob(jobId)]: videoJob,
+    };
+
+    const mockVideoStream = new Readable({ read() {} });
+    mockVideoStream.pipe = vi.fn();
+
+    const mockRenderer = {
+      render: vi.fn().mockResolvedValue(mockVideoStream),
+      close: vi.fn(),
+    };
+
+    const { EffieRenderer } = await import("./render");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const { streamRenderVideo } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.onRenderComplete = vi.fn().mockRejectedValue(new Error("hook boom"));
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(streamRenderVideo(req, res, ctx)).resolves.toBeUndefined();
+
+    expect(res.headers["Content-Type"]).toBe("video/mp4");
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "onRenderComplete hook error:",
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
   });
 
   test("does not delete video job when proxying to render backend", async () => {
@@ -415,6 +580,65 @@ describe("streamRenderProgress with deferred jobs", () => {
 
     // Should have ended with ready (non-upload mode)
     expect(events.find((e) => e.event === "ready")).toBeDefined();
+  });
+
+  test("non-upload progress path does not fire onRenderComplete", async () => {
+    const { ffsFetch } = await import("./fetch");
+
+    const effieData = {
+      width: 1080,
+      height: 1080,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color" as const, color: "#000000" },
+      segments: [
+        {
+          layers: [
+            {
+              type: "image" as const,
+              source: "#bg",
+              x: 0,
+              y: 0,
+              width: 1080,
+              height: 1080,
+              startFrame: 0,
+              endFrame: 30,
+            },
+          ],
+        },
+      ],
+      sources: { bg: "https://example.com/bg.png" },
+    };
+
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(effieData),
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const jobId = "no-render-complete-id";
+    const warmupJobId = "no-render-warmup-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.renderJob(jobId)]: {
+        kind: "deferred",
+        effieUrl: "https://example.com/effie.json",
+        scale: 1,
+        warmupJobId,
+        createdAt: Date.now(),
+      } satisfies DeferredRenderJob,
+    };
+
+    const { streamRenderProgress } = await import("./handlers/rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.onRenderComplete = vi.fn();
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+    expect(events.find((e) => e.event === "ready")).toBeDefined();
+    expect(ctx.onRenderComplete).not.toHaveBeenCalled();
   });
 
   test("deferred fetch failure emits SSE error with phase effie", async () => {

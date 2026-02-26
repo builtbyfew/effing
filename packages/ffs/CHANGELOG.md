@@ -1,5 +1,12 @@
 # @effing/ffs
 
+## 0.17.1
+
+### Patch Changes
+
+- 8cdb6be: Simplify `onRenderComplete` callback signature from per-phase timings to a single `wallClockTime: number`, fix the hook to fire correctly in all render paths (local direct-stream, backend proxy, and upload mode), and add tests covering every code path including error handling.
+  - @effing/effie@0.17.1
+
 ## 0.17.0
 
 ### Minor Changes

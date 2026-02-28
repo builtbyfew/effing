@@ -22,6 +22,17 @@ function ensureTempDir(): string {
 }
 
 export function registerFonts(fonts: FontData[]): void {
+  // Fast path: skip filesystem entirely when all fonts already registered
+  if (
+    fonts.every((f) =>
+      registeredFamilies.has(
+        `${f.name}-${f.weight ?? 400}-${f.style ?? "normal"}`,
+      ),
+    )
+  ) {
+    return;
+  }
+
   const tempDir = ensureTempDir();
 
   for (const font of fonts) {

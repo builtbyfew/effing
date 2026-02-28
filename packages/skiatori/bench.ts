@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import React from "react";
 import { Resvg } from "@resvg/resvg-js";
 import satori from "satori";
-import { pngFromSkiatori } from "./src/index.ts";
+import { pngFromSkiatori, renderToCanvas, Canvas } from "./src/index.ts";
 
 async function pngFromSatori(
   template: Parameters<typeof satori>[0],
@@ -193,18 +193,39 @@ const cases: BenchCase[] = [
   { name: "Complex layout (800x900)", element: complexLayout(), width: 800, height: 900 },
 ];
 
+type Stats = { avg: number; median: number; min: number };
+
+function computeStats(times: number[]): Stats {
+  const avg = times.reduce((a, b) => a + b, 0) / times.length;
+  const sorted = [...times].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const min = Math.min(...times);
+  return { avg, median, min };
+}
+
 async function benchmarkCase(c: BenchCase, iterations: number) {
   const { name, element, width, height } = c;
 
   // Warmup (1 iteration each)
   await pngFromSkiatori(element, { width, height, fonts: [skiatoriFont] });
-  await pngFromSatori(element, {
-    width,
-    height,
-    fonts: [satoriFont],
-  });
+  await pngFromSatori(element, { width, height, fonts: [satoriFont] });
 
-  // Benchmark skiatori
+  // Pre-allocate a canvas for the renderToCanvas benchmark
+  const reusableCanvas = new Canvas(width, height);
+  const reusableCtx = reusableCanvas.getContext("2d");
+  await renderToCanvas(element, reusableCtx, { width, height, fonts: [skiatoriFont] });
+
+  // Benchmark skiatori (renderToCanvas — layout + draw only, no canvas alloc / PNG encode)
+  const canvasTimes: number[] = [];
+  for (let i = 0; i < iterations; i++) {
+    reusableCtx.clearRect(0, 0, width, height);
+    const start = performance.now();
+    await renderToCanvas(element, reusableCtx, { width, height, fonts: [skiatoriFont] });
+    canvasTimes.push(performance.now() - start);
+  }
+
+  // Benchmark skiatori (full PNG pipeline)
   const skiatoriTimes: number[] = [];
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
@@ -212,36 +233,20 @@ async function benchmarkCase(c: BenchCase, iterations: number) {
     skiatoriTimes.push(performance.now() - start);
   }
 
-  // Benchmark satori
+  // Benchmark satori (full PNG pipeline)
   const satoriTimes: number[] = [];
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
-    await pngFromSatori(element, {
-      width,
-      height,
-      fonts: [satoriFont],
-    });
+    await pngFromSatori(element, { width, height, fonts: [satoriFont] });
     satoriTimes.push(performance.now() - start);
   }
 
-  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
-  const median = (arr: number[]) => {
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  };
-  const min = (arr: number[]) => Math.min(...arr);
+  const canvasStats = computeStats(canvasTimes);
+  const skiatoriStats = computeStats(skiatoriTimes);
+  const satoriStats = computeStats(satoriTimes);
+  const speedup = satoriStats.avg / skiatoriStats.avg;
 
-  const skiAvg = avg(skiatoriTimes);
-  const satAvg = avg(satoriTimes);
-  const speedup = satAvg / skiAvg;
-
-  return {
-    name,
-    skiatori: { avg: skiAvg, median: median(skiatoriTimes), min: min(skiatoriTimes) },
-    satori: { avg: satAvg, median: median(satoriTimes), min: min(satoriTimes) },
-    speedup,
-  };
+  return { name, canvas: canvasStats, skiatori: skiatoriStats, satori: satoriStats, speedup };
 }
 
 async function main() {
@@ -254,6 +259,11 @@ async function main() {
   console.log(`  Node.js: ${process.version}`);
   console.log("");
 
+  const fmtLine = (label: string, s: Stats) =>
+    `  ${label}  avg: ${s.avg.toFixed(1).padStart(7)}ms` +
+    `  median: ${s.median.toFixed(1).padStart(7)}ms` +
+    `  min: ${s.min.toFixed(1).padStart(7)}ms`;
+
   for (const c of cases) {
     const result = await benchmarkCase(c, iterations);
     const speedStr =
@@ -263,17 +273,10 @@ async function main() {
 
     console.log(`  ${result.name}`);
     console.log(`  ${"─".repeat(60)}`);
-    console.log(
-      `  skiatori  avg: ${result.skiatori.avg.toFixed(1).padStart(7)}ms` +
-        `  median: ${result.skiatori.median.toFixed(1).padStart(7)}ms` +
-        `  min: ${result.skiatori.min.toFixed(1).padStart(7)}ms`,
-    );
-    console.log(
-      `  satori   avg: ${result.satori.avg.toFixed(1).padStart(7)}ms` +
-        `  median: ${result.satori.median.toFixed(1).padStart(7)}ms` +
-        `  min: ${result.satori.min.toFixed(1).padStart(7)}ms`,
-    );
-    console.log(`  → skiatori is ${speedStr}`);
+    console.log(fmtLine("skiatori (canvas)", result.canvas));
+    console.log(fmtLine("skiatori (png)   ", result.skiatori));
+    console.log(fmtLine("satori   (png)   ", result.satori));
+    console.log(`  → skiatori png is ${speedStr} than satori png`);
     console.log("");
   }
 

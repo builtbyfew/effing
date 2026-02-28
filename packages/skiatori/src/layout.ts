@@ -1,20 +1,11 @@
-import { loadYoga, MeasureMode } from "yoga-layout/load";
-import type { Node as YogaNode, Yoga, MeasureFunction } from "yoga-layout/load";
+import Yoga, { MeasureMode } from "yoga-layout";
+import type { Node as YogaNode, MeasureFunction } from "yoga-layout";
 import type { Image } from "skia-canvas";
 
 import type { ExpandedNode, LayoutNode, Style } from "./types.ts";
 import { applyStylesToYogaNode } from "./styles.ts";
 import type { MeasureTextFn } from "./styles.ts";
 import { loadImageFromSrc } from "./image.ts";
-
-let yogaInstance: Yoga | null = null;
-
-async function getYoga(): Promise<Yoga> {
-  if (!yogaInstance) {
-    yogaInstance = await loadYoga();
-  }
-  return yogaInstance;
-}
 
 // ---------------------------------------------------------------------------
 // Collect text from children of a node
@@ -59,15 +50,13 @@ function inheritTextStyle(parentStyle: Style): Style {
 }
 
 // ---------------------------------------------------------------------------
-// Pre-load all images from the tree
+// Image collection + preloading
 // ---------------------------------------------------------------------------
 
-type ImageMap = Map<string | Buffer, Image>;
+export type ImageMap = Map<string | Buffer, Image>;
 
-async function preloadImages(nodes: ExpandedNode[]): Promise<ImageMap> {
-  const images: ImageMap = new Map();
+function collectImageSources(nodes: ExpandedNode[]): (string | Buffer)[] {
   const sources: (string | Buffer)[] = [];
-
   function walk(ns: ExpandedNode[]) {
     for (const n of ns) {
       if ("text" in n) continue;
@@ -75,9 +64,14 @@ async function preloadImages(nodes: ExpandedNode[]): Promise<ImageMap> {
       walk(n.children);
     }
   }
-
   walk(nodes);
+  return sources;
+}
 
+async function preloadImages(
+  sources: (string | Buffer)[],
+): Promise<ImageMap> {
+  const images: ImageMap = new Map();
   const loaded = await Promise.all(sources.map(loadImageFromSrc));
   for (let i = 0; i < sources.length; i++) {
     images.set(sources[i], loaded[i]);
@@ -103,16 +97,15 @@ type LayoutMeta = {
 };
 
 function buildYogaTree(
-  yoga: Yoga,
   node: ExpandedNode,
   measureTextFn: MeasureTextFn,
   images: ImageMap,
   parentStyle: Style,
 ): YogaBuildResult {
-  // Text leaf — should not happen at top level, handled by parent
+  // Text leaf
   if ("text" in node) {
     const textStyle = inheritTextStyle(parentStyle);
-    const yogaNode = yoga.Node.create();
+    const yogaNode = Yoga.Node.create();
     const text = node.text;
 
     const measure: MeasureFunction = (
@@ -138,7 +131,7 @@ function buildYogaTree(
     };
   }
 
-  const yogaNode = yoga.Node.create();
+  const yogaNode = Yoga.Node.create();
   const style = node.style;
   applyStylesToYogaNode(yogaNode, style);
 
@@ -146,7 +139,6 @@ function buildYogaTree(
   if (node.imgSrc) {
     const img = images.get(node.imgSrc);
     if (img) {
-      // If no explicit width/height, use image's intrinsic size
       if (style.width == null) yogaNode.setWidth(img.width);
       if (style.height == null) yogaNode.setHeight(img.height);
     }
@@ -186,7 +178,7 @@ function buildYogaTree(
   const childMetas: LayoutMeta[] = [];
   let childIndex = 0;
   for (const child of node.children) {
-    const result = buildYogaTree(yoga, child, measureTextFn, images, style);
+    const result = buildYogaTree(child, measureTextFn, images, style);
     yogaNode.insertChild(result.yogaNode, childIndex++);
     childMetas.push(result.layoutMeta);
   }
@@ -230,19 +222,16 @@ function extractLayout(yogaNode: YogaNode, meta: LayoutMeta): LayoutNode {
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Core layout computation (sync when no images)
 // ---------------------------------------------------------------------------
 
-export async function computeLayout(
+function runLayout(
   nodes: ExpandedNode[],
   width: number,
   height: number,
   measureTextFn: MeasureTextFn,
-): Promise<LayoutNode> {
-  const yoga = await getYoga();
-  const images = await preloadImages(nodes);
-
-  // Wrap in a root container
+  images: ImageMap,
+): LayoutNode {
   const rootExpanded: ExpandedNode = {
     tag: "div",
     style: { width, height, display: "flex", flexDirection: "column" },
@@ -251,7 +240,6 @@ export async function computeLayout(
   };
 
   const { yogaNode: rootYoga, layoutMeta } = buildYogaTree(
-    yoga,
     rootExpanded,
     measureTextFn,
     images,
@@ -265,4 +253,42 @@ export async function computeLayout(
   return layoutTree;
 }
 
-export { type ImageMap, preloadImages };
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+const emptyImageMap: ImageMap = new Map();
+
+export type ComputeLayoutResult = {
+  layout: LayoutNode;
+  images: ImageMap;
+};
+
+/**
+ * Compute layout for an element tree. Returns the layout tree and any
+ * preloaded images (passed through to the renderer).
+ *
+ * Synchronous when there are no `<img>` elements in the tree.
+ */
+export function computeLayout(
+  nodes: ExpandedNode[],
+  width: number,
+  height: number,
+  measureTextFn: MeasureTextFn,
+): ComputeLayoutResult | Promise<ComputeLayoutResult> {
+  const sources = collectImageSources(nodes);
+
+  // Fast path: no images → fully synchronous
+  if (sources.length === 0) {
+    return {
+      layout: runLayout(nodes, width, height, measureTextFn, emptyImageMap),
+      images: emptyImageMap,
+    };
+  }
+
+  // Slow path: preload images, then compute layout
+  return preloadImages(sources).then((images) => ({
+    layout: runLayout(nodes, width, height, measureTextFn, images),
+    images,
+  }));
+}

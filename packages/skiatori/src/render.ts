@@ -2,8 +2,8 @@ import { Canvas } from "skia-canvas";
 import type { CanvasRenderingContext2D, Image } from "skia-canvas";
 
 import type { LayoutNode, Style } from "./types.ts";
+import type { ImageMap } from "./layout.ts";
 import { configureFont } from "./text.ts";
-import { loadImageFromSrc } from "./image.ts";
 
 // ---------------------------------------------------------------------------
 // Border-radius helper
@@ -133,9 +133,7 @@ function drawNode(
           ? lineHeight
           : parseFloat(String(lineHeight));
       if (!Number.isNaN(lh)) {
-        // If lineHeight > 1 and looks like a multiplier, convert to px
         const lineHeightPx = lh > 0 && lh < 10 ? lh * fontSize : lh;
-        // Offset text by half the leading
         const leading = lineHeightPx - fontSize;
         if (leading > 0) {
           ctx.translate(0, leading / 2);
@@ -163,38 +161,31 @@ function drawNode(
 // Public API
 // ---------------------------------------------------------------------------
 
-export async function renderToPngBuffer(
+/**
+ * Draw a layout tree onto an existing canvas context.
+ * This is the low-level building block — the caller controls canvas
+ * creation, lifecycle, and encoding.
+ */
+export function renderToCanvas(
+  ctx: CanvasRenderingContext2D,
+  layoutTree: LayoutNode,
+  images: ImageMap,
+): void {
+  drawNode(ctx, layoutTree, images);
+}
+
+/**
+ * Render a layout tree to a PNG buffer.
+ * Creates a canvas internally and uses synchronous PNG encoding.
+ */
+export function renderToPngBuffer(
   layoutTree: LayoutNode,
   width: number,
   height: number,
-  imageSources: (string | Buffer)[],
-): Promise<Buffer> {
-  // Pre-load images
-  const images = new Map<string | Buffer, Image>();
-  const loaded = await Promise.all(imageSources.map(loadImageFromSrc));
-  for (let i = 0; i < imageSources.length; i++) {
-    images.set(imageSources[i], loaded[i]);
-  }
-
+  images: ImageMap,
+): Buffer {
   const canvas = new Canvas(width, height);
   const ctx = canvas.getContext("2d");
-
-  // Draw the layout tree
   drawNode(ctx, layoutTree, images);
-
-  return canvas.toBuffer("png");
-}
-
-// ---------------------------------------------------------------------------
-// Collect all image sources from a layout tree
-// ---------------------------------------------------------------------------
-
-export function collectImageSources(node: LayoutNode): (string | Buffer)[] {
-  const sources: (string | Buffer)[] = [];
-  function walk(n: LayoutNode) {
-    if (n.imgSrc) sources.push(n.imgSrc);
-    for (const child of n.children) walk(child);
-  }
-  walk(node);
-  return sources;
+  return canvas.toBufferSync("png");
 }

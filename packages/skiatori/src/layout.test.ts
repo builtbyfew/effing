@@ -95,7 +95,7 @@ describe("computeLayout", () => {
     const nodes = expandToTree(
       React.createElement("div", { style: { width: 100, height: 50 } }),
     );
-    const layout = await computeLayout(nodes, 400, 300, stubMeasure);
+    const { layout } = await computeLayout(nodes, 400, 300, stubMeasure);
 
     expect(layout.width).toBe(400);
     expect(layout.height).toBe(300);
@@ -108,7 +108,7 @@ describe("computeLayout", () => {
     const nodes = expandToTree(
       React.createElement("div", { style: { width: 200 } }, "Hello"),
     );
-    const layout = await computeLayout(nodes, 400, 300, stubMeasure);
+    const { layout } = await computeLayout(nodes, 400, 300, stubMeasure);
 
     const child = layout.children[0];
     expect(child.width).toBe(200);
@@ -132,7 +132,7 @@ describe("computeLayout", () => {
         React.createElement("div", { style: { width: 100, height: 100 } }),
       ),
     );
-    const layout = await computeLayout(nodes, 400, 300, stubMeasure);
+    const { layout } = await computeLayout(nodes, 400, 300, stubMeasure);
     const container = layout.children[0];
 
     expect(container.children).toHaveLength(2);
@@ -150,7 +150,7 @@ describe("computeLayout", () => {
         React.createElement("div", { style: { height: 50 } }),
       ),
     );
-    const layout = await computeLayout(nodes, 400, 300, stubMeasure);
+    const { layout } = await computeLayout(nodes, 400, 300, stubMeasure);
     const container = layout.children[0];
     const child = container.children[0];
 
@@ -175,7 +175,7 @@ describe("computeLayout", () => {
         }),
       ),
     );
-    const layout = await computeLayout(nodes, 400, 400, stubMeasure);
+    const { layout } = await computeLayout(nodes, 400, 400, stubMeasure);
     const child = layout.children[0].children[0];
 
     expect(child.top).toBe(10);

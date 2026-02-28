@@ -1,0 +1,51 @@
+{
+  "name": "@effing/skiatori",
+  "version": "0.0.1",
+  "description": "Render JSX to PNG using skia-canvas with yoga-layout flexbox",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yoga-layout": "^3.2.1"
+  },
+  "peerDependencies": {
+    "skia-canvas": "^2.0.0 || ^3.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "react": "^19.2.3",
+    "skia-canvas": "^2.0.2",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "skia",
+    "canvas",
+    "png",
+    "jsx",
+    "layout",
+    "yoga"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

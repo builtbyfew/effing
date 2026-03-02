@@ -3,7 +3,7 @@
  *
  * Simulates Annie-style frame rendering (60 frames per test) comparing:
  *   1. skiatori (png)        — pngFromSkiatori per frame
- *   2. skiatori (canvas)     — renderToCanvas + batch toBufferSync
+ *   2. skiatori (pipeline)   — renderToCanvas + async toBuffer (pipelined)
  *   3. satori  (direct)      — pngFromSatori per frame (main thread)
  *   4. satori  (pool)        — createSatoriPool parallel rendering
  *
@@ -367,22 +367,29 @@ async function benchSkiatoriPng(
   };
 }
 
-async function benchSkiatoriCanvas(
+async function benchSkiatoriPipeline(
   label: string,
   makeFrame: FrameFactory,
   fonts: FontData[],
   frameCount: number,
 ): Promise<BenchResult> {
-  const canvas = new Canvas(W, H);
-  const ctx = canvas.getContext("2d");
+  // Pipeline: render frame N on main thread while frame N-1 encodes on a
+  // native thread.  Each frame gets its own canvas because we can't draw
+  // on a canvas that is still being encoded.
+  const encodePromises: Promise<Buffer>[] = [];
 
   const start = performance.now();
   for (let i = 0; i < frameCount; i++) {
     const p = i / (frameCount - 1);
-    ctx.clearRect(0, 0, W, H);
+    const canvas = new Canvas(W, H);
+    const ctx = canvas.getContext("2d");
     await renderToCanvas(makeFrame(p), ctx, { width: W, height: H, fonts });
-    canvas.toBufferSync("png");
+    // kick off async encode — runs on native thread, does not block the
+    // main thread so we can immediately start rendering the next frame
+    encodePromises.push(canvas.toBuffer("png"));
   }
+  // wait for any remaining encodes to finish
+  await Promise.all(encodePromises);
   const elapsed = performance.now() - start;
   return {
     name: label,
@@ -487,7 +494,7 @@ async function main() {
   const allResults: {
     test: string;
     skiatoriPng: BenchResult;
-    skiatoriCanvas: BenchResult;
+    skiatoriPipeline: BenchResult;
     satoriDirect: BenchResult;
   }[] = [];
 
@@ -501,8 +508,8 @@ async function main() {
       t.skiatoriFonts,
       FRAME_COUNT,
     );
-    const skiatoriCanvas = await benchSkiatoriCanvas(
-      "skiatori (canvas+encode)",
+    const skiatoriPipeline = await benchSkiatoriPipeline(
+      "skiatori (pipeline)",
       t.makeFrame,
       t.skiatoriFonts,
       FRAME_COUNT,
@@ -518,26 +525,26 @@ async function main() {
       `  skiatori (png)           total: ${fmtMs(skiatoriPng.elapsed)}  avg: ${fmtMs(skiatoriPng.avgMs)}  ${fmtFps(skiatoriPng.fps)}`,
     );
     console.log(
-      `  skiatori (canvas+encode) total: ${fmtMs(skiatoriCanvas.elapsed)}  avg: ${fmtMs(skiatoriCanvas.avgMs)}  ${fmtFps(skiatoriCanvas.fps)}`,
+      `  skiatori (pipeline) total: ${fmtMs(skiatoriPipeline.elapsed)}  avg: ${fmtMs(skiatoriPipeline.avgMs)}  ${fmtFps(skiatoriPipeline.fps)}`,
     );
     console.log(
       `  satori   (direct)        total: ${fmtMs(satoriDirect.elapsed)}  avg: ${fmtMs(satoriDirect.avgMs)}  ${fmtFps(satoriDirect.fps)}`,
     );
 
-    const speedup = satoriDirect.elapsed / skiatoriCanvas.elapsed;
+    const speedup = satoriDirect.elapsed / skiatoriPipeline.elapsed;
     const speedStr =
       speedup >= 1
         ? `${speedup.toFixed(2)}x faster`
         : `${(1 / speedup).toFixed(2)}x slower`;
-    console.log(`  → skiatori (canvas+encode) is ${speedStr} than satori`);
+    console.log(`  → skiatori (pipeline) is ${speedStr} than satori`);
     console.log("");
 
-    allResults.push({ test: t.name, skiatoriPng, skiatoriCanvas, satoriDirect });
+    allResults.push({ test: t.name, skiatoriPng, skiatoriPipeline, satoriDirect });
   }
 
   // Summary table
   console.log("=".repeat(76));
-  console.log("  Summary (canvas+encode vs satori direct)");
+  console.log("  Summary (skiatori pipeline vs satori direct)");
   console.log("=".repeat(76));
   console.log(
     "  " +
@@ -549,14 +556,14 @@ async function main() {
   );
   console.log("  " + "─".repeat(70));
   for (const r of allResults) {
-    const speedup = r.satoriDirect.elapsed / r.skiatoriCanvas.elapsed;
+    const speedup = r.satoriDirect.elapsed / r.skiatoriPipeline.elapsed;
     console.log(
       "  " +
         r.test.padEnd(30) +
-        fmtMs(r.skiatoriCanvas.elapsed).padStart(10) +
+        fmtMs(r.skiatoriPipeline.elapsed).padStart(10) +
         fmtMs(r.satoriDirect.elapsed).padStart(10) +
         `${speedup.toFixed(2)}x`.padStart(10) +
-        fmtFps(r.skiatoriCanvas.fps).padStart(10),
+        fmtFps(r.skiatoriPipeline.fps).padStart(10),
     );
   }
   console.log("");

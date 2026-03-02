@@ -21,14 +21,14 @@
     "yoga-layout": "^3.2.1"
   },
   "peerDependencies": {
-    "skia-canvas": "^2.0.0 || ^3.0.0"
+    "skia-canvas": "^3.0.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@types/react": "^19.2.7",
     "react": "^19.2.3",
     "satori": "^0.19.2",
-    "skia-canvas": "^2.0.2",
+    "skia-canvas": "^3.0.8",
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

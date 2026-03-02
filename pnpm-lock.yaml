@@ -348,9 +348,6 @@ importers:
 
   packages/skiatori:
     dependencies:
-      skia-canvas:
-        specifier: ^3.0.8
-        version: 3.0.8
       yoga-layout:
         specifier: ^3.2.1
         version: 3.2.1
@@ -367,6 +364,9 @@ importers:
       satori:
         specifier: ^0.19.2
         version: 0.19.2
+      skia-canvas:
+        specifier: ^3.0.8
+        version: 3.0.8
       tsup:
         specifier: 'catalog:'
         version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)

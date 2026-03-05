@@ -46,7 +46,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   return {
     annieId: params.annieId,
-    annieUrl: url,
+    annieUrl: `${url}&cache=no`,
     width,
     height,
   };

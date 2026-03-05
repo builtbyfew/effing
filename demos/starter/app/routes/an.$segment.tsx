@@ -23,10 +23,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const width = parseInt(url.searchParams.get("w") || "1080", 10);
   const height = parseInt(url.searchParams.get("h") || "1080", 10);
 
+  const noCache = url.searchParams.get("cache") === "no";
   const frames = renderer({ props, width, height });
 
   return annieResponse(frames, {
     signal: request.signal,
     filename: annieId,
+    ...(noCache && { cacheControl: "no-store" }),
   });
 }

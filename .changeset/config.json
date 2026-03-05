@@ -13,7 +13,8 @@
       "@effing/satori",
       "@effing/annie-player",
       "@effing/effie-preview",
-      "@effing/ffmpeg"
+      "@effing/ffmpeg",
+      "@effing/canvas"
     ]
   ],
   "linked": [],

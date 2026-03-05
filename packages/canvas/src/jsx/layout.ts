@@ -164,6 +164,27 @@ function buildNode(
       style.width = Number(props.width);
     if (props.height != null && style.height === undefined)
       style.height = Number(props.height);
+
+    // Derive missing dimension from viewBox aspect ratio
+    const viewBox = props.viewBox as string | undefined;
+    if (viewBox) {
+      const parts = viewBox.split(/[\s,]+/).map(Number);
+      if (parts.length === 4) {
+        const [, , vbW, vbH] = parts as [number, number, number, number];
+        if (vbW > 0 && vbH > 0) {
+          const w = typeof style.width === "number" ? style.width : undefined;
+          const h = typeof style.height === "number" ? style.height : undefined;
+          if (w !== undefined && h === undefined) {
+            style.height = w * (vbH / vbW);
+          } else if (h !== undefined && w === undefined) {
+            style.width = h * (vbW / vbH);
+          } else if (w === undefined && h === undefined) {
+            style.width = vbW;
+            style.height = vbH;
+          }
+        }
+      }
+    }
   }
 
   // Apply styles to Yoga node

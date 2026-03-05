@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock @napi-rs/canvas
@@ -237,6 +238,70 @@ describe("buildLayoutTree", () => {
   it("builds layout for null content", () => {
     const tree = buildLayoutTree(null, 200, 200, ctx);
     expect(tree.type).toBe("empty");
+  });
+
+  it("derives svg width from height and viewBox aspect ratio", () => {
+    const tree = buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "svg",
+            props: {
+              height: 30,
+              viewBox: "0 0 601 600",
+              children: { type: "path", props: { d: "M0 0" } },
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    expect(svg.width).toBeCloseTo(30 * (601 / 600), 0);
+    expect(svg.height).toBe(30);
+  });
+
+  it("derives svg height from width and viewBox aspect ratio", () => {
+    const tree = buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "svg",
+            props: { width: 40, viewBox: "0 0 20 10", children: null },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    expect(svg.width).toBe(40);
+    expect(svg.height).toBe(20);
+  });
+
+  it("uses viewBox dimensions when svg has neither width nor height", () => {
+    const tree = buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "svg",
+            props: { viewBox: "0 0 100 50", children: null },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    expect(svg.width).toBe(100);
+    expect(svg.height).toBe(50);
   });
 });
 

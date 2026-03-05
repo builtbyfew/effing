@@ -1,4 +1,4 @@
-import type { FontData } from "@effing/satori";
+import type { FontData } from "@effing/canvas";
 
 export type { FontData };
 

@@ -6,6 +6,9 @@ export default defineConfig({
   server: { port: 3839 }, // 3839 = 0xEFF, how effing cool is that? ʘ‿ʘ
   plugins: [reactRouter(), tsconfigPaths()],
   optimizeDeps: {
-    exclude: ["@resvg/resvg-js"],
+    exclude: ["@effing/canvas"],
+  },
+  ssr: {
+    external: ["@effing/canvas"],
   },
 });

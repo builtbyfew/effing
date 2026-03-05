@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { effieData, effieSegment } from "@effing/effie";
-import { annieUrl, pngUrlFromSatori } from "~/urls.server";
+import { annieUrl, pngUrlFromReactElement } from "~/urls.server";
 import type { EffieRendererArgs } from ".";
 import { loadFonts, interSemiBold } from "~/fonts.server";
 import type { PhotoZoomProps } from "~/annies/photo-zoom.annie";
@@ -49,7 +49,7 @@ export async function renderer({
   const fonts = await loadFonts([interSemiBold]);
 
   // Generate cover from first slide
-  const cover = await pngUrlFromSatori(
+  const cover = await pngUrlFromReactElement(
     <div
       style={{
         width,

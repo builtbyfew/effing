@@ -5,6 +5,7 @@ export default defineConfig([
     // Stage 1: main + elements + pool (with .d.ts)
     entry: {
       index: "src/index.ts",
+      emoji: "src/emoji.ts",
       "elements/index": "src/elements/index.ts",
       "pool/index": "src/pool/index.ts",
     },

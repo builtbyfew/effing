@@ -1,18 +1,26 @@
+import type { ReactNode } from "react";
 import { effieWebUrl } from "@effing/effie";
-import { pngFromSatori } from "@effing/satori";
-import type { PngFromSatoriOptions } from "@effing/satori";
+import { createCanvas, renderReactElement } from "@effing/canvas";
+import type { FontData } from "@effing/canvas";
 import { serialize } from "@effing/serde";
 
-export type { FontData, PngFromSatoriOptions } from "@effing/satori";
+export type { FontData } from "@effing/canvas";
 
 /**
- * Generate a data URL for a PNG image from a React/JSX template using Satori
+ * Generate a data URL for a PNG image from a React/JSX element
  */
-export async function pngUrlFromSatori(
-  template: Parameters<typeof pngFromSatori>[0],
-  options: PngFromSatoriOptions,
+export async function pngUrlFromReactElement(
+  element: ReactNode,
+  {
+    width,
+    height,
+    fonts,
+  }: { width: number; height: number; fonts: FontData[] },
 ) {
-  const buffer = await pngFromSatori(template, options);
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  await renderReactElement(ctx, element, { fonts });
+  const buffer = await canvas.encode("png");
   return effieWebUrl(`data:image/png;base64,${buffer.toString("base64")}`);
 }
 

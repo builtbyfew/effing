@@ -1,0 +1,66 @@
+{
+  "name": "@effing/canvas",
+  "version": "0.0.0",
+  "description": "Low-level canvas rendering for JSX and Lottie using @napi-rs/canvas (Skia)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:comparison": "vitest run src/__tests__/comparison/",
+    "bench": "tsx src/__tests__/benchmark/bench.tsx"
+  },
+  "dependencies": {
+    "css-background-parser": "^0.1.0",
+    "css-box-shadow": "^1.0.0-3",
+    "css-gradient-parser": "^0.0.17",
+    "css-to-react-native": "^3.0.0",
+    "linebreak": "^1.1.0",
+    "parse-css-color": "^0.2.1",
+    "postcss-value-parser": "^4.2.0",
+    "yoga-layout": "^3.2.1"
+  },
+  "devDependencies": {
+    "@effing/tween": "workspace:*",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/react": "^19.0.0",
+    "mitata": "^1.0.34",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0",
+    "satori": "^0.24.1",
+    "tsup": "catalog:",
+    "tsx": "^4.0.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@napi-rs/canvas": ">=0.1.50",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "canvas",
+    "skia",
+    "jsx",
+    "lottie",
+    "render",
+    "png"
+  ],
+  "license": "O'Saasy",
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { interBold, loadFonts } from "~/fonts.server";
 import { tween } from "@effing/tween";
-import { satoriPool } from "~/pool.server";
+import { createCanvas, renderReactElement } from "@effing/canvas";
 import type { AnnieRendererArgs } from ".";
 
 export const propsSchema = z.object({
@@ -50,7 +50,10 @@ export async function* renderer({
   yield* tween(typingFrameCount, async ({ lower: p }) => {
     const charsShown = Math.floor(p * text.length);
     const textToShow = text.slice(0, charsShown);
-    return satoriPool.renderToPng(
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    await renderReactElement(
+      ctx,
       <TextTypewriterOverlay
         text={textToShow}
         fontSize={fontSize}
@@ -60,14 +63,18 @@ export async function* renderer({
         verticalAlignment={verticalAlignment}
         cursorShown={true}
       />,
-      { width, height, fonts },
+      { fonts },
     );
+    return canvas.encode("png");
   });
 
   // Blinking cursor phase
   yield* tween(blinkingFrameCount, async ({ lower: p }) => {
     const cursorShown = Math.floor(p * 5) % 2 === 1;
-    return satoriPool.renderToPng(
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    await renderReactElement(
+      ctx,
       <TextTypewriterOverlay
         text={text}
         fontSize={fontSize}
@@ -77,8 +84,9 @@ export async function* renderer({
         verticalAlignment={verticalAlignment}
         cursorShown={cursorShown}
       />,
-      { width, height, fonts },
+      { fonts },
     );
+    return canvas.encode("png");
   });
 }
 

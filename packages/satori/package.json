@@ -16,6 +16,10 @@
       "types": "./dist/pool/index.d.ts",
       "import": "./dist/pool/index.js"
     },
+    "./emoji": {
+      "types": "./dist/emoji.d.ts",
+      "import": "./dist/emoji.js"
+    },
     "./worker": {
       "import": "./dist/worker/index.js"
     }

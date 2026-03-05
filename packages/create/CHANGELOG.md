@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.18.0
+
+### Patch Changes
+
+- b53e9ad: Disable caching on the Annie preview route so the player always fetches fresh frames during development.
+
 ## 0.17.1
 
 ## 0.17.0

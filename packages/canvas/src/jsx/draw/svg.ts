@@ -10,6 +10,18 @@ type SvgChild = {
 };
 
 /**
+ * Merge SVG presentation properties from `props.style` into the props object.
+ * Style values win over direct props, matching browser CSS specificity rules.
+ */
+function mergeStyleIntoProps(
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const style = props.style as Record<string, unknown> | undefined;
+  if (!style) return props;
+  return { ...props, ...style };
+}
+
+/**
  * Draw an `<svg>` container and its SVG children (path, circle, rect, etc.).
  *
  * Parses the `viewBox` prop to compute scale factors, then recurses into
@@ -40,7 +52,8 @@ export function drawSvgContainer(
   }
 
   // Inherited fill from the <svg> element (SVG fill is inheritable)
-  const inheritedFill = (node.props.fill as string | undefined) ?? "black";
+  const merged = mergeStyleIntoProps(node.props);
+  const inheritedFill = (merged.fill as string | undefined) ?? "black";
 
   // Traverse React children
   const children = node.props.children;
@@ -61,7 +74,8 @@ function drawSvgChild(
   child: SvgChild,
   inheritedFill: string,
 ): void {
-  const { type, props } = child;
+  const { type } = child;
+  const props = mergeStyleIntoProps(child.props);
 
   switch (type) {
     case "path":
@@ -205,7 +219,8 @@ function drawGroup(
     node.children ?? (node.props.children as SvgChild | SvgChild[] | undefined);
   if (children == null) return;
   // Group can override inherited fill
-  const groupFill = (node.props.fill as string | undefined) ?? inheritedFill;
+  const merged = mergeStyleIntoProps(node.props);
+  const groupFill = (merged.fill as string | undefined) ?? inheritedFill;
   const childArray = Array.isArray(children) ? children : [children];
   for (const child of childArray) {
     if (child != null && typeof child === "object") {

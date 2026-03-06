@@ -572,6 +572,68 @@ describe("drawNode", () => {
     expect(ctx.fillRect).toHaveBeenCalledWith(15, 15, 50, 30);
   });
 
+  it("applies SVG fill from style prop (higher specificity)", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "path",
+            props: {
+              d: "M0 0L10 10",
+              style: { fill: "blue" },
+            },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fillStyle).toBe("blue");
+    expect(ctx.fill).toHaveBeenCalled();
+  });
+
+  it("style fill overrides direct fill prop", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "path",
+            props: {
+              d: "M0 0L10 10",
+              fill: "red",
+              style: { fill: "blue" },
+            },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fillStyle).toBe("blue");
+  });
+
   it("applies hyphenated SVG stroke attributes", async () => {
     await drawNode(
       ctx,

@@ -1,4 +1,4 @@
-import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, Image, SKRSContext2D } from "@napi-rs/canvas";
 
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
@@ -353,6 +353,7 @@ export async function drawNode(
       imgW,
       imgH,
       style,
+      node.props.__loadedImage as Image | undefined,
     );
   }
 
@@ -613,6 +614,7 @@ async function drawNodeInner(
       imgW,
       imgH,
       style,
+      node.props.__loadedImage as Image | undefined,
     );
   }
 

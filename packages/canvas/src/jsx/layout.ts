@@ -3,6 +3,7 @@
 // See NOTICE.md in the package root for details.
 
 import type { SKRSContext2D } from "@napi-rs/canvas";
+import { loadImage } from "@napi-rs/canvas";
 import type { ReactElement, ReactNode } from "react";
 
 import { expandStyle } from "./style/expand.ts";
@@ -40,17 +41,17 @@ type ElementChild = string | number | ReactElement | null | undefined | boolean;
  * @param ctx - Canvas context for text measurement
  * @returns Root layout node with computed positions and dimensions
  */
-export function buildLayoutTree(
+export async function buildLayoutTree(
   element: ReactNode,
   containerWidth: number,
   containerHeight: number,
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
-): LayoutNode {
+): Promise<LayoutNode> {
   const rootYogaNode = createYogaNode();
 
   // Build the tree
-  const rootNode = buildNode(
+  const rootNode = await buildNode(
     element,
     DEFAULT_STYLE,
     rootYogaNode,
@@ -76,7 +77,7 @@ export function buildLayoutTree(
   return layoutTree;
 }
 
-function buildNode(
+async function buildNode(
   element: ReactNode,
   parentStyle: ComputedStyle,
   yogaNode: YogaNode,
@@ -84,7 +85,7 @@ function buildNode(
   viewportHeight: number,
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
-): IntermediateNode {
+): Promise<IntermediateNode> {
   // Handle null/undefined/boolean
   if (
     element === null ||
@@ -132,7 +133,7 @@ function buildNode(
       const childYogaNode = createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
       children.push(
-        buildNode(
+        await buildNode(
           child,
           style,
           childYogaNode,
@@ -162,7 +163,7 @@ function buildNode(
     const rendered = (type as (props: Record<string, unknown>) => ReactNode)(
       el.props ?? {},
     );
-    return buildNode(
+    return await buildNode(
       rendered,
       parentStyle,
       yogaNode,
@@ -206,6 +207,41 @@ function buildNode(
             style.height = vbH;
           }
         }
+      }
+    }
+  }
+
+  // For <img> elements, derive missing dimensions from intrinsic aspect ratio
+  if (tagName === "img") {
+    // Map HTML width/height attributes to style (like <svg>)
+    if (props.width != null && style.width === undefined)
+      style.width = Number(props.width);
+    if (props.height != null && style.height === undefined)
+      style.height = Number(props.height);
+
+    const src = props.src as string | Buffer | undefined;
+    if (src) {
+      try {
+        const image = await loadImage(src);
+        const naturalW = image.width;
+        const naturalH = image.height;
+
+        const w = typeof style.width === "number" ? style.width : undefined;
+        const h = typeof style.height === "number" ? style.height : undefined;
+
+        if (w !== undefined && h === undefined && naturalW > 0) {
+          style.height = w * (naturalH / naturalW);
+        } else if (h !== undefined && w === undefined && naturalH > 0) {
+          style.width = h * (naturalW / naturalH);
+        } else if (w === undefined && h === undefined) {
+          style.width = naturalW;
+          style.height = naturalH;
+        }
+
+        // Cache loaded image for reuse during drawing
+        props.__loadedImage = image;
+      } catch {
+        // Silent fail — image will render at whatever size Yoga computes
       }
     }
   }
@@ -276,7 +312,7 @@ function buildNode(
       const childYogaNode = createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
       children.push(
-        buildNode(
+        await buildNode(
           child,
           style,
           childYogaNode,

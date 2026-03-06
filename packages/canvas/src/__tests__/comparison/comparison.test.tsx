@@ -2052,4 +2052,35 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
 
     expect(percentage).toBeLessThan(1);
   });
+
+  // -------------------------------------------------------------------------
+  // Intrinsic image sizing tests
+  // -------------------------------------------------------------------------
+
+  it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
+    const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+        }}
+      >
+        <img src={imageDataUri} style={{ height: 150, objectFit: "fill" }} />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "img-height-only-intrinsic",
+    );
+    expect(percentage).toBeLessThan(1);
+  });
 });

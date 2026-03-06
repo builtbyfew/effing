@@ -1,5 +1,5 @@
 import { loadImage } from "@napi-rs/canvas";
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { Image, SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
@@ -23,8 +23,9 @@ export async function drawImage(
   width: number,
   height: number,
   style?: ComputedStyle,
+  preloadedImage?: Image,
 ): Promise<void> {
-  const image = await loadImage(src);
+  const image = preloadedImage ?? (await loadImage(src));
   const objectFit = style?.objectFit ?? "fill";
 
   if (objectFit === "fill") {

@@ -77,7 +77,7 @@ vi.mock("@napi-rs/canvas", () => {
   };
 });
 
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import { expandStyle } from "../jsx/style/expand.ts";
@@ -324,20 +324,20 @@ describe("buildLayoutTree", () => {
     ctx = canvas.getContext("2d");
   });
 
-  it("builds layout for string content", () => {
-    const tree = buildLayoutTree("Hello", 200, 200, ctx);
+  it("builds layout for string content", async () => {
+    const tree = await buildLayoutTree("Hello", 200, 200, ctx);
     expect(tree.type).toBe("text");
     expect(tree.textContent).toBe("Hello");
     expect(tree.width).toBeGreaterThan(0);
   });
 
-  it("builds layout for null content", () => {
-    const tree = buildLayoutTree(null, 200, 200, ctx);
+  it("builds layout for null content", async () => {
+    const tree = await buildLayoutTree(null, 200, 200, ctx);
     expect(tree.type).toBe("empty");
   });
 
-  it("derives svg width from height and viewBox aspect ratio", () => {
-    const tree = buildLayoutTree(
+  it("derives svg width from height and viewBox aspect ratio", async () => {
+    const tree = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -360,8 +360,8 @@ describe("buildLayoutTree", () => {
     expect(svg.height).toBe(30);
   });
 
-  it("derives svg height from width and viewBox aspect ratio", () => {
-    const tree = buildLayoutTree(
+  it("derives svg height from width and viewBox aspect ratio", async () => {
+    const tree = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -380,8 +380,8 @@ describe("buildLayoutTree", () => {
     expect(svg.height).toBe(20);
   });
 
-  it("uses viewBox dimensions when svg has neither width nor height", () => {
-    const tree = buildLayoutTree(
+  it("uses viewBox dimensions when svg has neither width nor height", async () => {
+    const tree = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -398,6 +398,126 @@ describe("buildLayoutTree", () => {
     const svg = tree.children[0];
     expect(svg.width).toBe(100);
     expect(svg.height).toBe(50);
+  });
+
+  it("derives img width from height and intrinsic aspect ratio", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 200,
+      height: 100,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "img",
+            props: { src: "test.png", style: { height: 50 } },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(100); // 50 * (200/100) = 100
+    expect(img.height).toBe(50);
+  });
+
+  it("derives img height from width and intrinsic aspect ratio", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 200,
+      height: 100,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "img",
+            props: { src: "test.png", style: { width: 100 } },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(100);
+    expect(img.height).toBe(50); // 100 * (100/200) = 50
+  });
+
+  it("uses natural dimensions when img has neither width nor height", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 80,
+      height: 40,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "img",
+            props: { src: "test.png" },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(80);
+    expect(img.height).toBe(40);
+  });
+
+  it("keeps both dimensions when img has width and height set", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 200,
+      height: 100,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "img",
+            props: { src: "test.png", style: { width: 60, height: 30 } },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(60);
+    expect(img.height).toBe(30);
+  });
+
+  it("maps HTML width/height attributes to img style", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 200,
+      height: 100,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "img",
+            props: { src: "test.png", width: 120, height: 60 },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(120);
+    expect(img.height).toBe(60);
   });
 });
 

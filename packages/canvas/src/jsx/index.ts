@@ -43,7 +43,13 @@ export async function renderReactElement(
   // Build layout tree (Yoga)
   const emojiStyle =
     options.emoji === "none" ? undefined : (options.emoji ?? "twemoji");
-  const layoutTree = buildLayoutTree(element, width, height, ctx, !!emojiStyle);
+  const layoutTree = await buildLayoutTree(
+    element,
+    width,
+    height,
+    ctx,
+    !!emojiStyle,
+  );
 
   // Draw to canvas
   await drawNode(ctx, layoutTree, 0, 0, options.debug ?? false, emojiStyle);

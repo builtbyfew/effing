@@ -9,6 +9,15 @@ type SvgChild = {
   children?: SvgChild | SvgChild[];
 };
 
+/** Replace `"currentColor"` with the inherited CSS `color` value. */
+function resolveCurrentColor(
+  value: string | undefined,
+  color: string,
+): string | undefined {
+  if (value?.toLowerCase() === "currentcolor") return color;
+  return value;
+}
+
 /**
  * Merge SVG presentation properties from `props.style` into the props object.
  * Style values win over direct props, matching browser CSS specificity rules.
@@ -51,9 +60,13 @@ export function drawSvgContainer(
     }
   }
 
+  // Resolve the CSS `color` property for `currentColor` references
+  const color = (node.style.color as string | undefined) ?? "black";
+
   // Inherited fill from the <svg> element (SVG fill is inheritable)
   const merged = mergeStyleIntoProps(node.props);
-  const inheritedFill = (merged.fill as string | undefined) ?? "black";
+  const inheritedFill =
+    resolveCurrentColor(merged.fill as string | undefined, color) ?? "black";
 
   // Traverse React children
   const children = node.props.children;
@@ -61,7 +74,7 @@ export function drawSvgContainer(
     const childArray = Array.isArray(children) ? children : [children];
     for (const child of childArray) {
       if (child != null && typeof child === "object") {
-        drawSvgChild(ctx, child as SvgChild, inheritedFill);
+        drawSvgChild(ctx, child as SvgChild, inheritedFill, color);
       }
     }
   }
@@ -73,34 +86,35 @@ function drawSvgChild(
   ctx: SKRSContext2D,
   child: SvgChild,
   inheritedFill: string,
+  color: string,
 ): void {
   const { type } = child;
   const props = mergeStyleIntoProps(child.props);
 
   switch (type) {
     case "path":
-      drawPath(ctx, props, inheritedFill);
+      drawPath(ctx, props, inheritedFill, color);
       break;
     case "circle":
-      drawCircle(ctx, props, inheritedFill);
+      drawCircle(ctx, props, inheritedFill, color);
       break;
     case "rect":
-      drawSvgRect(ctx, props, inheritedFill);
+      drawSvgRect(ctx, props, inheritedFill, color);
       break;
     case "line":
-      drawLine(ctx, props);
+      drawLine(ctx, props, color);
       break;
     case "ellipse":
-      drawEllipse(ctx, props, inheritedFill);
+      drawEllipse(ctx, props, inheritedFill, color);
       break;
     case "polygon":
-      drawPolygon(ctx, props, inheritedFill);
+      drawPolygon(ctx, props, inheritedFill, color);
       break;
     case "polyline":
-      drawPolyline(ctx, props, inheritedFill);
+      drawPolyline(ctx, props, inheritedFill, color);
       break;
     case "g":
-      drawGroup(ctx, child, inheritedFill);
+      drawGroup(ctx, child, inheritedFill, color);
       break;
   }
 }
@@ -109,18 +123,20 @@ function drawPath(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const d = props.d as string | undefined;
   if (!d) return;
 
   const path = new Path2D(d);
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
 function drawCircle(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const cx = Number(props.cx ?? 0);
   const cy = Number(props.cy ?? 0);
@@ -129,13 +145,14 @@ function drawCircle(
 
   const path = new Path2D();
   path.arc(cx, cy, r, 0, Math.PI * 2);
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
 function drawSvgRect(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const rx = Number(props.x ?? 0);
   const ry = Number(props.y ?? 0);
@@ -145,10 +162,14 @@ function drawSvgRect(
 
   const path = new Path2D();
   path.rect(rx, ry, w, h);
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
-function drawLine(ctx: SKRSContext2D, props: Record<string, unknown>): void {
+function drawLine(
+  ctx: SKRSContext2D,
+  props: Record<string, unknown>,
+  color: string,
+): void {
   const x1 = Number(props.x1 ?? 0);
   const y1 = Number(props.y1 ?? 0);
   const x2 = Number(props.x2 ?? 0);
@@ -158,13 +179,14 @@ function drawLine(ctx: SKRSContext2D, props: Record<string, unknown>): void {
   path.moveTo(x1, y1);
   path.lineTo(x2, y2);
   // Lines are stroke-only
-  applyStroke(ctx, props, path);
+  applyStroke(ctx, props, path, color);
 }
 
 function drawEllipse(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const cx = Number(props.cx ?? 0);
   const cy = Number(props.cy ?? 0);
@@ -174,13 +196,14 @@ function drawEllipse(
 
   const path = new Path2D();
   path.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
 function drawPolygon(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const points = parsePoints(props.points as string | undefined);
   if (points.length < 2) return;
@@ -191,13 +214,14 @@ function drawPolygon(
     path.lineTo(points[i]![0], points[i]![1]);
   }
   path.closePath();
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
 function drawPolyline(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   inheritedFill: string,
+  color: string,
 ): void {
   const points = parsePoints(props.points as string | undefined);
   if (points.length < 2) return;
@@ -207,24 +231,27 @@ function drawPolyline(
   for (let i = 1; i < points.length; i++) {
     path.lineTo(points[i]![0], points[i]![1]);
   }
-  applyFillAndStroke(ctx, props, path, inheritedFill);
+  applyFillAndStroke(ctx, props, path, inheritedFill, color);
 }
 
 function drawGroup(
   ctx: SKRSContext2D,
   node: SvgChild,
   inheritedFill: string,
+  color: string,
 ): void {
   const children =
     node.children ?? (node.props.children as SvgChild | SvgChild[] | undefined);
   if (children == null) return;
   // Group can override inherited fill
   const merged = mergeStyleIntoProps(node.props);
-  const groupFill = (merged.fill as string | undefined) ?? inheritedFill;
+  const groupFill =
+    resolveCurrentColor(merged.fill as string | undefined, color) ??
+    inheritedFill;
   const childArray = Array.isArray(children) ? children : [children];
   for (const child of childArray) {
     if (child != null && typeof child === "object") {
-      drawSvgChild(ctx, child, groupFill);
+      drawSvgChild(ctx, child, groupFill, color);
     }
   }
 }
@@ -247,23 +274,27 @@ function applyFillAndStroke(
   props: Record<string, unknown>,
   path: Path2D,
   inheritedFill: string,
+  color: string,
 ): void {
   // Use element's own fill if set, otherwise inherit from parent
-  const fill = (props.fill as string | undefined) ?? inheritedFill;
+  const fill =
+    resolveCurrentColor(props.fill as string | undefined, color) ??
+    inheritedFill;
   if (fill !== "none") {
     ctx.fillStyle = fill;
     ctx.fill(path);
   }
 
-  applyStroke(ctx, props, path);
+  applyStroke(ctx, props, path, color);
 }
 
 function applyStroke(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   path: Path2D,
+  color: string,
 ): void {
-  const stroke = props.stroke as string | undefined;
+  const stroke = resolveCurrentColor(props.stroke as string | undefined, color);
   if (!stroke || stroke === "none") return;
 
   ctx.strokeStyle = stroke;

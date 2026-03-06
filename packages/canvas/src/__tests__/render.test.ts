@@ -782,6 +782,69 @@ describe("drawNode", () => {
     expect(ctx.fillStyle).toBe("blue");
   });
 
+  it("resolves currentColor in SVG fill to the inherited CSS color", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: { color: "red" },
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "path",
+            props: {
+              d: "M0 0L10 10",
+              fill: "currentColor",
+            },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fillStyle).toBe("red");
+    expect(ctx.fill).toHaveBeenCalled();
+  });
+
+  it("resolves currentColor in SVG stroke to the inherited CSS color", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: { color: "green" },
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "path",
+            props: {
+              d: "M0 0L10 10",
+              fill: "none",
+              stroke: "currentColor",
+            },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.strokeStyle).toBe("green");
+    expect(ctx.stroke).toHaveBeenCalled();
+  });
+
   it("applies hyphenated SVG stroke attributes", async () => {
     await drawNode(
       ctx,

@@ -522,6 +522,31 @@ describe("buildLayoutTree", () => {
     expect(img.width).toBe(120);
     expect(img.height).toBe(60);
   });
+
+  it("resolves percentage width/height on img to parent size", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 400,
+      height: 300,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, height: 200 },
+          children: {
+            type: "img",
+            props: { src: "test.png", width: "100%", height: "100%" },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    expect(img.width).toBe(200);
+    expect(img.height).toBe(200);
+  });
 });
 
 describe("drawNode", () => {

@@ -184,10 +184,14 @@ async function buildNode(
 
   // For <svg> elements, merge width/height props into style when not set via CSS
   if (tagName === "svg") {
-    if (props.width != null && style.width === undefined)
-      style.width = Number(props.width);
-    if (props.height != null && style.height === undefined)
-      style.height = Number(props.height);
+    if (props.width != null && style.width === undefined) {
+      const v = props.width;
+      style.width = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+    }
+    if (props.height != null && style.height === undefined) {
+      const v = props.height;
+      style.height = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+    }
 
     // Derive missing dimension from viewBox aspect ratio
     const viewBox = props.viewBox as string | undefined;
@@ -214,10 +218,14 @@ async function buildNode(
   // For <img> elements, derive missing dimensions from intrinsic aspect ratio
   if (tagName === "img") {
     // Map HTML width/height attributes to style (like <svg>)
-    if (props.width != null && style.width === undefined)
-      style.width = Number(props.width);
-    if (props.height != null && style.height === undefined)
-      style.height = Number(props.height);
+    if (props.width != null && style.width === undefined) {
+      const v = props.width;
+      style.width = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+    }
+    if (props.height != null && style.height === undefined) {
+      const v = props.height;
+      style.height = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+    }
 
     const src = props.src as string | Buffer | undefined;
     if (src) {

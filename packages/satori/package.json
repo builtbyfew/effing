@@ -1,6 +1,6 @@
 {
   "name": "@effing/satori",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "description": "Render JSX to PNG using Satori with emoji support",
   "type": "module",
   "exports": {

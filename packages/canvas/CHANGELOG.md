@@ -1,5 +1,12 @@
 # @effing/canvas
 
+## 0.18.2
+
+### Patch Changes
+
+- 35c8a2c: Intrinsic auto-sizing for `<img>` elements. When only one of `width`/`height` is specified (or neither), the missing dimension is now derived from the image's natural aspect ratio — matching browser behavior. Images are loaded during layout and cached to avoid a redundant load at draw time.
+- a75e320: Support SVG presentation attributes set via the `style` prop (e.g. `style={{ fill: 'blue' }}`). Style values take precedence over direct props, matching browser CSS specificity rules.
+
 ## 0.18.1
 
 ### Patch Changes

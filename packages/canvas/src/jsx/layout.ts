@@ -233,9 +233,6 @@ async function buildNode(
           style.height = w * (naturalH / naturalW);
         } else if (h !== undefined && w === undefined && naturalH > 0) {
           style.width = h * (naturalW / naturalH);
-        } else if (w === undefined && h === undefined) {
-          style.width = naturalW;
-          style.height = naturalH;
         }
 
         // Cache loaded image for reuse during drawing

@@ -448,7 +448,7 @@ describe("buildLayoutTree", () => {
     expect(img.height).toBe(50); // 100 * (100/200) = 50
   });
 
-  it("uses natural dimensions when img has neither width nor height", async () => {
+  it("does not force natural dimensions when img has neither width nor height", async () => {
     vi.mocked(loadImage).mockResolvedValueOnce({
       width: 80,
       height: 40,
@@ -468,8 +468,11 @@ describe("buildLayoutTree", () => {
       ctx,
     );
     const img = tree.children[0];
-    expect(img.width).toBe(80);
-    expect(img.height).toBe(40);
+    // Without explicit dimensions, Yoga sizes from layout constraints only.
+    // In a default flex-column container the child stretches on the cross
+    // axis (height) but collapses on the main axis (width).
+    expect(img.width).toBe(0);
+    expect(img.height).toBe(200);
   });
 
   it("keeps both dimensions when img has width and height set", async () => {

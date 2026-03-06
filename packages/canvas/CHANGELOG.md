@@ -1,5 +1,13 @@
 # @effing/canvas
 
+## 0.18.4
+
+### Patch Changes
+
+- eb5c6d1: Fix `<img>` and `<svg>` elements with percentage `width`/`height` HTML attributes (e.g. `<img width="100%" height="100%">`) collapsing to 0×0. Percentage strings are now preserved instead of being coerced through `Number()` which produced `NaN`.
+- 1dbc177: Fix `currentColor` in SVG `fill` and `stroke` attributes. The literal string was passed straight through to the canvas 2D API which doesn't understand it. It is now resolved to the inherited CSS `color` value.
+- 6c7953a: Fix `textAlign: "center"` (and `"right"`) on divs. The text child yoga node now sets `flexGrow: 1` and `flexShrink: 1` so it fills the parent's width, giving `layoutText` the full container width to calculate alignment offsets against.
+
 ## 0.18.3
 
 ### Patch Changes

@@ -8,6 +8,8 @@ vi.mock("@napi-rs/canvas", () => {
     fillStyle: "",
     strokeStyle: "",
     lineWidth: 1,
+    lineCap: "butt" as string,
+    lineJoin: "miter" as string,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     shadowColor: "transparent",
@@ -58,6 +60,7 @@ vi.mock("@napi-rs/canvas", () => {
   return {
     createCanvas: vi.fn(() => mockCanvas),
     Canvas: vi.fn(),
+    Path2D: vi.fn(),
     GlobalFonts: {
       register: vi.fn(),
       registerFromPath: vi.fn(),
@@ -474,5 +477,42 @@ describe("drawNode", () => {
 
     // Child drawn at parent offset + child offset
     expect(ctx.fillRect).toHaveBeenCalledWith(15, 15, 50, 30);
+  });
+
+  it("applies hyphenated SVG stroke attributes", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "path",
+            props: {
+              d: "M0 0L10 10",
+              stroke: "red",
+              "stroke-width": "3",
+              "stroke-linecap": "round",
+              "stroke-linejoin": "bevel",
+              fill: "none",
+            },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.strokeStyle).toBe("red");
+    expect(ctx.lineWidth).toBe(3);
+    expect(ctx.lineCap).toBe("round");
+    expect(ctx.lineJoin).toBe("bevel");
   });
 });

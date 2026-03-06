@@ -252,8 +252,12 @@ function applyStroke(
   if (!stroke || stroke === "none") return;
 
   ctx.strokeStyle = stroke;
-  ctx.lineWidth = Number(props.strokeWidth ?? 1);
-  ctx.lineCap = (props.strokeLinecap as CanvasLineCap) ?? "butt";
-  ctx.lineJoin = (props.strokeLinejoin as CanvasLineJoin) ?? "miter";
+  ctx.lineWidth = Number(props.strokeWidth ?? props["stroke-width"] ?? 1);
+  ctx.lineCap =
+    ((props.strokeLinecap ?? props["stroke-linecap"]) as CanvasLineCap) ??
+    "butt";
+  ctx.lineJoin =
+    ((props.strokeLinejoin ?? props["stroke-linejoin"]) as CanvasLineJoin) ??
+    "miter";
   ctx.stroke(path);
 }

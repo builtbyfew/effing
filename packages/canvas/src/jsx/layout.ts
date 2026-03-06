@@ -283,6 +283,8 @@ async function buildNode(
       emojiEnabled,
     );
     childYogaNode.setMeasureFunc(measureFunc);
+    childYogaNode.setFlexGrow(1);
+    childYogaNode.setFlexShrink(1);
     yogaNode.insertChild(childYogaNode, 0);
 
     return {

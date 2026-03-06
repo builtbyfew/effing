@@ -6,7 +6,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 import type { ReactElement, ReactNode } from "react";
 
 import { expandStyle } from "./style/expand.ts";
-import { resolveStyle, DEFAULT_STYLE } from "./style/compute.ts";
+import { resolveStyle, resolveUnits, DEFAULT_STYLE } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { createTextMeasureFunc } from "./text/index.ts";
@@ -54,6 +54,8 @@ export function buildLayoutTree(
     element,
     DEFAULT_STYLE,
     rootYogaNode,
+    containerWidth,
+    containerHeight,
     ctx,
     emojiEnabled,
   );
@@ -78,6 +80,8 @@ function buildNode(
   element: ReactNode,
   parentStyle: ComputedStyle,
   yogaNode: YogaNode,
+  viewportWidth: number,
+  viewportHeight: number,
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
 ): IntermediateNode {
@@ -127,7 +131,17 @@ function buildNode(
 
       const childYogaNode = createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
-      children.push(buildNode(child, style, childYogaNode, ctx, emojiEnabled));
+      children.push(
+        buildNode(
+          child,
+          style,
+          childYogaNode,
+          viewportWidth,
+          viewportHeight,
+          ctx,
+          emojiEnabled,
+        ),
+      );
     }
 
     return {
@@ -148,13 +162,22 @@ function buildNode(
     const rendered = (type as (props: Record<string, unknown>) => ReactNode)(
       el.props ?? {},
     );
-    return buildNode(rendered, parentStyle, yogaNode, ctx, emojiEnabled);
+    return buildNode(
+      rendered,
+      parentStyle,
+      yogaNode,
+      viewportWidth,
+      viewportHeight,
+      ctx,
+      emojiEnabled,
+    );
   }
 
   const props = (el.props ?? {}) as Record<string, unknown>;
   const rawStyle = (props.style ?? {}) as Record<string, unknown>;
   const expanded = expandStyle(rawStyle);
   const style = resolveStyle(expanded, parentStyle);
+  resolveUnits(style, viewportWidth, viewportHeight);
 
   const tagName = String(type);
 
@@ -252,7 +275,17 @@ function buildNode(
 
       const childYogaNode = createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
-      children.push(buildNode(child, style, childYogaNode, ctx, emojiEnabled));
+      children.push(
+        buildNode(
+          child,
+          style,
+          childYogaNode,
+          viewportWidth,
+          viewportHeight,
+          ctx,
+          emojiEnabled,
+        ),
+      );
     }
   }
 

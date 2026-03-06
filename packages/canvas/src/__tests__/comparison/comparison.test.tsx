@@ -2022,4 +2022,34 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       expect(percentage).toBeLessThan(1);
     },
   );
+
+  // -------------------------------------------------------------------------
+  // Viewport units (vw/vh) tests
+  // -------------------------------------------------------------------------
+
+  it("renders img with 100vw/100vh — viewport units fill the canvas", async () => {
+    const imageDataUri = await makeTestImage(160, 80);
+    const element = (
+      <img
+        src={imageDataUri}
+        style={{
+          width: "100vw",
+          height: "100vh",
+          objectFit: "cover",
+        }}
+      />
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "viewport-units-100vw-100vh",
+    );
+
+    expect(percentage).toBeLessThan(1);
+  });
 });

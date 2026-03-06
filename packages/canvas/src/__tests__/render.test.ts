@@ -81,7 +81,11 @@ import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import { expandStyle } from "../jsx/style/expand.ts";
-import { resolveStyle, DEFAULT_STYLE } from "../jsx/style/compute.ts";
+import {
+  resolveStyle,
+  resolveUnits,
+  DEFAULT_STYLE,
+} from "../jsx/style/compute.ts";
 import { buildLayoutTree } from "../jsx/layout.ts";
 import { drawNode } from "../jsx/draw/index.ts";
 import { layoutText } from "../jsx/text/index.ts";
@@ -178,6 +182,95 @@ describe("resolveStyle", () => {
     // Multipliers (<=5) are kept as-is and resolved in text layout
     // using each element's own fontSize
     expect(style.lineHeight).toBe(1.5);
+  });
+});
+
+describe("resolveUnits", () => {
+  it("resolves vw to pixels using viewport width", () => {
+    const style = resolveUnits({ width: "50vw" }, 800, 600);
+    expect(style.width).toBe(400);
+  });
+
+  it("resolves vh to pixels using viewport height", () => {
+    const style = resolveUnits({ height: "100vh" }, 800, 600);
+    expect(style.height).toBe(600);
+  });
+
+  it("resolves vmin to the smaller viewport dimension", () => {
+    const style = resolveUnits({ width: "50vmin" }, 800, 600);
+    expect(style.width).toBe(300);
+  });
+
+  it("resolves vmax to the larger viewport dimension", () => {
+    const style = resolveUnits({ width: "50vmax" }, 800, 600);
+    expect(style.width).toBe(400);
+  });
+
+  it("resolves em relative to the element fontSize", () => {
+    const style = resolveUnits({ width: "2em", fontSize: 20 }, 800, 600);
+    expect(style.width).toBe(40);
+  });
+
+  it("resolves rem relative to root fontSize", () => {
+    const style = resolveUnits({ width: "2rem" }, 800, 600, 16);
+    expect(style.width).toBe(32);
+  });
+
+  it("resolves px explicitly", () => {
+    const style = resolveUnits({ width: "120px" }, 800, 600);
+    expect(style.width).toBe(120);
+  });
+
+  it("resolves pt (1pt = 96/72 px)", () => {
+    const style = resolveUnits({ width: "72pt" }, 800, 600);
+    expect(style.width).toBe(96);
+  });
+
+  it("resolves in (1in = 96px)", () => {
+    const style = resolveUnits({ width: "1in" }, 800, 600);
+    expect(style.width).toBe(96);
+  });
+
+  it("resolves cm", () => {
+    const style = resolveUnits({ width: "2.54cm" }, 800, 600);
+    expect(style.width).toBeCloseTo(96, 5);
+  });
+
+  it("resolves mm", () => {
+    const style = resolveUnits({ width: "25.4mm" }, 800, 600);
+    expect(style.width).toBeCloseTo(96, 5);
+  });
+
+  it("passes through plain numbers unchanged", () => {
+    const style = resolveUnits({ width: 200 }, 800, 600);
+    expect(style.width).toBe(200);
+  });
+
+  it("passes through percentage strings unchanged", () => {
+    const style = resolveUnits({ width: "50%" }, 800, 600);
+    expect(style.width).toBe("50%");
+  });
+
+  it("passes through auto unchanged", () => {
+    const style = resolveUnits({ width: "auto" }, 800, 600);
+    expect(style.width).toBe("auto");
+  });
+
+  it("resolves multiple properties at once", () => {
+    const style = resolveUnits(
+      {
+        width: "100vw",
+        height: "100vh",
+        marginTop: "10vh",
+        paddingLeft: "5vw",
+      },
+      400,
+      300,
+    );
+    expect(style.width).toBe(400);
+    expect(style.height).toBe(300);
+    expect(style.marginTop).toBe(30);
+    expect(style.paddingLeft).toBe(20);
   });
 });
 

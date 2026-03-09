@@ -280,9 +280,20 @@ function applyFillAndStroke(
   const fill =
     resolveCurrentColor(props.fill as string | undefined, color) ??
     inheritedFill;
+  const fillRule = (props.fillRule ?? props["fill-rule"]) as
+    | CanvasFillRule
+    | undefined;
+  const clipRule = (props.clipRule ?? props["clip-rule"]) as
+    | CanvasFillRule
+    | undefined;
+
+  if (clipRule) {
+    ctx.clip(path, clipRule);
+  }
+
   if (fill !== "none") {
     ctx.fillStyle = fill;
-    ctx.fill(path);
+    ctx.fill(path, fillRule ?? "nonzero");
   }
 
   applyStroke(ctx, props, path, color);

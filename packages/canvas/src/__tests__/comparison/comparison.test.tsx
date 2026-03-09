@@ -2102,6 +2102,47 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(1);
   });
 
+  // -------------------------------------------------------------------------
+  // SVG fillRule="evenodd" tests
+  // -------------------------------------------------------------------------
+
+  it("renders SVG with fillRule evenodd — compound path cutouts", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          backgroundColor: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* Map pin icon with evenodd cutout */}
+        <svg width="120" height="160" viewBox="0 0 24 24">
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
+            fill="#EF4444"
+          />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-fillrule-evenodd",
+    );
+
+    expect(percentage).toBeLessThan(1);
+  });
+
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
     const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
     const element = (

@@ -14,7 +14,7 @@ export function drawRect(
   height: number,
   style: ComputedStyle,
 ): void {
-  const borderRadius = getBorderRadius(style);
+  const borderRadius = getBorderRadius(style, width, height);
   const hasRoundedCorners =
     borderRadius.topLeft > 0 ||
     borderRadius.topRight > 0 ||
@@ -53,17 +53,29 @@ export function drawRect(
   drawBorders(ctx, x, y, width, height, style, borderRadius);
 }
 
-function getBorderRadius(style: ComputedStyle) {
+function resolveRadius(v: unknown, width: number, height: number): number {
+  if (typeof v === "string" && v.endsWith("%")) {
+    const pct = parseFloat(v) / 100;
+    return pct * Math.min(width, height);
+  }
+  return toNumber(v);
+}
+
+function getBorderRadius(style: ComputedStyle, width: number, height: number) {
   return {
-    topLeft: toNumber(style.borderTopLeftRadius),
-    topRight: toNumber(style.borderTopRightRadius),
-    bottomRight: toNumber(style.borderBottomRightRadius),
-    bottomLeft: toNumber(style.borderBottomLeftRadius),
+    topLeft: resolveRadius(style.borderTopLeftRadius, width, height),
+    topRight: resolveRadius(style.borderTopRightRadius, width, height),
+    bottomRight: resolveRadius(style.borderBottomRightRadius, width, height),
+    bottomLeft: resolveRadius(style.borderBottomLeftRadius, width, height),
   };
 }
 
-export function getBorderRadiusFromStyle(style: ComputedStyle) {
-  return getBorderRadius(style);
+export function getBorderRadiusFromStyle(
+  style: ComputedStyle,
+  width: number,
+  height: number,
+) {
+  return getBorderRadius(style, width, height);
 }
 
 function drawBorders(

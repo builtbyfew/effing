@@ -2143,6 +2143,41 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(1);
   });
 
+  it("renders borderRadius 50% as a circle", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: "50%",
+            background: "red",
+          }}
+        />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "border-radius-50-percent",
+    );
+    expect(percentage).toBeLessThan(1);
+  });
+
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
     const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
     const element = (

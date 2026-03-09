@@ -65,10 +65,10 @@ export type ComputedStyle = {
   paddingLeft?: number | string;
 
   // Border
-  borderTopWidth?: number;
-  borderRightWidth?: number;
-  borderBottomWidth?: number;
-  borderLeftWidth?: number;
+  borderTopWidth?: number | string;
+  borderRightWidth?: number | string;
+  borderBottomWidth?: number | string;
+  borderLeftWidth?: number | string;
   borderTopColor?: string;
   borderRightColor?: string;
   borderBottomColor?: string;
@@ -77,10 +77,10 @@ export type ComputedStyle = {
   borderRightStyle?: string;
   borderBottomStyle?: string;
   borderLeftStyle?: string;
-  borderTopLeftRadius?: number;
-  borderTopRightRadius?: number;
-  borderBottomRightRadius?: number;
-  borderBottomLeftRadius?: number;
+  borderTopLeftRadius?: number | string;
+  borderTopRightRadius?: number | string;
+  borderBottomRightRadius?: number | string;
+  borderBottomLeftRadius?: number | string;
 
   // Gap
   rowGap?: number;
@@ -244,6 +244,14 @@ const DIMENSION_PROPS: (keyof ComputedStyle)[] = [
   "rowGap",
   "columnGap",
   "flexBasis",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
 ];
 
 /**

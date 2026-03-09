@@ -167,7 +167,7 @@ export async function drawNode(
     style.overflowY === "hidden";
 
   if (isClipped) {
-    const borderRadius = getBorderRadiusFromStyle(style);
+    const borderRadius = getBorderRadiusFromStyle(style, width, height);
     applyClip(ctx, x, y, width, height, borderRadius);
   }
 
@@ -192,7 +192,7 @@ export async function drawNode(
       const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
       if (gradient) {
         ctx.fillStyle = gradient;
-        const borderRadius = getBorderRadiusFromStyle(style);
+        const borderRadius = getBorderRadiusFromStyle(style, width, height);
         if (
           borderRadius.topLeft > 0 ||
           borderRadius.topRight > 0 ||
@@ -219,7 +219,7 @@ export async function drawNode(
         // Try url(...) background image
         const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
         if (urlMatch) {
-          const borderRadius = getBorderRadiusFromStyle(style);
+          const borderRadius = getBorderRadiusFromStyle(style, width, height);
           const hasRadius =
             borderRadius.topLeft > 0 ||
             borderRadius.topRight > 0 ||
@@ -342,7 +342,7 @@ export async function drawNode(
     // Images are replaced content — borderRadius clips them directly
     // (unlike child content which requires overflow:hidden)
     if (!isClipped) {
-      const borderRadius = getBorderRadiusFromStyle(style);
+      const borderRadius = getBorderRadiusFromStyle(style, width, height);
       if (
         borderRadius.topLeft > 0 ||
         borderRadius.topRight > 0 ||
@@ -457,7 +457,7 @@ async function drawNodeInner(
     style.overflowY === "hidden";
 
   if (isClipped) {
-    const borderRadius = getBorderRadiusFromStyle(style);
+    const borderRadius = getBorderRadiusFromStyle(style, width, height);
     applyClip(ctx, x, y, width, height, borderRadius);
   }
 
@@ -480,7 +480,7 @@ async function drawNodeInner(
       const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
       if (gradient) {
         ctx.fillStyle = gradient;
-        const borderRadius = getBorderRadiusFromStyle(style);
+        const borderRadius = getBorderRadiusFromStyle(style, width, height);
         if (
           borderRadius.topLeft > 0 ||
           borderRadius.topRight > 0 ||
@@ -506,7 +506,7 @@ async function drawNodeInner(
       } else {
         const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
         if (urlMatch) {
-          const borderRadius = getBorderRadiusFromStyle(style);
+          const borderRadius = getBorderRadiusFromStyle(style, width, height);
           const hasRadius =
             borderRadius.topLeft > 0 ||
             borderRadius.topRight > 0 ||
@@ -612,7 +612,7 @@ async function drawNodeInner(
     const imgW = width - paddingLeft - paddingRight;
     const imgH = height - paddingTop - paddingBottom;
     if (!isClipped) {
-      const borderRadius = getBorderRadiusFromStyle(style);
+      const borderRadius = getBorderRadiusFromStyle(style, width, height);
       if (
         borderRadius.topLeft > 0 ||
         borderRadius.topRight > 0 ||

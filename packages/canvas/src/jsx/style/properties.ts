@@ -152,15 +152,15 @@ export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
   applyEdgeValue(node, "setPadding", Edge.Bottom, style.paddingBottom);
   applyEdgeValue(node, "setPadding", Edge.Left, style.paddingLeft);
 
-  // Border width
+  // Border width (resolved to numbers by resolveUnits before this point)
   if (style.borderTopWidth !== undefined)
-    node.setBorder(Edge.Top, style.borderTopWidth);
+    node.setBorder(Edge.Top, style.borderTopWidth as number);
   if (style.borderRightWidth !== undefined)
-    node.setBorder(Edge.Right, style.borderRightWidth);
+    node.setBorder(Edge.Right, style.borderRightWidth as number);
   if (style.borderBottomWidth !== undefined)
-    node.setBorder(Edge.Bottom, style.borderBottomWidth);
+    node.setBorder(Edge.Bottom, style.borderBottomWidth as number);
   if (style.borderLeftWidth !== undefined)
-    node.setBorder(Edge.Left, style.borderLeftWidth);
+    node.setBorder(Edge.Left, style.borderLeftWidth as number);
 
   // Gap
   if (style.rowGap !== undefined) node.setGap(Gutter.Row, style.rowGap);

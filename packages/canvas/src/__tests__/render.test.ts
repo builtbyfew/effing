@@ -143,6 +143,30 @@ describe("expandStyle", () => {
     expect(style.columnGap).toBe(20);
   });
 
+  it("preserves percentage borderRadius strings", () => {
+    const style = expandStyle({ borderRadius: "50%" });
+    expect(style.borderTopLeftRadius).toBe("50%");
+    expect(style.borderTopRightRadius).toBe("50%");
+    expect(style.borderBottomRightRadius).toBe("50%");
+    expect(style.borderBottomLeftRadius).toBe("50%");
+  });
+
+  it("preserves unit strings in margin shorthand", () => {
+    const style = expandStyle({ margin: "2em" });
+    expect(style.marginTop).toBe("2em");
+    expect(style.marginRight).toBe("2em");
+    expect(style.marginBottom).toBe("2em");
+    expect(style.marginLeft).toBe("2em");
+  });
+
+  it("preserves unit strings in borderRadius shorthand", () => {
+    const style = expandStyle({ borderRadius: "10px" });
+    expect(style.borderTopLeftRadius).toBe("10px");
+    expect(style.borderTopRightRadius).toBe("10px");
+    expect(style.borderBottomRightRadius).toBe("10px");
+    expect(style.borderBottomLeftRadius).toBe("10px");
+  });
+
   it("normalizes fontFamily", () => {
     const style = expandStyle({ fontFamily: "'Inter', sans-serif" });
     expect(style.fontFamily).toBe("Inter, sans-serif");

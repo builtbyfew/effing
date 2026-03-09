@@ -29,8 +29,8 @@ function parseValue(v: unknown): number | string | undefined {
   if (v === undefined || v === null) return undefined;
   const s = String(v);
   if (s === "auto") return "auto";
-  const n = parseFloat(s);
-  if (!isNaN(n)) return n;
+  const n = Number(s);
+  if (s !== "" && !isNaN(n)) return n;
   return s;
 }
 

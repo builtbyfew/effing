@@ -47,18 +47,25 @@ export async function buildLayoutTree(
   containerHeight: number,
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
+  fontFamilies?: string[],
 ): Promise<LayoutNode> {
   const rootYogaNode = createYogaNode();
+
+  // Set font families as default on root style so all nodes inherit them
+  const rootStyle = fontFamilies?.length
+    ? { ...DEFAULT_STYLE, fontFamily: fontFamilies.join(", ") }
+    : DEFAULT_STYLE;
 
   // Build the tree
   const rootNode = await buildNode(
     element,
-    DEFAULT_STYLE,
+    rootStyle,
     rootYogaNode,
     containerWidth,
     containerHeight,
     ctx,
     emojiEnabled,
+    fontFamilies,
   );
 
   // Set root dimensions
@@ -85,6 +92,7 @@ async function buildNode(
   viewportHeight: number,
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
+  fontFamilies?: string[],
 ): Promise<IntermediateNode> {
   // Handle null/undefined/boolean
   if (
@@ -141,6 +149,7 @@ async function buildNode(
           viewportHeight,
           ctx,
           emojiEnabled,
+          fontFamilies,
         ),
       );
     }
@@ -171,12 +180,13 @@ async function buildNode(
       viewportHeight,
       ctx,
       emojiEnabled,
+      fontFamilies,
     );
   }
 
   const props = (el.props ?? {}) as Record<string, unknown>;
   const rawStyle = (props.style ?? {}) as Record<string, unknown>;
-  const expanded = expandStyle(rawStyle);
+  const expanded = expandStyle(rawStyle, fontFamilies);
   const style = resolveStyle(expanded, parentStyle);
   resolveUnits(style, viewportWidth, viewportHeight);
 
@@ -327,6 +337,7 @@ async function buildNode(
           viewportHeight,
           ctx,
           emojiEnabled,
+          fontFamilies,
         ),
       );
     }

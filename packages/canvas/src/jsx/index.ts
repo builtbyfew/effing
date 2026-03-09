@@ -43,12 +43,14 @@ export async function renderReactElement(
   // Build layout tree (Yoga)
   const emojiStyle =
     options.emoji === "none" ? undefined : (options.emoji ?? "twemoji");
+  const fontFamilies = [...new Set(options.fonts.map((f) => f.name))];
   const layoutTree = await buildLayoutTree(
     element,
     width,
     height,
     ctx,
     !!emojiStyle,
+    fontFamilies,
   );
 
   // Draw to canvas

@@ -2317,4 +2317,49 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(1);
   });
+
+  it("renders special characters with multi-word font family", async () => {
+    // Register the same Inter font data under a multi-word alias
+    const interRegular = fonts.find(
+      (f) => f.name === "Inter" && f.weight === 400 && f.style === "normal",
+    )!;
+    const testFonts: FontData[] = [
+      ...fonts,
+      { ...interRegular, name: "Inter Test" },
+    ];
+
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: WIDTH,
+          height: HEIGHT,
+          fontFamily: "Inter Test",
+          backgroundColor: "white",
+          padding: 24,
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ display: "flex", fontSize: 32 }}>{"Price: €42,50"}</div>
+        <div style={{ display: "flex", fontSize: 32, marginTop: 16 }}>
+          {"Résumé — naïve café"}
+        </div>
+        <div style={{ display: "flex", fontSize: 32, marginTop: 16 }}>
+          {"Area: 100m² — 20°C"}
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, testFonts),
+      renderWithSatori(element, WIDTH, HEIGHT, testFonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "special-chars-multiword-font",
+    );
+    expect(percentage).toBeLessThan(2);
+  });
 });

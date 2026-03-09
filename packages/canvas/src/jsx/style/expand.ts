@@ -38,7 +38,10 @@ function parseValue(v: unknown): number | string | undefined {
  * Expand CSS shorthand properties into their longhand equivalents.
  * Mutates and returns the style object.
  */
-export function expandStyle(raw: RawStyle): ComputedStyle {
+export function expandStyle(
+  raw: RawStyle,
+  fontFamilies?: string[],
+): ComputedStyle {
   const style = { ...raw } as Record<string, unknown>;
 
   // margin shorthand
@@ -175,11 +178,17 @@ export function expandStyle(raw: RawStyle): ComputedStyle {
 
   // fontFamily normalization
   if (typeof style.fontFamily === "string") {
-    style.fontFamily = style.fontFamily
+    const families = style.fontFamily
       .split(",")
       .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
-      .filter(Boolean)
-      .join(", ");
+      .filter(Boolean);
+    if (fontFamilies) {
+      const present = new Set(families);
+      for (const name of fontFamilies) {
+        if (!present.has(name)) families.push(name);
+      }
+    }
+    style.fontFamily = families.join(", ");
   }
 
   return style as unknown as ComputedStyle;

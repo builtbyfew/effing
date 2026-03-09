@@ -84,6 +84,7 @@ async function drawSegmentWithEmoji(
   textShadow: string | undefined,
   emojiStyle: EmojiStyle,
 ): Promise<void> {
+  const letterSpacing = seg.letterSpacing ?? 0;
   const runs = splitTextIntoRuns(
     seg.text,
     (text) => {
@@ -91,14 +92,22 @@ async function drawSegmentWithEmoji(
       return ctx.measureText(text).width;
     },
     seg.fontSize,
+    letterSpacing,
   );
 
   for (const run of runs) {
     if (run.kind === "text") {
-      if (textShadow) {
-        drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+      if (letterSpacing !== 0) {
+        if (textShadow) {
+          drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+        }
+        drawTextWithLetterSpacing(ctx, run.text, x + run.x, y, letterSpacing);
+      } else {
+        if (textShadow) {
+          drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+        }
+        ctx.fillText(run.text, x + run.x, y);
       }
-      ctx.fillText(run.text, x + run.x, y);
     } else {
       const img = await loadEmojiImage(emojiStyle, run.char);
       if (img) {

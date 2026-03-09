@@ -12,6 +12,7 @@ export function splitTextIntoRuns(
   text: string,
   measureText: (text: string) => number,
   emojiSize: number,
+  letterSpacing: number = 0,
 ): TextRun[] {
   const runs: TextRun[] = [];
   const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
@@ -24,13 +25,18 @@ export function splitTextIntoRuns(
       // Flush accumulated text
       if (currentText) {
         const textWidth = measureText(currentText);
+        const graphemeCount = [
+          ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
+            currentText,
+          ),
+        ].length;
         runs.push({
           kind: "text",
           text: currentText,
           x: textStartX,
-          width: textWidth,
+          width: textWidth + letterSpacing * graphemeCount,
         });
-        currentX = textStartX + textWidth;
+        currentX = textStartX + textWidth + letterSpacing * graphemeCount;
         currentText = "";
       }
       runs.push({
@@ -39,7 +45,7 @@ export function splitTextIntoRuns(
         x: currentX,
         width: emojiSize,
       });
-      currentX += emojiSize;
+      currentX += emojiSize + letterSpacing;
       textStartX = currentX;
     } else {
       if (!currentText) textStartX = currentX;
@@ -50,11 +56,16 @@ export function splitTextIntoRuns(
   // Flush remaining text
   if (currentText) {
     const textWidth = measureText(currentText);
+    const graphemeCount = [
+      ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
+        currentText,
+      ),
+    ].length;
     runs.push({
       kind: "text",
       text: currentText,
       x: textStartX,
-      width: textWidth,
+      width: textWidth + letterSpacing * graphemeCount,
     });
   }
 

@@ -1530,6 +1530,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
   const pricingCases: {
     label: string;
     props: Omit<PricingCardProps, "width" | "height">;
+    maxDiff: number;
   }[] = [
     {
       label: "highlighted Pro plan with yearly discount",
@@ -1545,6 +1546,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         ],
         highlighted: true,
       },
+      maxDiff: 1.25,
     },
     {
       label: "plain Starter plan without yearly",
@@ -1554,12 +1556,13 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         features: ["5 projects", "Community support", "Basic analytics"],
         highlighted: false,
       },
+      maxDiff: 0.9,
     },
   ];
 
   it.each(pricingCases)(
     "renders PricingCard — $label",
-    async ({ label, props }) => {
+    async ({ label, props, maxDiff }) => {
       const element = <PricingCard width={WIDTH} height={HEIGHT} {...props} />;
 
       const [canvasPng, satoriPng] = await Promise.all([
@@ -1572,7 +1575,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         `pricing-${label}`,
       );
 
-      expect(percentage).toBeLessThan(1.5);
+      expect(percentage).toBeLessThan(maxDiff);
     },
   );
 

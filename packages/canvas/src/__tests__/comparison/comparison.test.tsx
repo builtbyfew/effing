@@ -2057,6 +2057,51 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
   // Intrinsic image sizing tests
   // -------------------------------------------------------------------------
 
+  // -------------------------------------------------------------------------
+  // LayeredGradientCard tests
+  // -------------------------------------------------------------------------
+
+  it("renders LayeredGradientCard — multiple stacked CSS gradients", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          backgroundImage:
+            "linear-gradient(rgba(75,162,254,0.5) 0%, rgba(75,162,254,0.8) 100%), linear-gradient(90deg, rgb(255,255,255) 0%, rgb(255,255,255) 100%)",
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 20,
+            fontWeight: 700,
+            color: "white",
+          }}
+        >
+          Layered Gradients
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "layered-gradient-card",
+    );
+
+    expect(percentage).toBeLessThan(1);
+  });
+
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
     const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
     const element = (

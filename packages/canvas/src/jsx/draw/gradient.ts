@@ -154,7 +154,7 @@ function directionToAngle(dir: string): number {
   return map[dir] ?? 180;
 }
 
-function splitGradientArgs(content: string): string[] {
+export function splitGradientArgs(content: string): string[] {
   const parts: string[] = [];
   let current = "";
   let parenDepth = 0;

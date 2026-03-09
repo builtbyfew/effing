@@ -37,7 +37,7 @@ import type { EmojiStyle } from "../emoji.ts";
 import type { LayoutNode } from "../layout.ts";
 import { layoutText } from "../text/index.ts";
 import { applyClip, roundedRect } from "./clip.ts";
-import { createGradientFromCSS } from "./gradient.ts";
+import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { drawRect, getBorderRadiusFromStyle } from "./rect.ts";
@@ -183,96 +183,104 @@ export async function drawNode(
     drawRect(ctx, x, y, width, height, style);
   }
 
-  // Draw background-image (gradient or url)
+  // Draw background-image (gradient or url) — supports multiple comma-separated layers
   if (style.backgroundImage) {
-    const gradient = createGradientFromCSS(
-      ctx,
-      style.backgroundImage,
-      x,
-      y,
-      width,
-      height,
-    );
-    if (gradient) {
-      ctx.fillStyle = gradient;
-      const borderRadius = getBorderRadiusFromStyle(style);
-      if (
-        borderRadius.topLeft > 0 ||
-        borderRadius.topRight > 0 ||
-        borderRadius.bottomRight > 0 ||
-        borderRadius.bottomLeft > 0
-      ) {
-        ctx.beginPath();
-        roundedRect(
-          ctx,
-          x,
-          y,
-          width,
-          height,
-          borderRadius.topLeft,
-          borderRadius.topRight,
-          borderRadius.bottomRight,
-          borderRadius.bottomLeft,
-        );
-        ctx.fill();
-      } else {
-        ctx.fillRect(x, y, width, height);
-      }
-    } else {
-      // Try url(...) background image
-      const urlMatch = style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
-      if (urlMatch) {
+    const layers = splitGradientArgs(style.backgroundImage);
+    // CSS paints last layer first (bottommost)
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const layer = layers[i]!.trim();
+      const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
+      if (gradient) {
+        ctx.fillStyle = gradient;
         const borderRadius = getBorderRadiusFromStyle(style);
-        const hasRadius =
+        if (
           borderRadius.topLeft > 0 ||
           borderRadius.topRight > 0 ||
           borderRadius.bottomRight > 0 ||
-          borderRadius.bottomLeft > 0;
-
-        if (hasRadius) {
-          applyClip(ctx, x, y, width, height, borderRadius);
-        }
-
-        const image = await loadImage(urlMatch[1]!);
-        const bgSize = style.backgroundSize;
-
-        if (bgSize === "cover") {
-          // Cover fills the box completely — no tiling needed
-          const r = computeCover(
-            image.width,
-            image.height,
+          borderRadius.bottomLeft > 0
+        ) {
+          ctx.beginPath();
+          roundedRect(
+            ctx,
             x,
             y,
             width,
             height,
+            borderRadius.topLeft,
+            borderRadius.topRight,
+            borderRadius.bottomRight,
+            borderRadius.bottomLeft,
           );
-          ctx.drawImage(image, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh);
+          ctx.fill();
         } else {
-          // Compute tile dimensions based on backgroundSize
-          let tileW: number, tileH: number;
-          if (bgSize === "contain") {
-            const r = computeContain(
+          ctx.fillRect(x, y, width, height);
+        }
+      } else {
+        // Try url(...) background image
+        const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
+        if (urlMatch) {
+          const borderRadius = getBorderRadiusFromStyle(style);
+          const hasRadius =
+            borderRadius.topLeft > 0 ||
+            borderRadius.topRight > 0 ||
+            borderRadius.bottomRight > 0 ||
+            borderRadius.bottomLeft > 0;
+
+          if (hasRadius) {
+            applyClip(ctx, x, y, width, height, borderRadius);
+          }
+
+          const image = await loadImage(urlMatch[1]!);
+          const bgSize = style.backgroundSize;
+
+          if (bgSize === "cover") {
+            // Cover fills the box completely — no tiling needed
+            const r = computeCover(
               image.width,
               image.height,
-              0,
-              0,
+              x,
+              y,
               width,
               height,
             );
-            tileW = r.dw;
-            tileH = r.dh;
-          } else if (bgSize === "100% 100%") {
-            tileW = width;
-            tileH = height;
+            ctx.drawImage(
+              image,
+              r.sx,
+              r.sy,
+              r.sw,
+              r.sh,
+              r.dx,
+              r.dy,
+              r.dw,
+              r.dh,
+            );
           } else {
-            // CSS default (auto): natural image size
-            tileW = image.width;
-            tileH = image.height;
-          }
-          // Tile the image to fill the box (CSS background-repeat: repeat)
-          for (let ty = y; ty < y + height; ty += tileH) {
-            for (let tx = x; tx < x + width; tx += tileW) {
-              ctx.drawImage(image, tx, ty, tileW, tileH);
+            // Compute tile dimensions based on backgroundSize
+            let tileW: number, tileH: number;
+            if (bgSize === "contain") {
+              const r = computeContain(
+                image.width,
+                image.height,
+                0,
+                0,
+                width,
+                height,
+              );
+              tileW = r.dw;
+              tileH = r.dh;
+            } else if (bgSize === "100% 100%") {
+              tileW = width;
+              tileH = height;
+            } else {
+              // CSS default (auto): natural image size
+              tileW = image.width;
+              tileH = image.height;
+            }
+            // Tile the image to fill the box (CSS background-repeat: repeat)
+            for (let ty = y; ty < y + height; ty += tileH) {
+              for (let tx = x; tx < x + width; tx += tileW) {
+                ctx.drawImage(image, tx, ty, tileW, tileH);
+              }
             }
           }
         }
@@ -465,86 +473,94 @@ async function drawNodeInner(
   }
 
   if (style.backgroundImage) {
-    const gradient = createGradientFromCSS(
-      ctx,
-      style.backgroundImage,
-      x,
-      y,
-      width,
-      height,
-    );
-    if (gradient) {
-      ctx.fillStyle = gradient;
-      const borderRadius = getBorderRadiusFromStyle(style);
-      if (
-        borderRadius.topLeft > 0 ||
-        borderRadius.topRight > 0 ||
-        borderRadius.bottomRight > 0 ||
-        borderRadius.bottomLeft > 0
-      ) {
-        ctx.beginPath();
-        roundedRect(
-          ctx,
-          x,
-          y,
-          width,
-          height,
-          borderRadius.topLeft,
-          borderRadius.topRight,
-          borderRadius.bottomRight,
-          borderRadius.bottomLeft,
-        );
-        ctx.fill();
-      } else {
-        ctx.fillRect(x, y, width, height);
-      }
-    } else {
-      const urlMatch = style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
-      if (urlMatch) {
+    const layers = splitGradientArgs(style.backgroundImage);
+    // CSS paints last layer first (bottommost)
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const layer = layers[i]!.trim();
+      const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
+      if (gradient) {
+        ctx.fillStyle = gradient;
         const borderRadius = getBorderRadiusFromStyle(style);
-        const hasRadius =
+        if (
           borderRadius.topLeft > 0 ||
           borderRadius.topRight > 0 ||
           borderRadius.bottomRight > 0 ||
-          borderRadius.bottomLeft > 0;
-        if (hasRadius) {
-          applyClip(ctx, x, y, width, height, borderRadius);
-        }
-        const image = await loadImage(urlMatch[1]!);
-        const bgSize = style.backgroundSize;
-        if (bgSize === "cover") {
-          const r = computeCover(
-            image.width,
-            image.height,
+          borderRadius.bottomLeft > 0
+        ) {
+          ctx.beginPath();
+          roundedRect(
+            ctx,
             x,
             y,
             width,
             height,
+            borderRadius.topLeft,
+            borderRadius.topRight,
+            borderRadius.bottomRight,
+            borderRadius.bottomLeft,
           );
-          ctx.drawImage(image, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh);
+          ctx.fill();
         } else {
-          let tileW: number, tileH: number;
-          if (bgSize === "contain") {
-            const r = computeContain(
+          ctx.fillRect(x, y, width, height);
+        }
+      } else {
+        const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
+        if (urlMatch) {
+          const borderRadius = getBorderRadiusFromStyle(style);
+          const hasRadius =
+            borderRadius.topLeft > 0 ||
+            borderRadius.topRight > 0 ||
+            borderRadius.bottomRight > 0 ||
+            borderRadius.bottomLeft > 0;
+          if (hasRadius) {
+            applyClip(ctx, x, y, width, height, borderRadius);
+          }
+          const image = await loadImage(urlMatch[1]!);
+          const bgSize = style.backgroundSize;
+          if (bgSize === "cover") {
+            const r = computeCover(
               image.width,
               image.height,
-              0,
-              0,
+              x,
+              y,
               width,
               height,
             );
-            tileW = r.dw;
-            tileH = r.dh;
-          } else if (bgSize === "100% 100%") {
-            tileW = width;
-            tileH = height;
+            ctx.drawImage(
+              image,
+              r.sx,
+              r.sy,
+              r.sw,
+              r.sh,
+              r.dx,
+              r.dy,
+              r.dw,
+              r.dh,
+            );
           } else {
-            tileW = image.width;
-            tileH = image.height;
-          }
-          for (let ty = y; ty < y + height; ty += tileH) {
-            for (let tx = x; tx < x + width; tx += tileW) {
-              ctx.drawImage(image, tx, ty, tileW, tileH);
+            let tileW: number, tileH: number;
+            if (bgSize === "contain") {
+              const r = computeContain(
+                image.width,
+                image.height,
+                0,
+                0,
+                width,
+                height,
+              );
+              tileW = r.dw;
+              tileH = r.dh;
+            } else if (bgSize === "100% 100%") {
+              tileW = width;
+              tileH = height;
+            } else {
+              tileW = image.width;
+              tileH = image.height;
+            }
+            for (let ty = y; ty < y + height; ty += tileH) {
+              for (let tx = x; tx < x + width; tx += tileW) {
+                ctx.drawImage(image, tx, ty, tileW, tileH);
+              }
             }
           }
         }

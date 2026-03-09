@@ -1,5 +1,14 @@
 # @effing/canvas
 
+## 0.18.5
+
+### Patch Changes
+
+- 5cb25b8: Fix CSS units being silently stripped in shorthand expansion (`margin`, `padding`, `borderRadius`, `gap`, etc.). `parseValue()` now uses `Number()` instead of `parseFloat()`, preserving unit strings like `"50%"`, `"2em"`, `"10px"` for downstream resolution. Border-radius properties are also added to `DIMENSION_PROPS` so `resolveUnits()` handles `em`/`rem`/`vw`/etc. on them.
+- 0198a76: Fix rendering of multiple layered CSS background gradients on React elements (e.g. `backgroundImage: "linear-gradient(...), linear-gradient(...)"`). The full multi-layer string was passed as-is to the gradient parser, whose greedy regex captured across both gradients and produced corrupted color stops. Now `backgroundImage` is split into individual layers using paren-depth-aware comma splitting, and each layer is rendered bottom-to-top per CSS stacking order.
+- a187432: Fix `letterSpacing` being ignored when `emojiStyle` is active (the default). `drawSegmentWithEmoji` now draws text runs character-by-character with spacing and accounts for letter spacing in run positioning via `splitTextIntoRuns`.
+- 8a29c96: Fix SVG `fillRule="evenodd"` not being applied. Compound paths with holes (e.g. a map pin with a circular cutout) were rendered solid because `ctx.fill()` defaulted to `"nonzero"`. The fill rule and clip rule are now read from element props and forwarded to the Canvas 2D API.
+
 ## 0.18.4
 
 ### Patch Changes

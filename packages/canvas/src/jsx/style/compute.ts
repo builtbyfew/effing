@@ -358,7 +358,57 @@ export function resolveUnits(
       (style as Record<string, unknown>)[prop] = resolved;
     }
   }
+
+  // Resolve CSS length units inside transform strings so that by draw time
+  // values are either bare numbers or `%` (which need element dimensions).
+  if (style.transform) {
+    style.transform = resolveTransformUnits(
+      style.transform,
+      viewportWidth,
+      viewportHeight,
+      fontSize,
+      rootFontSize,
+    );
+  }
+  if (style.transformOrigin) {
+    style.transformOrigin = resolveTransformUnits(
+      style.transformOrigin,
+      viewportWidth,
+      viewportHeight,
+      fontSize,
+      rootFontSize,
+    );
+  }
+
   return style;
+}
+
+/**
+ * Resolve CSS length units (vw, vh, em, rem, px, etc.) inside a transform or
+ * transformOrigin string. Percentages and angle units (deg, rad, turn) are
+ * left untouched — percentages need element dimensions (available at draw time)
+ * and angle units are not lengths.
+ */
+function resolveTransformUnits(
+  transform: string,
+  viewportWidth: number,
+  viewportHeight: number,
+  fontSize: number,
+  rootFontSize: number,
+): string {
+  return transform.replace(
+    /(-?\d*\.?\d+)(vw|vh|vmin|vmax|em|rem|px|pt|pc|in|cm|mm)\b/g,
+    (match) => {
+      const resolved = resolveUnit(
+        match,
+        viewportWidth,
+        viewportHeight,
+        fontSize,
+        rootFontSize,
+      );
+      return typeof resolved === "number" ? String(resolved) : match;
+    },
+  );
 }
 
 /**

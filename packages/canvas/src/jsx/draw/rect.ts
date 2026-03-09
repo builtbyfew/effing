@@ -2,6 +2,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { roundedRect } from "./clip.ts";
+import { parseCSSLength, toNumber } from "./index.ts";
 
 /**
  * Draw the background, borders, and box-shadow for a rectangular element.
@@ -54,10 +55,7 @@ export function drawRect(
 }
 
 function resolveRadius(v: unknown, width: number, height: number): number {
-  if (typeof v === "string" && v.endsWith("%")) {
-    const pct = parseFloat(v) / 100;
-    return pct * Math.min(width, height);
-  }
+  if (typeof v === "string") return parseCSSLength(v, Math.min(width, height));
   return toNumber(v);
 }
 
@@ -212,11 +210,4 @@ function drawBoxShadow(
   ctx.roundRect(x, y, width, height, radii);
   ctx.fill();
   ctx.restore();
-}
-
-function toNumber(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (v === undefined || v === null) return 0;
-  const n = parseFloat(String(v));
-  return isNaN(n) ? 0 : n;
 }

@@ -646,8 +646,8 @@ async function drawNodeInner(
   ctx.restore();
 }
 
-function resolveTranslateValue(value: string, size: number): number {
-  if (value.endsWith("%")) return (parseFloat(value) / 100) * size;
+export function parseCSSLength(value: string, referenceSize: number): number {
+  if (value.endsWith("%")) return (parseFloat(value) / 100) * referenceSize;
   return parseFloat(value);
 }
 
@@ -683,11 +683,11 @@ function applyTransform(
       case "translateX":
       case "translateY": {
         const tx =
-          name === "translateY" ? 0 : resolveTranslateValue(values[0]!, width);
+          name === "translateY" ? 0 : parseCSSLength(values[0]!, width);
         const ty =
           name === "translateX"
             ? 0
-            : resolveTranslateValue(
+            : parseCSSLength(
                 values[name === "translate" ? 1 : 0] ?? "0",
                 height,
               );
@@ -735,8 +735,7 @@ function resolveOrigin(
   if (value === "left" || value === "top") return base;
   if (value === "right" || value === "bottom") return base + size;
   if (value === "center") return base + size / 2;
-  if (value.endsWith("%")) return base + (parseFloat(value) / 100) * size;
-  return base + parseFloat(value);
+  return base + parseCSSLength(value, size);
 }
 
 function parseAngle(value: string): number {
@@ -746,7 +745,7 @@ function parseAngle(value: string): number {
   return parseFloat(value);
 }
 
-function toNumber(v: unknown): number {
+export function toNumber(v: unknown): number {
   if (typeof v === "number") return v;
   if (v === undefined || v === null) return 0;
   const n = parseFloat(String(v));

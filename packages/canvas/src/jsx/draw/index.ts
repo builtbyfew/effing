@@ -646,6 +646,11 @@ async function drawNodeInner(
   ctx.restore();
 }
 
+function resolveTranslateValue(value: string, size: number): number {
+  if (value.endsWith("%")) return (parseFloat(value) / 100) * size;
+  return parseFloat(value);
+}
+
 function applyTransform(
   ctx: SKRSContext2D,
   transform: string,
@@ -677,11 +682,15 @@ function applyTransform(
       case "translate":
       case "translateX":
       case "translateY": {
-        const tx = name === "translateY" ? 0 : parseFloat(values[0]!);
+        const tx =
+          name === "translateY" ? 0 : resolveTranslateValue(values[0]!, width);
         const ty =
           name === "translateX"
             ? 0
-            : parseFloat(values[name === "translate" ? 1 : 0] ?? "0");
+            : resolveTranslateValue(
+                values[name === "translate" ? 1 : 0] ?? "0",
+                height,
+              );
         ctx.translate(tx, ty);
         break;
       }

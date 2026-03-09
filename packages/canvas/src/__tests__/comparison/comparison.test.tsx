@@ -2181,6 +2181,65 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(1);
   });
 
+  // -------------------------------------------------------------------------
+  // Percentage translate centering
+  // -------------------------------------------------------------------------
+
+  it("renders percentage translate — left 50% + translate(-50%) centering", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          position: "relative",
+          width: WIDTH,
+          height: HEIGHT,
+          backgroundColor: "#f0f0f0",
+        }}
+      >
+        {/* Centered box using the common left:50% + translate(-50%) pattern */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 120,
+            height: 60,
+            backgroundColor: "#3B82F6",
+            borderRadius: 8,
+          }}
+        />
+        {/* Offset box: 25% from left, 75% from top */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: "25%",
+            top: "75%",
+            transform: "translate(-50%, -50%)",
+            width: 80,
+            height: 40,
+            backgroundColor: "#EF4444",
+            borderRadius: 8,
+          }}
+        />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "translate-percent-centering",
+    );
+
+    expect(percentage).toBeLessThan(0.01);
+  });
+
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
     const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
     const element = (

@@ -1,5 +1,14 @@
 # @effing/canvas
 
+## 0.18.6
+
+### Patch Changes
+
+- cf3b58a: Fix special character rendering (`€`, `²`, accented letters) by building a font fallback chain from all provided fonts and quoting multi-word family names in the CSS font shorthand passed to `@napi-rs/canvas`.
+- c135efa: Generalize CSS unit resolution in `transform` and `transformOrigin` strings. Units like `vw`, `vh`, `em`, `rem`, `px`, `pt`, etc. are now resolved to pixel values at layout time instead of being silently dropped by `parseFloat()` at draw time.
+- cd75f46: Support SVG `<clipPath>` definitions in the canvas renderer. `<clipPath>` elements inside `<defs>` were silently skipped, and `clip-path="url(#id)"` attributes on elements were never resolved. The renderer now collects `<clipPath>` definitions in a first pass, builds a combined `Path2D` from their child shapes, and applies `ctx.clip()` before drawing elements that reference them.
+- c8779d5: Resolve percentage values in CSS `translate()` transforms against the element's own dimensions. `translate(-50%, -50%)` now correctly shifts by half the element's width/height instead of being interpreted as pixels.
+
 ## 0.18.5
 
 ### Patch Changes

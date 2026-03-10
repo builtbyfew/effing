@@ -2468,4 +2468,46 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(1);
   });
+
+  it("svg-multi-path-cliprule", async () => {
+    const WIDTH = 200;
+    const HEIGHT = 200;
+
+    // Multiple sibling paths with clipRule="evenodd" — all should render
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={180}
+          height={180}
+          viewBox="0 0 180 180"
+          style={{ width: 180, height: 180 }}
+        >
+          <path d="M10,10 h50 v50 h-50 Z" fill="#E11D48" clipRule="evenodd" />
+          <path d="M70,10 h50 v50 h-50 Z" fill="#2563EB" clipRule="evenodd" />
+          <path d="M10,70 h50 v50 h-50 Z" fill="#16A34A" clipRule="evenodd" />
+          <path d="M70,70 h50 v50 h-50 Z" fill="#D97706" clipRule="evenodd" />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-multi-path-cliprule",
+    );
+    expect(percentage).toBeLessThan(1);
+  });
 });

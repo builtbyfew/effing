@@ -862,14 +862,6 @@ function applyFillAndStroke(
   const fillRule = (props.fillRule ?? props["fill-rule"]) as
     | CanvasFillRule
     | undefined;
-  const clipRule = (props.clipRule ?? props["clip-rule"]) as
-    | CanvasFillRule
-    | undefined;
-
-  if (clipRule) {
-    ctx.clip(path, clipRule);
-  }
-
   // Resolve url(#id) gradient reference
   const fillRef = parseUrlRef(fill);
   if (fillRef) {

@@ -2291,6 +2291,59 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(1);
   });
 
+  it("renders SVG radialGradient — gradient fill on shapes", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={300}
+          height={200}
+          viewBox="0 0 300 200"
+          style={{ width: 300, height: 200 }}
+        >
+          <defs>
+            <radialGradient id="rg1">
+              <stop offset="0%" stopColor="#FF6B6B" />
+              <stop offset="100%" stopColor="#4ECDC4" />
+            </radialGradient>
+            <linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#667eea" />
+              <stop offset="100%" stopColor="#764ba2" />
+            </linearGradient>
+            <linearGradient id="lg2" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#f093fb" />
+              <stop offset="50%" stopColor="#f5576c" />
+              <stop offset="100%" stopColor="#4facfe" />
+            </linearGradient>
+          </defs>
+          <rect x={10} y={10} width={120} height={80} fill="url(#rg1)" />
+          <rect x={140} y={10} width={150} height={80} fill="url(#lg1)" />
+          <circle cx={70} cy={150} r={40} fill="url(#lg2)" />
+          <path d="M160 110 h120 v80 H160 z" fill="url(#rg1)" />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-gradient-fills",
+    );
+    expect(percentage).toBe(0);
+  });
+
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {
     const imageDataUri = await makeTestImage(200, 100); // 2:1 landscape
     const element = (

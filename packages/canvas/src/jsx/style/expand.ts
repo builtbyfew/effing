@@ -2,7 +2,7 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
-import type { ComputedStyle } from "./compute.ts";
+import type { ExpandedStyle } from "./compute.ts";
 
 type RawStyle = Record<string, unknown>;
 
@@ -41,7 +41,7 @@ function parseValue(v: unknown): number | string | undefined {
 export function expandStyle(
   raw: RawStyle,
   fontFamilies?: string[],
-): ComputedStyle {
+): ExpandedStyle {
   const style = { ...raw } as Record<string, unknown>;
 
   // margin shorthand
@@ -207,5 +207,5 @@ export function expandStyle(
     style.fontFamily = families.join(", ");
   }
 
-  return style as unknown as ComputedStyle;
+  return style as unknown as ExpandedStyle;
 }

@@ -3,6 +3,14 @@
 // See NOTICE.md in the package root for details.
 
 /**
+ * Style after shorthand expansion but before unit resolution.
+ * Properties like fontSize may still contain CSS unit strings (e.g. "4em").
+ */
+export type ExpandedStyle = Omit<ComputedStyle, "fontSize"> & {
+  fontSize?: number | string;
+};
+
+/**
  * Normalized, computed CSS style after shorthand expansion.
  * All dimension values are numbers (pixels) or percentage strings.
  */
@@ -127,6 +135,8 @@ export type ComputedStyle = {
   filter?: string;
 };
 
+const ROOT_FONT_SIZE = 16;
+
 /**
  * Default styles for the root element.
  */
@@ -139,7 +149,7 @@ export const DEFAULT_STYLE: ComputedStyle = {
   alignItems: "stretch",
   justifyContent: "flex-start",
   position: "relative",
-  fontSize: 16,
+  fontSize: ROOT_FONT_SIZE,
   fontWeight: 400,
   fontStyle: "normal",
   color: "black",
@@ -175,7 +185,7 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
  * Resolve the computed style for a node, inheriting from parent where appropriate.
  */
 export function resolveStyle(
-  rawStyle: ComputedStyle | undefined,
+  rawStyle: ExpandedStyle | undefined,
   parentStyle: ComputedStyle,
 ): ComputedStyle {
   const style = { ...rawStyle };
@@ -187,10 +197,20 @@ export function resolveStyle(
     }
   }
 
-  // Resolve fontSize (ensure it's a number)
+  // Resolve fontSize (ensure it's a number, respecting em/rem/etc units)
   if (typeof style.fontSize === "string") {
-    const parsed = parseFloat(style.fontSize);
-    style.fontSize = isNaN(parsed) ? parentStyle.fontSize : parsed;
+    const parentFontSize =
+      typeof parentStyle.fontSize === "number"
+        ? parentStyle.fontSize
+        : ROOT_FONT_SIZE;
+    const resolved = resolveUnit(
+      style.fontSize,
+      0,
+      0,
+      parentFontSize,
+      ROOT_FONT_SIZE,
+    );
+    style.fontSize = typeof resolved === "number" ? resolved : parentFontSize;
   }
 
   // Resolve lineHeight: parse string values to numbers but keep multipliers
@@ -208,15 +228,27 @@ export function resolveStyle(
     }
   }
 
-  // Resolve letterSpacing
+  // Resolve letterSpacing (respecting em/rem/etc units)
   if (typeof style.letterSpacing === "string") {
-    const parsed = parseFloat(style.letterSpacing);
-    if (!isNaN(parsed)) {
-      style.letterSpacing = parsed;
+    const currentFontSize =
+      typeof style.fontSize === "number"
+        ? style.fontSize
+        : typeof parentStyle.fontSize === "number"
+          ? parentStyle.fontSize
+          : ROOT_FONT_SIZE;
+    const resolved = resolveUnit(
+      style.letterSpacing,
+      0,
+      0,
+      currentFontSize,
+      ROOT_FONT_SIZE,
+    );
+    if (typeof resolved === "number") {
+      style.letterSpacing = resolved;
     }
   }
 
-  return style;
+  return style as ComputedStyle;
 }
 
 /**
@@ -339,7 +371,7 @@ export function resolveUnits(
   style: ComputedStyle,
   viewportWidth: number,
   viewportHeight: number,
-  rootFontSize: number = DEFAULT_STYLE.fontSize!,
+  rootFontSize: number = ROOT_FONT_SIZE,
 ): ComputedStyle {
   const fontSize =
     typeof style.fontSize === "number" ? style.fontSize : rootFontSize;

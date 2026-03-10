@@ -86,6 +86,7 @@ import {
   resolveUnits,
   DEFAULT_STYLE,
 } from "../jsx/style/compute.ts";
+import type { ExpandedStyle } from "../jsx/style/compute.ts";
 import { buildLayoutTree } from "../jsx/layout.ts";
 import { drawNode } from "../jsx/draw/index.ts";
 import { layoutText } from "../jsx/text/index.ts";
@@ -196,6 +197,24 @@ describe("resolveStyle", () => {
       { ...DEFAULT_STYLE, color: "red" },
     );
     expect(style.color).toBe("blue");
+  });
+
+  it("resolves fontSize with em units relative to parent fontSize", () => {
+    const input: ExpandedStyle = { fontSize: "4em" };
+    const style = resolveStyle(input, { ...DEFAULT_STYLE, fontSize: 16 });
+    expect(style.fontSize).toBe(64);
+  });
+
+  it("resolves fontSize with rem units relative to root fontSize", () => {
+    const input: ExpandedStyle = { fontSize: "2rem" };
+    const style = resolveStyle(input, DEFAULT_STYLE);
+    expect(style.fontSize).toBe(2 * DEFAULT_STYLE.fontSize!);
+  });
+
+  it("resolves fontSize with px units", () => {
+    const input: ExpandedStyle = { fontSize: "24px" };
+    const style = resolveStyle(input, DEFAULT_STYLE);
+    expect(style.fontSize).toBe(24);
   });
 
   it("preserves lineHeight multiplier for per-element resolution", () => {

@@ -127,6 +127,22 @@ export function expandStyle(
     delete style.border;
   }
 
+  // Per-side border shorthands (e.g. borderLeft: "3px solid white")
+  for (const side of SIDES) {
+    const key = `border${side}`;
+    if (style[key] !== undefined) {
+      const parts = String(style[key]).split(/\s+/);
+      const width = parseValue(parts[0]);
+      const borderStyle = parts[1] ?? "solid";
+      const color = parts[2] ?? "black";
+      if (style[`${key}Width`] === undefined) style[`${key}Width`] = width;
+      if (style[`${key}Style`] === undefined)
+        style[`${key}Style`] = borderStyle;
+      if (style[`${key}Color`] === undefined) style[`${key}Color`] = color;
+      delete style[key];
+    }
+  }
+
   // flex shorthand
   if (style.flex !== undefined) {
     const val = String(style.flex);

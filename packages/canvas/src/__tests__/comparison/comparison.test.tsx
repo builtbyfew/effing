@@ -2415,4 +2415,57 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(2);
   });
+
+  // -------------------------------------------------------------------------
+  // SVG group transforms
+  // -------------------------------------------------------------------------
+
+  it("renders SVG group transforms — nested <g> with translate", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={200}
+          height={200}
+          viewBox="0 0 200 200"
+          style={{ width: 200, height: 200 }}
+        >
+          <defs>
+            <clipPath id="houseClip">
+              <rect x={0} y={0} width={80} height={80} />
+            </clipPath>
+          </defs>
+          <g transform="translate(60, 60)">
+            <g transform="translate(10, 10)">
+              <polygon
+                points="40,0 80,40 0,40"
+                fill="#EF4444"
+                clipPath="url(#houseClip)"
+              />
+              <rect x={10} y={40} width={60} height={40} fill="#3B82F6" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-group-transform",
+    );
+    expect(percentage).toBeLessThan(1);
+  });
 });

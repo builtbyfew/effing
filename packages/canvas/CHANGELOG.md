@@ -1,5 +1,35 @@
 # @effing/canvas
 
+## 0.19.0
+
+### Minor Changes
+
+- f8445d9: Support `text-box-trim` and `text-box-edge` CSS properties
+
+  Add support for trimming half-leading from text line boxes via `textBoxTrim`,
+  `textBoxEdge`, and the `textBox` shorthand. Maps CSS text-edge keywords (`cap`,
+  `ex`, `alphabetic`, `text`, `ideographic`) to canvas font metrics for precise
+  typographic control.
+
+### Patch Changes
+
+- 7564446: Stop `clipRule` from clipping the canvas on regular SVG elements
+- 62aaef6: Support per-side border shorthands (`borderLeft`, `borderRight`, `borderTop`, `borderBottom`)
+- b71f485: Resolve CSS units in `fontSize` and `letterSpacing` during style resolution
+
+  `fontSize: "4em"`, `"2rem"`, `"24px"` etc. are now resolved to pixel values in
+  `resolveStyle`, so downstream consumers always see a number. Introduces
+  `ExpandedStyle` to type the pre-resolution stage cleanly, keeping
+  `ComputedStyle.fontSize` strictly `number`.
+
+- 0e5c8f0: Add SVG gradient fill and stroke support to canvas renderer
+
+  The canvas renderer now processes `<linearGradient>` and `<radialGradient>`
+  definitions from SVG `<defs>`, applying gradient fills and strokes to shape
+  elements via `url(#id)` references.
+
+- 6651605: Support SVG `transform` attribute on `<g>` elements in canvas renderer
+
 ## 0.18.6
 
 ### Patch Changes

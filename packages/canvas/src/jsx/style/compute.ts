@@ -133,6 +133,10 @@ export type ComputedStyle = {
 
   // Filter
   filter?: string;
+
+  // Text box trim
+  textBoxTrim?: "none" | "trim-start" | "trim-end" | "trim-both";
+  textBoxEdge?: string;
 };
 
 const ROOT_FONT_SIZE = 16;
@@ -179,6 +183,8 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "whiteSpace",
   "wordBreak",
   "textOverflow",
+  "textBoxTrim",
+  "textBoxEdge",
 ];
 
 /**

@@ -47,3 +47,45 @@ describe("expandStyle – per-side border shorthands", () => {
     expect(result.borderLeftColor).toBe("red");
   });
 });
+
+describe("expandStyle – textBox shorthand", () => {
+  it("expands 'trim-both cap alphabetic' into trim and edge", () => {
+    const result = expandStyle({ textBox: "trim-both cap alphabetic" });
+    expect(result.textBoxTrim).toBe("trim-both");
+    expect(result.textBoxEdge).toBe("cap alphabetic");
+    expect(result).not.toHaveProperty("textBox");
+  });
+
+  it("expands 'trim-start text' into trim and edge", () => {
+    const result = expandStyle({ textBox: "trim-start text" });
+    expect(result.textBoxTrim).toBe("trim-start");
+    expect(result.textBoxEdge).toBe("text");
+  });
+
+  it("expands 'none' to textBoxTrim none", () => {
+    const result = expandStyle({ textBox: "none" });
+    expect(result.textBoxTrim).toBe("none");
+    expect(result.textBoxEdge).toBeUndefined();
+  });
+
+  it("expands 'normal' to textBoxTrim none", () => {
+    const result = expandStyle({ textBox: "normal" });
+    expect(result.textBoxTrim).toBe("none");
+    expect(result.textBoxEdge).toBeUndefined();
+  });
+
+  it("does not override explicit longhands", () => {
+    const result = expandStyle({
+      textBox: "trim-both cap alphabetic",
+      textBoxTrim: "trim-end",
+    });
+    expect(result.textBoxTrim).toBe("trim-end");
+    expect(result.textBoxEdge).toBe("cap alphabetic");
+  });
+
+  it("handles trim-end with ex alphabetic", () => {
+    const result = expandStyle({ textBox: "trim-end ex alphabetic" });
+    expect(result.textBoxTrim).toBe("trim-end");
+    expect(result.textBoxEdge).toBe("ex alphabetic");
+  });
+});

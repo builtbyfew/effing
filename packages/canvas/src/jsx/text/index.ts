@@ -7,7 +7,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 import type { ComputedStyle } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
 import { findBreakOpportunities } from "./linebreak.ts";
-import { measureText, measureWord } from "./measure.ts";
+import { measureText, measureTrimMetrics, measureWord } from "./measure.ts";
 import type { TextMetrics } from "./measure.ts";
 
 export type TextSegment = {
@@ -264,6 +264,32 @@ export function layoutText(
 
     totalHeight += lineHeightPx;
     maxLineWidth = Math.max(maxLineWidth, lineWidth);
+  }
+
+  // Apply text-box-trim
+  const textBoxTrim = style.textBoxTrim;
+  if (textBoxTrim && textBoxTrim !== "none" && segments.length > 0) {
+    const textBoxEdge = style.textBoxEdge ?? "text";
+    const trimMetrics = measureTrimMetrics(
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontStyle,
+      lineHeightPx,
+      textBoxEdge,
+      ctx,
+    );
+
+    if (textBoxTrim === "trim-start" || textBoxTrim === "trim-both") {
+      for (const seg of segments) {
+        seg.y -= trimMetrics.overTrim;
+      }
+      totalHeight -= trimMetrics.overTrim;
+    }
+
+    if (textBoxTrim === "trim-end" || textBoxTrim === "trim-both") {
+      totalHeight -= trimMetrics.underTrim;
+    }
   }
 
   return {

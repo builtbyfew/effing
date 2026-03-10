@@ -87,6 +87,85 @@ export function measureText(
 }
 
 /**
+ * Measure how many pixels to trim from the top (overTrim) and bottom
+ * (underTrim) of a line box based on `text-box-edge` keywords.
+ *
+ * The trim amount is the difference between the full line-height half-leading
+ * and the target metric for each edge.
+ */
+export function measureTrimMetrics(
+  fontSize: number,
+  fontFamily: string,
+  fontWeight: number | string,
+  fontStyle: string,
+  lineHeight: number,
+  edge: string,
+  ctx?: SKRSContext2D,
+): { overTrim: number; underTrim: number } {
+  const c = ctx ?? getScratchCtx();
+  setFont(c, fontSize, fontFamily, fontWeight, fontStyle);
+
+  const refMetrics = c.measureText("M");
+  const fontAscent =
+    refMetrics.fontBoundingBoxAscent ??
+    refMetrics.actualBoundingBoxAscent ??
+    fontSize * 0.8;
+  const fontDescent =
+    refMetrics.fontBoundingBoxDescent ??
+    refMetrics.actualBoundingBoxDescent ??
+    fontSize * 0.2;
+
+  // Parse edge into over-edge and under-edge keywords
+  const parts = edge.trim().split(/\s+/);
+  const overEdge = parts[0] ?? "text";
+  const underEdge = parts.length > 1 ? parts[1]! : overEdge;
+
+  // Resolve over-edge keyword → target ascent
+  let targetAscent: number;
+  switch (overEdge) {
+    case "cap": {
+      const capMetrics = c.measureText("H");
+      targetAscent = capMetrics.actualBoundingBoxAscent ?? fontSize * 0.7;
+      break;
+    }
+    case "ex": {
+      const exMetrics = c.measureText("x");
+      targetAscent = exMetrics.actualBoundingBoxAscent ?? fontSize * 0.5;
+      break;
+    }
+    case "ideographic":
+    case "ideographic-ink":
+    case "text":
+    default:
+      targetAscent = fontAscent;
+      break;
+  }
+
+  // Resolve under-edge keyword → target descent
+  let targetDescent: number;
+  switch (underEdge) {
+    case "alphabetic":
+      targetDescent = 0;
+      break;
+    case "ideographic":
+    case "ideographic-ink":
+    case "text":
+    default:
+      targetDescent = fontDescent;
+      break;
+  }
+
+  const halfLeading = (lineHeight - (fontAscent + fontDescent)) / 2;
+  const overTrim = halfLeading + (fontAscent - targetAscent);
+  const underTrim = halfLeading + (fontDescent - targetDescent);
+
+  return {
+    overTrim: Math.max(0, overTrim),
+    underTrim: Math.max(0, underTrim),
+  };
+}
+
+/**
  * Measure the width of a single word.
  */
 export function measureWord(

@@ -192,6 +192,21 @@ export function expandStyle(
     if (style.overflowY === undefined) style.overflowY = style.overflow;
   }
 
+  // textBox shorthand (e.g. "trim-both cap alphabetic")
+  if (style.textBox !== undefined) {
+    const val = String(style.textBox);
+    if (val === "normal" || val === "none") {
+      style.textBoxTrim ??= "none";
+    } else {
+      const parts = val.split(/\s+/);
+      style.textBoxTrim ??= parts[0];
+      if (parts.length > 1) {
+        style.textBoxEdge ??= parts.slice(1).join(" ");
+      }
+    }
+    delete style.textBox;
+  }
+
   // fontFamily normalization
   if (typeof style.fontFamily === "string") {
     const families = style.fontFamily

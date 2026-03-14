@@ -943,3 +943,144 @@ describe("drawNode", () => {
     expect(ctx.lineJoin).toBe("bevel");
   });
 });
+
+describe("percentage unit handling", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    vi.clearAllMocks();
+  });
+
+  it("SVG with viewBox + width='100%' inside known-size parent fills parent", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, height: 200 },
+          children: {
+            type: "svg",
+            props: {
+              width: "100%",
+              viewBox: "0 0 100 100",
+              children: null,
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    // width="100%" should resolve to parent width (200), not viewBox width (100)
+    expect(svg.width).toBe(200);
+  });
+
+  it("SVG with viewBox + numeric height only derives width from aspect ratio (regression)", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          children: {
+            type: "svg",
+            props: {
+              height: 50,
+              viewBox: "0 0 200 100",
+              children: null,
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      400,
+      400,
+      ctx,
+    );
+    const svg = tree.children[0];
+    expect(svg.width).toBe(100); // 50 * (200/100) = 100
+    expect(svg.height).toBe(50);
+  });
+
+  it("SVG with viewBox + width='50%' and no height leaves height for Yoga", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, height: 200 },
+          children: {
+            type: "svg",
+            props: {
+              width: "50%",
+              viewBox: "0 0 100 50",
+              children: null,
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    // width="50%" → Yoga resolves to 100px; height not derived (% width)
+    expect(svg.width).toBe(100);
+  });
+
+  it("IMG with width='100%' inside known-size parent fills parent", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 400,
+      height: 300,
+    } as never);
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, height: 200 },
+          children: {
+            type: "img",
+            props: { src: "test.png", width: "100%" },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const img = tree.children[0];
+    // width="100%" should resolve to parent width, not aspect-ratio derived
+    expect(img.width).toBe(200);
+  });
+
+  it("padding as percentage correctly insets content", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: {
+          fontSize: 16,
+          fontFamily: "sans-serif",
+          color: "black",
+          paddingLeft: "10%",
+          paddingRight: "10%",
+        },
+        children: [],
+        textContent: "Hello",
+        props: {},
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 50,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // 10% of 200px width = 20px padding on each side
+    expect(ctx.fillText).toHaveBeenCalled();
+    // First call args: text, x, y — x should be offset by padding (20)
+    const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
+    expect(fillTextCall![1]).toBe(20);
+  });
+});

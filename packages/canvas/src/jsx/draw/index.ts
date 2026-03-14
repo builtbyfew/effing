@@ -297,13 +297,13 @@ export async function drawNode(
 
   // Draw text content
   if (node.textContent !== undefined && node.textContent !== "") {
-    const paddingTop = toNumber(style.paddingTop);
-    const paddingLeft = toNumber(style.paddingLeft);
-    const paddingRight = toNumber(style.paddingRight);
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
 
-    const borderTopW = toNumber(style.borderTopWidth);
-    const borderLeftW = toNumber(style.borderLeftWidth);
-    const borderRightW = toNumber(style.borderRightWidth);
+    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
+    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
+    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
 
     const contentX = x + paddingLeft + borderLeftW;
     const contentY = y + paddingTop + borderTopW;
@@ -329,10 +329,10 @@ export async function drawNode(
 
   // Draw <img> elements
   if (node.type === "img" && node.props.src) {
-    const paddingTop = toNumber(style.paddingTop);
-    const paddingLeft = toNumber(style.paddingLeft);
-    const paddingRight = toNumber(style.paddingRight);
-    const paddingBottom = toNumber(style.paddingBottom);
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
+    const paddingBottom = resolveBoxValue(style.paddingBottom, width);
 
     const imgX = x + paddingLeft;
     const imgY = y + paddingTop;
@@ -575,12 +575,12 @@ async function drawNodeInner(
   }
 
   if (node.textContent !== undefined && node.textContent !== "") {
-    const paddingTop = toNumber(style.paddingTop);
-    const paddingLeft = toNumber(style.paddingLeft);
-    const paddingRight = toNumber(style.paddingRight);
-    const borderTopW = toNumber(style.borderTopWidth);
-    const borderLeftW = toNumber(style.borderLeftWidth);
-    const borderRightW = toNumber(style.borderRightWidth);
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
+    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
+    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
+    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
     const contentX = x + paddingLeft + borderLeftW;
     const contentY = y + paddingTop + borderTopW;
     const contentWidth =
@@ -603,10 +603,10 @@ async function drawNodeInner(
   }
 
   if (node.type === "img" && node.props.src) {
-    const paddingTop = toNumber(style.paddingTop);
-    const paddingLeft = toNumber(style.paddingLeft);
-    const paddingRight = toNumber(style.paddingRight);
-    const paddingBottom = toNumber(style.paddingBottom);
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
+    const paddingBottom = resolveBoxValue(style.paddingBottom, width);
     const imgX = x + paddingLeft;
     const imgY = y + paddingTop;
     const imgW = width - paddingLeft - paddingRight;
@@ -749,5 +749,19 @@ export function toNumber(v: unknown): number {
   if (typeof v === "number") return v;
   if (v === undefined || v === null) return 0;
   const n = parseFloat(String(v));
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Resolve a box-model value (padding, border-width) that may be a percentage.
+ * Per CSS spec, percentage padding/border resolves against the element's width
+ * (even for top/bottom).
+ */
+export function resolveBoxValue(v: unknown, referenceWidth: number): number {
+  if (typeof v === "number") return v;
+  if (v === undefined || v === null) return 0;
+  const s = String(v);
+  if (s.endsWith("%")) return (parseFloat(s) / 100) * referenceWidth;
+  const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }

@@ -210,16 +210,17 @@ async function buildNode(
       if (parts.length === 4) {
         const [, , vbW, vbH] = parts as [number, number, number, number];
         if (vbW > 0 && vbH > 0) {
-          const w = typeof style.width === "number" ? style.width : undefined;
-          const h = typeof style.height === "number" ? style.height : undefined;
-          if (w !== undefined && h === undefined) {
-            style.height = w * (vbH / vbW);
-          } else if (h !== undefined && w === undefined) {
-            style.width = h * (vbW / vbH);
-          } else if (w === undefined && h === undefined) {
+          const wSet = style.width !== undefined;
+          const hSet = style.height !== undefined;
+          if (!wSet && !hSet) {
             style.width = vbW;
             style.height = vbH;
+          } else if (!hSet && typeof style.width === "number") {
+            style.height = style.width * (vbH / vbW);
+          } else if (!wSet && typeof style.height === "number") {
+            style.width = style.height * (vbW / vbH);
           }
+          // When either/both are %, leave as-is for Yoga
         }
       }
     }
@@ -244,14 +245,20 @@ async function buildNode(
         const naturalW = image.width;
         const naturalH = image.height;
 
-        const w = typeof style.width === "number" ? style.width : undefined;
-        const h = typeof style.height === "number" ? style.height : undefined;
+        const wSet = style.width !== undefined;
+        const hSet = style.height !== undefined;
 
-        if (w !== undefined && h === undefined && naturalW > 0) {
-          style.height = w * (naturalH / naturalW);
-        } else if (h !== undefined && w === undefined && naturalH > 0) {
-          style.width = h * (naturalW / naturalH);
+        if (wSet && !hSet && typeof style.width === "number" && naturalW > 0) {
+          style.height = style.width * (naturalH / naturalW);
+        } else if (
+          hSet &&
+          !wSet &&
+          typeof style.height === "number" &&
+          naturalH > 0
+        ) {
+          style.width = style.height * (naturalW / naturalH);
         }
+        // When either/both are %, leave as-is for Yoga
 
         // Cache loaded image for reuse during drawing
         props.__loadedImage = image;

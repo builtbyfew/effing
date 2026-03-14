@@ -2,7 +2,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { roundedRect } from "./clip.ts";
-import { parseCSSLength, toNumber } from "./index.ts";
+import { parseCSSLength, toNumber, resolveBoxValue } from "./index.ts";
 
 /**
  * Draw the background, borders, and box-shadow for a rectangular element.
@@ -92,10 +92,10 @@ function drawBorders(
     borderRadius.bottomLeft > 0;
 
   // If all borders are the same, draw as a single stroke
-  const tw = toNumber(style.borderTopWidth);
-  const rw = toNumber(style.borderRightWidth);
-  const bw = toNumber(style.borderBottomWidth);
-  const lw = toNumber(style.borderLeftWidth);
+  const tw = resolveBoxValue(style.borderTopWidth, width);
+  const rw = resolveBoxValue(style.borderRightWidth, width);
+  const bw = resolveBoxValue(style.borderBottomWidth, width);
+  const lw = resolveBoxValue(style.borderLeftWidth, width);
 
   if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
 

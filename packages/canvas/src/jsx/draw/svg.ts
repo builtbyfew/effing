@@ -80,6 +80,18 @@ function normalizeChildren(node: SvgChild): SvgChild[] {
 // Gradient helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Parse an SVG length value, resolving percentages against a reference dimension.
+ * Unlike `parseFrac`, this returns absolute coordinates (not 0–1 fractions).
+ */
+function svgLength(value: unknown, reference: number, fallback = 0): number {
+  if (value == null) return fallback;
+  const s = String(value);
+  if (s.endsWith("%")) return (parseFloat(s) / 100) * reference;
+  const n = Number(s);
+  return isNaN(n) ? fallback : n;
+}
+
 /** Parse a gradient coordinate percentage/fraction to a 0–1 value. */
 function parseFrac(value: unknown, fallback: number): number {
   if (value == null) return fallback;
@@ -406,7 +418,11 @@ function pointsBBox(points: [number, number][]): BBox {
  * Build a `Path2D` from an SVG shape element (without drawing it).
  * Returns `undefined` for unsupported element types.
  */
-function buildPath(child: SvgChild): Path2D | undefined {
+function buildPath(
+  child: SvgChild,
+  vbW: number,
+  vbH: number,
+): Path2D | undefined {
   const props = mergeStyleIntoProps(child.props);
   switch (child.type) {
     case "path": {
@@ -415,29 +431,29 @@ function buildPath(child: SvgChild): Path2D | undefined {
       return new Path2D(d);
     }
     case "circle": {
-      const cx = Number(props.cx ?? 0);
-      const cy = Number(props.cy ?? 0);
-      const r = Number(props.r ?? 0);
+      const cx = svgLength(props.cx, vbW);
+      const cy = svgLength(props.cy, vbH);
+      const r = svgLength(props.r, Math.min(vbW, vbH));
       if (r <= 0) return undefined;
       const p = new Path2D();
       p.arc(cx, cy, r, 0, Math.PI * 2);
       return p;
     }
     case "rect": {
-      const rx = Number(props.x ?? 0);
-      const ry = Number(props.y ?? 0);
-      const w = Number(props.width ?? 0);
-      const h = Number(props.height ?? 0);
+      const rx = svgLength(props.x, vbW);
+      const ry = svgLength(props.y, vbH);
+      const w = svgLength(props.width, vbW);
+      const h = svgLength(props.height, vbH);
       if (w <= 0 || h <= 0) return undefined;
       const p = new Path2D();
       p.rect(rx, ry, w, h);
       return p;
     }
     case "ellipse": {
-      const cx = Number(props.cx ?? 0);
-      const cy = Number(props.cy ?? 0);
-      const rx = Number(props.rx ?? 0);
-      const ry = Number(props.ry ?? 0);
+      const cx = svgLength(props.cx, vbW);
+      const cy = svgLength(props.cy, vbH);
+      const rx = svgLength(props.rx, vbW);
+      const ry = svgLength(props.ry, vbH);
       if (rx <= 0 || ry <= 0) return undefined;
       const p = new Path2D();
       p.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
@@ -462,10 +478,14 @@ function buildPath(child: SvgChild): Path2D | undefined {
 /**
  * Build a combined `Path2D` from all children of a `<clipPath>` definition.
  */
-function buildClipPath(shapes: SvgChild[]): Path2D | undefined {
+function buildClipPath(
+  shapes: SvgChild[],
+  vbW: number,
+  vbH: number,
+): Path2D | undefined {
   let combined: Path2D | undefined;
   for (const shape of shapes) {
-    const p = buildPath(shape);
+    const p = buildPath(shape, vbW, vbH);
     if (!p) continue;
     if (!combined) {
       combined = p;
@@ -493,12 +513,21 @@ export function drawSvgContainer(
   ctx.save();
   ctx.translate(x, y);
 
-  // Parse viewBox for coordinate mapping
+  // Parse viewBox for coordinate mapping; default to rendered size when absent
   const viewBox = node.props.viewBox as string | undefined;
+  let vbW = width;
+  let vbH = height;
   if (viewBox) {
     const parts = viewBox.split(/[\s,]+/).map(Number);
     if (parts.length === 4) {
-      const [vbX, vbY, vbW, vbH] = parts as [number, number, number, number];
+      const [vbX, vbY, parsedW, parsedH] = parts as [
+        number,
+        number,
+        number,
+        number,
+      ];
+      vbW = parsedW;
+      vbH = parsedH;
       const scaleX = width / vbW;
       const scaleY = height / vbH;
       ctx.scale(scaleX, scaleY);
@@ -527,7 +556,7 @@ export function drawSvgContainer(
 
     // Second pass: draw children
     for (const child of svgChildren) {
-      drawSvgChild(ctx, child, inheritedFill, color, defs);
+      drawSvgChild(ctx, child, inheritedFill, color, defs, vbW, vbH);
     }
   }
 
@@ -545,6 +574,8 @@ function drawSvgChild(
   inheritedFill: string,
   color: string,
   defs: SvgDefs = EMPTY_DEFS,
+  vbW = 0,
+  vbH = 0,
 ): void {
   const { type } = child;
   const props = mergeStyleIntoProps(child.props);
@@ -555,7 +586,7 @@ function drawSvgChild(
   // Check for clip-path="url(#id)" reference
   const clipRef = parseUrlRef(props.clipPath ?? props["clip-path"]);
   const clipShapes = clipRef ? defs.clips.get(clipRef) : undefined;
-  const clipPath = clipShapes ? buildClipPath(clipShapes) : undefined;
+  const clipPath = clipShapes ? buildClipPath(clipShapes, vbW, vbH) : undefined;
 
   if (clipPath) ctx.save();
   if (clipPath) ctx.clip(clipPath);
@@ -565,16 +596,16 @@ function drawSvgChild(
       drawPath(ctx, props, inheritedFill, color, defs);
       break;
     case "circle":
-      drawCircle(ctx, props, inheritedFill, color, defs);
+      drawCircle(ctx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "rect":
-      drawSvgRect(ctx, props, inheritedFill, color, defs);
+      drawSvgRect(ctx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "line":
-      drawLine(ctx, props, color, defs);
+      drawLine(ctx, props, color, defs, vbW, vbH);
       break;
     case "ellipse":
-      drawEllipse(ctx, props, inheritedFill, color, defs);
+      drawEllipse(ctx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "polygon":
       drawPolygon(ctx, props, inheritedFill, color, defs);
@@ -583,7 +614,7 @@ function drawSvgChild(
       drawPolyline(ctx, props, inheritedFill, color, defs);
       break;
     case "g":
-      drawGroup(ctx, child, inheritedFill, color, defs);
+      drawGroup(ctx, child, inheritedFill, color, defs, vbW, vbH);
       break;
   }
 
@@ -611,10 +642,12 @@ function drawCircle(
   inheritedFill: string,
   color: string,
   defs: SvgDefs,
+  vbW = 0,
+  vbH = 0,
 ): void {
-  const cx = Number(props.cx ?? 0);
-  const cy = Number(props.cy ?? 0);
-  const r = Number(props.r ?? 0);
+  const cx = svgLength(props.cx, vbW);
+  const cy = svgLength(props.cy, vbH);
+  const r = svgLength(props.r, Math.min(vbW, vbH));
   if (r <= 0) return;
 
   const path = new Path2D();
@@ -629,11 +662,13 @@ function drawSvgRect(
   inheritedFill: string,
   color: string,
   defs: SvgDefs,
+  vbW = 0,
+  vbH = 0,
 ): void {
-  const rx = Number(props.x ?? 0);
-  const ry = Number(props.y ?? 0);
-  const w = Number(props.width ?? 0);
-  const h = Number(props.height ?? 0);
+  const rx = svgLength(props.x, vbW);
+  const ry = svgLength(props.y, vbH);
+  const w = svgLength(props.width, vbW);
+  const h = svgLength(props.height, vbH);
   if (w <= 0 || h <= 0) return;
 
   const path = new Path2D();
@@ -647,11 +682,13 @@ function drawLine(
   props: Record<string, unknown>,
   color: string,
   defs: SvgDefs,
+  vbW = 0,
+  vbH = 0,
 ): void {
-  const x1 = Number(props.x1 ?? 0);
-  const y1 = Number(props.y1 ?? 0);
-  const x2 = Number(props.x2 ?? 0);
-  const y2 = Number(props.y2 ?? 0);
+  const x1 = svgLength(props.x1, vbW);
+  const y1 = svgLength(props.y1, vbH);
+  const x2 = svgLength(props.x2, vbW);
+  const y2 = svgLength(props.y2, vbH);
 
   const path = new Path2D();
   path.moveTo(x1, y1);
@@ -672,11 +709,13 @@ function drawEllipse(
   inheritedFill: string,
   color: string,
   defs: SvgDefs,
+  vbW = 0,
+  vbH = 0,
 ): void {
-  const cx = Number(props.cx ?? 0);
-  const cy = Number(props.cy ?? 0);
-  const rx = Number(props.rx ?? 0);
-  const ry = Number(props.ry ?? 0);
+  const cx = svgLength(props.cx, vbW);
+  const cy = svgLength(props.cy, vbH);
+  const rx = svgLength(props.rx, vbW);
+  const ry = svgLength(props.ry, vbH);
   if (rx <= 0 || ry <= 0) return;
 
   const path = new Path2D();
@@ -807,6 +846,8 @@ function drawGroup(
   inheritedFill: string,
   color: string,
   defs: SvgDefs = EMPTY_DEFS,
+  vbW = 0,
+  vbH = 0,
 ): void {
   const children = normalizeChildren(node);
   if (children.length === 0) return;
@@ -824,7 +865,7 @@ function drawGroup(
 
   for (const child of children) {
     if (child != null && typeof child === "object") {
-      drawSvgChild(ctx, child, groupFill, color, defs);
+      drawSvgChild(ctx, child, groupFill, color, defs, vbW, vbH);
     }
   }
 

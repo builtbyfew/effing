@@ -367,16 +367,21 @@ describe("buildLayoutTree", () => {
     ctx = canvas.getContext("2d");
   });
 
-  it("builds layout for string content", async () => {
+  it("wraps root element in a canvas-sized container", async () => {
     const tree = await buildLayoutTree("Hello", 200, 200, ctx);
-    expect(tree.type).toBe("text");
-    expect(tree.textContent).toBe("Hello");
-    expect(tree.width).toBeGreaterThan(0);
+    expect(tree.type).toBe("div");
+    expect(tree.width).toBe(200);
+    expect(tree.height).toBe(200);
+    const child = tree.children[0];
+    expect(child.type).toBe("text");
+    expect(child.textContent).toBe("Hello");
+    expect(child.width).toBeGreaterThan(0);
   });
 
   it("builds layout for null content", async () => {
     const tree = await buildLayoutTree(null, 200, 200, ctx);
-    expect(tree.type).toBe("empty");
+    expect(tree.type).toBe("div");
+    expect(tree.children[0].type).toBe("empty");
   });
 
   it("derives svg width from height and viewBox aspect ratio", async () => {
@@ -398,7 +403,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     expect(svg.width).toBeCloseTo(30 * (601 / 600), 0);
     expect(svg.height).toBe(30);
   });
@@ -418,7 +424,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     expect(svg.width).toBe(40);
     expect(svg.height).toBe(20);
   });
@@ -438,7 +445,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     expect(svg.width).toBe(100);
     expect(svg.height).toBe(50);
   });
@@ -462,7 +470,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     expect(img.width).toBe(100); // 50 * (200/100) = 100
     expect(img.height).toBe(50);
   });
@@ -486,7 +495,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     expect(img.width).toBe(100);
     expect(img.height).toBe(50); // 100 * (100/200) = 50
   });
@@ -510,7 +520,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     // Without explicit dimensions, Yoga sizes from layout constraints only.
     // In a default flex-column container the child stretches on the cross
     // axis (height) but collapses on the main axis (width).
@@ -537,7 +548,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     expect(img.width).toBe(60);
     expect(img.height).toBe(30);
   });
@@ -561,7 +573,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     expect(img.width).toBe(120);
     expect(img.height).toBe(60);
   });
@@ -579,7 +592,8 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const textChild = tree.children[0];
+    const div = tree.children[0];
+    const textChild = div.children[0];
     expect(textChild.type).toBe("text");
     expect(textChild.width).toBe(200);
   });
@@ -604,9 +618,45 @@ describe("buildLayoutTree", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     expect(img.width).toBe(200);
     expect(img.height).toBe(200);
+  });
+
+  it("resolves position: absolute on root element against canvas dimensions", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: {
+            position: "absolute",
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: 20,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          },
+          children: "Centered",
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    // Root is a wrapper
+    expect(tree.x).toBe(0);
+    expect(tree.y).toBe(0);
+    expect(tree.width).toBe(200);
+    expect(tree.height).toBe(200);
+    // Child is the absolute-positioned element
+    const child = tree.children[0];
+    expect(child.x).toBe(20);
+    expect(child.y).toBe(20);
+    expect(child.width).toBe(160); // 200 - 20 - 20
+    expect(child.height).toBe(160); // 200 - 20 - 20
   });
 });
 
@@ -973,7 +1023,8 @@ describe("percentage unit handling", () => {
       200,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     // width="100%" should resolve to parent width (200), not viewBox width (100)
     expect(svg.width).toBe(200);
   });
@@ -997,7 +1048,8 @@ describe("percentage unit handling", () => {
       400,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     expect(svg.width).toBe(100); // 50 * (200/100) = 100
     expect(svg.height).toBe(50);
   });
@@ -1022,7 +1074,8 @@ describe("percentage unit handling", () => {
       200,
       ctx,
     );
-    const svg = tree.children[0];
+    const div = tree.children[0];
+    const svg = div.children[0];
     // width="50%" → Yoga resolves to 100px; height not derived (% width)
     expect(svg.width).toBe(100);
   });
@@ -1047,7 +1100,8 @@ describe("percentage unit handling", () => {
       200,
       ctx,
     );
-    const img = tree.children[0];
+    const div = tree.children[0];
+    const img = div.children[0];
     // width="100%" should resolve to parent width, not aspect-ratio derived
     expect(img.width).toBe(200);
   });

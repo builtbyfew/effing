@@ -11,7 +11,7 @@ import { resolveStyle, resolveUnits, DEFAULT_STYLE } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { createTextMeasureFunc } from "./text/index.ts";
-import { createYogaNode, freeYogaNode } from "./yoga.ts";
+import { createYogaNode, freeYogaNode, FlexDirection } from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
 /**
@@ -49,7 +49,7 @@ export async function buildLayoutTree(
   emojiEnabled?: boolean,
   fontFamilies?: string[],
 ): Promise<LayoutNode> {
-  const rootYogaNode = createYogaNode();
+  const elementYogaNode = createYogaNode();
 
   // Set font families as default on root style so all nodes inherit them
   const rootStyle = fontFamilies?.length
@@ -57,10 +57,10 @@ export async function buildLayoutTree(
     : DEFAULT_STYLE;
 
   // Build the tree
-  const rootNode = await buildNode(
+  const elementNode = await buildNode(
     element,
     rootStyle,
-    rootYogaNode,
+    elementYogaNode,
     containerWidth,
     containerHeight,
     ctx,
@@ -68,20 +68,29 @@ export async function buildLayoutTree(
     fontFamilies,
   );
 
-  // Set root dimensions
+  // Wrap the user element in a canvas-sized container (like Satori) so that
+  // absolute positioning, percentage sizes, etc. resolve against the canvas.
+  const rootYogaNode = createYogaNode();
   rootYogaNode.setWidth(containerWidth);
   rootYogaNode.setHeight(containerHeight);
+  rootYogaNode.setFlexDirection(FlexDirection.Row);
+  rootYogaNode.insertChild(elementYogaNode, 0);
 
-  // Calculate layout
   rootYogaNode.calculateLayout(containerWidth, containerHeight);
 
-  // Extract computed positions
-  const layoutTree = extractLayout(rootNode, rootYogaNode);
-
-  // Free Yoga nodes
+  const elementLayout = extractLayout(elementNode, elementYogaNode);
   freeYogaNode(rootYogaNode);
 
-  return layoutTree;
+  return {
+    type: "div",
+    style: rootStyle,
+    children: [elementLayout],
+    props: {},
+    x: 0,
+    y: 0,
+    width: containerWidth,
+    height: containerHeight,
+  } as LayoutNode;
 }
 
 async function buildNode(

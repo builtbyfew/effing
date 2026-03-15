@@ -43,7 +43,7 @@ const fontCache = new Map<string, Promise<Buffer>>();
 function fetchFont(url: string): Promise<Buffer> {
   let p = fontCache.get(url);
   if (!p) {
-    p = fetch(url, { signal: AbortSignal.timeout(5000) }).then((r) => {
+    p = fetch(url, { signal: AbortSignal.timeout(2000) }).then((r) => {
       if (!r.ok) throw new Error(`Failed to fetch font: ${url}`);
       return r.arrayBuffer().then((ab) => Buffer.from(ab));
     });
@@ -1549,7 +1549,7 @@ async function hasNetwork(): Promise<boolean> {
   try {
     const r = await fetch("https://cdnjs.cloudflare.com", {
       method: "HEAD",
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(2000),
     });
     return r.ok;
   } catch {

@@ -72,7 +72,7 @@ export function roundedRect(
   ctx.closePath();
 }
 
-function hasRadius(r: {
+export function hasRadius(r: {
   topLeft: number;
   topRight: number;
   bottomRight: number;

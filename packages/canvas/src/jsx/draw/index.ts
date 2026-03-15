@@ -36,13 +36,18 @@ function releaseOffscreen(canvas: Canvas): void {
 import type { EmojiStyle } from "../emoji.ts";
 import type { LayoutNode } from "../layout.ts";
 import { layoutText } from "../text/index.ts";
-import { applyClip, roundedRect } from "./clip.ts";
+import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { drawRect, getBorderRadiusFromStyle } from "./rect.ts";
 import { drawSvgContainer } from "./svg.ts";
 import { drawText } from "./text.ts";
+import { parseCSSLength, resolveBoxValue } from "./utils.ts";
+
+// Re-export for backward compatibility (used by tests and other modules)
+export { parseCSSLength, resolveBoxValue } from "./utils.ts";
+export { toNumber } from "./utils.ts";
 
 /**
  * Main draw dispatcher: recursively draws the layout tree onto the canvas.
@@ -85,7 +90,7 @@ export async function drawNode(
       // Render at qx×qy resolution — logical coords produce more pixels
       offCtx.save();
       offCtx.scale(qx, qy);
-      await drawNodeInner(
+      await drawNodeCore(
         offCtx,
         node,
         parentX,
@@ -135,6 +140,57 @@ export async function drawNode(
     }
   }
 
+  await drawNodeCore(ctx, node, parentX, parentY, 0, 0, debug, emojiStyle);
+}
+
+/**
+ * Extract scale(sx, sy) from a transform string, returning the scale values
+ * and the remaining transform with scale removed.
+ */
+function extractScale(
+  transform: string,
+): { sx: number; sy: number; remaining: string } | null {
+  const scaleMatch = transform.match(/\b(scale|scaleX|scaleY)\(([^)]+)\)/);
+  if (!scaleMatch) return null;
+
+  const [fullMatch, name, args] = scaleMatch;
+  const values = args!.split(",").map((s) => s.trim());
+
+  const sx = name === "scaleY" ? 1 : parseFloat(values[0]!);
+  const sy =
+    name === "scaleX"
+      ? 1
+      : parseFloat(values[name === "scale" ? 1 : 0] ?? String(sx));
+
+  const remaining = transform.replace(fullMatch!, "").trim();
+  return { sx, sy, remaining };
+}
+
+/**
+ * Core draw logic shared by both the normal path and the offscreen-buffer path.
+ * offsetX/offsetY shift all coordinates so the node renders at a buffer-local position.
+ * overrideTransform replaces the node's transform (used to strip scale for offscreen).
+ */
+async function drawNodeCore(
+  ctx: SKRSContext2D,
+  node: LayoutNode,
+  parentX: number,
+  parentY: number,
+  offsetX: number,
+  offsetY: number,
+  debug: boolean,
+  emojiStyle: EmojiStyle | undefined,
+  overrideTransform?: string,
+): Promise<void> {
+  const x = parentX + node.x + offsetX;
+  const y = parentY + node.y + offsetY;
+  const { width, height, style } = node;
+
+  if (style.display === "none") return;
+
+  const opacity = style.opacity ?? 1;
+  if (opacity <= 0) return;
+
   ctx.save();
 
   // Apply opacity
@@ -147,11 +203,13 @@ export async function drawNode(
     ctx.filter = style.filter;
   }
 
-  // Apply transform
-  if (style.transform) {
+  // Apply transform (use override when provided, e.g. scale stripped)
+  const transformToApply =
+    overrideTransform !== undefined ? overrideTransform : style.transform;
+  if (transformToApply) {
     applyTransform(
       ctx,
-      style.transform,
+      transformToApply,
       x,
       y,
       width,
@@ -193,12 +251,7 @@ export async function drawNode(
       if (gradient) {
         ctx.fillStyle = gradient;
         const borderRadius = getBorderRadiusFromStyle(style, width, height);
-        if (
-          borderRadius.topLeft > 0 ||
-          borderRadius.topRight > 0 ||
-          borderRadius.bottomRight > 0 ||
-          borderRadius.bottomLeft > 0
-        ) {
+        if (hasRadius(borderRadius)) {
           ctx.beginPath();
           roundedRect(
             ctx,
@@ -220,13 +273,7 @@ export async function drawNode(
         const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
         if (urlMatch) {
           const borderRadius = getBorderRadiusFromStyle(style, width, height);
-          const hasRadius =
-            borderRadius.topLeft > 0 ||
-            borderRadius.topRight > 0 ||
-            borderRadius.bottomRight > 0 ||
-            borderRadius.bottomLeft > 0;
-
-          if (hasRadius) {
+          if (hasRadius(borderRadius)) {
             applyClip(ctx, x, y, width, height, borderRadius);
           }
 
@@ -343,12 +390,7 @@ export async function drawNode(
     // (unlike child content which requires overflow:hidden)
     if (!isClipped) {
       const borderRadius = getBorderRadiusFromStyle(style, width, height);
-      if (
-        borderRadius.topLeft > 0 ||
-        borderRadius.topRight > 0 ||
-        borderRadius.bottomRight > 0 ||
-        borderRadius.bottomLeft > 0
-      ) {
+      if (hasRadius(borderRadius)) {
         applyClip(ctx, imgX, imgY, imgW, imgH, borderRadius);
       }
     }
@@ -370,285 +412,28 @@ export async function drawNode(
     drawSvgContainer(ctx, node, x, y, width, height);
   } else {
     // Recursively draw children
+    // When rendering via offset (offscreen buffer), children use offset 0
+    // since x,y already incorporates the offset.
     for (const child of node.children) {
-      await drawNode(ctx, child, x, y, debug, emojiStyle);
-    }
-  }
-
-  ctx.restore();
-}
-
-/**
- * Extract scale(sx, sy) from a transform string, returning the scale values
- * and the remaining transform with scale removed.
- */
-function extractScale(
-  transform: string,
-): { sx: number; sy: number; remaining: string } | null {
-  const scaleMatch = transform.match(/\b(scale|scaleX|scaleY)\(([^)]+)\)/);
-  if (!scaleMatch) return null;
-
-  const [fullMatch, name, args] = scaleMatch;
-  const values = args!.split(",").map((s) => s.trim());
-
-  const sx = name === "scaleY" ? 1 : parseFloat(values[0]!);
-  const sy =
-    name === "scaleX"
-      ? 1
-      : parseFloat(values[name === "scale" ? 1 : 0] ?? String(sx));
-
-  const remaining = transform.replace(fullMatch!, "").trim();
-  return { sx, sy, remaining };
-}
-
-/**
- * Inner draw that renders a node with an optional override transform
- * (used by the offscreen-buffer path to strip scale from the transform).
- * offsetX/offsetY shift all coordinates so the node renders at a buffer-local position.
- */
-async function drawNodeInner(
-  ctx: SKRSContext2D,
-  node: LayoutNode,
-  parentX: number,
-  parentY: number,
-  offsetX: number,
-  offsetY: number,
-  debug: boolean,
-  emojiStyle: EmojiStyle | undefined,
-  overrideTransform: string | undefined,
-): Promise<void> {
-  const x = parentX + node.x + offsetX;
-  const y = parentY + node.y + offsetY;
-  const { width, height, style } = node;
-
-  if (style.display === "none") return;
-
-  const opacity = style.opacity ?? 1;
-  if (opacity <= 0) return;
-
-  ctx.save();
-
-  if (opacity < 1) {
-    ctx.globalAlpha *= opacity;
-  }
-
-  if (style.filter) {
-    ctx.filter = style.filter;
-  }
-
-  // Apply the override transform (scale stripped) or original
-  const transformToApply =
-    overrideTransform !== undefined ? overrideTransform : style.transform;
-  if (transformToApply) {
-    applyTransform(
-      ctx,
-      transformToApply,
-      x,
-      y,
-      width,
-      height,
-      style.transformOrigin,
-    );
-  }
-
-  const isClipped =
-    style.overflow === "hidden" ||
-    style.overflowX === "hidden" ||
-    style.overflowY === "hidden";
-
-  if (isClipped) {
-    const borderRadius = getBorderRadiusFromStyle(style, width, height);
-    applyClip(ctx, x, y, width, height, borderRadius);
-  }
-
-  if (
-    style.backgroundColor ||
-    style.borderTopWidth ||
-    style.borderRightWidth ||
-    style.borderBottomWidth ||
-    style.borderLeftWidth ||
-    style.boxShadow
-  ) {
-    drawRect(ctx, x, y, width, height, style);
-  }
-
-  if (style.backgroundImage) {
-    const layers = splitGradientArgs(style.backgroundImage);
-    // CSS paints last layer first (bottommost)
-    for (let i = layers.length - 1; i >= 0; i--) {
-      const layer = layers[i]!.trim();
-      const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
-      if (gradient) {
-        ctx.fillStyle = gradient;
-        const borderRadius = getBorderRadiusFromStyle(style, width, height);
-        if (
-          borderRadius.topLeft > 0 ||
-          borderRadius.topRight > 0 ||
-          borderRadius.bottomRight > 0 ||
-          borderRadius.bottomLeft > 0
-        ) {
-          ctx.beginPath();
-          roundedRect(
-            ctx,
-            x,
-            y,
-            width,
-            height,
-            borderRadius.topLeft,
-            borderRadius.topRight,
-            borderRadius.bottomRight,
-            borderRadius.bottomLeft,
-          );
-          ctx.fill();
-        } else {
-          ctx.fillRect(x, y, width, height);
-        }
+      if (offsetX === 0 && offsetY === 0) {
+        await drawNode(ctx, child, x, y, debug, emojiStyle);
       } else {
-        const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
-        if (urlMatch) {
-          const borderRadius = getBorderRadiusFromStyle(style, width, height);
-          const hasRadius =
-            borderRadius.topLeft > 0 ||
-            borderRadius.topRight > 0 ||
-            borderRadius.bottomRight > 0 ||
-            borderRadius.bottomLeft > 0;
-          if (hasRadius) {
-            applyClip(ctx, x, y, width, height, borderRadius);
-          }
-          const image = await loadImage(urlMatch[1]!);
-          const bgSize = style.backgroundSize;
-          if (bgSize === "cover") {
-            const r = computeCover(
-              image.width,
-              image.height,
-              x,
-              y,
-              width,
-              height,
-            );
-            ctx.drawImage(
-              image,
-              r.sx,
-              r.sy,
-              r.sw,
-              r.sh,
-              r.dx,
-              r.dy,
-              r.dw,
-              r.dh,
-            );
-          } else {
-            let tileW: number, tileH: number;
-            if (bgSize === "contain") {
-              const r = computeContain(
-                image.width,
-                image.height,
-                0,
-                0,
-                width,
-                height,
-              );
-              tileW = r.dw;
-              tileH = r.dh;
-            } else if (bgSize === "100% 100%") {
-              tileW = width;
-              tileH = height;
-            } else {
-              tileW = image.width;
-              tileH = image.height;
-            }
-            for (let ty = y; ty < y + height; ty += tileH) {
-              for (let tx = x; tx < x + width; tx += tileW) {
-                ctx.drawImage(image, tx, ty, tileW, tileH);
-              }
-            }
-          }
-        }
+        await drawNodeCore(
+          ctx,
+          child,
+          x,
+          y,
+          0,
+          0,
+          debug,
+          emojiStyle,
+          undefined,
+        );
       }
-    }
-  }
-
-  if (debug) {
-    ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, width, height);
-  }
-
-  if (node.textContent !== undefined && node.textContent !== "") {
-    const paddingTop = resolveBoxValue(style.paddingTop, width);
-    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
-    const paddingRight = resolveBoxValue(style.paddingRight, width);
-    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
-    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
-    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
-    const contentX = x + paddingLeft + borderLeftW;
-    const contentY = y + paddingTop + borderTopW;
-    const contentWidth =
-      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
-    const textLayout = layoutText(
-      node.textContent,
-      style,
-      contentWidth,
-      ctx,
-      !!emojiStyle,
-    );
-    await drawText(
-      ctx,
-      textLayout.segments,
-      contentX,
-      contentY,
-      style.textShadow,
-      emojiStyle,
-    );
-  }
-
-  if (node.type === "img" && node.props.src) {
-    const paddingTop = resolveBoxValue(style.paddingTop, width);
-    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
-    const paddingRight = resolveBoxValue(style.paddingRight, width);
-    const paddingBottom = resolveBoxValue(style.paddingBottom, width);
-    const imgX = x + paddingLeft;
-    const imgY = y + paddingTop;
-    const imgW = width - paddingLeft - paddingRight;
-    const imgH = height - paddingTop - paddingBottom;
-    if (!isClipped) {
-      const borderRadius = getBorderRadiusFromStyle(style, width, height);
-      if (
-        borderRadius.topLeft > 0 ||
-        borderRadius.topRight > 0 ||
-        borderRadius.bottomRight > 0 ||
-        borderRadius.bottomLeft > 0
-      ) {
-        applyClip(ctx, imgX, imgY, imgW, imgH, borderRadius);
-      }
-    }
-    await drawImage(
-      ctx,
-      node.props.src as string | Buffer,
-      imgX,
-      imgY,
-      imgW,
-      imgH,
-      style,
-      node.props.__loadedImage as Image | undefined,
-    );
-  }
-
-  if (node.type === "svg") {
-    drawSvgContainer(ctx, node, x, y, width, height);
-  } else {
-    // Children use offset 0 since x,y already incorporates the offset
-    for (const child of node.children) {
-      await drawNodeInner(ctx, child, x, y, 0, 0, debug, emojiStyle, undefined);
     }
   }
 
   ctx.restore();
-}
-
-export function parseCSSLength(value: string, referenceSize: number): number {
-  if (value.endsWith("%")) return (parseFloat(value) / 100) * referenceSize;
-  return parseFloat(value);
 }
 
 function applyTransform(
@@ -743,25 +528,4 @@ function parseAngle(value: string): number {
   if (value.endsWith("rad")) return parseFloat(value);
   if (value.endsWith("turn")) return parseFloat(value) * 2 * Math.PI;
   return parseFloat(value);
-}
-
-export function toNumber(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (v === undefined || v === null) return 0;
-  const n = parseFloat(String(v));
-  return isNaN(n) ? 0 : n;
-}
-
-/**
- * Resolve a box-model value (padding, border-width) that may be a percentage.
- * Per CSS spec, percentage padding/border resolves against the element's width
- * (even for top/bottom).
- */
-export function resolveBoxValue(v: unknown, referenceWidth: number): number {
-  if (typeof v === "number") return v;
-  if (v === undefined || v === null) return 0;
-  const s = String(v);
-  if (s.endsWith("%")) return (parseFloat(s) / 100) * referenceWidth;
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
 }

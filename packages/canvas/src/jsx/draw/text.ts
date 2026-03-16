@@ -97,15 +97,12 @@ async function drawSegmentWithEmoji(
 
   for (const run of runs) {
     if (run.kind === "text") {
+      if (textShadow) {
+        drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+      }
       if (letterSpacing !== 0) {
-        if (textShadow) {
-          drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
-        }
         drawTextWithLetterSpacing(ctx, run.text, x + run.x, y, letterSpacing);
       } else {
-        if (textShadow) {
-          drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
-        }
         ctx.fillText(run.text, x + run.x, y);
       }
     } else {

@@ -17,6 +17,7 @@ export function splitTextIntoRuns(
   const runs: TextRun[] = [];
   const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
   let currentText = "";
+  let currentGraphemeCount = 0;
   let currentX = 0;
   let textStartX = 0;
 
@@ -25,19 +26,16 @@ export function splitTextIntoRuns(
       // Flush accumulated text
       if (currentText) {
         const textWidth = measureText(currentText);
-        const graphemeCount = [
-          ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
-            currentText,
-          ),
-        ].length;
         runs.push({
           kind: "text",
           text: currentText,
           x: textStartX,
-          width: textWidth + letterSpacing * graphemeCount,
+          width: textWidth + letterSpacing * currentGraphemeCount,
         });
-        currentX = textStartX + textWidth + letterSpacing * graphemeCount;
+        currentX =
+          textStartX + textWidth + letterSpacing * currentGraphemeCount;
         currentText = "";
+        currentGraphemeCount = 0;
       }
       runs.push({
         kind: "emoji",
@@ -50,22 +48,18 @@ export function splitTextIntoRuns(
     } else {
       if (!currentText) textStartX = currentX;
       currentText += segment;
+      currentGraphemeCount++;
     }
   }
 
   // Flush remaining text
   if (currentText) {
     const textWidth = measureText(currentText);
-    const graphemeCount = [
-      ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
-        currentText,
-      ),
-    ].length;
     runs.push({
       kind: "text",
       text: currentText,
       x: textStartX,
-      width: textWidth + letterSpacing * graphemeCount,
+      width: textWidth + letterSpacing * currentGraphemeCount,
     });
   }
 

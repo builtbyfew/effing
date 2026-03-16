@@ -1,8 +1,8 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
-import { roundedRect } from "./clip.ts";
-import { parseCSSLength, toNumber, resolveBoxValue } from "./index.ts";
+import { hasRadius, roundedRect } from "./clip.ts";
+import { parseCSSLength, toNumber, resolveBoxValue } from "./utils.ts";
 
 /**
  * Draw the background, borders, and box-shadow for a rectangular element.
@@ -15,12 +15,8 @@ export function drawRect(
   height: number,
   style: ComputedStyle,
 ): void {
-  const borderRadius = getBorderRadius(style, width, height);
-  const hasRoundedCorners =
-    borderRadius.topLeft > 0 ||
-    borderRadius.topRight > 0 ||
-    borderRadius.bottomRight > 0 ||
-    borderRadius.bottomLeft > 0;
+  const borderRadius = getBorderRadiusFromStyle(style, width, height);
+  const hasRoundedCorners = hasRadius(borderRadius);
 
   // Box shadow (drawn before background)
   if (style.boxShadow) {
@@ -59,21 +55,17 @@ function resolveRadius(v: unknown, width: number, height: number): number {
   return toNumber(v);
 }
 
-function getBorderRadius(style: ComputedStyle, width: number, height: number) {
+export function getBorderRadiusFromStyle(
+  style: ComputedStyle,
+  width: number,
+  height: number,
+) {
   return {
     topLeft: resolveRadius(style.borderTopLeftRadius, width, height),
     topRight: resolveRadius(style.borderTopRightRadius, width, height),
     bottomRight: resolveRadius(style.borderBottomRightRadius, width, height),
     bottomLeft: resolveRadius(style.borderBottomLeftRadius, width, height),
   };
-}
-
-export function getBorderRadiusFromStyle(
-  style: ComputedStyle,
-  width: number,
-  height: number,
-) {
-  return getBorderRadius(style, width, height);
 }
 
 function drawBorders(
@@ -83,13 +75,9 @@ function drawBorders(
   width: number,
   height: number,
   style: ComputedStyle,
-  borderRadius: ReturnType<typeof getBorderRadius>,
+  borderRadius: ReturnType<typeof getBorderRadiusFromStyle>,
 ): void {
-  const hasRoundedCorners =
-    borderRadius.topLeft > 0 ||
-    borderRadius.topRight > 0 ||
-    borderRadius.bottomRight > 0 ||
-    borderRadius.bottomLeft > 0;
+  const hasRoundedCorners = hasRadius(borderRadius);
 
   // If all borders are the same, draw as a single stroke
   const tw = resolveBoxValue(style.borderTopWidth, width);
@@ -173,7 +161,7 @@ function drawBoxShadow(
   width: number,
   height: number,
   boxShadow: string,
-  borderRadius: ReturnType<typeof getBorderRadius>,
+  borderRadius: ReturnType<typeof getBorderRadiusFromStyle>,
 ): void {
   // Parse simple box-shadow: offsetX offsetY blur spread? color
   const parts = boxShadow.match(

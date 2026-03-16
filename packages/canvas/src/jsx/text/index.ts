@@ -171,12 +171,9 @@ export function layoutText(
   }
 
   const noWrap = whiteSpace === "nowrap" || whiteSpace === "pre";
-  const preserveWhitespace = whiteSpace === "pre" || whiteSpace === "pre-wrap";
 
   // Split by explicit newlines
-  const paragraphs = preserveWhitespace
-    ? processedText.split("\n")
-    : processedText.split("\n");
+  const paragraphs = processedText.split("\n");
 
   const lines: string[] = [];
 

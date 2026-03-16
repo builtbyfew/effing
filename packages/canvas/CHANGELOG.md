@@ -1,5 +1,24 @@
 # @effing/canvas
 
+## 0.20.0
+
+### Minor Changes
+
+- b97fe30: Add lineClamp support to canvas renderer
+
+  The canvas renderer now supports the `lineClamp` CSS property, which truncates
+  text to a maximum number of visible lines and appends an ellipsis. Also fixes an
+  off-by-one in `truncateWithEllipsis` that could leave one character of headroom
+  unused.
+
+- f0673c1: Add width/height override options to renderReactElement
+
+  Layout dimensions now default to `ctx.canvas.width` / `ctx.canvas.height` but
+  can be overridden via optional `width` and `height` fields in
+  `RenderReactElementOptions`. This enables the standard HiDPI canvas pattern
+  (oversized canvas + `ctx.scale(dpr, dpr)`) without layout happening at the
+  physical pixel size.
+
 ## 0.19.3
 
 ### Patch Changes

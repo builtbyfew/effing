@@ -1,6 +1,6 @@
 {
   "name": "@effing/create",
-  "version": "0.19.2",
+  "version": "0.19.3",
   "description": "Create a new Effing project",
   "type": "module",
   "bin": "./dist/index.js",

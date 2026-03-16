@@ -90,9 +90,9 @@ function loadLocalFonts(): FontData[] | null {
   }));
 }
 
-async function loadFonts(): Promise<FontData[]> {
+async function loadFonts(): Promise<{ fonts: FontData[]; remote: boolean }> {
   try {
-    return await Promise.all([
+    const fonts = await Promise.all([
       fetchFont(
         `${GOOGLE_FONTS}/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf`,
       ).then((data) => ({
@@ -118,10 +118,11 @@ async function loadFonts(): Promise<FontData[]> {
         style: "italic" as const,
       })),
     ]);
+    return { fonts, remote: true };
   } catch {
     // Network unavailable — fall back to local system fonts
     const local = loadLocalFonts();
-    if (local) return local;
+    if (local) return { fonts: local, remote: false };
     throw new Error(
       "Cannot load fonts: network unavailable and no local Liberation Sans found",
     );
@@ -1544,25 +1545,14 @@ const propertyCases: {
   },
 ];
 
-/** Check if external network is reachable (for emoji CDN tests). */
-async function hasNetwork(): Promise<boolean> {
-  try {
-    const r = await fetch("https://cdnjs.cloudflare.com", {
-      method: "HEAD",
-      signal: AbortSignal.timeout(2000),
-    });
-    return r.ok;
-  } catch {
-    return false;
-  }
-}
-
 describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
   let fonts: FontData[];
   let networkAvailable = true;
 
   beforeAll(async () => {
-    [fonts, networkAvailable] = await Promise.all([loadFonts(), hasNetwork()]);
+    const result = await loadFonts();
+    fonts = result.fonts;
+    networkAvailable = result.remote;
   }, 30_000);
 
   it.each(propertyCases)(

@@ -45,10 +45,6 @@ import { drawSvgContainer } from "./svg.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
 
-// Re-export for backward compatibility (used by tests and other modules)
-export { parseCSSLength, resolveBoxValue } from "./utils.ts";
-export { toNumber } from "./utils.ts";
-
 /**
  * Main draw dispatcher: recursively draws the layout tree onto the canvas.
  */

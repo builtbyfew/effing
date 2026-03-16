@@ -69,7 +69,7 @@ JSX → Yoga layout → Skia canvas → PNG
 2. **Skia** draws each node to a canvas context (backgrounds, borders, text, images, SVG, gradients)
 3. **Encode** the canvas to PNG or JPEG via `canvas.encode()` or `canvas.encodeSync()`
 
-Canvas dimensions are taken from the context itself (`ctx.canvas.width` / `ctx.canvas.height`), so there are no `width`/`height` options — just create a canvas at the size you need.
+Canvas dimensions default to `ctx.canvas.width` / `ctx.canvas.height`, but you can override them with the `width` and `height` options. This is useful for HiDPI rendering where the canvas is larger than the logical layout size.
 
 ### Font Loading
 
@@ -284,11 +284,13 @@ function renderLottieFrame(
 
 ### Options
 
-| Option  | Type                   | Required | Description                              |
-| ------- | ---------------------- | -------- | ---------------------------------------- |
-| `fonts` | `FontData[]`           | Yes      | Font data for text rendering             |
-| `debug` | `boolean`              | No       | Draw layout bounding boxes for debugging |
-| `emoji` | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)       |
+| Option   | Type                   | Required | Description                                           |
+| -------- | ---------------------- | -------- | ----------------------------------------------------- |
+| `fonts`  | `FontData[]`           | Yes      | Font data for text rendering                          |
+| `width`  | `number`               | No       | Layout width override (default: `ctx.canvas.width`)   |
+| `height` | `number`               | No       | Layout height override (default: `ctx.canvas.height`) |
+| `debug`  | `boolean`              | No       | Draw layout bounding boxes for debugging              |
+| `emoji`  | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)                    |
 
 ### Types
 
@@ -382,6 +384,25 @@ await renderReactElement(ctx, <MyComponent />, {
   fonts,
   debug: true,
 });
+```
+
+### HiDPI Rendering
+
+For sharp output on high-DPI displays, you can create a larger canvas and use `width`/`height` overrides to keep layout at the logical size:
+
+```typescript
+const dpr = 2;
+const canvas = createCanvas(1080 * dpr, 1080 * dpr);
+const ctx = canvas.getContext("2d");
+ctx.scale(dpr, dpr);
+
+await renderReactElement(ctx, <MyComponent />, {
+  fonts,
+  width: 1080,
+  height: 1080,
+});
+
+const png = await canvas.encode("png");
 ```
 
 ## Related Packages

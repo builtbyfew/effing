@@ -9,12 +9,13 @@ import { buildLayoutTree } from "./layout.ts";
 /**
  * Render a React element tree to a canvas context.
  *
- * Width and height are taken from the canvas itself (`ctx.canvas.width` /
- * `ctx.canvas.height`).
+ * Width and height default to `ctx.canvas.width` / `ctx.canvas.height` but
+ * can be overridden via `options.width` and `options.height`. This is useful
+ * for HiDPI rendering where the canvas is larger than the logical layout size.
  *
  * @param ctx - Canvas 2D rendering context to draw into
  * @param element - React element tree to render
- * @param options - Rendering options (fonts, debug mode)
+ * @param options - Rendering options (fonts, dimensions, debug mode)
  *
  * @example
  * ```tsx
@@ -27,6 +28,20 @@ import { buildLayoutTree } from "./layout.ts";
  *
  * const png = canvas.encodeSync("png");
  * ```
+ *
+ * @example HiDPI rendering (2x)
+ * ```tsx
+ * const dpr = 2;
+ * const canvas = createCanvas(1080 * dpr, 1080 * dpr);
+ * const ctx = canvas.getContext("2d");
+ * ctx.scale(dpr, dpr);
+ *
+ * await renderReactElement(ctx, <MyComponent />, {
+ *   fonts: [myFont],
+ *   width: 1080,
+ *   height: 1080,
+ * });
+ * ```
  */
 export async function renderReactElement(
   ctx: SKRSContext2D,
@@ -36,9 +51,9 @@ export async function renderReactElement(
   // Register fonts
   ensureFontsRegistered(options.fonts);
 
-  // Get dimensions from canvas
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
+  // Get dimensions (option overrides take precedence over canvas size)
+  const width = options.width ?? ctx.canvas.width;
+  const height = options.height ?? ctx.canvas.height;
 
   // Build layout tree (Yoga)
   const emojiStyle =

@@ -22,6 +22,10 @@ export type FontData = {
 export type RenderReactElementOptions = {
   /** Font data for text rendering */
   fonts: FontData[];
+  /** Layout width override. Defaults to `ctx.canvas.width`. */
+  width?: number;
+  /** Layout height override. Defaults to `ctx.canvas.height`. */
+  height?: number;
   /** Draw layout bounding boxes for debugging */
   debug?: boolean;
   /** Emoji style for rendering emoji characters as images. Defaults to "twemoji". Pass "none" to disable. */

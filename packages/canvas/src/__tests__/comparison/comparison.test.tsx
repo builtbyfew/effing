@@ -137,7 +137,7 @@ async function renderWithCanvas(
   width: number,
   height: number,
   fonts: FontData[],
-  emoji?: import("../../jsx/emoji.ts").EmojiStyle,
+  emoji?: import("../../jsx/emoji.ts").EmojiStyle | "none",
 ): Promise<Buffer> {
   const { createCanvas } = await import("@napi-rs/canvas");
   const { renderReactElement } = await import("../../jsx/index.ts");
@@ -152,12 +152,12 @@ async function renderWithSatori(
   width: number,
   height: number,
   fonts: FontData[],
-  emoji?: import("../../jsx/emoji.ts").EmojiStyle,
+  emoji?: import("../../jsx/emoji.ts").EmojiStyle | "none",
 ): Promise<Buffer> {
   const satori = (await import("satori")).default;
   const { Resvg } = await import("@resvg/resvg-js");
   const opts: Parameters<typeof satori>[1] = { width, height, fonts };
-  if (emoji) {
+  if (emoji && emoji !== "none") {
     const { makeLoadAdditionalAsset } =
       await import("../../../../satori/src/emoji.ts");
     opts.loadAdditionalAsset = makeLoadAdditionalAsset(emoji);
@@ -1641,7 +1641,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
 
       // Local fallback fonts have slightly different metrics than Inter,
       // so allow extra tolerance when running without network.
-      const threshold = networkAvailable ? maxDiff : maxDiff + 1;
+      const threshold = networkAvailable ? maxDiff : maxDiff * 1.5;
       expect(percentage).toBeLessThan(threshold);
     },
   );

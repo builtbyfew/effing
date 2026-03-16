@@ -6,6 +6,7 @@ import type {
 } from "@napi-rs/canvas";
 
 import type { LayoutNode } from "../layout.ts";
+import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 
 type SvgChild = {
   type: string;
@@ -15,10 +16,11 @@ type SvgChild = {
 
 type BBox = { x: number; y: number; width: number; height: number };
 
-/** Collected `<defs>` definitions: clip paths and gradients. */
+/** Collected `<defs>` definitions: clip paths, gradients, and masks. */
 type SvgDefs = {
   clips: Map<string, SvgChild[]>;
   gradients: Map<string, SvgChild>;
+  masks: Map<string, SvgChild[]>;
 };
 
 /** Replace `"currentColor"` with the inherited CSS `color` value. */
@@ -48,17 +50,19 @@ function mergeStyleIntoProps(
 function collectDefs(children: SvgChild[]): SvgDefs {
   const clips = new Map<string, SvgChild[]>();
   const gradients = new Map<string, SvgChild>();
+  const masks = new Map<string, SvgChild[]>();
   for (const child of children) {
     if (child.type !== "defs") continue;
     for (const def of normalizeChildren(child)) {
       const id = def.props.id as string | undefined;
       if (!id) continue;
       if (def.type === "clipPath") clips.set(id, normalizeChildren(def));
+      else if (def.type === "mask") masks.set(id, normalizeChildren(def));
       else if (def.type === "radialGradient" || def.type === "linearGradient")
         gradients.set(id, def);
     }
   }
-  return { clips, gradients };
+  return { clips, gradients, masks };
 }
 
 /** Parse `url(#id)` references and return the id, or undefined. */
@@ -440,13 +444,23 @@ function buildPath(
       return p;
     }
     case "rect": {
-      const rx = svgLength(props.x, vbW);
-      const ry = svgLength(props.y, vbH);
+      const x = svgLength(props.x, vbW);
+      const y = svgLength(props.y, vbH);
       const w = svgLength(props.width, vbW);
       const h = svgLength(props.height, vbH);
       if (w <= 0 || h <= 0) return undefined;
+      const rxRaw = svgLength(props.rx, vbW, -1);
+      const ryRaw = svgLength(props.ry, vbH, -1);
+      let rx = rxRaw >= 0 ? rxRaw : ryRaw >= 0 ? ryRaw : 0;
+      let ry = ryRaw >= 0 ? ryRaw : rx;
+      rx = Math.min(rx, w / 2);
+      ry = Math.min(ry, h / 2);
       const p = new Path2D();
-      p.rect(rx, ry, w, h);
+      if (rx > 0 || ry > 0) {
+        p.roundRect(x, y, w, h, [rx]);
+      } else {
+        p.rect(x, y, w, h);
+      }
       return p;
     }
     case "ellipse": {
@@ -566,6 +580,7 @@ export function drawSvgContainer(
 const EMPTY_DEFS: SvgDefs = {
   clips: new Map(),
   gradients: new Map(),
+  masks: new Map(),
 };
 
 function drawSvgChild(
@@ -581,41 +596,76 @@ function drawSvgChild(
   const props = mergeStyleIntoProps(child.props);
 
   // Skip non-drawable definition elements
-  if (type === "defs" || type === "clipPath") return;
+  if (type === "defs" || type === "clipPath" || type === "mask") return;
 
   // Check for clip-path="url(#id)" reference
   const clipRef = parseUrlRef(props.clipPath ?? props["clip-path"]);
   const clipShapes = clipRef ? defs.clips.get(clipRef) : undefined;
   const clipPath = clipShapes ? buildClipPath(clipShapes, vbW, vbH) : undefined;
 
+  // Check for mask="url(#id)" reference
+  const maskRef = parseUrlRef(props.mask as string | undefined);
+  const maskShapes = maskRef ? defs.masks.get(maskRef) : undefined;
+
   if (clipPath) ctx.save();
   if (clipPath) ctx.clip(clipPath);
 
+  // When a mask is present, render the element to an offscreen canvas,
+  // render the mask shapes to a second offscreen canvas, then composite
+  // them with "destination-in" to apply the mask.
+  let elemCanvas: import("@napi-rs/canvas").Canvas | undefined;
+  const targetCtx = maskShapes
+    ? (() => {
+        const [c, cCtx] = acquireOffscreen(Math.ceil(vbW), Math.ceil(vbH));
+        elemCanvas = c;
+        return cCtx;
+      })()
+    : ctx;
+
   switch (type) {
     case "path":
-      drawPath(ctx, props, inheritedFill, color, defs);
+      drawPath(targetCtx, props, inheritedFill, color, defs);
       break;
     case "circle":
-      drawCircle(ctx, props, inheritedFill, color, defs, vbW, vbH);
+      drawCircle(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "rect":
-      drawSvgRect(ctx, props, inheritedFill, color, defs, vbW, vbH);
+      drawSvgRect(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "line":
-      drawLine(ctx, props, color, defs, vbW, vbH);
+      drawLine(targetCtx, props, color, defs, vbW, vbH);
       break;
     case "ellipse":
-      drawEllipse(ctx, props, inheritedFill, color, defs, vbW, vbH);
+      drawEllipse(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
       break;
     case "polygon":
-      drawPolygon(ctx, props, inheritedFill, color, defs);
+      drawPolygon(targetCtx, props, inheritedFill, color, defs);
       break;
     case "polyline":
-      drawPolyline(ctx, props, inheritedFill, color, defs);
+      drawPolyline(targetCtx, props, inheritedFill, color, defs);
       break;
     case "g":
-      drawGroup(ctx, child, inheritedFill, color, defs, vbW, vbH);
+      drawGroup(targetCtx, child, inheritedFill, color, defs, vbW, vbH);
       break;
+  }
+
+  if (maskShapes && elemCanvas) {
+    // Render mask shapes onto a second offscreen canvas
+    const [maskCanvas, maskCtx] = acquireOffscreen(
+      Math.ceil(vbW),
+      Math.ceil(vbH),
+    );
+    for (const shape of maskShapes) {
+      drawSvgChild(maskCtx, shape, "white", "white", defs, vbW, vbH);
+    }
+    // Apply mask via compositing
+    targetCtx.globalCompositeOperation = "destination-in";
+    targetCtx.drawImage(maskCanvas, 0, 0);
+    targetCtx.globalCompositeOperation = "source-over";
+    // Draw masked result back to main context
+    ctx.drawImage(elemCanvas, 0, 0);
+    releaseOffscreen(maskCanvas);
+    releaseOffscreen(elemCanvas);
   }
 
   if (clipPath) ctx.restore();
@@ -665,15 +715,26 @@ function drawSvgRect(
   vbW = 0,
   vbH = 0,
 ): void {
-  const rx = svgLength(props.x, vbW);
-  const ry = svgLength(props.y, vbH);
+  const x = svgLength(props.x, vbW);
+  const y = svgLength(props.y, vbH);
   const w = svgLength(props.width, vbW);
   const h = svgLength(props.height, vbH);
   if (w <= 0 || h <= 0) return;
 
+  const rxRaw = svgLength(props.rx, vbW, -1);
+  const ryRaw = svgLength(props.ry, vbH, -1);
+  let rx = rxRaw >= 0 ? rxRaw : ryRaw >= 0 ? ryRaw : 0;
+  let ry = ryRaw >= 0 ? ryRaw : rx;
+  rx = Math.min(rx, w / 2);
+  ry = Math.min(ry, h / 2);
+
   const path = new Path2D();
-  path.rect(rx, ry, w, h);
-  const bbox: BBox = { x: rx, y: ry, width: w, height: h };
+  if (rx > 0 || ry > 0) {
+    path.roundRect(x, y, w, h, [rx]);
+  } else {
+    path.rect(x, y, w, h);
+  }
+  const bbox: BBox = { x, y, width: w, height: h };
   applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
 }
 

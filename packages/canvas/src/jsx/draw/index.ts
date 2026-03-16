@@ -1,37 +1,6 @@
-import type { Canvas, Image, SKRSContext2D } from "@napi-rs/canvas";
+import type { Image, SKRSContext2D } from "@napi-rs/canvas";
 
-import { createCanvas, loadImage } from "@napi-rs/canvas";
-
-const canvasPool = new Map<string, WeakRef<Canvas>[]>();
-
-function acquireOffscreen(w: number, h: number): [Canvas, SKRSContext2D] {
-  const key = `${w}x${h}`;
-  const stack = canvasPool.get(key);
-  if (stack) {
-    while (stack.length > 0) {
-      const ref = stack.pop()!;
-      const canvas = ref.deref();
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, w, h);
-        return [canvas, ctx];
-      }
-    }
-  }
-  const canvas = createCanvas(w, h);
-  return [canvas, canvas.getContext("2d")];
-}
-
-function releaseOffscreen(canvas: Canvas): void {
-  const key = `${canvas.width}x${canvas.height}`;
-  let stack = canvasPool.get(key);
-  if (!stack) {
-    stack = [];
-    canvasPool.set(key, stack);
-  }
-  stack.push(new WeakRef(canvas));
-}
+import { loadImage } from "@napi-rs/canvas";
 
 import type { EmojiStyle } from "../emoji.ts";
 import type { LayoutNode } from "../layout.ts";
@@ -40,6 +9,7 @@ import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
+import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 import { drawRect, getBorderRadiusFromStyle } from "./rect.ts";
 import { drawSvgContainer } from "./svg.ts";
 import { drawText } from "./text.ts";

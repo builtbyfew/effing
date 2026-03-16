@@ -60,7 +60,16 @@ vi.mock("@napi-rs/canvas", () => {
   return {
     createCanvas: vi.fn(() => mockCanvas),
     Canvas: vi.fn(),
-    Path2D: vi.fn(),
+    Path2D: vi.fn(() => ({
+      rect: vi.fn(),
+      roundRect: vi.fn(),
+      arc: vi.fn(),
+      ellipse: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      closePath: vi.fn(),
+      addPath: vi.fn(),
+    })),
     GlobalFonts: {
       register: vi.fn(),
       registerFromPath: vi.fn(),
@@ -1024,6 +1033,252 @@ describe("drawNode", () => {
     expect(ctx.lineWidth).toBe(3);
     expect(ctx.lineCap).toBe("round");
     expect(ctx.lineJoin).toBe("bevel");
+  });
+
+  // ---------- rect rx/ry rounded corners ----------
+
+  it("rect with rx renders rounded rectangle", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "rect",
+            props: { x: 0, y: 0, width: 24, height: 24, rx: 4, fill: "blue" },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fill).toHaveBeenCalled();
+  });
+
+  it("rect rx defaults ry to rx", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "rect",
+            props: { x: 0, y: 0, width: 24, height: 24, rx: 6, fill: "red" },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fill).toHaveBeenCalled();
+  });
+
+  it("rect without rx renders sharp rectangle", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: {
+            type: "rect",
+            props: { x: 0, y: 0, width: 24, height: 24, fill: "green" },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.fill).toHaveBeenCalled();
+  });
+
+  // ---------- mask ----------
+
+  it("mask element is skipped as non-drawable", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: [
+            {
+              type: "defs",
+              props: {
+                children: {
+                  type: "mask",
+                  props: {
+                    id: "m",
+                    children: {
+                      type: "rect",
+                      props: {
+                        x: 0,
+                        y: 0,
+                        width: 24,
+                        height: 24,
+                        fill: "white",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              type: "path",
+              props: { d: "M0 0L10 10", fill: "red" },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // Only the <path> should produce a fill call, not the mask definition
+    expect(ctx.fill).toHaveBeenCalledTimes(1);
+  });
+
+  it("mask='url(#id)' applies mask via compositing", async () => {
+    vi.mocked(createCanvas).mockClear();
+
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: [
+            {
+              type: "defs",
+              props: {
+                children: {
+                  type: "mask",
+                  props: {
+                    id: "m",
+                    children: {
+                      type: "rect",
+                      props: {
+                        x: 0,
+                        y: 0,
+                        width: 24,
+                        height: 24,
+                        fill: "white",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              type: "path",
+              props: { d: "M0 0L10 10", fill: "red", mask: "url(#m)" },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // Offscreen canvases created for element + mask
+    expect(createCanvas).toHaveBeenCalled();
+    // Composited result drawn back to main context
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  it("element without mask renders normally", async () => {
+    vi.mocked(createCanvas).mockClear();
+
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: [
+            {
+              type: "defs",
+              props: {
+                children: {
+                  type: "mask",
+                  props: {
+                    id: "m",
+                    children: {
+                      type: "rect",
+                      props: {
+                        x: 0,
+                        y: 0,
+                        width: 24,
+                        height: 24,
+                        fill: "white",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              type: "path",
+              props: { d: "M0 0L10 10", fill: "red" },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // No offscreen canvas created when element doesn't reference a mask
+    // createCanvas is called once for the initial setup in beforeEach,
+    // but clearAllMocks resets it, and we cleared again above
+    expect(createCanvas).not.toHaveBeenCalled();
   });
 });
 

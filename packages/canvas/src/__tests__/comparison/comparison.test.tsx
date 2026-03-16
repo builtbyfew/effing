@@ -2571,4 +2571,132 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(1);
   });
+
+  // -------------------------------------------------------------------------
+  // lineClamp tests
+  // -------------------------------------------------------------------------
+
+  const CLAMP_TEXT =
+    "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.";
+
+  it("renders lineClamp=2 — long text clamped to 2 lines with ellipsis", async () => {
+    const W = 300;
+    const H = 120;
+    const element = (
+      <div
+        style={{
+          width: W,
+          height: H,
+          display: "flex",
+          backgroundColor: "white",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineClamp: 2,
+            fontSize: 20,
+            color: "black",
+          }}
+        >
+          {CLAMP_TEXT}
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, W, H, fonts),
+      renderWithSatori(element, W, H, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "lineclamp-2-lines",
+    );
+    expect(percentage).toBeLessThan(3.5);
+  });
+
+  it("renders lineClamp=3 — long text clamped to 3 lines with ellipsis", async () => {
+    const W = 300;
+    const H = 160;
+    const element = (
+      <div
+        style={{
+          width: W,
+          height: H,
+          display: "flex",
+          backgroundColor: "white",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineClamp: 3,
+            fontSize: 16,
+            color: "black",
+          }}
+        >
+          {CLAMP_TEXT}
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, W, H, fonts),
+      renderWithSatori(element, W, H, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "lineclamp-3-lines",
+    );
+    expect(percentage).toBeLessThan(4);
+  });
+
+  it("renders lineClamp with short text — no truncation when text fits", async () => {
+    const W = 300;
+    const H = 120;
+    const shortText = "Short text";
+    const element = (
+      <div
+        style={{
+          width: W,
+          height: H,
+          display: "flex",
+          backgroundColor: "white",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineClamp: 3,
+            fontSize: 20,
+            color: "black",
+          }}
+        >
+          {shortText}
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, W, H, fonts),
+      renderWithSatori(element, W, H, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "lineclamp-short-no-truncation",
+    );
+    expect(percentage).toBeLessThan(0.5);
+  });
 });

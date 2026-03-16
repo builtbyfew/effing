@@ -206,6 +206,7 @@ const png = canvas.encodeSync("png");
 | `whiteSpace`     | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
 | `wordBreak`      | `normal`, `break-all`, `break-word`, `keep-all` (inherited)   |
 | `textOverflow`   | `clip`, `ellipsis` (inherited)                                |
+| `lineClamp`      | Number — max visible lines (adds ellipsis)                    |
 | `textBox`        | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
 | `textBoxTrim`    | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)     |
 | `textBoxEdge`    | e.g. `"cap alphabetic"` (inherited)                           |

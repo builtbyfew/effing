@@ -217,6 +217,26 @@ export function layoutText(
     }
   }
 
+  // Handle lineClamp: truncate to N lines with ellipsis on last visible line.
+  // Rejoin all text from the last visible line onward so the truncation can
+  // fill the last line with as much text as possible (instead of being limited
+  // to what the word-wrapping placed on that line alone).
+  const lineClamp = style.lineClamp;
+  if (lineClamp && lineClamp > 0 && lines.length > lineClamp) {
+    const lastLineText = lines.slice(lineClamp - 1).join(" ");
+    lines.length = lineClamp;
+    lines[lineClamp - 1] = truncateWithEllipsis(
+      lastLineText,
+      maxWidth,
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontStyle,
+      ctx,
+      letterSpacing,
+    );
+  }
+
   // Create positioned segments
   const segments: TextSegment[] = [];
   let totalHeight = 0;
@@ -479,7 +499,7 @@ function truncateWithEllipsis(
   );
   const availWidth = maxWidth - ellipsisWidth;
 
-  for (let i = text.length - 1; i > 0; i--) {
+  for (let i = text.length; i > 0; i--) {
     const truncated = text.slice(0, i);
     const w = measureWord(
       truncated,

@@ -119,6 +119,7 @@ export type ComputedStyle = {
   whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
   wordBreak?: "normal" | "break-all" | "break-word" | "keep-all";
   textOverflow?: "clip" | "ellipsis";
+  lineClamp?: number;
 
   // Box shadow
   boxShadow?: string;
@@ -183,6 +184,7 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "whiteSpace",
   "wordBreak",
   "textOverflow",
+  "lineClamp",
   "textBoxTrim",
   "textBoxEdge",
 ];

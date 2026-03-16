@@ -123,6 +123,113 @@ renderLottieFrame(ctx, anim, 0); // render frame 0
 const png = canvas.encodeSync("png");
 ```
 
+## Supported CSS Properties
+
+### Layout
+
+| Property                         | Values / Notes                                      |
+| -------------------------------- | --------------------------------------------------- |
+| `display`                        | `flex`, `none`                                      |
+| `position`                       | `relative`, `absolute`                              |
+| `top`, `right`, `bottom`, `left` | Length, percentage                                  |
+| `overflow`                       | `visible`, `hidden` (also `overflowX`, `overflowY`) |
+
+### Flexbox
+
+| Property              | Values / Notes                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `flexDirection`       | `row`, `column`, `row-reverse`, `column-reverse`                                    |
+| `flexWrap`            | `nowrap`, `wrap`, `wrap-reverse`                                                    |
+| `justifyContent`      | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` |
+| `alignItems`          | `flex-start`, `flex-end`, `center`, `stretch`, `baseline`                           |
+| `alignSelf`           | `auto`, `flex-start`, `flex-end`, `center`, `stretch`, `baseline`                   |
+| `alignContent`        | `flex-start`, `flex-end`, `center`, `stretch`, `space-between`, `space-around`      |
+| `flex`                | Shorthand for `flexGrow`, `flexShrink`, `flexBasis`                                 |
+| `flexGrow`            | Number                                                                              |
+| `flexShrink`          | Number                                                                              |
+| `flexBasis`           | Length, percentage                                                                  |
+| `gap`                 | Shorthand for `rowGap`, `columnGap`                                                 |
+| `rowGap`, `columnGap` | Number                                                                              |
+
+### Dimensions
+
+| Property                | Values / Notes     |
+| ----------------------- | ------------------ |
+| `width`, `height`       | Length, percentage |
+| `minWidth`, `minHeight` | Length, percentage |
+| `maxWidth`, `maxHeight` | Length, percentage |
+
+### Spacing
+
+| Property                                                     | Values / Notes                          |
+| ------------------------------------------------------------ | --------------------------------------- |
+| `margin`                                                     | Shorthand (1–4 values), supports `auto` |
+| `marginTop`, `marginRight`, `marginBottom`, `marginLeft`     | Length, percentage, `auto`              |
+| `padding`                                                    | Shorthand (1–4 values)                  |
+| `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft` | Length, percentage                      |
+
+### Border
+
+| Property                                                 | Values / Notes                      |
+| -------------------------------------------------------- | ----------------------------------- |
+| `border`                                                 | Shorthand, e.g. `"1px solid black"` |
+| `borderTop`, `borderRight`, `borderBottom`, `borderLeft` | Per-side shorthand                  |
+| `borderWidth`, `borderColor`, `borderStyle`              | Shorthand (1–4 values)              |
+| `border{Top,Right,Bottom,Left}{Width,Color,Style}`       | Per-side longhands                  |
+| `borderRadius`                                           | Shorthand (1–4 values)              |
+| `border{TopLeft,TopRight,BottomRight,BottomLeft}Radius`  | Per-corner longhands                |
+
+### Color & Background
+
+| Property          | Values / Notes                                     |
+| ----------------- | -------------------------------------------------- |
+| `color`           | Any CSS color (inherited)                          |
+| `backgroundColor` | Any CSS color                                      |
+| `opacity`         | Number (0–1)                                       |
+| `background`      | Shorthand → `backgroundColor` or `backgroundImage` |
+| `backgroundImage` | `linear-gradient()`, `radial-gradient()`, `url()`  |
+| `backgroundSize`  | `cover`, `contain`, length, percentage             |
+
+### Typography
+
+| Property         | Values / Notes                                                |
+| ---------------- | ------------------------------------------------------------- |
+| `fontFamily`     | Font name (inherited)                                         |
+| `fontSize`       | Number or CSS length (inherited)                              |
+| `fontWeight`     | Numeric weight (inherited)                                    |
+| `fontStyle`      | `normal`, `italic` (inherited)                                |
+| `textAlign`      | `left`, `center`, `right`, `justify` (inherited)              |
+| `textDecoration` | String (inherited)                                            |
+| `textTransform`  | `none`, `uppercase`, `lowercase`, `capitalize` (inherited)    |
+| `lineHeight`     | Number or string (inherited)                                  |
+| `letterSpacing`  | Number or CSS length (inherited)                              |
+| `whiteSpace`     | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
+| `wordBreak`      | `normal`, `break-all`, `break-word`, `keep-all` (inherited)   |
+| `textOverflow`   | `clip`, `ellipsis` (inherited)                                |
+| `textBox`        | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
+| `textBoxTrim`    | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)     |
+| `textBoxEdge`    | e.g. `"cap alphabetic"` (inherited)                           |
+
+### Effects
+
+| Property          | Values / Notes                                   |
+| ----------------- | ------------------------------------------------ |
+| `boxShadow`       | CSS box-shadow string                            |
+| `textShadow`      | CSS text-shadow string                           |
+| `transform`       | `translate`, `scale`, `rotate`, `skewX`, `skewY` |
+| `transformOrigin` | CSS transform-origin string                      |
+| `filter`          | CSS filter string                                |
+
+### Image
+
+| Property    | Values / Notes                                   |
+| ----------- | ------------------------------------------------ |
+| `objectFit` | `contain`, `cover`, `fill`, `none`, `scale-down` |
+
+### Units
+
+`px`, `em`, `rem`, `%`, `vw`, `vh`, `vmin`, `vmax`, `pt`, `pc`, `in`, `cm`, `mm`
+
 ## API Overview
 
 ### `createCanvas(width, height)`

@@ -11,7 +11,8 @@
  * in CI environments without native dependencies.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -56,7 +57,7 @@ function fetchFont(url: string): Promise<Buffer> {
  * Load local system fonts as fallback when network is unavailable.
  * Uses Liberation Sans which is metrically compatible with Arial/Helvetica.
  */
-function loadLocalFonts(): FontData[] | null {
+async function loadLocalFonts(): Promise<FontData[] | null> {
   const FONT_DIR = "/usr/share/fonts/truetype/liberation";
   const mappings: {
     path: string;
@@ -82,12 +83,14 @@ function loadLocalFonts(): FontData[] | null {
 
   if (!mappings.every((m) => existsSync(m.path))) return null;
 
-  return mappings.map((m) => ({
-    name: "Inter",
-    data: readFileSync(m.path),
-    weight: m.weight,
-    style: m.style,
-  }));
+  return Promise.all(
+    mappings.map(async (m) => ({
+      name: "Inter",
+      data: await readFile(m.path),
+      weight: m.weight,
+      style: m.style,
+    })),
+  );
 }
 
 async function loadFonts(): Promise<{ fonts: FontData[]; remote: boolean }> {
@@ -121,7 +124,7 @@ async function loadFonts(): Promise<{ fonts: FontData[]; remote: boolean }> {
     return { fonts, remote: true };
   } catch {
     // Network unavailable — fall back to local system fonts
-    const local = loadLocalFonts();
+    const local = await loadLocalFonts();
     if (local) return { fonts: local, remote: false };
     throw new Error(
       "Cannot load fonts: network unavailable and no local Liberation Sans found",

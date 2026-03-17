@@ -1,5 +1,22 @@
 # @effing/canvas
 
+## 0.21.1
+
+### Patch Changes
+
+- b2d607f: Support borderRadius on per-side borders
+
+  Individual borders (different widths/colors per side) now draw rounded corner
+  arcs instead of straight lines when borderRadius is set. Each corner arc is
+  assigned to exactly one side to avoid double-stroking anti-aliasing artifacts.
+
+- a4e0548: Flatten array children instead of wrapping them in implicit div nodes
+
+  When JSX children included arrays (from `.map()`, `Array.from()`, etc.),
+  `buildNode` wrapped them in a synthetic `<div>` with its own yoga node, breaking
+  flex layout because the parent saw fewer children than expected. Arrays are now
+  flattened into the parent's child list, matching React/browser behavior.
+
 ## 0.21.0
 
 ## 0.20.1

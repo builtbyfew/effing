@@ -2791,6 +2791,54 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(2);
   });
 
+  // -------------------------------------------------------------------------
+  // SVG mask — top-level mask (not inside <defs>)
+  // -------------------------------------------------------------------------
+
+  it("renders SVG mask — top-level mask outside defs", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={200}
+          height={200}
+          viewBox="0 0 200 200"
+          style={{ width: 200, height: 200 }}
+        >
+          <mask id="topLevelMask">
+            <rect x={0} y={0} width={200} height={100} fill="white" />
+          </mask>
+          <circle
+            cx={100}
+            cy={100}
+            r={80}
+            fill="#EF4444"
+            mask="url(#topLevelMask)"
+          />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-mask-top-level",
+    );
+    expect(percentage).toBeLessThan(0.1);
+  });
+
   it("renders SVG filter — drop shadow via feOffset+feGaussianBlur+feColorMatrix+feBlend", async () => {
     const element = (
       <div

@@ -1341,6 +1341,55 @@ describe("drawNode", () => {
     // but clearAllMocks resets it, and we cleared again above
     expect(createCanvas).not.toHaveBeenCalled();
   });
+
+  it("top-level mask (outside <defs>) is collected and applied", async () => {
+    vi.mocked(createCanvas).mockClear();
+
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 24 24",
+          children: [
+            {
+              type: "mask",
+              props: {
+                id: "topMask",
+                children: {
+                  type: "rect",
+                  props: {
+                    x: 0,
+                    y: 0,
+                    width: 24,
+                    height: 24,
+                    fill: "white",
+                  },
+                },
+              },
+            },
+            {
+              type: "path",
+              props: { d: "M0 0L10 10", fill: "red", mask: "url(#topMask)" },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 24,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // Offscreen canvases created for element + mask (same as defs-wrapped case)
+    expect(createCanvas).toHaveBeenCalled();
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
 });
 
 describe("SVG filter support", () => {

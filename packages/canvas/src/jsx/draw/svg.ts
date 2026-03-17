@@ -18,6 +18,15 @@ type SvgChild = {
 
 type BBox = { x: number; y: number; width: number; height: number };
 
+type InheritedSvgStyle = {
+  fill: string;
+  stroke?: string;
+  strokeWidth?: string | number;
+  strokeLinecap?: string;
+  strokeLinejoin?: string;
+  strokeOpacity?: string | number;
+};
+
 /** Collected `<defs>` definitions: clip paths, gradients, masks, and filters. */
 type SvgDefs = {
   clips: Map<string, SvgChild[]>;
@@ -566,10 +575,27 @@ export function drawSvgContainer(
   // Resolve the CSS `color` property for `currentColor` references
   const color = (node.style.color as string | undefined) ?? "black";
 
-  // Inherited fill from the <svg> element (SVG fill is inheritable)
+  // Build inherited SVG style from the <svg> element
   const merged = mergeStyleIntoProps(node.props);
-  const inheritedFill =
-    resolveCurrentColor(merged.fill as string | undefined, color) ?? "black";
+  const inherited: InheritedSvgStyle = {
+    fill:
+      resolveCurrentColor(merged.fill as string | undefined, color) ?? "black",
+    stroke: resolveCurrentColor(merged.stroke as string | undefined, color),
+    strokeWidth: (merged.strokeWidth ?? merged["stroke-width"]) as
+      | string
+      | number
+      | undefined,
+    strokeLinecap: (merged.strokeLinecap ?? merged["stroke-linecap"]) as
+      | string
+      | undefined,
+    strokeLinejoin: (merged.strokeLinejoin ?? merged["stroke-linejoin"]) as
+      | string
+      | undefined,
+    strokeOpacity: (merged.strokeOpacity ?? merged["stroke-opacity"]) as
+      | string
+      | number
+      | undefined,
+  };
 
   // Traverse React children
   const children = node.props.children;
@@ -584,7 +610,7 @@ export function drawSvgContainer(
 
     // Second pass: draw children
     for (const child of svgChildren) {
-      drawSvgChild(ctx, child, inheritedFill, color, defs, vbW, vbH);
+      drawSvgChild(ctx, child, inherited, color, defs, vbW, vbH);
     }
   }
 
@@ -810,7 +836,7 @@ function applyFilter(
 function drawSvgChild(
   ctx: SKRSContext2D,
   child: SvgChild,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs = EMPTY_DEFS,
   vbW = 0,
@@ -866,28 +892,28 @@ function drawSvgChild(
 
   switch (type) {
     case "path":
-      drawPath(targetCtx, props, inheritedFill, color, defs);
+      drawPath(targetCtx, props, inherited, color, defs);
       break;
     case "circle":
-      drawCircle(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
+      drawCircle(targetCtx, props, inherited, color, defs, vbW, vbH);
       break;
     case "rect":
-      drawSvgRect(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
+      drawSvgRect(targetCtx, props, inherited, color, defs, vbW, vbH);
       break;
     case "line":
-      drawLine(targetCtx, props, color, defs, vbW, vbH);
+      drawLine(targetCtx, props, inherited, color, defs, vbW, vbH);
       break;
     case "ellipse":
-      drawEllipse(targetCtx, props, inheritedFill, color, defs, vbW, vbH);
+      drawEllipse(targetCtx, props, inherited, color, defs, vbW, vbH);
       break;
     case "polygon":
-      drawPolygon(targetCtx, props, inheritedFill, color, defs);
+      drawPolygon(targetCtx, props, inherited, color, defs);
       break;
     case "polyline":
-      drawPolyline(targetCtx, props, inheritedFill, color, defs);
+      drawPolyline(targetCtx, props, inherited, color, defs);
       break;
     case "g":
-      drawGroup(targetCtx, child, inheritedFill, color, defs, vbW, vbH);
+      drawGroup(targetCtx, child, inherited, color, defs, vbW, vbH);
       break;
   }
 
@@ -899,7 +925,15 @@ function drawSvgChild(
         Math.ceil(vbH),
       );
       for (const shape of maskShapes) {
-        drawSvgChild(maskCtx, shape, "white", "white", defs, vbW, vbH);
+        drawSvgChild(
+          maskCtx,
+          shape,
+          { fill: "white" },
+          "white",
+          defs,
+          vbW,
+          vbH,
+        );
       }
       targetCtx.globalCompositeOperation = "destination-in";
       targetCtx.drawImage(maskCanvas, 0, 0);
@@ -931,7 +965,7 @@ function drawSvgChild(
 function drawPath(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
 ): void {
@@ -940,13 +974,13 @@ function drawPath(
 
   const path = new Path2D(d);
   const bbox = pathBBox(d);
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawCircle(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   vbW = 0,
@@ -960,13 +994,13 @@ function drawCircle(
   const path = new Path2D();
   path.arc(cx, cy, r, 0, Math.PI * 2);
   const bbox: BBox = { x: cx - r, y: cy - r, width: 2 * r, height: 2 * r };
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawSvgRect(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   vbW = 0,
@@ -992,12 +1026,13 @@ function drawSvgRect(
     path.rect(x, y, w, h);
   }
   const bbox: BBox = { x, y, width: w, height: h };
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawLine(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   vbW = 0,
@@ -1018,13 +1053,13 @@ function drawLine(
     width: Math.abs(x2 - x1),
     height: Math.abs(y2 - y1),
   };
-  applyStroke(ctx, props, path, color, defs, bbox);
+  applyStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawEllipse(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   vbW = 0,
@@ -1044,13 +1079,13 @@ function drawEllipse(
     width: 2 * rx,
     height: 2 * ry,
   };
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawPolygon(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
 ): void {
@@ -1064,13 +1099,13 @@ function drawPolygon(
   }
   path.closePath();
   const bbox = pointsBBox(points);
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function drawPolyline(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
 ): void {
@@ -1083,7 +1118,7 @@ function drawPolyline(
     path.lineTo(points[i]![0], points[i]![1]);
   }
   const bbox = pointsBBox(points);
-  applyFillAndStroke(ctx, props, path, inheritedFill, color, defs, bbox);
+  applyFillAndStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 /**
@@ -1161,7 +1196,7 @@ function applySvgTransform(ctx: SKRSContext2D, transform: string): void {
 function drawGroup(
   ctx: SKRSContext2D,
   node: SvgChild,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs = EMPTY_DEFS,
   vbW = 0,
@@ -1169,11 +1204,34 @@ function drawGroup(
 ): void {
   const children = normalizeChildren(node);
   if (children.length === 0) return;
-  // Group can override inherited fill
+  // Merge group props over parent inherited style
   const merged = mergeStyleIntoProps(node.props);
-  const groupFill =
-    resolveCurrentColor(merged.fill as string | undefined, color) ??
-    inheritedFill;
+  const groupInherited: InheritedSvgStyle = {
+    fill:
+      resolveCurrentColor(merged.fill as string | undefined, color) ??
+      inherited.fill,
+    stroke:
+      resolveCurrentColor(merged.stroke as string | undefined, color) ??
+      inherited.stroke,
+    strokeWidth:
+      ((merged.strokeWidth ?? merged["stroke-width"]) as
+        | string
+        | number
+        | undefined) ?? inherited.strokeWidth,
+    strokeLinecap:
+      ((merged.strokeLinecap ?? merged["stroke-linecap"]) as
+        | string
+        | undefined) ?? inherited.strokeLinecap,
+    strokeLinejoin:
+      ((merged.strokeLinejoin ?? merged["stroke-linejoin"]) as
+        | string
+        | undefined) ?? inherited.strokeLinejoin,
+    strokeOpacity:
+      ((merged.strokeOpacity ?? merged["stroke-opacity"]) as
+        | string
+        | number
+        | undefined) ?? inherited.strokeOpacity,
+  };
 
   const transform = merged.transform as string | undefined;
   if (transform) {
@@ -1183,7 +1241,7 @@ function drawGroup(
 
   for (const child of children) {
     if (child != null && typeof child === "object") {
-      drawSvgChild(ctx, child, groupFill, color, defs, vbW, vbH);
+      drawSvgChild(ctx, child, groupInherited, color, defs, vbW, vbH);
     }
   }
 
@@ -1209,7 +1267,7 @@ function applyFillAndStroke(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   path: Path2D,
-  inheritedFill: string,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   bbox: BBox,
@@ -1217,7 +1275,7 @@ function applyFillAndStroke(
   // Use element's own fill if set, otherwise inherit from parent
   const fill =
     resolveCurrentColor(props.fill as string | undefined, color) ??
-    inheritedFill;
+    inherited.fill;
   const fillRule = (props.fillRule ?? props["fill-rule"]) as
     | CanvasFillRule
     | undefined;
@@ -1254,31 +1312,41 @@ function applyFillAndStroke(
     ctx.fill(path, fillRule ?? "nonzero");
   }
 
-  applyStroke(ctx, props, path, color, defs, bbox);
+  applyStroke(ctx, props, path, inherited, color, defs, bbox);
 }
 
 function applyStroke(
   ctx: SKRSContext2D,
   props: Record<string, unknown>,
   path: Path2D,
+  inherited: InheritedSvgStyle,
   color: string,
   defs: SvgDefs,
   bbox: BBox,
 ): void {
-  const stroke = resolveCurrentColor(props.stroke as string | undefined, color);
+  const stroke =
+    resolveCurrentColor(props.stroke as string | undefined, color) ??
+    inherited.stroke;
   if (!stroke || stroke === "none") return;
 
   const strokeOpacity = Number(
-    props.strokeOpacity ?? props["stroke-opacity"] ?? 1,
+    props.strokeOpacity ??
+      props["stroke-opacity"] ??
+      inherited.strokeOpacity ??
+      1,
   );
 
-  ctx.lineWidth = Number(props.strokeWidth ?? props["stroke-width"] ?? 1);
-  ctx.lineCap =
-    ((props.strokeLinecap ?? props["stroke-linecap"]) as CanvasLineCap) ??
-    "butt";
-  ctx.lineJoin =
-    ((props.strokeLinejoin ?? props["stroke-linejoin"]) as CanvasLineJoin) ??
-    "miter";
+  ctx.lineWidth = Number(
+    props.strokeWidth ?? props["stroke-width"] ?? inherited.strokeWidth ?? 1,
+  );
+  ctx.lineCap = (((props.strokeLinecap ??
+    props["stroke-linecap"]) as CanvasLineCap) ??
+    inherited.strokeLinecap ??
+    "butt") as CanvasLineCap;
+  ctx.lineJoin = (((props.strokeLinejoin ??
+    props["stroke-linejoin"]) as CanvasLineJoin) ??
+    inherited.strokeLinejoin ??
+    "miter") as CanvasLineJoin;
 
   // Resolve url(#id) gradient reference for stroke
   const strokeRef = parseUrlRef(stroke);

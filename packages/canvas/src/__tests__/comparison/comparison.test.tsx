@@ -3148,4 +3148,52 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(0.01);
   });
+
+  it("svg-group-inherited-stroke", async () => {
+    const WIDTH = 200;
+    const HEIGHT = 200;
+
+    // Paths that inherit stroke from a parent <g> element
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={180}
+          height={180}
+          viewBox="0 0 24 24"
+          style={{ width: 180, height: 180 }}
+        >
+          <g
+            fill="none"
+            stroke="#E11D48"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 6L6 18" />
+            <path d="M6 6l12 12" />
+          </g>
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-group-inherited-stroke",
+    );
+    expect(percentage).toBeLessThan(0.01);
+  });
 });

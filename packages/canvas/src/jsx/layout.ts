@@ -281,6 +281,13 @@ async function buildNode(
     childYogaNode.setFlexShrink(1);
     yogaNode.insertChild(childYogaNode, 0);
 
+    // Match satori: text-only nodes default to flexShrink=1 so they shrink to
+    // fit the available flex space. Without this, text containers overflow their
+    // flex parent when siblings consume part of the main axis.
+    if (style.flexShrink === undefined) {
+      yogaNode.setFlexShrink(1);
+    }
+
     return {
       type: tagName,
       style,

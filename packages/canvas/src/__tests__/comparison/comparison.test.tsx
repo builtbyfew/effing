@@ -3032,4 +3032,73 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(0.1);
   });
+
+  it("renders flex-computed text width — text wraps same as satori without explicit width", async () => {
+    const text = "The quick brown fox jumps over the lazy dog";
+    const W = 220;
+    const H = 60;
+
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: W,
+          height: H,
+          backgroundColor: "white",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            paddingLeft: 8,
+            paddingTop: 8,
+          }}
+        >
+          <span
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            <span style={{ flex: "none", marginRight: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  width: 28,
+                  height: 28,
+                  backgroundColor: "#ccc",
+                }}
+              />
+            </span>
+            <div
+              style={{
+                display: "flex",
+                marginRight: 40,
+                fontSize: 10,
+                color: "#646464",
+              }}
+            >
+              {text}
+            </div>
+          </span>
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, W, H, fonts),
+      renderWithSatori(element, W, H, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "flex-computed-text-width",
+    );
+    expect(percentage).toBeLessThan(2.5);
+  });
 });

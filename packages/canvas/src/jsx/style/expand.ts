@@ -146,23 +146,32 @@ export function expandStyle(
   // flex shorthand
   if (style.flex !== undefined) {
     const val = String(style.flex);
-    const parts = val.split(/\s+/);
-    if (parts.length === 1) {
-      const n = parseFloat(parts[0]!);
-      if (!isNaN(n)) {
-        if (style.flexGrow === undefined) style.flexGrow = n;
-        if (style.flexShrink === undefined) style.flexShrink = 1;
-        if (style.flexBasis === undefined) style.flexBasis = 0;
+    if (val === "none") {
+      if (style.flexGrow === undefined) style.flexGrow = 0;
+      if (style.flexShrink === undefined) style.flexShrink = 0;
+      if (style.flexBasis === undefined) style.flexBasis = "auto";
+    } else {
+      const parts = val.split(/\s+/);
+      if (parts.length === 1) {
+        const n = parseFloat(parts[0]!);
+        if (!isNaN(n)) {
+          if (style.flexGrow === undefined) style.flexGrow = n;
+          if (style.flexShrink === undefined) style.flexShrink = 1;
+          if (style.flexBasis === undefined) style.flexBasis = 0;
+        }
+      } else if (parts.length === 2) {
+        if (style.flexGrow === undefined)
+          style.flexGrow = parseFloat(parts[0]!);
+        if (style.flexShrink === undefined)
+          style.flexShrink = parseFloat(parts[1]!);
+      } else if (parts.length >= 3) {
+        if (style.flexGrow === undefined)
+          style.flexGrow = parseFloat(parts[0]!);
+        if (style.flexShrink === undefined)
+          style.flexShrink = parseFloat(parts[1]!);
+        if (style.flexBasis === undefined)
+          style.flexBasis = parseValue(parts[2]);
       }
-    } else if (parts.length === 2) {
-      if (style.flexGrow === undefined) style.flexGrow = parseFloat(parts[0]!);
-      if (style.flexShrink === undefined)
-        style.flexShrink = parseFloat(parts[1]!);
-    } else if (parts.length >= 3) {
-      if (style.flexGrow === undefined) style.flexGrow = parseFloat(parts[0]!);
-      if (style.flexShrink === undefined)
-        style.flexShrink = parseFloat(parts[1]!);
-      if (style.flexBasis === undefined) style.flexBasis = parseValue(parts[2]);
     }
     delete style.flex;
   }

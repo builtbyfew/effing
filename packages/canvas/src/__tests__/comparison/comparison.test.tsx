@@ -2887,6 +2887,66 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     expect(percentage).toBeLessThan(0.1);
   });
 
+  // -------------------------------------------------------------------------
+  // SVG fillOpacity / strokeOpacity — semi-transparent fill and stroke
+  // -------------------------------------------------------------------------
+
+  it("renders SVG fillOpacity and strokeOpacity — semi-transparent shapes", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={200}
+          height={200}
+          viewBox="0 0 200 200"
+          style={{ width: 200, height: 200 }}
+        >
+          {/* Solid background rect so transparency is visible */}
+          <rect x={0} y={0} width={200} height={200} fill="#3B82F6" />
+          {/* Semi-transparent overlapping rect */}
+          <rect
+            x={20}
+            y={20}
+            width={160}
+            height={80}
+            fill="#000000"
+            fillOpacity={0.3}
+          />
+          {/* Rect with strokeOpacity */}
+          <rect
+            x={20}
+            y={120}
+            width={160}
+            height={60}
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth={6}
+            strokeOpacity={0.5}
+          />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-fill-stroke-opacity",
+    );
+    expect(percentage).toBeLessThan(0.01);
+  });
+
   it("renders img with border — border on image element", async () => {
     const imageDataUri = await makeTestImage(150, 150);
 

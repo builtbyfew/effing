@@ -1210,15 +1210,36 @@ function applyFillAndStroke(
   const fillRule = (props.fillRule ?? props["fill-rule"]) as
     | CanvasFillRule
     | undefined;
+  const fillOpacity = Number(props.fillOpacity ?? props["fill-opacity"] ?? 1);
+
   // Resolve url(#id) gradient reference
   const fillRef = parseUrlRef(fill);
   if (fillRef) {
     const gradientDef = defs.gradients.get(fillRef);
     if (gradientDef) {
-      fillWithSvgGradient(ctx, gradientDef, bbox, path, fillRule ?? "nonzero");
+      if (fillOpacity < 1) {
+        ctx.save();
+        ctx.globalAlpha *= fillOpacity;
+        fillWithSvgGradient(
+          ctx,
+          gradientDef,
+          bbox,
+          path,
+          fillRule ?? "nonzero",
+        );
+        ctx.restore();
+      } else {
+        fillWithSvgGradient(
+          ctx,
+          gradientDef,
+          bbox,
+          path,
+          fillRule ?? "nonzero",
+        );
+      }
     }
   } else if (fill !== "none") {
-    ctx.fillStyle = fill;
+    ctx.fillStyle = applyOpacity(fill, fillOpacity);
     ctx.fill(path, fillRule ?? "nonzero");
   }
 
@@ -1236,6 +1257,10 @@ function applyStroke(
   const stroke = resolveCurrentColor(props.stroke as string | undefined, color);
   if (!stroke || stroke === "none") return;
 
+  const strokeOpacity = Number(
+    props.strokeOpacity ?? props["stroke-opacity"] ?? 1,
+  );
+
   ctx.lineWidth = Number(props.strokeWidth ?? props["stroke-width"] ?? 1);
   ctx.lineCap =
     ((props.strokeLinecap ?? props["stroke-linecap"]) as CanvasLineCap) ??
@@ -1249,11 +1274,18 @@ function applyStroke(
   if (strokeRef) {
     const gradientDef = defs.gradients.get(strokeRef);
     if (gradientDef) {
-      strokeWithSvgGradient(ctx, gradientDef, bbox, path);
+      if (strokeOpacity < 1) {
+        ctx.save();
+        ctx.globalAlpha *= strokeOpacity;
+        strokeWithSvgGradient(ctx, gradientDef, bbox, path);
+        ctx.restore();
+      } else {
+        strokeWithSvgGradient(ctx, gradientDef, bbox, path);
+      }
       return;
     }
   }
 
-  ctx.strokeStyle = stroke;
+  ctx.strokeStyle = applyOpacity(stroke, strokeOpacity);
   ctx.stroke(path);
 }

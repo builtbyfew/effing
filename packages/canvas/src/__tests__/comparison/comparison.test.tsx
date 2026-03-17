@@ -3101,4 +3101,51 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(2.5);
   });
+
+  // -------------------------------------------------------------------------
+  // SVG named color with fillOpacity
+  // -------------------------------------------------------------------------
+
+  it("svg-named-color-fill-opacity", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "#1a1a2e",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={200}
+          height={200}
+          viewBox="0 0 200 200"
+          style={{ width: 200, height: 200 }}
+        >
+          <rect
+            x={10}
+            y={10}
+            width={180}
+            height={180}
+            fill="white"
+            fillOpacity={0.5}
+          />
+          <circle cx={100} cy={100} r={60} fill="red" fillOpacity={0.7} />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-named-color-fill-opacity",
+    );
+    expect(percentage).toBeLessThan(0.01);
+  });
 });

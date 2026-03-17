@@ -5,6 +5,8 @@ import type {
   SKRSContext2D,
 } from "@napi-rs/canvas";
 
+import parseCssColor from "parse-css-color";
+
 import type { LayoutNode } from "../layout.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 
@@ -119,10 +121,10 @@ function parseFrac(value: unknown, fallback: number): number {
 /** Apply opacity to a CSS color string. */
 function applyOpacity(color: string, opacity: number): string {
   if (opacity >= 1) return color;
-  const m = color.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if (m)
-    return `rgba(${parseInt(m[1]!, 16)}, ${parseInt(m[2]!, 16)}, ${parseInt(m[3]!, 16)}, ${opacity})`;
-  return color;
+  const parsed = parseCssColor(color);
+  if (!parsed) return color;
+  const [r, g, b] = parsed.values;
+  return `rgba(${r}, ${g}, ${b}, ${parsed.alpha * opacity})`;
 }
 
 /** Add color stops from SVG `<stop>` children to a canvas gradient. */

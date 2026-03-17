@@ -347,10 +347,17 @@ async function drawNodeCore(
     const paddingRight = resolveBoxValue(style.paddingRight, width);
     const paddingBottom = resolveBoxValue(style.paddingBottom, width);
 
-    const imgX = x + paddingLeft;
-    const imgY = y + paddingTop;
-    const imgW = width - paddingLeft - paddingRight;
-    const imgH = height - paddingTop - paddingBottom;
+    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
+    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
+    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
+    const borderBottomW = resolveBoxValue(style.borderBottomWidth, width);
+
+    const imgX = x + paddingLeft + borderLeftW;
+    const imgY = y + paddingTop + borderTopW;
+    const imgW =
+      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
+    const imgH =
+      height - paddingTop - paddingBottom - borderTopW - borderBottomW;
 
     // Images are replaced content — borderRadius clips them directly
     // (unlike child content which requires overflow:hidden)

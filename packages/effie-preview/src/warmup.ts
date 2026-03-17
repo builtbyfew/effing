@@ -68,7 +68,10 @@ export function connectEffieWarmupStream(
   });
 
   eventSource.addEventListener("error", () => {
-    onEvent({ type: "error", data: { message: "Connection lost" } });
+    onEvent({
+      type: "error",
+      data: { message: "Connection lost", code: "CONNECTION_LOST" },
+    });
     eventSource.close();
   });
 

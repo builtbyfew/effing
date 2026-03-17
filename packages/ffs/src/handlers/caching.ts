@@ -51,7 +51,13 @@ export async function createWarmupJob(
       options.timings.validation = performance.now() - validationStart;
     }
     if ("error" in parseResult) {
-      res.status(400).json(parseResult);
+      sendError(
+        res,
+        400,
+        parseResult.code,
+        parseResult.error,
+        parseResult.issues,
+      );
       return;
     }
 
@@ -139,7 +145,7 @@ export async function streamWarmupProgress(
       await warmupSources(job.sources, sendEvent, ctx);
       sendEvent("complete", { status: "ready" });
     } catch (error) {
-      sendEvent("error", { message: String(error) });
+      sendEvent("error", { message: String(error), code: "INTERNAL_ERROR" });
     } finally {
       res.end();
     }
@@ -188,7 +194,13 @@ export async function purgeCache(
       options.timings.validation = performance.now() - validationStart;
     }
     if ("error" in parseResult) {
-      res.status(400).json(parseResult);
+      sendError(
+        res,
+        400,
+        parseResult.code,
+        parseResult.error,
+        parseResult.issues,
+      );
       return;
     }
 

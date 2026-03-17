@@ -20,7 +20,7 @@ export type WarmupEventMap = {
   keepalive: { cached: number; failed: number; skipped: number; total: number };
   summary: { cached: number; failed: number; skipped: number; total: number };
   complete: { status: "ready" };
-  error: { message: string };
+  error: { message: string; code: string };
 };
 
 // Render SSE events (sent by /render/:id/progress, excluding prefixed warmup events)

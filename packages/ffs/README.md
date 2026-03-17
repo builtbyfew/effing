@@ -254,7 +254,7 @@ Runs the cache warmup job and streams the progress via Server-Sent Events (SSE).
 | `keepalive`   | `{ cached, failed, skipped, total }` — sent every ~25 s during source fetching                       |
 | `summary`     | `{ cached, failed, skipped, total }`                                                                 |
 | `complete`    | `{ status: "ready" }`                                                                                |
-| `error`       | `{ message }`                                                                                        |
+| `error`       | `{ message, code }`                                                                                  |
 
 **Example:**
 

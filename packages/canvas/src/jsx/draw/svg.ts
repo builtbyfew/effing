@@ -598,6 +598,14 @@ function drawSvgChild(
   // Skip non-drawable definition elements
   if (type === "defs" || type === "clipPath" || type === "mask") return;
 
+  // Apply transform on shape elements (drawGroup already handles <g> transforms)
+  const transform =
+    type !== "g" ? (props.transform as string | undefined) : undefined;
+  if (transform) {
+    ctx.save();
+    applySvgTransform(ctx, transform);
+  }
+
   // Check for clip-path="url(#id)" reference
   const clipRef = parseUrlRef(props.clipPath ?? props["clip-path"]);
   const clipShapes = clipRef ? defs.clips.get(clipRef) : undefined;
@@ -669,6 +677,7 @@ function drawSvgChild(
   }
 
   if (clipPath) ctx.restore();
+  if (transform) ctx.restore();
 }
 
 function drawPath(

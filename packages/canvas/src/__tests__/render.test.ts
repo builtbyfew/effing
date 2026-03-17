@@ -1477,4 +1477,47 @@ describe("percentage unit handling", () => {
     const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
     expect(fillTextCall![1]).toBe(20);
   });
+
+  it("applies transform attribute on SVG shape elements (not just groups)", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 100 100",
+          children: [
+            {
+              type: "line",
+              props: {
+                x1: "0",
+                y1: "50",
+                x2: "100",
+                y2: "50",
+                stroke: "black",
+                strokeWidth: "2",
+                transform: "rotate(45 50 50)",
+              },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // Transform should cause save/restore pair and a rotate+translate call
+    expect(ctx.save).toHaveBeenCalled();
+    expect(ctx.restore).toHaveBeenCalled();
+    // The transform function should have been called (applySvgTransform uses ctx.rotate/translate/transform)
+    const rotateCalls = vi.mocked(ctx.rotate).mock.calls;
+    const transformCalls = vi.mocked(ctx.transform).mock.calls;
+    expect(rotateCalls.length + transformCalls.length).toBeGreaterThan(0);
+  });
 });

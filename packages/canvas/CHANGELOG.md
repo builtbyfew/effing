@@ -1,5 +1,17 @@
 # @effing/canvas
 
+## 0.22.1
+
+### Patch Changes
+
+- d226951: Handle all CSS color formats in SVG fillOpacity/strokeOpacity
+- 5b5183a: Inherit SVG stroke properties from parent `<g>` elements
+
+  Stroke attributes (stroke, strokeWidth, strokeLinecap, strokeLinejoin,
+  strokeOpacity) set on `<g>` elements now propagate to child shapes, matching
+  SVG spec inheritance behavior. Previously only fill was inherited, causing
+  stroke-only children to be invisible.
+
 ## 0.22.0
 
 ### Minor Changes

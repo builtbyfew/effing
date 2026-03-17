@@ -9,9 +9,13 @@ import type {
   DeferredRenderJob,
 } from "./handlers/shared";
 
-vi.mock("./render", () => ({
-  EffieRenderer: vi.fn(),
-}));
+vi.mock("./render", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./render")>();
+  return {
+    EffieRenderer: vi.fn(),
+    FetchError: original.FetchError,
+  };
+});
 
 vi.mock("./fetch", () => ({
   ffsFetch: vi.fn(),
@@ -672,6 +676,7 @@ describe("streamRenderProgress with deferred jobs", () => {
     expect(errorEvent!.data).toEqual({
       phase: "effie",
       message: expect.stringContaining("Failed to fetch Effie data"),
+      code: "INTERNAL_ERROR",
     });
   });
 });

@@ -25,6 +25,7 @@ import {
   proxyRemoteSSE,
   proxyBinaryStream,
 } from "./shared";
+import { FetchError } from "../render";
 import { warmupSources, purgeCachedSources } from "./caching";
 import { sendError, ErrorCode } from "./errors";
 
@@ -386,7 +387,8 @@ export async function streamRenderProgress(
     } catch (error) {
       sendEvent("error", {
         phase: keepalivePhase,
-        message: String(error),
+        message: error instanceof Error ? error.message : String(error),
+        code: error instanceof FetchError ? "FETCH_FAILED" : "INTERNAL_ERROR",
       });
     } finally {
       clearInterval(keepalive);
@@ -479,7 +481,11 @@ export async function streamRenderVideo(
   } catch (error) {
     console.error("Error streaming video:", error);
     if (!res.headersSent) {
-      sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Video streaming failed");
+      if (error instanceof FetchError) {
+        sendError(res, 422, ErrorCode.FETCH_FAILED, error.message);
+      } else {
+        sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Video streaming failed");
+      }
     } else {
       res.end();
     }

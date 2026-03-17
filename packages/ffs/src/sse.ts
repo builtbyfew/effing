@@ -37,7 +37,11 @@ export type RenderEventMap = {
   };
   complete: { status: "done" };
   ready: { videoUrl: string };
-  error: { phase: "effie" | "warmup" | "render" | "upload"; message: string };
+  error: {
+    phase: "effie" | "warmup" | "render" | "upload";
+    message: string;
+    code: string;
+  };
 };
 
 // Typed event sender — constrains event name and payload together

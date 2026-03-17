@@ -35,6 +35,17 @@ export type EffieRendererOptions = {
   httpProxy?: HttpProxy;
 };
 
+export class FetchError extends Error {
+  constructor(
+    public readonly url: string,
+    public readonly status: number,
+    statusText: string,
+  ) {
+    super(`Failed to fetch ${url}: ${status} ${statusText}`);
+    this.name = "FetchError";
+  }
+}
+
 export class EffieRenderer<U extends string = EffieWebUrl> {
   private effieData: EffieData<EffieSources<U>, U>;
   private ffmpegRunner?: FFmpegRunner;
@@ -97,9 +108,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       bodyTimeout: 20 * 60 * 1000, // 20 minutes
     });
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${src}: ${response.status} ${response.statusText}`,
-      );
+      throw new FetchError(src, response.status, response.statusText);
     }
     if (!response.body) {
       throw new Error(`No body for ${src}`);

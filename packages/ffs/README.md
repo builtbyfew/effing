@@ -187,7 +187,7 @@ Streams warmup and render progress via SSE. All warmup events are prefixed with 
 | `render:complete`    | render | `{ renderTime?, fetchCoverTime?, uploadCoverTime?, uploadTime }` (upload mode; all values in ms)     |
 | `ready`              | —      | `{ videoUrl }` (non-upload mode)                                                                     |
 | `complete`           | —      | `{ status: "done" }` (upload mode)                                                                   |
-| `error`              | any    | `{ phase: "effie" \| "warmup" \| "render" \| "upload", message }`                                    |
+| `error`              | any    | `{ phase: "effie" \| "warmup" \| "render" \| "upload", message, code }`                              |
 
 **Without upload** — The `ready` event provides a `videoUrl` pointing to `/render/:id/video`. The actual rendering happens when you fetch that URL:
 
@@ -304,6 +304,7 @@ type ApiError = {
 | `INVALID_EFFIE`  | 400    | Effie data validation or structural error |
 | `NOT_FOUND`      | 404    | Job or video not found                    |
 | `BACKEND_FAILED` | varies | Remote render backend returned an error   |
+| `FETCH_FAILED`   | 422    | A source URL could not be fetched         |
 | `INTERNAL_ERROR` | 500    | Catch-all for unhandled exceptions        |
 
 For `INVALID_EFFIE` errors caused by schema validation, the `issues` array contains the specific validation failures:

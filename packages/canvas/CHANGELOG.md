@@ -1,5 +1,36 @@
 # @effing/canvas
 
+## 0.22.0
+
+### Minor Changes
+
+- a892d9f: Add SVG filter effects support to canvas renderer
+
+  The canvas renderer now processes SVG `<filter>` definitions and applies filter
+  primitives (`feOffset`, `feGaussianBlur`, `feColorMatrix`, `feBlend`) during
+  rasterization. Filter pipelines use offscreen canvases and named buffers,
+  following the same pattern as mask support. This enables rendering of common
+  SVG effects like drop shadows.
+
+### Patch Changes
+
+- 72d575d: Collect SVG definition elements (mask, clipPath, filter, gradients) as direct children of `<svg>`, not only inside `<defs>`
+- 97db116: Default text-only flex items to flexShrink 1 to match satori
+
+  Text containers without an explicit flexShrink now shrink to fit their
+  available flex space instead of overflowing. Also handle `flex: "none"`
+  explicitly in style expansion.
+
+- 7914638: Inset image content area by border width so borders on img elements are visible
+- cd317ce: Skip flexGrow on implicit text children when justifyContent is non-default
+
+  When a flex container has `justifyContent: "center"` (or other non-default
+  values), the implicit text child no longer gets `flexGrow: 1`, allowing yoga to
+  position it correctly instead of stretching it to fill the parent.
+
+- c1ba8cc: Apply fillOpacity and strokeOpacity on SVG child elements
+- 968710d: Apply transform attribute on SVG shape elements
+
 ## 0.21.1
 
 ### Patch Changes

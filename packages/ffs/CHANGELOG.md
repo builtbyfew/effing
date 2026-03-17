@@ -1,5 +1,26 @@
 # @effing/ffs
 
+## 0.21.0
+
+### Minor Changes
+
+- 2d0cb86: Surface fetch errors in HTTP API
+
+  Source URL fetch failures now return a `422` status with error code `FETCH_FAILED`
+  (instead of a generic `500 INTERNAL_ERROR`) on the `/render/:id/video` endpoint.
+  The render progress SSE `error` event now includes a `code` field (`FETCH_FAILED`
+  or `INTERNAL_ERROR`) and preserves the original error message with URL and status
+  details.
+
+### Patch Changes
+
+- 0c45351: Add error codes to warmup SSE events
+
+  The warmup SSE `error` event now includes a `code` field, consistent with render
+  SSE error events. Also switches validation error responses in `/warmup` and
+  `/purge` handlers to use `sendError()` for consistency.
+  - @effing/effie@0.21.0
+
 ## 0.20.1
 
 ### Patch Changes

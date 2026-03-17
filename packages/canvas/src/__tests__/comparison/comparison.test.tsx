@@ -2790,4 +2790,44 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(2);
   });
+
+  it("renders partial borders with borderRadius — mixed border widths", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: 200,
+            height: 100,
+            backgroundColor: "#F7F8FA",
+            borderLeft: "3px solid #222",
+            borderRight: "3px solid #222",
+            borderBottom: "3px solid #222",
+            borderBottomLeftRadius: 32,
+            borderBottomRightRadius: 32,
+          }}
+        />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "partial-border-radius",
+    );
+    expect(percentage).toBeLessThan(0.1);
+  });
 });

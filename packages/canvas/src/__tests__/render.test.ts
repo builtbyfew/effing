@@ -640,6 +640,25 @@ describe("buildLayoutTree", () => {
     expect(textChild.width).toBe(200);
   });
 
+  it("text child does not fill parent width when justifyContent is center", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, display: "flex", justifyContent: "center" },
+          children: "Hi",
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const div = tree.children[0];
+    const textChild = div.children[0];
+    expect(textChild.type).toBe("text");
+    expect(textChild.width).toBeLessThan(200);
+  });
+
   it("resolves percentage width/height on img to parent size", async () => {
     vi.mocked(loadImage).mockResolvedValueOnce({
       width: 400,

@@ -274,7 +274,10 @@ async function buildNode(
       emojiEnabled,
     );
     childYogaNode.setMeasureFunc(measureFunc);
-    childYogaNode.setFlexGrow(1);
+    const jc = style.justifyContent;
+    if (!jc || jc === "flex-start") {
+      childYogaNode.setFlexGrow(1);
+    }
     childYogaNode.setFlexShrink(1);
     yogaNode.insertChild(childYogaNode, 0);
 

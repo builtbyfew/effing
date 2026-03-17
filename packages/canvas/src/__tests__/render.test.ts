@@ -666,6 +666,39 @@ describe("buildLayoutTree", () => {
     expect(img.height).toBe(200);
   });
 
+  it("flattens array children into parent instead of wrapping in implicit div", async () => {
+    // Simulates: [<red/>, [<gray/>, <gray/>, <gray/>], <blue/>]
+    // Should produce 5 direct children, not 3 (with a wrapper div around the grays)
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { display: "flex", width: 200, height: 200 },
+          children: [
+            { type: "div", props: { style: { width: 40, height: 40 } } },
+            [
+              { type: "div", props: { style: { width: 40, height: 40 } } },
+              { type: "div", props: { style: { width: 40, height: 40 } } },
+              { type: "div", props: { style: { width: 40, height: 40 } } },
+            ],
+            { type: "div", props: { style: { width: 40, height: 40 } } },
+          ],
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const parent = tree.children[0];
+    expect(parent.children).toHaveLength(5);
+    // All children should be direct divs, no implicit wrapper
+    for (const child of parent.children) {
+      expect(child.type).toBe("div");
+      expect(child.width).toBe(40);
+      expect(child.height).toBe(40);
+    }
+  });
+
   it("resolves position: absolute on root element against canvas dimensions", async () => {
     const tree = await buildLayoutTree(
       {

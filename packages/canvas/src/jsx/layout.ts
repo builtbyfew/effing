@@ -137,41 +137,6 @@ async function buildNode(
     };
   }
 
-  // Handle arrays (fragments)
-  if (Array.isArray(element)) {
-    const style = resolveStyle(undefined, parentStyle);
-    const children: IntermediateNode[] = [];
-
-    for (let i = 0; i < element.length; i++) {
-      const child = element[i] as ElementChild;
-      if (child === null || child === undefined || typeof child === "boolean")
-        continue;
-
-      const childYogaNode = createYogaNode();
-      yogaNode.insertChild(childYogaNode, children.length);
-      children.push(
-        await buildNode(
-          child,
-          style,
-          childYogaNode,
-          viewportWidth,
-          viewportHeight,
-          ctx,
-          emojiEnabled,
-          fontFamilies,
-        ),
-      );
-    }
-
-    return {
-      type: "div",
-      style,
-      children,
-      props: {},
-      yogaNode,
-    };
-  }
-
   // Handle React elements
   const el = element as ReactElement<Record<string, unknown>>;
   const type = el.type;
@@ -336,7 +301,9 @@ async function buildNode(
   const rawChildren = props.children;
 
   if (rawChildren !== undefined && rawChildren !== null) {
-    const childArray = Array.isArray(rawChildren) ? rawChildren : [rawChildren];
+    const childArray = Array.isArray(rawChildren)
+      ? rawChildren.flat(Infinity)
+      : [rawChildren];
 
     for (const child of childArray as ElementChild[]) {
       if (child === null || child === undefined || typeof child === "boolean")

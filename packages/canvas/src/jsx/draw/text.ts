@@ -58,13 +58,43 @@ export async function drawText(
     const x = offsetX + seg.x;
     const y = offsetY + seg.y;
 
+    const hasStroke =
+      seg.textStrokeWidth !== undefined && seg.textStrokeWidth > 0;
+
     if (emojiStyle) {
-      await drawSegmentWithEmoji(ctx, seg, x, y, textShadow, emojiStyle);
+      await drawSegmentWithEmoji(
+        ctx,
+        seg,
+        x,
+        y,
+        textShadow,
+        emojiStyle,
+        hasStroke,
+      );
     } else if (seg.letterSpacing && seg.letterSpacing !== 0) {
+      if (hasStroke) {
+        drawStrokeWithLetterSpacing(
+          ctx,
+          seg.text,
+          x,
+          y,
+          seg.letterSpacing,
+          seg.textStrokeWidth!,
+          seg.textStrokeColor ?? seg.color,
+        );
+      }
       drawTextWithLetterSpacing(ctx, seg.text, x, y, seg.letterSpacing);
     } else {
       if (textShadow) {
         drawTextShadow(ctx, seg.text, x, y, textShadow);
+      }
+      if (hasStroke) {
+        ctx.save();
+        ctx.lineWidth = seg.textStrokeWidth!;
+        ctx.strokeStyle = seg.textStrokeColor ?? seg.color;
+        ctx.lineJoin = "round";
+        ctx.strokeText(seg.text, x, y);
+        ctx.restore();
       }
       ctx.fillText(seg.text, x, y);
     }
@@ -83,6 +113,7 @@ async function drawSegmentWithEmoji(
   y: number,
   textShadow: string | undefined,
   emojiStyle: EmojiStyle,
+  hasStroke?: boolean,
 ): Promise<void> {
   const letterSpacing = seg.letterSpacing ?? 0;
   const runs = splitTextIntoRuns(
@@ -99,6 +130,26 @@ async function drawSegmentWithEmoji(
     if (run.kind === "text") {
       if (textShadow) {
         drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+      }
+      if (hasStroke) {
+        if (letterSpacing !== 0) {
+          drawStrokeWithLetterSpacing(
+            ctx,
+            run.text,
+            x + run.x,
+            y,
+            letterSpacing,
+            seg.textStrokeWidth!,
+            seg.textStrokeColor ?? seg.color,
+          );
+        } else {
+          ctx.save();
+          ctx.lineWidth = seg.textStrokeWidth!;
+          ctx.strokeStyle = seg.textStrokeColor ?? seg.color;
+          ctx.lineJoin = "round";
+          ctx.strokeText(run.text, x + run.x, y);
+          ctx.restore();
+        }
       }
       if (letterSpacing !== 0) {
         drawTextWithLetterSpacing(ctx, run.text, x + run.x, y, letterSpacing);
@@ -134,6 +185,28 @@ function drawTextWithLetterSpacing(
     const metrics = ctx.measureText(char);
     currentX += metrics.width + letterSpacing;
   }
+}
+
+function drawStrokeWithLetterSpacing(
+  ctx: SKRSContext2D,
+  text: string,
+  x: number,
+  y: number,
+  letterSpacing: number,
+  strokeWidth: number,
+  strokeColor: string,
+): void {
+  ctx.save();
+  ctx.lineWidth = strokeWidth;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineJoin = "round";
+  let currentX = x;
+  for (const char of text) {
+    ctx.strokeText(char, currentX, y);
+    const metrics = ctx.measureText(char);
+    currentX += metrics.width + letterSpacing;
+  }
+  ctx.restore();
 }
 
 function drawTextShadow(

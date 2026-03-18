@@ -138,6 +138,10 @@ export type ComputedStyle = {
   // Text box trim
   textBoxTrim?: "none" | "trim-start" | "trim-end" | "trim-both";
   textBoxEdge?: string;
+
+  // Text stroke
+  WebkitTextStrokeWidth?: number | string;
+  WebkitTextStrokeColor?: string;
 };
 
 const ROOT_FONT_SIZE = 16;
@@ -187,6 +191,8 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "lineClamp",
   "textBoxTrim",
   "textBoxEdge",
+  "WebkitTextStrokeWidth",
+  "WebkitTextStrokeColor",
 ];
 
 /**
@@ -292,6 +298,7 @@ const DIMENSION_PROPS: (keyof ComputedStyle)[] = [
   "borderTopRightRadius",
   "borderBottomRightRadius",
   "borderBottomLeftRadius",
+  "WebkitTextStrokeWidth",
 ];
 
 /**

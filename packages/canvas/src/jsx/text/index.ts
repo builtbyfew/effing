@@ -5,6 +5,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
+import { resolveUnit } from "../style/compute.ts";
 import { getFontMetrics } from "../font.ts";
 import type { FontMetrics } from "../font-metrics.ts";
 import { isEmoji } from "../language.ts";
@@ -27,6 +28,8 @@ export type TextSegment = {
   textDecoration?: string;
   letterSpacing: number;
   lineIndex: number;
+  textStrokeWidth?: number;
+  textStrokeColor?: string;
 };
 
 export type TextLayoutResult = {
@@ -140,6 +143,19 @@ export function layoutText(
   const wordBreak = style.wordBreak ?? "normal";
   const textOverflow = style.textOverflow ?? "clip";
   const textDecoration = style.textDecoration;
+
+  // Resolve text stroke properties
+  let textStrokeWidth: number | undefined;
+  const rawStrokeWidth = style.WebkitTextStrokeWidth;
+  if (rawStrokeWidth !== undefined) {
+    if (typeof rawStrokeWidth === "number") {
+      textStrokeWidth = rawStrokeWidth;
+    } else {
+      const resolved = resolveUnit(String(rawStrokeWidth), 0, 0, fontSize, 16);
+      textStrokeWidth = typeof resolved === "number" ? resolved : undefined;
+    }
+  }
+  const textStrokeColor = style.WebkitTextStrokeColor;
 
   // Choose measurement function based on emoji mode
   const measure = emojiEnabled
@@ -295,6 +311,8 @@ export function layoutText(
       textDecoration,
       letterSpacing,
       lineIndex: i,
+      textStrokeWidth,
+      textStrokeColor,
     });
 
     totalHeight += lineHeightPx;

@@ -216,6 +216,23 @@ export function expandStyle(
     delete style.textBox;
   }
 
+  // WebkitTextStroke shorthand (e.g. "2px red")
+  if (style.WebkitTextStroke !== undefined) {
+    const val = String(style.WebkitTextStroke).trim();
+    const match = val.match(/^(\S+)\s+(.+)$/);
+    if (match) {
+      if (style.WebkitTextStrokeWidth === undefined)
+        style.WebkitTextStrokeWidth = parseValue(match[1]);
+      if (style.WebkitTextStrokeColor === undefined)
+        style.WebkitTextStrokeColor = match[2];
+    } else {
+      // Single value — treat as width
+      if (style.WebkitTextStrokeWidth === undefined)
+        style.WebkitTextStrokeWidth = parseValue(val);
+    }
+    delete style.WebkitTextStroke;
+  }
+
   // fontFamily normalization
   if (typeof style.fontFamily === "string") {
     const families = style.fontFamily

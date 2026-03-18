@@ -3268,4 +3268,69 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
 
     expect(percentage).toBeLessThan(0.6);
   });
+
+  // -------------------------------------------------------------------------
+  // WebkitTextStroke tests
+  // -------------------------------------------------------------------------
+
+  it("renders WebkitTextStroke — text with stroke outline", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: WIDTH,
+          height: HEIGHT,
+          backgroundColor: "#1a1a2e",
+          padding: 20,
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 48,
+            fontFamily: "Liberation Sans",
+            color: "white",
+            WebkitTextStrokeWidth: "2px",
+            WebkitTextStrokeColor: "#e94560",
+          }}
+        >
+          Stroke
+        </div>
+        <div
+          style={{
+            fontSize: 36,
+            fontFamily: "Liberation Sans",
+            color: "#16213e",
+            WebkitTextStroke: "3px #0f3460",
+          }}
+        >
+          Shorthand
+        </div>
+        <div
+          style={{
+            fontSize: 28,
+            fontFamily: "Liberation Sans",
+            color: "white",
+            WebkitTextStrokeWidth: "1px",
+            WebkitTextStrokeColor: "#e94560",
+          }}
+        >
+          Thin stroke
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "webkit-text-stroke",
+    );
+
+    expect(percentage).toBeLessThan(0.6);
+  });
 });

@@ -192,24 +192,27 @@ const png = canvas.encodeSync("png");
 
 ### Typography
 
-| Property         | Values / Notes                                                |
-| ---------------- | ------------------------------------------------------------- |
-| `fontFamily`     | Font name (inherited)                                         |
-| `fontSize`       | Number or CSS length (inherited)                              |
-| `fontWeight`     | Numeric weight (inherited)                                    |
-| `fontStyle`      | `normal`, `italic` (inherited)                                |
-| `textAlign`      | `left`, `center`, `right`, `justify` (inherited)              |
-| `textDecoration` | String (inherited)                                            |
-| `textTransform`  | `none`, `uppercase`, `lowercase`, `capitalize` (inherited)    |
-| `lineHeight`     | Number or string (inherited)                                  |
-| `letterSpacing`  | Number or CSS length (inherited)                              |
-| `whiteSpace`     | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
-| `wordBreak`      | `normal`, `break-all`, `break-word`, `keep-all` (inherited)   |
-| `textOverflow`   | `clip`, `ellipsis` (inherited)                                |
-| `lineClamp`      | Number — max visible lines (adds ellipsis)                    |
-| `textBox`        | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
-| `textBoxTrim`    | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)     |
-| `textBoxEdge`    | e.g. `"cap alphabetic"` (inherited)                           |
+| Property                | Values / Notes                                                |
+| ----------------------- | ------------------------------------------------------------- |
+| `fontFamily`            | Font name (inherited)                                         |
+| `fontSize`              | Number or CSS length (inherited)                              |
+| `fontWeight`            | Numeric weight (inherited)                                    |
+| `fontStyle`             | `normal`, `italic` (inherited)                                |
+| `textAlign`             | `left`, `center`, `right`, `justify` (inherited)              |
+| `textDecoration`        | String (inherited)                                            |
+| `textTransform`         | `none`, `uppercase`, `lowercase`, `capitalize` (inherited)    |
+| `lineHeight`            | Number or string (inherited)                                  |
+| `letterSpacing`         | Number or CSS length (inherited)                              |
+| `whiteSpace`            | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
+| `wordBreak`             | `normal`, `break-all`, `break-word`, `keep-all` (inherited)   |
+| `textOverflow`          | `clip`, `ellipsis` (inherited)                                |
+| `lineClamp`             | Number — max visible lines (adds ellipsis)                    |
+| `textBox`               | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
+| `textBoxTrim`           | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)     |
+| `textBoxEdge`           | e.g. `"cap alphabetic"` (inherited)                           |
+| `WebkitTextStroke`      | Shorthand, e.g. `"2px red"` (inherited)                       |
+| `WebkitTextStrokeWidth` | CSS length (inherited)                                        |
+| `WebkitTextStrokeColor` | Any CSS color (inherited)                                     |
 
 ### Effects
 

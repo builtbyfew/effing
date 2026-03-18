@@ -2024,3 +2024,160 @@ describe("percentage unit handling", () => {
     expect(rotateCalls.length + transformCalls.length).toBeGreaterThan(0);
   });
 });
+
+describe("SVG viewport-relative units on width/height", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    vi.clearAllMocks();
+  });
+
+  it("resolves vw unit on SVG width attribute", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 400, height: 400 },
+          children: {
+            type: "svg",
+            props: {
+              width: "25vw",
+              viewBox: "0 0 100 100",
+              children: null,
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      400,
+      400,
+      ctx,
+    );
+    const div = tree.children[0];
+    const svg = div.children[0];
+    // 25vw of 400px viewport = 100px
+    expect(svg.width).toBe(100);
+  });
+
+  it("resolves vh unit on SVG height attribute", async () => {
+    const tree = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 800, height: 600 },
+          children: {
+            type: "svg",
+            props: {
+              height: "50vh",
+              viewBox: "0 0 100 100",
+              children: null,
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      800,
+      600,
+      ctx,
+    );
+    const div = tree.children[0];
+    const svg = div.children[0];
+    // 50vh of 600px viewport = 300px
+    expect(svg.height).toBe(300);
+    // width derived from viewBox aspect ratio: 300 * (100/100) = 300
+    expect(svg.width).toBe(300);
+  });
+});
+
+describe("SVG opacity on <g> elements and shape elements", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    vi.clearAllMocks();
+  });
+
+  it("applies opacity on <g> elements via globalAlpha", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 100 100",
+          children: [
+            {
+              type: "g",
+              props: {
+                opacity: "0.5",
+                children: [
+                  {
+                    type: "rect",
+                    props: {
+                      x: "0",
+                      y: "0",
+                      width: "100",
+                      height: "100",
+                      fill: "red",
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // opacity on <g> should trigger save/restore and set globalAlpha
+    expect(ctx.save).toHaveBeenCalled();
+    expect(ctx.restore).toHaveBeenCalled();
+  });
+
+  it("applies opacity on individual shape elements via globalAlpha", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "svg",
+        style: {},
+        children: [],
+        props: {
+          viewBox: "0 0 100 100",
+          children: [
+            {
+              type: "rect",
+              props: {
+                x: "0",
+                y: "0",
+                width: "100",
+                height: "100",
+                fill: "blue",
+                opacity: "0.3",
+              },
+            },
+          ],
+        },
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // opacity on shape should trigger save/restore
+    expect(ctx.save).toHaveBeenCalled();
+    expect(ctx.restore).toHaveBeenCalled();
+  });
+});

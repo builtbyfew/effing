@@ -854,12 +854,14 @@ function drawSvgChild(
   )
     return;
 
-  // Apply transform on shape elements (drawGroup already handles <g> transforms)
+  // Apply transform and opacity on shape elements (drawGroup handles its own)
   const transform =
     type !== "g" ? (props.transform as string | undefined) : undefined;
-  if (transform) {
+  const opacity = type !== "g" ? Number(props.opacity ?? 1) : 1;
+  if (transform || opacity < 1) {
     ctx.save();
-    applySvgTransform(ctx, transform);
+    if (transform) applySvgTransform(ctx, transform);
+    if (opacity < 1) ctx.globalAlpha *= opacity;
   }
 
   // Check for clip-path="url(#id)" reference
@@ -959,7 +961,7 @@ function drawSvgChild(
   }
 
   if (clipPath) ctx.restore();
-  if (transform) ctx.restore();
+  if (transform || opacity < 1) ctx.restore();
 }
 
 function drawPath(
@@ -1233,10 +1235,12 @@ function drawGroup(
         | undefined) ?? inherited.strokeOpacity,
   };
 
+  const opacity = Number(merged.opacity ?? 1);
   const transform = merged.transform as string | undefined;
-  if (transform) {
+  if (transform || opacity < 1) {
     ctx.save();
-    applySvgTransform(ctx, transform);
+    if (transform) applySvgTransform(ctx, transform);
+    if (opacity < 1) ctx.globalAlpha *= opacity;
   }
 
   for (const child of children) {
@@ -1245,7 +1249,7 @@ function drawGroup(
     }
   }
 
-  if (transform) {
+  if (transform || opacity < 1) {
     ctx.restore();
   }
 }

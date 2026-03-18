@@ -299,7 +299,7 @@ const DIMENSION_PROPS: (keyof ComputedStyle)[] = [
  * Returns the original value for `%` and `auto` (Yoga handles those),
  * and for values that are already numbers or unrecognised strings.
  */
-function resolveUnit(
+export function resolveUnit(
   value: string,
   viewportWidth: number,
   viewportHeight: number,

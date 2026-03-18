@@ -7,7 +7,12 @@ import { loadImage } from "@napi-rs/canvas";
 import type { ReactElement, ReactNode } from "react";
 
 import { expandStyle } from "./style/expand.ts";
-import { resolveStyle, resolveUnits, DEFAULT_STYLE } from "./style/compute.ts";
+import {
+  resolveStyle,
+  resolveUnit,
+  resolveUnits,
+  DEFAULT_STYLE,
+} from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { createTextMeasureFunc } from "./text/index.ts";
@@ -170,11 +175,27 @@ async function buildNode(
   if (tagName === "svg") {
     if (props.width != null && style.width === undefined) {
       const v = props.width;
-      style.width = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+      if (typeof v === "string") {
+        const resolved = resolveUnit(v, viewportWidth, viewportHeight, 16, 16);
+        style.width =
+          typeof resolved === "string" && resolved.endsWith("%")
+            ? resolved
+            : Number(resolved);
+      } else {
+        style.width = Number(v);
+      }
     }
     if (props.height != null && style.height === undefined) {
       const v = props.height;
-      style.height = typeof v === "string" && v.endsWith("%") ? v : Number(v);
+      if (typeof v === "string") {
+        const resolved = resolveUnit(v, viewportWidth, viewportHeight, 16, 16);
+        style.height =
+          typeof resolved === "string" && resolved.endsWith("%")
+            ? resolved
+            : Number(resolved);
+      } else {
+        style.height = Number(v);
+      }
     }
 
     // Derive missing dimension from viewBox aspect ratio

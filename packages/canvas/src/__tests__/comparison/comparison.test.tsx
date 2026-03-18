@@ -1802,7 +1802,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       "job-post-card",
     );
 
-    expect(percentage).toBeLessThan(2.5);
+    expect(percentage).toBeLessThan(0.5);
   });
 
   // -------------------------------------------------------------------------
@@ -2474,7 +2474,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       satoriPng,
       "special-chars-multiword-font",
     );
-    expect(percentage).toBeLessThan(2);
+    expect(percentage).toBeLessThan(1.0);
   });
 
   // -------------------------------------------------------------------------
@@ -2697,7 +2697,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       satoriPng,
       "lineclamp-short-no-truncation",
     );
-    expect(percentage).toBeLessThan(0.5);
+    expect(percentage).toBeLessThan(0.2);
   });
 
   // -------------------------------------------------------------------------
@@ -3195,5 +3195,46 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       "svg-group-inherited-stroke",
     );
     expect(percentage).toBeLessThan(0.01);
+  });
+
+  it("flex-centered-text — text vertically centered in flex container", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "white",
+          fontFamily: "Inter",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 300,
+            height: 100,
+            backgroundColor: "#E5E7EB",
+            fontSize: 32,
+          }}
+        >
+          Hello World
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "flex-centered-text",
+    );
+    expect(percentage).toBeLessThan(0.2);
   });
 });

@@ -5,6 +5,8 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
+import { getFontMetrics } from "../font.ts";
+import type { FontMetrics } from "../font-metrics.ts";
 import { isEmoji } from "../language.ts";
 import { findBreakOpportunities } from "./linebreak.ts";
 import { measureText, measureTrimMetrics, measureWord } from "./measure.ts";
@@ -125,10 +127,12 @@ export function layoutText(
     fontStyle,
     ctx,
   );
+  const fontMetrics = getFontMetrics(fontFamily, fontWeight, fontStyle);
   const lineHeightPx = resolveLineHeight(
     style.lineHeight,
     fontSize,
     refMetrics,
+    fontMetrics,
   );
   const letterSpacing =
     typeof style.letterSpacing === "number" ? style.letterSpacing : 0;
@@ -262,10 +266,24 @@ export function layoutText(
       ctx,
     );
 
+    // When font metrics are available, use typo ascender/descender for baseline
+    // positioning so the baseline calc is consistent with the typo-based line height.
+    let baselineY: number;
+    if (fontMetrics) {
+      const typoAscent =
+        (fontMetrics.sTypoAscender / fontMetrics.unitsPerEm) * fontSize;
+      const typoDescent =
+        (-fontMetrics.sTypoDescender / fontMetrics.unitsPerEm) * fontSize;
+      baselineY = totalHeight + (lineHeightPx + typoAscent - typoDescent) / 2;
+    } else {
+      baselineY =
+        totalHeight + (lineHeightPx + metrics.ascent - metrics.descent) / 2;
+    }
+
     segments.push({
       text: line,
       x,
-      y: totalHeight + (lineHeightPx + metrics.ascent - metrics.descent) / 2,
+      y: baselineY,
       width: lineWidth,
       height: lineHeightPx,
       fontSize,
@@ -295,6 +313,7 @@ export function layoutText(
       lineHeightPx,
       textBoxEdge,
       ctx,
+      fontMetrics,
     );
 
     if (textBoxTrim === "trim-start" || textBoxTrim === "trim-both") {
@@ -319,11 +338,22 @@ export function layoutText(
 function resolveLineHeight(
   lineHeight: number | string | undefined,
   fontSize: number,
-  metrics?: TextMetrics,
+  canvasMetrics?: TextMetrics,
+  fontMetrics?: FontMetrics | null,
 ): number {
   if (lineHeight === undefined || lineHeight === "normal") {
-    // CSS "normal": use font ascent + descent (matches satori behaviour)
-    return metrics ? metrics.ascent + metrics.descent : fontSize * 1.2;
+    if (fontMetrics) {
+      const { sTypoAscender, sTypoDescender, sTypoLineGap, unitsPerEm } =
+        fontMetrics;
+      return (
+        ((sTypoAscender - sTypoDescender + sTypoLineGap) / unitsPerEm) *
+        fontSize
+      );
+    }
+    // Fallback to canvas metrics (fontBoundingBox ascent + descent)
+    return canvasMetrics
+      ? canvasMetrics.ascent + canvasMetrics.descent
+      : fontSize * 1.2;
   }
   if (typeof lineHeight === "number") {
     // Already resolved to px in compute.ts if > 5, else multiplier

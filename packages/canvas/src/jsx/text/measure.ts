@@ -1,6 +1,8 @@
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
+import type { FontMetrics } from "../font-metrics.ts";
+
 export type TextMetrics = {
   width: number;
   ascent: number;
@@ -101,19 +103,32 @@ export function measureTrimMetrics(
   lineHeight: number,
   edge: string,
   ctx?: SKRSContext2D,
+  fontMetrics?: FontMetrics | null,
 ): { overTrim: number; underTrim: number } {
   const c = ctx ?? getScratchCtx();
   setFont(c, fontSize, fontFamily, fontWeight, fontStyle);
 
   const refMetrics = c.measureText("M");
-  const fontAscent =
-    refMetrics.fontBoundingBoxAscent ??
-    refMetrics.actualBoundingBoxAscent ??
-    fontSize * 0.8;
-  const fontDescent =
-    refMetrics.fontBoundingBoxDescent ??
-    refMetrics.actualBoundingBoxDescent ??
-    fontSize * 0.2;
+
+  // When font metrics are available, use typo ascender/descender for half-leading
+  // so it stays consistent with the typo-based line height.
+  let fontAscent: number;
+  let fontDescent: number;
+  if (fontMetrics) {
+    fontAscent =
+      (fontMetrics.sTypoAscender / fontMetrics.unitsPerEm) * fontSize;
+    fontDescent =
+      (-fontMetrics.sTypoDescender / fontMetrics.unitsPerEm) * fontSize;
+  } else {
+    fontAscent =
+      refMetrics.fontBoundingBoxAscent ??
+      refMetrics.actualBoundingBoxAscent ??
+      fontSize * 0.8;
+    fontDescent =
+      refMetrics.fontBoundingBoxDescent ??
+      refMetrics.actualBoundingBoxDescent ??
+      fontSize * 0.2;
+  }
 
   // Parse edge into over-edge and under-edge keywords
   const parts = edge.trim().split(/\s+/);

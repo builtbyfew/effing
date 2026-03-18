@@ -1,14 +1,18 @@
 import { GlobalFonts } from "@napi-rs/canvas";
 
 import type { FontData } from "../types.ts";
+import { parseFontMetrics } from "./font-metrics.ts";
+import type { FontMetrics } from "./font-metrics.ts";
 
 const registeredFonts = new Set<string>();
+const metricsCache = new Map<string, FontMetrics>();
 
 /**
  * Reset internal font state (test-only).
  */
 export function _resetForTest(): void {
   registeredFonts.clear();
+  metricsCache.clear();
 }
 
 /**
@@ -27,7 +31,33 @@ export function registerFont(font: FontData): void {
 
   GlobalFonts.register(buffer, font.name);
 
+  const metrics = parseFontMetrics(font.data);
+  if (metrics) {
+    metricsCache.set(key, metrics);
+  }
+
   registeredFonts.add(key);
+}
+
+/**
+ * Look up cached font metrics for a given family/weight/style combination.
+ * Returns the exact match if found, otherwise the first match for the family.
+ */
+export function getFontMetrics(
+  family: string,
+  weight: number | string,
+  style: string,
+): FontMetrics | null {
+  // Try exact match first
+  const exact = metricsCache.get(`${family}:${weight}:${style}`);
+  if (exact) return exact;
+
+  // Fallback: first entry matching the family name
+  for (const [key, metrics] of metricsCache) {
+    if (key.startsWith(`${family}:`)) return metrics;
+  }
+
+  return null;
 }
 
 /**

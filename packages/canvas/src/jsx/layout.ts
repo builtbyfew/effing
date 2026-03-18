@@ -336,15 +336,31 @@ async function buildNode(
       ? rawChildren.flat(Infinity)
       : [rawChildren];
 
+    // CSS Text 3 §4.1.1: collapse leading whitespace after a forced break
+    const ws = style.whiteSpace;
+    const collapsesWhitespace =
+      ws === undefined ||
+      ws === "normal" ||
+      ws === "nowrap" ||
+      ws === "pre-line";
+    let prevWasBr = false;
+
     for (const child of childArray as ElementChild[]) {
       if (child === null || child === undefined || typeof child === "boolean")
         continue;
+
+      let processedChild: ElementChild = child;
+      if (prevWasBr && collapsesWhitespace && typeof child === "string") {
+        processedChild = child.trimStart();
+      }
+
+      prevWasBr = isBrElement(child);
 
       const childYogaNode = createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
       children.push(
         await buildNode(
-          child,
+          processedChild,
           style,
           childYogaNode,
           viewportWidth,
@@ -397,6 +413,12 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
 /**
  * Extract plain text content from children if they are all strings/numbers.
  */
+function isBrElement(child: unknown): boolean {
+  if (child === null || child === undefined || typeof child !== "object")
+    return false;
+  return (child as ReactElement).type === "br";
+}
+
 function extractTextContent(children: unknown): string | undefined {
   if (children === undefined || children === null) return undefined;
   if (typeof children === "string") return children;

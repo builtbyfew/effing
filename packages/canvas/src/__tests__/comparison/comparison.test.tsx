@@ -3232,4 +3232,40 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
     );
     expect(percentage).toBeLessThan(0.2);
   });
+
+  // -------------------------------------------------------------------------
+  // BR whitespace collapsing
+  // -------------------------------------------------------------------------
+
+  it("collapses leading whitespace after <br />", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          fontSize: 42,
+          fontFamily: "Liberation Sans",
+          backgroundColor: "white",
+          color: "black",
+          width: WIDTH,
+          height: HEIGHT,
+          padding: 40,
+        }}
+      >
+        First line <br /> second line <br /> third line
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "br-whitespace-collapse",
+    );
+
+    expect(percentage).toBeLessThan(0.6);
+  });
 });

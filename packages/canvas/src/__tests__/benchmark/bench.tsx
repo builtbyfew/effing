@@ -35,10 +35,10 @@ const PLACEHOLDER_BLUE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==";
 
 // ---------------------------------------------------------------------------
-// Font loading (Inter from Google Fonts — OFL licensed)
+// Font loading (Liberation Sans from cdnfonts.com — OFL licensed)
 // ---------------------------------------------------------------------------
 
-const GOOGLE_FONTS = "https://fonts.gstatic.com/s";
+const CDNFONTS = "https://fonts.cdnfonts.com/s/277";
 
 async function fetchFont(url: string): Promise<Buffer> {
   const r = await fetch(url);
@@ -48,10 +48,8 @@ async function fetchFont(url: string): Promise<Buffer> {
 
 async function loadFonts(): Promise<FontData[]> {
   return Promise.all([
-    fetchFont(
-      `${GOOGLE_FONTS}/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf`,
-    ).then((data) => ({
-      name: "Inter",
+    fetchFont(`${CDNFONTS}/LiberationSans-Regular.woff`).then((data) => ({
+      name: "Liberation Sans",
       data,
       weight: 400 as const,
       style: "normal" as const,

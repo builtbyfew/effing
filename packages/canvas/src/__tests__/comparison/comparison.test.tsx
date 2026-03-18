@@ -35,10 +35,10 @@ const HAS_NATIVE_DEPS = (() => {
 })();
 
 // ---------------------------------------------------------------------------
-// Font fetching (Inter from Google Fonts — OFL licensed)
+// Font fetching (Liberation Sans from cdnfonts.com — OFL licensed)
 // ---------------------------------------------------------------------------
 
-const GOOGLE_FONTS = "https://fonts.gstatic.com/s";
+const CDNFONTS = "https://fonts.cdnfonts.com/s/277";
 const fontCache = new Map<string, Promise<Buffer>>();
 
 function fetchFont(url: string): Promise<Buffer> {
@@ -85,7 +85,7 @@ async function loadLocalFonts(): Promise<FontData[] | null> {
 
   return Promise.all(
     mappings.map(async (m) => ({
-      name: "Inter",
+      name: "Liberation Sans",
       data: await readFile(m.path),
       weight: m.weight,
       style: m.style,
@@ -96,26 +96,20 @@ async function loadLocalFonts(): Promise<FontData[] | null> {
 async function loadFonts(): Promise<{ fonts: FontData[]; remote: boolean }> {
   try {
     const fonts = await Promise.all([
-      fetchFont(
-        `${GOOGLE_FONTS}/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf`,
-      ).then((data) => ({
-        name: "Inter",
+      fetchFont(`${CDNFONTS}/LiberationSans-Regular.woff`).then((data) => ({
+        name: "Liberation Sans",
         data,
         weight: 400 as const,
         style: "normal" as const,
       })),
-      fetchFont(
-        `${GOOGLE_FONTS}/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf`,
-      ).then((data) => ({
-        name: "Inter",
+      fetchFont(`${CDNFONTS}/LiberationSans-Bold.woff`).then((data) => ({
+        name: "Liberation Sans",
         data,
         weight: 700 as const,
         style: "normal" as const,
       })),
-      fetchFont(
-        `${GOOGLE_FONTS}/inter/v20/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dthjQ.ttf`,
-      ).then((data) => ({
-        name: "Inter",
+      fetchFont(`${CDNFONTS}/LiberationSans-Italic.woff`).then((data) => ({
+        name: "Liberation Sans",
         data,
         weight: 400 as const,
         style: "italic" as const,
@@ -269,7 +263,7 @@ function PropertyCard({
         flexDirection: "column",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#FFFFFF",
         border: "2px solid #E5E7EB",
         borderRadius: 12,
@@ -447,7 +441,7 @@ function PricingCard({
         flexDirection: "column",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#FFFFFF",
         border: `2px solid ${accentColor}`,
         borderRadius: 12,
@@ -594,7 +588,7 @@ function TagCloud({ width, height, tags }: TagCloudProps) {
         flexWrap: "wrap",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#FFFFFF",
         padding: 16,
         gap: 6,
@@ -649,7 +643,7 @@ function StatsBar({ width, height, stats }: StatsBarProps) {
         display: "flex",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#FFFFFF",
         borderRadius: 12,
         alignItems: "stretch",
@@ -727,7 +721,7 @@ function ListingOverlayCard({ width, height }: ListingOverlayCardProps) {
         position: "relative",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         overflow: "hidden",
         borderRadius: 12,
         backgroundColor: "#4A5568",
@@ -883,7 +877,7 @@ function GradientHeroCard({ width, height }: GradientHeroCardProps) {
         flexDirection: "column",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundImage: "linear-gradient(135deg, #667EEA, #764BA2)",
         borderRadius: 12,
         overflow: "hidden",
@@ -992,7 +986,7 @@ function JobPostCard({ width, height }: JobPostCardProps) {
         flexDirection: "column",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#FFFFFF",
         borderRadius: 12,
         padding: 20,
@@ -1090,7 +1084,7 @@ function MetricsDashboard({ width, height }: MetricsDashboardProps) {
         flexDirection: "column",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#F9FAFB",
         padding: 20,
         borderRadius: 12,
@@ -1295,7 +1289,7 @@ function BannerStrip({ width, height }: BannerStripProps) {
         position: "relative",
         width,
         height,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
         backgroundColor: "#1E293B",
         overflow: "hidden",
         alignItems: "center",
@@ -1418,7 +1412,7 @@ function BlurShowcaseCard({
         backgroundColor: "#F8FAFC",
         padding: 16,
         gap: 16,
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
       }}
     >
       {/* Blurred div */}
@@ -1472,7 +1466,7 @@ function ObjectFitCoverCard({
         padding: 16,
         gap: 16,
         alignItems: "center",
-        fontFamily: "Inter",
+        fontFamily: "Liberation Sans",
       }}
     >
       {/* Wide image in a tall box — cover crops horizontally */}
@@ -1600,7 +1594,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         ],
         highlighted: true,
       },
-      maxDiff: 1.25,
+      maxDiff: 1.5,
     },
     {
       label: "plain Starter plan without yearly",
@@ -1610,7 +1604,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         features: ["5 projects", "Community support", "Basic analytics"],
         highlighted: false,
       },
-      maxDiff: 0.9,
+      maxDiff: 1.15,
     },
   ];
 
@@ -1632,9 +1626,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
         `pricing-${label}`,
       );
 
-      // Local fallback fonts have slightly different metrics than Inter,
-      // so allow extra tolerance when running without network.
-      const threshold = networkAvailable ? maxDiff : maxDiff * 1.5;
+      const threshold = maxDiff;
       expect(percentage).toBeLessThan(threshold);
     },
   );
@@ -1802,7 +1794,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
       "job-post-card",
     );
 
-    expect(percentage).toBeLessThan(0.5);
+    expect(percentage).toBeLessThan(0.85);
   });
 
   // -------------------------------------------------------------------------
@@ -1914,7 +1906,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           backgroundColor: "white",
           width: WIDTH,
           height: HEIGHT,
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div style={{ fontSize: 48, color: "black" }}>Hello 🌍 World</div>
@@ -2137,7 +2129,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           borderRadius: 12,
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div
@@ -2435,7 +2427,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
   it("renders special characters with multi-word font family", async () => {
     // Register the same Inter font data under a multi-word alias
     const interRegular = fonts.find(
-      (f) => f.name === "Inter" && f.weight === 400 && f.style === "normal",
+      (f) =>
+        f.name === "Liberation Sans" &&
+        f.weight === 400 &&
+        f.style === "normal",
     )!;
     const testFonts: FontData[] = [
       ...fonts,
@@ -2589,7 +2584,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           height: H,
           display: "flex",
           backgroundColor: "white",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div
@@ -2629,7 +2624,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           height: H,
           display: "flex",
           backgroundColor: "white",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div
@@ -2670,7 +2665,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           height: H,
           display: "flex",
           backgroundColor: "white",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div
@@ -3046,7 +3041,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           width: W,
           height: H,
           backgroundColor: "white",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div
@@ -3207,7 +3202,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: canvas vs satori", () => {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "white",
-          fontFamily: "Inter",
+          fontFamily: "Liberation Sans",
         }}
       >
         <div

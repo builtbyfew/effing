@@ -1,5 +1,20 @@
 # @effing/canvas
 
+## 0.23.0
+
+### Minor Changes
+
+- fc2d4f1: Add WebkitTextStroke support for text stroke effects
+
+  Support `WebkitTextStroke`, `WebkitTextStrokeWidth`, and `WebkitTextStrokeColor`
+  CSS properties. The shorthand is expanded into width and color longhands, both
+  properties inherit like `color`, and stroke is drawn before fill (paint-order:
+  stroke) using `ctx.strokeText()` with round line joins.
+
+### Patch Changes
+
+- e72e963: Collapse leading whitespace after `<br />` per CSS Text 3 §4.1.1
+
 ## 0.22.3
 
 ### Patch Changes

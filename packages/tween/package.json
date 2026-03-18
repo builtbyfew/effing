@@ -1,6 +1,6 @@
 {
   "name": "@effing/tween",
-  "version": "0.22.3",
+  "version": "0.23.0",
   "description": "Tweening and easing functions for animations",
   "type": "module",
   "exports": {

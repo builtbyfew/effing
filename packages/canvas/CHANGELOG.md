@@ -1,5 +1,21 @@
 # @effing/canvas
 
+## 0.22.2
+
+### Patch Changes
+
+- 87fd979: Use ctx.reset() in offscreen canvas pool to fully reset context state
+
+  Replaces manual setTransform + clearRect with ctx.reset() when reusing pooled
+  canvases. This prevents leaking styles, clipping regions, and saved state from
+  previous consumers.
+
+- d14d923: Resolve viewport-relative units on SVG width/height and apply opacity on `<g>` and shape elements
+
+  SVG elements with viewport-relative units like `width="25vw"` previously resolved to NaN and rendered nothing. The width/height merging now uses `resolveUnit` to handle vw, vh, vmin, vmax, em, rem, etc.
+
+  The `opacity` property on `<g>` elements was silently ignored. It is now applied via `globalAlpha`, and the same treatment is applied to individual shape elements (`<path>`, `<rect>`, etc.) for consistency.
+
 ## 0.22.1
 
 ### Patch Changes

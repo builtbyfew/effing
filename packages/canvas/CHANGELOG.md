@@ -1,5 +1,11 @@
 # @effing/canvas
 
+## 0.23.1
+
+### Patch Changes
+
+- b60e0a7: Use canvas-measured ascent/descent for text baseline positioning instead of sTypo font metrics
+
 ## 0.23.0
 
 ### Minor Changes

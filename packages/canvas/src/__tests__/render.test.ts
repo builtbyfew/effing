@@ -38,6 +38,7 @@ vi.mock("@napi-rs/canvas", () => {
     filter: "none",
     drawImage: vi.fn(),
     clearRect: vi.fn(),
+    reset: vi.fn(),
     setTransform: vi.fn(),
     getImageData: vi.fn((_x: number, _y: number, w: number, h: number) => ({
       data: new Uint8ClampedArray(w * h * 4),

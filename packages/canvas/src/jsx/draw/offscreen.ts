@@ -15,8 +15,7 @@ export function acquireOffscreen(
       const canvas = ref.deref();
       if (canvas) {
         const ctx = canvas.getContext("2d");
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, w, h);
+        ctx.reset();
         return [canvas, ctx];
       }
     }

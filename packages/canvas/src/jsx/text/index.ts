@@ -282,19 +282,10 @@ export function layoutText(
       ctx,
     );
 
-    // When font metrics are available, use typo ascender/descender for baseline
-    // positioning so the baseline calc is consistent with the typo-based line height.
-    let baselineY: number;
-    if (fontMetrics) {
-      const typoAscent =
-        (fontMetrics.sTypoAscender / fontMetrics.unitsPerEm) * fontSize;
-      const typoDescent =
-        (-fontMetrics.sTypoDescender / fontMetrics.unitsPerEm) * fontSize;
-      baselineY = totalHeight + (lineHeightPx + typoAscent - typoDescent) / 2;
-    } else {
-      baselineY =
-        totalHeight + (lineHeightPx + metrics.ascent - metrics.descent) / 2;
-    }
+    // Use canvas-measured ascent/descent for baseline positioning so fillText
+    // places glyphs correctly, regardless of which font table the engine uses.
+    const baselineY =
+      totalHeight + (lineHeightPx + metrics.ascent - metrics.descent) / 2;
 
     segments.push({
       text: line,

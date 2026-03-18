@@ -26,7 +26,7 @@ import { buildLayoutTree } from "./layout.ts";
  *
  * await renderReactElement(ctx, <MyComponent />, { fonts: [myFont] });
  *
- * const png = canvas.encodeSync("png");
+ * const png = await canvas.encode("png");
  * ```
  *
  * @example HiDPI rendering (2x)

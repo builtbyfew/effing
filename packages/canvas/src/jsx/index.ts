@@ -59,7 +59,7 @@ export async function renderReactElement(
   const emojiStyle =
     options.emoji === "none" ? undefined : (options.emoji ?? "twemoji");
   const fontFamilies = [...new Set(options.fonts.map((f) => f.name))];
-  const layoutTree = await buildLayoutTree(
+  const { tree: layoutTree, imageCache } = await buildLayoutTree(
     element,
     width,
     height,
@@ -69,5 +69,13 @@ export async function renderReactElement(
   );
 
   // Draw to canvas
-  await drawNode(ctx, layoutTree, 0, 0, options.debug ?? false, emojiStyle);
+  await drawNode(
+    ctx,
+    layoutTree,
+    0,
+    0,
+    options.debug ?? false,
+    emojiStyle,
+    imageCache,
+  );
 }

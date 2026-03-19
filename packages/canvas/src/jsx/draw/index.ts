@@ -1,8 +1,8 @@
-import type { Image, SKRSContext2D } from "@napi-rs/canvas";
-
-import { loadImage } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { EmojiStyle } from "../emoji.ts";
+import type { ImageCache } from "../image-cache.ts";
+import { cachedLoadImage } from "../image-cache.ts";
 import type { LayoutNode } from "../layout.ts";
 import { layoutText } from "../text/index.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
@@ -25,6 +25,7 @@ export async function drawNode(
   parentY: number,
   debug: boolean,
   emojiStyle?: EmojiStyle,
+  imageCache?: ImageCache,
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
@@ -56,6 +57,7 @@ export async function drawNode(
       // Render at qx×qy resolution — logical coords produce more pixels
       offCtx.save();
       offCtx.scale(qx, qy);
+      const cache: ImageCache = imageCache ?? new Map();
       await drawNodeCore(
         offCtx,
         node,
@@ -65,6 +67,7 @@ export async function drawNode(
         1 - y,
         debug,
         emojiStyle,
+        cache,
         transformWithoutScale,
       );
       offCtx.restore();
@@ -106,7 +109,18 @@ export async function drawNode(
     }
   }
 
-  await drawNodeCore(ctx, node, parentX, parentY, 0, 0, debug, emojiStyle);
+  const cache: ImageCache = imageCache ?? new Map();
+  await drawNodeCore(
+    ctx,
+    node,
+    parentX,
+    parentY,
+    0,
+    0,
+    debug,
+    emojiStyle,
+    cache,
+  );
 }
 
 /**
@@ -146,6 +160,7 @@ async function drawNodeCore(
   offsetY: number,
   debug: boolean,
   emojiStyle: EmojiStyle | undefined,
+  imageCache: ImageCache,
   overrideTransform?: string,
 ): Promise<void> {
   const x = parentX + node.x + offsetX;
@@ -243,7 +258,7 @@ async function drawNodeCore(
             applyClip(ctx, x, y, width, height, borderRadius);
           }
 
-          const image = await loadImage(urlMatch[1]!);
+          const image = await cachedLoadImage(imageCache, urlMatch[1]!);
           const bgSize = style.backgroundSize;
 
           if (bgSize === "cover") {
@@ -375,8 +390,8 @@ async function drawNodeCore(
       imgY,
       imgW,
       imgH,
+      imageCache,
       style,
-      node.props.__loadedImage as Image | undefined,
     );
   }
 
@@ -389,7 +404,7 @@ async function drawNodeCore(
     // since x,y already incorporates the offset.
     for (const child of node.children) {
       if (offsetX === 0 && offsetY === 0) {
-        await drawNode(ctx, child, x, y, debug, emojiStyle);
+        await drawNode(ctx, child, x, y, debug, emojiStyle, imageCache);
       } else {
         await drawNodeCore(
           ctx,
@@ -400,7 +415,7 @@ async function drawNodeCore(
           0,
           debug,
           emojiStyle,
-          undefined,
+          imageCache,
         );
       }
     }

@@ -3,9 +3,10 @@
 // See NOTICE.md in the package root for details.
 
 import type { SKRSContext2D } from "@napi-rs/canvas";
-import { loadImage } from "@napi-rs/canvas";
 import type { ReactElement, ReactNode } from "react";
 
+import type { ImageCache } from "./image-cache.ts";
+import { cachedLoadImage } from "./image-cache.ts";
 import { expandStyle } from "./style/expand.ts";
 import {
   resolveStyle,
@@ -53,7 +54,8 @@ export async function buildLayoutTree(
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
-): Promise<LayoutNode> {
+): Promise<{ tree: LayoutNode; imageCache: ImageCache }> {
+  const imageCache: ImageCache = new Map();
   const elementYogaNode = createYogaNode();
 
   // Set font families as default on root style so all nodes inherit them
@@ -71,6 +73,7 @@ export async function buildLayoutTree(
     ctx,
     emojiEnabled,
     fontFamilies,
+    imageCache,
   );
 
   // Wrap the user element in a canvas-sized container (like Satori) so that
@@ -86,7 +89,7 @@ export async function buildLayoutTree(
   const elementLayout = extractLayout(elementNode, elementYogaNode);
   freeYogaNode(rootYogaNode);
 
-  return {
+  const tree: LayoutNode = {
     type: "div",
     style: rootStyle,
     children: [elementLayout],
@@ -95,7 +98,8 @@ export async function buildLayoutTree(
     y: 0,
     width: containerWidth,
     height: containerHeight,
-  } as LayoutNode;
+  };
+  return { tree, imageCache };
 }
 
 async function buildNode(
@@ -107,6 +111,7 @@ async function buildNode(
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
+  imageCache?: ImageCache,
 ): Promise<IntermediateNode> {
   // Handle null/undefined/boolean
   if (
@@ -160,6 +165,7 @@ async function buildNode(
       ctx,
       emojiEnabled,
       fontFamilies,
+      imageCache,
     );
   }
 
@@ -236,7 +242,7 @@ async function buildNode(
     const src = props.src as string | Buffer | undefined;
     if (src) {
       try {
-        const image = await loadImage(src);
+        const image = await cachedLoadImage(imageCache ?? new Map(), src);
         const naturalW = image.width;
         const naturalH = image.height;
 
@@ -254,9 +260,6 @@ async function buildNode(
           style.width = style.height * (naturalW / naturalH);
         }
         // When either/both are %, leave as-is for Yoga
-
-        // Cache loaded image for reuse during drawing
-        props.__loadedImage = image;
       } catch {
         // Silent fail — image will render at whatever size Yoga computes
       }
@@ -368,6 +371,7 @@ async function buildNode(
           ctx,
           emojiEnabled,
           fontFamilies,
+          imageCache,
         ),
       );
     }

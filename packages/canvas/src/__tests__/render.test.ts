@@ -420,7 +420,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("wraps root element in a canvas-sized container", async () => {
-    const tree = await buildLayoutTree("Hello", 200, 200, ctx);
+    const { tree } = await buildLayoutTree("Hello", 200, 200, ctx);
     expect(tree.type).toBe("div");
     expect(tree.width).toBe(200);
     expect(tree.height).toBe(200);
@@ -431,13 +431,13 @@ describe("buildLayoutTree", () => {
   });
 
   it("builds layout for null content", async () => {
-    const tree = await buildLayoutTree(null, 200, 200, ctx);
+    const { tree } = await buildLayoutTree(null, 200, 200, ctx);
     expect(tree.type).toBe("div");
     expect(tree.children[0].type).toBe("empty");
   });
 
   it("derives svg width from height and viewBox aspect ratio", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -462,7 +462,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("derives svg height from width and viewBox aspect ratio", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -483,7 +483,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("uses viewBox dimensions when svg has neither width nor height", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -508,7 +508,7 @@ describe("buildLayoutTree", () => {
       width: 200,
       height: 100,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -533,7 +533,7 @@ describe("buildLayoutTree", () => {
       width: 200,
       height: 100,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -558,7 +558,7 @@ describe("buildLayoutTree", () => {
       width: 80,
       height: 40,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -586,7 +586,7 @@ describe("buildLayoutTree", () => {
       width: 200,
       height: 100,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -611,7 +611,7 @@ describe("buildLayoutTree", () => {
       width: 200,
       height: 100,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -632,7 +632,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("text child fills parent width so textAlign center works", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -651,7 +651,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("text child does not fill parent width when justifyContent is center", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -674,7 +674,7 @@ describe("buildLayoutTree", () => {
       width: 400,
       height: 300,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -698,7 +698,7 @@ describe("buildLayoutTree", () => {
   it("flattens array children into parent instead of wrapping in implicit div", async () => {
     // Simulates: [<red/>, [<gray/>, <gray/>, <gray/>], <blue/>]
     // Should produce 5 direct children, not 3 (with a wrapper div around the grays)
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -729,7 +729,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("resolves position: absolute on root element against canvas dimensions", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -1848,7 +1848,7 @@ describe("percentage unit handling", () => {
   });
 
   it("SVG with viewBox + width='100%' inside known-size parent fills parent", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -1874,7 +1874,7 @@ describe("percentage unit handling", () => {
   });
 
   it("SVG with viewBox + numeric height only derives width from aspect ratio (regression)", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -1899,7 +1899,7 @@ describe("percentage unit handling", () => {
   });
 
   it("SVG with viewBox + width='50%' and no height leaves height for Yoga", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -1929,7 +1929,7 @@ describe("percentage unit handling", () => {
       width: 400,
       height: 300,
     } as never);
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -2036,7 +2036,7 @@ describe("SVG viewport-relative units on width/height", () => {
   });
 
   it("resolves vw unit on SVG width attribute", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {
@@ -2062,7 +2062,7 @@ describe("SVG viewport-relative units on width/height", () => {
   });
 
   it("resolves vh unit on SVG height attribute", async () => {
-    const tree = await buildLayoutTree(
+    const { tree } = await buildLayoutTree(
       {
         type: "div",
         props: {

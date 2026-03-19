@@ -1,6 +1,7 @@
-import { loadImage } from "@napi-rs/canvas";
-import type { Image, SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@napi-rs/canvas";
 
+import type { ImageCache } from "../image-cache.ts";
+import { cachedLoadImage } from "../image-cache.ts";
 import type { ComputedStyle } from "../style/compute.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 
@@ -13,6 +14,7 @@ import { computeContain, computeCover } from "./object-fit.ts";
  * @param y - Y position
  * @param width - Target width
  * @param height - Target height
+ * @param imageCache - Image load cache
  * @param style - Computed style (for objectFit)
  */
 export async function drawImage(
@@ -22,10 +24,10 @@ export async function drawImage(
   y: number,
   width: number,
   height: number,
+  imageCache: ImageCache,
   style?: ComputedStyle,
-  preloadedImage?: Image,
 ): Promise<void> {
-  const image = preloadedImage ?? (await loadImage(src));
+  const image = await cachedLoadImage(imageCache, src);
   const objectFit = style?.objectFit ?? "fill";
 
   if (objectFit === "fill") {

@@ -16,7 +16,7 @@ npm install @effing/tween
 
 ```typescript
 import { tween, easeOutQuad } from "@effing/tween";
-import { pngFromSatori } from "@effing/satori";
+import { createCanvas, renderReactElement } from "@effing/canvas";
 
 async function* generateFrames() {
   yield* tween(90, async ({ lower: progress }) => {
@@ -27,12 +27,16 @@ async function* generateFrames() {
     const scale = 1 + 0.5 * easedProgress;
     const opacity = easedProgress;
 
-    return pngFromSatori(
+    const canvas = createCanvas(1080, 1920);
+    const ctx = canvas.getContext("2d");
+    await renderReactElement(
+      ctx,
       <div style={{ transform: `scale(${scale})`, opacity }}>
         Animated!
       </div>,
-      { width: 1080, height: 1920, fonts }
+      { fonts }
     );
+    return canvas.encode("png");
   });
 }
 ```
@@ -174,4 +178,4 @@ yield *
 ## Related Packages
 
 - [`@effing/annie`](../annie) — Package frames into TAR archives
-- [`@effing/satori`](../satori) — Render JSX to PNG for each frame
+- [`@effing/canvas`](../canvas) — Render JSX to PNG for each frame

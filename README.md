@@ -1,7 +1,7 @@
 # effing
 
 **Programmatic video built on URLs, but not browsers.**
-Animations are simple streams of PNG or JPEG frames. Compositions are declarative typed JSON. Everything is behind a URL. Rendered with just FFmpeg, no browser runtimes. Effing awesome 👌
+Animations are simple streams of PNG or JPEG frames, generated with canvas and JSX, or whatever you want. Compositions are declarative typed JSON. Everything is behind a URL. Rendered with just FFmpeg, no browser runtimes. Effing awesome 👌
 
 ## Overview
 
@@ -25,7 +25,7 @@ The “why” and design constraints are described in more detail in [`RATIONALE
 | [`@effing/annie-player`](packages/annie-player/README.md)   | Browser player for Annie animations                 |
 | [`@effing/effie-preview`](packages/effie-preview/README.md) | React components for previewing Effie compositions  |
 | [`@effing/tween`](packages/tween/README.md)                 | Easing functions and step iteration for animations  |
-| [`@effing/satori`](packages/satori/README.md)               | Render JSX to PNG using Satori, with emoji support  |
+| [`@effing/canvas`](packages/canvas/README.md)               | Server-side canvas with JSX and Lottie support      |
 | [`@effing/serde`](packages/serde/README.md)                 | URL-safe serialization with compression and signing |
 
 ## Getting Started
@@ -56,7 +56,7 @@ Alternatively, install the packages you need:
 npm install @effing/effie
 
 # Animation generation
-npm install @effing/annie @effing/tween @effing/satori
+npm install @effing/annie @effing/tween @effing/canvas
 
 # Video rendering
 npm install @effing/ffs
@@ -70,17 +70,21 @@ npm install @effing/annie-player @effing/effie-preview
 **1. Create an Annie animation** (server-side frame generation):
 
 ```typescript
-import { pngFromSatori } from "@effing/satori";
+import { createCanvas, renderReactElement } from "@effing/canvas";
 import { annieStream } from "@effing/annie";
 import { tween, easeOutQuad } from "@effing/tween";
 
 async function* generateFrames(width: number, height: number) {
   yield* tween(60, async ({ lower: progress }) => {
     const scale = 1 + 0.5 * easeOutQuad(progress);
-    return pngFromSatori(
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    await renderReactElement(
+      ctx,
       <div style={{ transform: `scale(${scale})` }}>Hello!</div>,
-      { width, height, fonts: [] }
+      { fonts: [] }
     );
+    return canvas.encode("png");
   });
 }
 

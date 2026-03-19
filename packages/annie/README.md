@@ -51,14 +51,17 @@ const stream = annieStream(frames);
 
 ```typescript
 import { annieStream, annieBuffer } from "@effing/annie";
-import { pngFromSatori } from "@effing/satori";
+import { createCanvas, renderReactElement } from "@effing/canvas";
 import { tween, easeOutQuad } from "@effing/tween";
 
 // Define a frame generator
 async function* generateFrames() {
   yield* tween(90, async ({ lower: progress }) => {
     const scale = 1 + 0.3 * easeOutQuad(progress);
-    return pngFromSatori(
+    const canvas = createCanvas(1080, 1920);
+    const ctx = canvas.getContext("2d");
+    await renderReactElement(
+      ctx,
       <div style={{
         width: 1080,
         height: 1920,
@@ -70,8 +73,9 @@ async function* generateFrames() {
       }}>
         Hello World!
       </div>,
-      { width: 1080, height: 1920, fonts: myFonts }
+      { fonts: myFonts }
     );
+    return canvas.encode("png");
   });
 }
 
@@ -177,6 +181,6 @@ tar -xO < animation.tar | ffmpeg -f image2pipe -framerate 30 -i - output.gif
 ## Related Packages
 
 - [`@effing/tween`](../tween) — Step iteration and easing functions for frame generation
-- [`@effing/satori`](../satori) — Render JSX to PNG for each frame
+- [`@effing/canvas`](../canvas) — Render JSX to PNG for each frame
 - [`@effing/annie-player`](../annie-player) — Play Annies in the browser
 - [`@effing/effie`](../effie) — Use Annies as layers in video compositions

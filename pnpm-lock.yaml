@@ -373,31 +373,6 @@ importers:
         specifier: workspace:*
         version: link:../ffmpeg
 
-  packages/satori:
-    dependencies:
-      '@resvg/resvg-js':
-        specifier: ^2.6.2
-        version: 2.6.2
-      react:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 19.2.3
-      satori:
-        specifier: '>=0.10.0 <1.0.0'
-        version: 0.19.2
-    devDependencies:
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.2.7
-      tsup:
-        specifier: 'catalog:'
-        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@25.0.3)(tsx@4.21.0)(yaml@2.8.2)
-
   packages/serde:
     devDependencies:
       tsup:
@@ -3462,10 +3437,6 @@ packages:
 
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
-
-  satori@0.19.2:
-    resolution: {integrity: sha512-71plFHWcq6WJBM5sf/n0eHOmTBiKLUB/G8du7SmLTTLHKEKrV3TPHGKcEVIoyjnbhnjvu9HhLyF9MATB/zzL7g==}
-    engines: {node: '>=16'}
 
   satori@0.24.1:
     resolution: {integrity: sha512-Lqj26wYdMjGR1AE/cwYkcpAFdf1EG0y0amitwu1+JnwCIrGd7cOI+Olap6ASeeOI58wydF0sfs8JET61XM0j/Q==}
@@ -7717,20 +7688,6 @@ snapshots:
       is-regex: 1.2.1
 
   safer-buffer@2.1.2: {}
-
-  satori@0.19.2:
-    dependencies:
-      '@shuding/opentype.js': 1.4.0-beta.0
-      css-background-parser: 0.1.0
-      css-box-shadow: 1.0.0-3
-      css-gradient-parser: 0.0.17
-      css-to-react-native: 3.2.0
-      emoji-regex-xs: 2.0.1
-      escape-html: 1.0.3
-      linebreak: 1.1.0
-      parse-css-color: 0.2.1
-      postcss-value-parser: 4.2.0
-      yoga-layout: 3.2.1
 
   satori@0.24.1:
     dependencies:

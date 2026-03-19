@@ -142,7 +142,7 @@ async function renderWithCanvas(
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
   await renderReactElement(ctx, element, { fonts, emoji });
-  return Buffer.from(canvas.encodeSync("png"));
+  return canvas.encode("png");
 }
 
 async function renderWithSatori(
@@ -156,13 +156,20 @@ async function renderWithSatori(
   const { Resvg } = await import("@resvg/resvg-js");
   const opts: Parameters<typeof satori>[1] = { width, height, fonts };
   if (emoji && emoji !== "none") {
-    const { makeLoadAdditionalAsset } =
-      await import("../../../../satori/src/emoji.ts");
-    opts.loadAdditionalAsset = makeLoadAdditionalAsset(emoji);
+    const { loadEmoji, getEmojiCode } = await import("../../jsx/emoji.ts");
+    opts.loadAdditionalAsset = async (code: string, segment: string) => {
+      if (code === "emoji") {
+        return (
+          "data:image/svg+xml;base64," +
+          btoa(await loadEmoji(emoji, getEmojiCode(segment)))
+        );
+      }
+      return segment;
+    };
   }
   const svg = await satori(element, opts);
   const resvg = new Resvg(svg, { font: { loadSystemFonts: false } });
-  return Buffer.from(resvg.render().asPng());
+  return resvg.render().asPng();
 }
 
 async function compareImages(

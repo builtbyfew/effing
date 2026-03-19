@@ -10,7 +10,7 @@
       "@effing/tween",
       "@effing/serde",
       "@effing/create",
-      "@effing/satori",
+
       "@effing/annie-player",
       "@effing/effie-preview",
       "@effing/ffmpeg",

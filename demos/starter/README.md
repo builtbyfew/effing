@@ -42,7 +42,7 @@ Annies are frame-based animations. Create a file at `app/annies/*.annie.tsx`:
 ```typescript
 // app/annies/my-animation.annie.tsx
 import { z } from "zod";
-import { pngFromSatori } from "@effing/satori";
+import { createCanvas, renderReactElement } from "@effing/canvas";
 import { tween, easeOutQuad } from "@effing/tween";
 import type { AnnieRendererArgs } from ".";
 
@@ -70,8 +70,11 @@ export async function* renderer({
 
   yield* tween(frameCount, async ({ lower: progress }) => {
     const scale = 1 + 0.3 * easeOutQuad(progress);
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
 
-    return pngFromSatori(
+    await renderReactElement(
+      ctx,
       <div style={{
         width, height,
         display: "flex",
@@ -82,8 +85,9 @@ export async function* renderer({
       }}>
         {text}
       </div>,
-      { width, height, fonts }
+      { fonts }
     );
+    return canvas.encode("png");
   });
 }
 ```
@@ -215,7 +219,7 @@ FFS_API_KEY=your-ffs-api-key
 The `urls.server.ts` module provides helpers for generating URLs to be used in effies:
 
 ```typescript
-import { annieUrl, pngUrlFromSatori } from "~/urls.server";
+import { annieUrl } from "~/urls.server";
 
 // Generate signed Annie URL
 const url = await annieUrl({
@@ -224,12 +228,6 @@ const url = await annieUrl({
   width: 1080,
   height: 1920,
 });
-
-// Generate data URL from JSX
-const coverUrl = await pngUrlFromSatori(
-  <div>Cover Image</div>,
-  { width: 1080, height: 1920, fonts }
-);
 ```
 
 ## Rendering Videos

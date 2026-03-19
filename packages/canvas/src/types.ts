@@ -7,7 +7,7 @@ export type { EmojiStyle };
 
 /**
  * Font data for text rendering.
- * Compatible with `@effing/satori`'s FontData type.
+
  */
 export type FontData = {
   name: string;

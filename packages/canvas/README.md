@@ -379,4 +379,3 @@ await renderReactElement(ctx, <MyComponent />, {
 
 - [`@effing/tween`](../tween) — Step iteration and easing for frame generation
 - [`@effing/annie`](../annie) — Package rendered frames into animations
-- [`@effing/satori`](../satori) — Alternative JSX-to-PNG renderer (Satori + Resvg)

@@ -13,6 +13,5 @@ API documentation for [**Effing**](../../README.md) — programmatic video creat
 - [effie-preview/src](effie-preview/src/README.md)
 - [effie/src](effie/src/README.md)
 - [ffs/src](ffs/src/README.md)
-- [satori/src](satori/src/README.md)
 - [serde/src](serde/src/README.md)
 - [tween/src](tween/src/README.md)

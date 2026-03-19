@@ -102,7 +102,7 @@ async function* generateFrames() {
 }
 ```
 
-No browser in the rendering loop. No framework lifecycle. No headless Puppeteer screenshots. You just generate images, using Satori for JSX, sharp for image manipulation, canvas, or whatever you want.
+No browser in the rendering loop. No framework lifecycle. No headless Puppeteer screenshots. You just generate images, using canvas directly, our JSX-to-canvas rendering, sharp for image manipulation, or whatever you want.
 
 This makes animations trivially testable (call the generator, collect frames, assert on pixels), composable (splice generators together), and framework-independent.
 

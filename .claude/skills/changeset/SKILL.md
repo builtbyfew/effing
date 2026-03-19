@@ -18,7 +18,7 @@ has the following published packages:
 - `@effing/effie-preview` (packages/effie-preview)
 - `@effing/ffmpeg` (packages/ffmpeg)
 - `@effing/ffs` (packages/ffs)
-- `@effing/satori` (packages/satori)
+
 - `@effing/serde` (packages/serde)
 - `@effing/tween` (packages/tween)
 
@@ -57,10 +57,10 @@ Map the changed files to packages:
 | `packages/effie-preview/` | `@effing/effie-preview` |
 | `packages/ffmpeg/`        | `@effing/ffmpeg`        |
 | `packages/ffs/`           | `@effing/ffs`           |
-| `packages/satori/`        | `@effing/satori`        |
-| `packages/serde/`         | `@effing/serde`         |
-| `packages/tween/`         | `@effing/tween`         |
-| `demos/starter/`          | `@effing/create`        |
+
+| `packages/serde/` | `@effing/serde` |
+| `packages/tween/` | `@effing/tween` |
+| `demos/starter/` | `@effing/create` |
 
 Note: `demos/starter/` changes map to `@effing/create` because the starter is
 the template source for the create package.

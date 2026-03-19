@@ -11,7 +11,7 @@ import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 import { drawRect, getBorderRadiusFromStyle } from "./rect.ts";
-import { drawSvgContainer } from "./svg.ts";
+import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
 

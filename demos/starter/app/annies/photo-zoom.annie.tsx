@@ -1,6 +1,6 @@
-import sharp from "sharp";
 import { z } from "zod";
 import { tween, easeOutQuad } from "@effing/tween";
+import { createCanvas, loadImage } from "@effing/canvas";
 import type { AnnieRendererArgs } from ".";
 
 export const propsSchema = z.object({
@@ -23,34 +23,24 @@ export async function* renderer({
   height,
 }: AnnieRendererArgs<PhotoZoomProps>): AsyncGenerator<Buffer> {
   // Fetch and decode the source image
-  const image = await fetch(imageUrl);
-  const imageBuffer = await image.arrayBuffer();
-  const { data: originalImageData, info: originalImageInfo } = await sharp(
-    Buffer.from(imageBuffer),
-  )
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const imageSharp = sharp(originalImageData, {
-    raw: {
-      width: originalImageInfo.width,
-      height: originalImageInfo.height,
-      channels: originalImageInfo.channels,
-    },
-  });
+  const response = await fetch(imageUrl);
+  const imageBuffer = await response.arrayBuffer();
+  const image = await loadImage(Buffer.from(imageBuffer));
 
   // Generate frames with zoom effect
   yield* tween(frameCount, async ({ lower: p }) => {
     const zoomValue = 1 + zoomLevel * easeOutQuad(p);
-    const ow = Math.round(width * zoomValue);
-    const oh = Math.round(height * zoomValue);
-    const left = Math.floor((ow - width) / 2);
-    const top = Math.floor((oh - height) / 2);
-    return imageSharp
-      .clone()
-      .resize(ow, oh, { fit: "cover" })
-      .extract({ left, top, width, height })
-      .jpeg()
-      .toBuffer();
+
+    // Source rectangle shrinks toward center as zoom increases
+    const sw = image.width / zoomValue;
+    const sh = image.height / zoomValue;
+    const sx = (image.width - sw) / 2;
+    const sy = (image.height - sh) / 2;
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+
+    return canvas.encode("jpeg");
   });
 }

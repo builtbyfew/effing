@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Render React JSX elements and Lottie animations directly to a canvas using [@napi-rs/canvas](https://github.com/nicolo-ribaudo/napi-rs-canvas) (Rust-based Skia bindings). Includes Yoga flex layout, emoji support, font management, and frame-level Lottie rendering.
+A canvas that can render JSX elements and Lottie animations, powered by Skia (via [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)) and Yoga flexbox layout. Supports emoji, font management, and CSS properties including transforms, gradients, and text effects.
 
 ## Installation
 
@@ -57,21 +57,7 @@ const png = await canvas.encode("png");
 await fs.writeFile("output.png", png);
 ```
 
-## Concepts
-
-### Rendering Pipeline
-
-```
-JSX → Yoga layout → Skia canvas → PNG
-```
-
-1. **Yoga** calculates flex layout from your JSX tree (flexbox, positioning, text measurement)
-2. **Skia** draws each node to a canvas context (backgrounds, borders, text, images, SVG, gradients)
-3. **Encode** the canvas to PNG or JPEG via `canvas.encode()` or `canvas.encodeSync()`
-
-Canvas dimensions default to `ctx.canvas.width` / `ctx.canvas.height`, but you can override them with the `width` and `height` options. This is useful for HiDPI rendering where the canvas is larger than the logical layout size.
-
-### Font Loading
+## Font Loading
 
 Fonts must be registered before rendering text. You can pass them via the `fonts` option (registered automatically), or register them manually:
 
@@ -92,7 +78,7 @@ registerFontFromPath("./fonts/Inter-Bold.ttf", "Inter");
 console.log(registeredFamilies()); // ["Inter", ...]
 ```
 
-### Emoji Support
+## Emoji Support
 
 Emoji characters are automatically rendered as images from CDNs. Supported styles:
 
@@ -107,7 +93,7 @@ Emoji characters are automatically rendered as images from CDNs. Supported style
 
 Pass `emoji: "none"` to disable emoji image rendering.
 
-### Lottie Animations
+## Lottie Animations
 
 Render individual frames of Lottie animations to a canvas:
 
@@ -249,7 +235,7 @@ function createCanvas(width: number, height: number): Canvas;
 Render a React element tree to a canvas context.
 
 ```typescript
-function renderReactElement(
+async function renderReactElement(
   ctx: SKRSContext2D,
   element: ReactNode,
   options: RenderReactElementOptions,
@@ -387,25 +373,6 @@ await renderReactElement(ctx, <MyComponent />, {
   fonts,
   debug: true,
 });
-```
-
-### HiDPI Rendering
-
-For sharp output on high-DPI displays, you can create a larger canvas and use `width`/`height` overrides to keep layout at the logical size:
-
-```typescript
-const dpr = 2;
-const canvas = createCanvas(1080 * dpr, 1080 * dpr);
-const ctx = canvas.getContext("2d");
-ctx.scale(dpr, dpr);
-
-await renderReactElement(ctx, <MyComponent />, {
-  fonts,
-  width: 1080,
-  height: 1080,
-});
-
-const png = await canvas.encode("png");
 ```
 
 ## Related Packages

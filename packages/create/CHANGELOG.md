@@ -1,5 +1,17 @@
 # @effing/create
 
+## 0.23.2
+
+### Patch Changes
+
+- 266681c: Replace sharp with @effing/canvas in photo-zoom annie
+- dbe77e2: Remove `@effing/satori` package and update all references to use `@effing/canvas`
+
+  The satori package has been fully replaced by the canvas package's built-in JSX
+  rendering. All documentation, code examples, and cross-references now point to
+  `@effing/canvas` instead. The comparison test in canvas inlines emoji loading
+  rather than importing from the removed satori package.
+
 ## 0.23.1
 
 ## 0.23.0

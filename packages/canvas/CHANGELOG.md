@@ -1,5 +1,23 @@
 # @effing/canvas
 
+## 0.23.2
+
+### Patch Changes
+
+- bb47741: Ceil text node height to prevent Yoga integer rounding from clipping descenders
+
+  When auto line-height produces a fractional totalHeight (e.g. 15.52), Yoga's
+  integer rounding (pointScaleFactor=1) could round it down, clipping glyph
+  descenders like "g". Applying Math.ceil to totalHeight inside the auto
+  line-height block adds at most 1px, ensuring descenders are never cut off.
+
+- dbe77e2: Remove `@effing/satori` package and update all references to use `@effing/canvas`
+
+  The satori package has been fully replaced by the canvas package's built-in JSX
+  rendering. All documentation, code examples, and cross-references now point to
+  `@effing/canvas` instead. The comparison test in canvas inlines emoji loading
+  rather than importing from the removed satori package.
+
 ## 0.23.1
 
 ### Patch Changes

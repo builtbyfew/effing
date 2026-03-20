@@ -1,5 +1,11 @@
 # @effing/canvas
 
+## 0.24.1
+
+### Patch Changes
+
+- f03823c: Fix textShadow regex failing on unitless zero values
+
 ## 0.24.0
 
 ### Minor Changes

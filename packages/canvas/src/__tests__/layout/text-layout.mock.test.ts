@@ -5,8 +5,17 @@ vi.mock("@napi-rs/canvas", async () => {
   return createCanvasMock();
 });
 
+vi.mock("../../jsx/font.ts", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../jsx/font.ts")>();
+  return {
+    ...original,
+    getFontMetrics: vi.fn(() => null),
+  };
+});
+
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
+import { getFontMetrics } from "../../jsx/font.ts";
 import { layoutText } from "../../jsx/text/index.ts";
 
 describe("layoutText", () => {
@@ -70,6 +79,76 @@ describe("layoutText", () => {
     expect(clamped.segments).toHaveLength(2);
     expect(clamped.segments[1]!.text).toContain("\u2026");
     expect(clamped.height).toBeLessThan(unclamped.height);
+  });
+
+  it("keeps baseline within line box when typo metrics shrink auto lineHeight below canvas content", () => {
+    // Mock canvas returns ascent=12, descent=4 → contentHeight=16.
+    // Simulate typo metrics that resolve line-height: normal to 12px (< 16),
+    // creating the mismatch between typo-based lineHeight and canvas metrics.
+    vi.mocked(getFontMetrics).mockReturnValue({
+      sTypoAscender: 600,
+      sTypoDescender: -150,
+      sTypoLineGap: 0,
+      unitsPerEm: 1000,
+      // (600 + 150 + 0) / 1000 * 16 = 12px lineHeight
+    });
+
+    const result = layoutText(
+      "Hello",
+      { fontSize: 16, color: "black" }, // line-height: normal (auto)
+      500,
+      ctx,
+    );
+    const seg = result.segments[0]!;
+    // seg.y is the baseline Y; it must stay within [0, lineHeightPx=12]
+    expect(seg.y).toBeGreaterThanOrEqual(0);
+    expect(seg.y).toBeLessThanOrEqual(12);
+
+    // totalHeight must accommodate the descent below the last baseline,
+    // preventing descender clipping when parent has overflow: hidden.
+    // Canvas mock returns descent=4, so baseline + descent > lineHeightPx=12.
+    const lineHeightPx = 12;
+    expect(result.height).toBeGreaterThan(lineHeightPx);
+
+    // Height must be ceiled so Yoga integer rounding doesn't clip descent
+    expect(result.height).toBe(Math.ceil(result.height));
+
+    // Reset mock
+    vi.mocked(getFontMetrics).mockReturnValue(null);
+  });
+
+  it("ceils totalHeight to prevent Yoga rounding from clipping sub-pixel descent", () => {
+    // Typo metrics: (775 + 194 + 0) / 1000 * 16 = 15.504 lineHeightPx
+    // Canvas mock: ascent=12, descent=4 → contentHeight=16 > 15.504 → scaling
+    // Baseline Y = (15.504 + 12 - 4) / 2 * (15.504/16) = 11.378...
+    // descentOverflow = 11.378 + 4 * (15.504/16) - 15.504 = 0.124...
+    // totalHeight before ceil = 15.504 + 0.124 = 15.628 → ceiled to 16
+    vi.mocked(getFontMetrics).mockReturnValue({
+      sTypoAscender: 775,
+      sTypoDescender: -194,
+      sTypoLineGap: 0,
+      unitsPerEm: 1000,
+    });
+
+    const result = layoutText("g", { fontSize: 16, color: "black" }, 500, ctx);
+
+    expect(result.height).toBe(16);
+
+    vi.mocked(getFontMetrics).mockReturnValue(null);
+  });
+
+  it("does not scale baseline for explicit tight lineHeight", () => {
+    // With explicit lineHeight, overflow is intentional — use standard half-leading.
+    // Mock canvas: ascent=12, descent=4, contentHeight=16, lineHeight=10.
+    // Original formula: baselineY = (10 + 12 - 4) / 2 = 9
+    const result = layoutText(
+      "Hello",
+      { fontSize: 16, color: "black", lineHeight: 10 },
+      500,
+      ctx,
+    );
+    const seg = result.segments[0]!;
+    expect(seg.y).toBe(9);
   });
 
   it("does not clamp when text fits within lineClamp", () => {

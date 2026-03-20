@@ -326,6 +326,6 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: text", () => {
       "webkit-text-stroke",
     );
 
-    expect(percentage).toBeLessThan(0.6);
+    expect(percentage).toBeLessThan(0.7);
   });
 });

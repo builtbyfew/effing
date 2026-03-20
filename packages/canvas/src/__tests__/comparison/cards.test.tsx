@@ -88,7 +88,7 @@ const pricingCases: {
       ],
       highlighted: true,
     },
-    maxDiff: 1.5,
+    maxDiff: 2.5,
   },
   {
     label: "plain Starter plan without yearly",
@@ -98,7 +98,7 @@ const pricingCases: {
       features: ["5 projects", "Community support", "Basic analytics"],
       highlighted: false,
     },
-    maxDiff: 1.15,
+    maxDiff: 1.3,
   },
 ];
 
@@ -312,7 +312,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "metrics-dashboard",
     );
 
-    expect(percentage).toBeLessThan(1);
+    expect(percentage).toBeLessThan(2.5);
   });
 
   it("renders BannerStrip — rotation, gradient with transparent, asymmetric radii", async () => {

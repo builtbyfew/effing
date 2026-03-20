@@ -261,6 +261,9 @@ export function layoutText(
   const segments: TextSegment[] = [];
   let totalHeight = 0;
   let maxLineWidth = 0;
+  const isAutoLineHeight =
+    style.lineHeight === undefined || style.lineHeight === "normal";
+  let lastMetrics: { ascent: number; descent: number } | undefined;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
@@ -281,11 +284,24 @@ export function layoutText(
       fontStyle,
       ctx,
     );
+    lastMetrics = metrics;
 
     // Use canvas-measured ascent/descent for baseline positioning so fillText
     // places glyphs correctly, regardless of which font table the engine uses.
+    // When line-height is "normal" and typo metrics resolve to a smaller value
+    // than the canvas content area, scale both proportionally so half-leading
+    // becomes 0 and text stays within the line box. For explicit tight
+    // lineHeight values the overflow is intentional (standard CSS half-leading).
+    const contentHeight = metrics.ascent + metrics.descent;
+    let effectiveAscent = metrics.ascent;
+    let effectiveDescent = metrics.descent;
+    if (isAutoLineHeight && contentHeight > lineHeightPx) {
+      const scale = lineHeightPx / contentHeight;
+      effectiveAscent = metrics.ascent * scale;
+      effectiveDescent = metrics.descent * scale;
+    }
     const baselineY =
-      totalHeight + (lineHeightPx + metrics.ascent - metrics.descent) / 2;
+      totalHeight + (lineHeightPx + effectiveAscent - effectiveDescent) / 2;
 
     segments.push({
       text: line,
@@ -308,6 +324,22 @@ export function layoutText(
 
     totalHeight += lineHeightPx;
     maxLineWidth = Math.max(maxLineWidth, lineWidth);
+  }
+
+  // When auto line-height (typo-based) is smaller than the canvas content
+  // area, the last line's glyph descent extends below totalHeight. Add the
+  // overflow so the Yoga node height accommodates the full rendered text,
+  // preventing descender clipping with overflow: hidden.
+  if (isAutoLineHeight && lastMetrics && segments.length > 0) {
+    const lastSeg = segments[segments.length - 1]!;
+    const descentOverflow = lastSeg.y + lastMetrics.descent - totalHeight;
+    if (descentOverflow > 0) {
+      totalHeight += descentOverflow;
+    }
+    // Round up so Yoga's integer rounding (pointScaleFactor=1) never clips
+    // the descent. Without this, a fractional totalHeight like 15.52 can
+    // round to 15, cutting off glyphs whose descent reaches 15.52.
+    totalHeight = Math.ceil(totalHeight);
   }
 
   // Apply text-box-trim

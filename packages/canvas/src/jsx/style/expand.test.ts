@@ -89,3 +89,92 @@ describe("expandStyle – textBox shorthand", () => {
     expect(result.textBoxEdge).toBe("ex alphabetic");
   });
 });
+
+describe("expandStyle – margin, padding, border, flex, gap shorthands", () => {
+  it("expands margin shorthand", () => {
+    const style = expandStyle({ margin: "10" });
+    expect(style.marginTop).toBe(10);
+    expect(style.marginRight).toBe(10);
+    expect(style.marginBottom).toBe(10);
+    expect(style.marginLeft).toBe(10);
+  });
+
+  it("expands margin with 2 values", () => {
+    const style = expandStyle({ margin: "10 20" });
+    expect(style.marginTop).toBe(10);
+    expect(style.marginRight).toBe(20);
+    expect(style.marginBottom).toBe(10);
+    expect(style.marginLeft).toBe(20);
+  });
+
+  it("expands padding shorthand", () => {
+    const style = expandStyle({ padding: "5 10 15 20" });
+    expect(style.paddingTop).toBe(5);
+    expect(style.paddingRight).toBe(10);
+    expect(style.paddingBottom).toBe(15);
+    expect(style.paddingLeft).toBe(20);
+  });
+
+  it("expands borderRadius shorthand", () => {
+    const style = expandStyle({ borderRadius: "8" });
+    expect(style.borderTopLeftRadius).toBe(8);
+    expect(style.borderTopRightRadius).toBe(8);
+    expect(style.borderBottomRightRadius).toBe(8);
+    expect(style.borderBottomLeftRadius).toBe(8);
+  });
+
+  it("expands border shorthand", () => {
+    const style = expandStyle({ border: "2 solid red" });
+    expect(style.borderTopWidth).toBe(2);
+    expect(style.borderTopStyle).toBe("solid");
+    expect(style.borderTopColor).toBe("red");
+  });
+
+  it("expands flex shorthand", () => {
+    const style = expandStyle({ flex: "1" });
+    expect(style.flexGrow).toBe(1);
+    expect(style.flexShrink).toBe(1);
+    expect(style.flexBasis).toBe(0);
+  });
+
+  it("expands gap shorthand", () => {
+    const style = expandStyle({ gap: "10 20" });
+    expect(style.rowGap).toBe(10);
+    expect(style.columnGap).toBe(20);
+  });
+
+  it("preserves percentage borderRadius strings", () => {
+    const style = expandStyle({ borderRadius: "50%" });
+    expect(style.borderTopLeftRadius).toBe("50%");
+    expect(style.borderTopRightRadius).toBe("50%");
+    expect(style.borderBottomRightRadius).toBe("50%");
+    expect(style.borderBottomLeftRadius).toBe("50%");
+  });
+
+  it("preserves unit strings in margin shorthand", () => {
+    const style = expandStyle({ margin: "2em" });
+    expect(style.marginTop).toBe("2em");
+    expect(style.marginRight).toBe("2em");
+    expect(style.marginBottom).toBe("2em");
+    expect(style.marginLeft).toBe("2em");
+  });
+
+  it("preserves unit strings in borderRadius shorthand", () => {
+    const style = expandStyle({ borderRadius: "10px" });
+    expect(style.borderTopLeftRadius).toBe("10px");
+    expect(style.borderTopRightRadius).toBe("10px");
+    expect(style.borderBottomRightRadius).toBe("10px");
+    expect(style.borderBottomLeftRadius).toBe("10px");
+  });
+
+  it("normalizes fontFamily", () => {
+    const style = expandStyle({ fontFamily: "'Inter', sans-serif" });
+    expect(style.fontFamily).toBe("Inter, sans-serif");
+  });
+
+  it("does not overwrite explicit longhand values", () => {
+    const style = expandStyle({ margin: "10", marginTop: 20 });
+    expect(style.marginTop).toBe(20);
+    expect(style.marginRight).toBe(10);
+  });
+});

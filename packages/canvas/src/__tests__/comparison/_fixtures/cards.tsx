@@ -315,7 +315,7 @@ export function PricingCard({
             }}
           >
             <span style={{ color: accentColor, marginRight: 8, fontSize: 14 }}>
-              ✓
+              •
             </span>
             {f}
           </div>

@@ -163,12 +163,10 @@ const statsBarCases: {
 
 describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
   let fonts: FontData[];
-  let networkAvailable = true;
 
   beforeAll(async () => {
     const result = await loadFonts();
     fonts = result.fonts;
-    networkAvailable = result.remote;
   }, 30_000);
 
   it.each(propertyCases)(
@@ -195,12 +193,9 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
     async ({ label, props, maxDiff }) => {
       const element = <PricingCard width={WIDTH} height={HEIGHT} {...props} />;
 
-      // PricingCard uses ✓ (U+2713 Dingbat) which triggers emoji CDN fetch;
-      // disable emoji rendering when network is unavailable.
-      const emoji = networkAvailable ? undefined : ("none" as const);
       const [canvasPng, satoriPng] = await Promise.all([
-        renderWithCanvas(element, WIDTH, HEIGHT, fonts, emoji),
-        renderWithSatori(element, WIDTH, HEIGHT, fonts, emoji),
+        renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+        renderWithSatori(element, WIDTH, HEIGHT, fonts),
       ]);
       const { percentage } = await compareImages(
         canvasPng,

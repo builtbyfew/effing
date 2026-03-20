@@ -217,7 +217,7 @@ function drawTextShadow(
   shadow: string,
 ): void {
   const parts = shadow.match(
-    /(-?\d+(?:\.\d+)?)\s*px?\s+(-?\d+(?:\.\d+)?)\s*px?\s+(-?\d+(?:\.\d+)?)\s*px?\s+(.*)/,
+    /(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(.*)/,
   );
   if (!parts) return;
 

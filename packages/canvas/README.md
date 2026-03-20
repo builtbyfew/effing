@@ -93,6 +93,23 @@ Emoji characters are automatically rendered as images from CDNs. Supported style
 
 Pass `emoji: "none"` to disable emoji image rendering.
 
+## Fit Text
+
+Find the largest font size that keeps text within a bounding box, using binary search over the built-in text layout engine:
+
+```typescript
+import { findLargestUsableFontSize } from "@effing/canvas";
+
+const fontSize = findLargestUsableFontSize({
+  text: "Hello World",
+  font,
+  maxWidth: 500,
+  maxHeight: 100,
+});
+```
+
+Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `minFontSize` (default 1), and `maxFontSize` (default 1000).
+
 ## Lottie Animations
 
 Render individual frames of Lottie animations to a canvas:
@@ -263,6 +280,30 @@ function renderLottieFrame(
   animation: LottieAnimation,
   frame: number,
 ): void;
+```
+
+### `findLargestUsableFontSize(options)`
+
+Find the largest integer font size that keeps text within the given bounds. Uses binary search with the built-in text layout engine — no external dependencies needed.
+
+```typescript
+function findLargestUsableFontSize(
+  options: FindLargestUsableFontSizeOptions,
+): number;
+```
+
+```typescript
+import { findLargestUsableFontSize } from "@effing/canvas";
+
+const fontSize = findLargestUsableFontSize({
+  text: "Hello World",
+  font,
+  maxWidth: 500,
+  maxHeight: 100,
+  lineHeight: "normal", // optional (default: "normal")
+  minFontSize: 1, // optional (default: 1)
+  maxFontSize: 200, // optional (default: 1000)
+});
 ```
 
 ### Font Helpers

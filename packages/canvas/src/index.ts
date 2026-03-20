@@ -36,6 +36,12 @@ export {
   registeredFamilies,
 } from "./jsx/font.ts";
 
+// Fit text
+export {
+  findLargestUsableFontSize,
+  type FindLargestUsableFontSizeOptions,
+} from "./fit-text.ts";
+
 // Types
 export type {
   FontData,

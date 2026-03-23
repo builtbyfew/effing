@@ -3,7 +3,11 @@
  *
  * These values are needed to compute CSS `line-height: normal` to match
  * Chrome (macOS) and Satori: (ascender - descender) / unitsPerEm * fontSize
+ *
+ * Supports TrueType/OpenType (.ttf/.otf) and WOFF (.woff) formats.
  */
+
+import { inflateSync } from "node:zlib";
 
 export type FontMetrics = {
   unitsPerEm: number;
@@ -11,25 +15,91 @@ export type FontMetrics = {
   descender: number;
 };
 
+// WOFF signature: 'wOFF' (0x774F4646)
+const WOFF_SIGNATURE = 0x774f4646;
+
 /**
- * Parse the hhea and head tables from a TrueType/OpenType font binary
- * to extract line spacing metrics.
- *
- * Returns `null` if the font lacks a required table (e.g. some bitmap fonts).
+ * Read the raw bytes for a table from a WOFF file,
+ * decompressing with zlib if the table is compressed.
  */
-export function parseFontMetrics(
-  data: Buffer | ArrayBuffer,
-): FontMetrics | null {
-  const buf =
-    data instanceof ArrayBuffer
-      ? data
-      : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-  const view = new DataView(buf);
+function readWoffTable(
+  view: DataView,
+  entry: { offset: number; compLength: number; origLength: number },
+): DataView | null {
+  const compressed = entry.compLength < entry.origLength;
+  if (compressed) {
+    try {
+      const compData = new Uint8Array(
+        view.buffer,
+        view.byteOffset + entry.offset,
+        entry.compLength,
+      );
+      const decompressed = inflateSync(compData);
+      return new DataView(
+        decompressed.buffer,
+        decompressed.byteOffset,
+        decompressed.byteLength,
+      );
+    } catch {
+      return null;
+    }
+  }
+  return new DataView(
+    view.buffer,
+    view.byteOffset + entry.offset,
+    entry.origLength,
+  );
+}
 
-  if (buf.byteLength < 12) return null;
+function parseWoff(view: DataView): FontMetrics | null {
+  if (view.byteLength < 44) return null;
+  const numTables = view.getUint16(12);
+  if (view.byteLength < 44 + numTables * 20) return null;
 
+  let headEntry: {
+    offset: number;
+    compLength: number;
+    origLength: number;
+  } | null = null;
+  let hheaEntry: {
+    offset: number;
+    compLength: number;
+    origLength: number;
+  } | null = null;
+
+  for (let i = 0; i < numTables; i++) {
+    const r = 44 + i * 20;
+    const tag =
+      String.fromCharCode(view.getUint8(r)) +
+      String.fromCharCode(view.getUint8(r + 1)) +
+      String.fromCharCode(view.getUint8(r + 2)) +
+      String.fromCharCode(view.getUint8(r + 3));
+    const offset = view.getUint32(r + 4);
+    const compLength = view.getUint32(r + 8);
+    const origLength = view.getUint32(r + 12);
+
+    if (tag === "head") headEntry = { offset, compLength, origLength };
+    else if (tag === "hhea") hheaEntry = { offset, compLength, origLength };
+  }
+
+  if (!headEntry || !hheaEntry) return null;
+
+  const headView = readWoffTable(view, headEntry);
+  const hheaView = readWoffTable(view, hheaEntry);
+  if (!headView || !hheaView) return null;
+
+  if (headView.byteLength < 20 || hheaView.byteLength < 8) return null;
+
+  const unitsPerEm = headView.getUint16(18);
+  const ascender = hheaView.getInt16(4);
+  const descender = hheaView.getInt16(6);
+
+  return { unitsPerEm, ascender, descender };
+}
+
+function parseSfnt(view: DataView): FontMetrics | null {
   const numTables = view.getUint16(4);
-  if (buf.byteLength < 12 + numTables * 16) return null;
+  if (view.byteLength < 12 + numTables * 16) return null;
 
   let headOffset = -1;
   let hheaOffset = -1;
@@ -50,14 +120,36 @@ export function parseFontMetrics(
 
   if (headOffset < 0 || hheaOffset < 0) return null;
 
-  // head table: unitsPerEm is at offset 18 (uint16)
-  if (buf.byteLength < headOffset + 20) return null;
+  if (view.byteLength < headOffset + 20) return null;
   const unitsPerEm = view.getUint16(headOffset + 18);
 
-  // hhea table: ascender (offset 4, int16), descender (offset 6, int16)
-  if (buf.byteLength < hheaOffset + 8) return null;
+  if (view.byteLength < hheaOffset + 8) return null;
   const ascender = view.getInt16(hheaOffset + 4);
   const descender = view.getInt16(hheaOffset + 6);
 
   return { unitsPerEm, ascender, descender };
+}
+
+/**
+ * Parse the hhea and head tables from a TrueType/OpenType or WOFF font binary
+ * to extract line spacing metrics.
+ *
+ * Returns `null` if the font lacks a required table (e.g. some bitmap fonts).
+ */
+export function parseFontMetrics(
+  data: Buffer | ArrayBuffer,
+): FontMetrics | null {
+  const buf =
+    data instanceof ArrayBuffer
+      ? data
+      : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const view = new DataView(buf);
+
+  if (buf.byteLength < 12) return null;
+
+  const signature = view.getUint32(0);
+  if (signature === WOFF_SIGNATURE) {
+    return parseWoff(view);
+  }
+  return parseSfnt(view);
 }

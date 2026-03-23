@@ -1,5 +1,11 @@
 # @effing/canvas
 
+## 0.24.2
+
+### Patch Changes
+
+- f1a2bfe: Inherit textShadow to child text nodes
+
 ## 0.24.1
 
 ### Patch Changes

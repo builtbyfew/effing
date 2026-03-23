@@ -384,12 +384,8 @@ function resolveLineHeight(
 ): number {
   if (lineHeight === undefined || lineHeight === "normal") {
     if (fontMetrics) {
-      const { sTypoAscender, sTypoDescender, sTypoLineGap, unitsPerEm } =
-        fontMetrics;
-      return (
-        ((sTypoAscender - sTypoDescender + sTypoLineGap) / unitsPerEm) *
-        fontSize
-      );
+      const { ascender, descender, unitsPerEm } = fontMetrics;
+      return ((ascender - descender) / unitsPerEm) * fontSize;
     }
     // Fallback to canvas metrics (fontBoundingBox ascent + descent)
     return canvasMetrics

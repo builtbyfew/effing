@@ -110,15 +110,13 @@ export function measureTrimMetrics(
 
   const refMetrics = c.measureText("M");
 
-  // When font metrics are available, use typo ascender/descender for half-leading
-  // so it stays consistent with the typo-based line height.
+  // When font metrics are available, use hhea ascender/descender for half-leading
+  // so it stays consistent with the hhea-based line height.
   let fontAscent: number;
   let fontDescent: number;
   if (fontMetrics) {
-    fontAscent =
-      (fontMetrics.sTypoAscender / fontMetrics.unitsPerEm) * fontSize;
-    fontDescent =
-      (-fontMetrics.sTypoDescender / fontMetrics.unitsPerEm) * fontSize;
+    fontAscent = (fontMetrics.ascender / fontMetrics.unitsPerEm) * fontSize;
+    fontDescent = (-fontMetrics.descender / fontMetrics.unitsPerEm) * fontSize;
   } else {
     fontAscent =
       refMetrics.fontBoundingBoxAscent ??

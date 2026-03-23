@@ -81,16 +81,15 @@ describe("layoutText", () => {
     expect(clamped.height).toBeLessThan(unclamped.height);
   });
 
-  it("keeps baseline within line box when typo metrics shrink auto lineHeight below canvas content", () => {
+  it("keeps baseline within line box when hhea metrics shrink auto lineHeight below canvas content", () => {
     // Mock canvas returns ascent=12, descent=4 → contentHeight=16.
-    // Simulate typo metrics that resolve line-height: normal to 12px (< 16),
-    // creating the mismatch between typo-based lineHeight and canvas metrics.
+    // Simulate hhea metrics that resolve line-height: normal to 12px (< 16),
+    // creating the mismatch between hhea-based lineHeight and canvas metrics.
     vi.mocked(getFontMetrics).mockReturnValue({
-      sTypoAscender: 600,
-      sTypoDescender: -150,
-      sTypoLineGap: 0,
+      ascender: 600,
+      descender: -150,
       unitsPerEm: 1000,
-      // (600 + 150 + 0) / 1000 * 16 = 12px lineHeight
+      // (600 + 150) / 1000 * 16 = 12px lineHeight
     });
 
     const result = layoutText(
@@ -118,15 +117,14 @@ describe("layoutText", () => {
   });
 
   it("ceils totalHeight to prevent Yoga rounding from clipping sub-pixel descent", () => {
-    // Typo metrics: (775 + 194 + 0) / 1000 * 16 = 15.504 lineHeightPx
+    // hhea metrics: (775 + 194) / 1000 * 16 = 15.504 lineHeightPx
     // Canvas mock: ascent=12, descent=4 → contentHeight=16 > 15.504 → scaling
     // Baseline Y = (15.504 + 12 - 4) / 2 * (15.504/16) = 11.378...
     // descentOverflow = 11.378 + 4 * (15.504/16) - 15.504 = 0.124...
     // totalHeight before ceil = 15.504 + 0.124 = 15.628 → ceiled to 16
     vi.mocked(getFontMetrics).mockReturnValue({
-      sTypoAscender: 775,
-      sTypoDescender: -194,
-      sTypoLineGap: 0,
+      ascender: 775,
+      descender: -194,
       unitsPerEm: 1000,
     });
 

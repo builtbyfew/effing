@@ -1,20 +1,19 @@
 /**
- * Parse typographic metrics from the OS/2 and head tables of a font binary.
+ * Parse typographic metrics from the hhea and head tables of a font binary.
  *
- * These values are needed to compute CSS `line-height: normal` per spec:
- * (sTypoAscender - sTypoDescender + sTypoLineGap) / unitsPerEm * fontSize
+ * These values are needed to compute CSS `line-height: normal` to match
+ * Chrome (macOS) and Satori: (ascender - descender) / unitsPerEm * fontSize
  */
 
 export type FontMetrics = {
   unitsPerEm: number;
-  sTypoAscender: number;
-  sTypoDescender: number;
-  sTypoLineGap: number;
+  ascender: number;
+  descender: number;
 };
 
 /**
- * Parse the OS/2 and head tables from a TrueType/OpenType font binary
- * to extract typographic line spacing metrics.
+ * Parse the hhea and head tables from a TrueType/OpenType font binary
+ * to extract line spacing metrics.
  *
  * Returns `null` if the font lacks a required table (e.g. some bitmap fonts).
  */
@@ -33,7 +32,7 @@ export function parseFontMetrics(
   if (buf.byteLength < 12 + numTables * 16) return null;
 
   let headOffset = -1;
-  let os2Offset = -1;
+  let hheaOffset = -1;
 
   for (let i = 0; i < numTables; i++) {
     const recordOffset = 12 + i * 16;
@@ -46,21 +45,19 @@ export function parseFontMetrics(
     const offset = view.getUint32(recordOffset + 8);
 
     if (tag === "head") headOffset = offset;
-    else if (tag === "OS/2") os2Offset = offset;
+    else if (tag === "hhea") hheaOffset = offset;
   }
 
-  if (headOffset < 0 || os2Offset < 0) return null;
+  if (headOffset < 0 || hheaOffset < 0) return null;
 
   // head table: unitsPerEm is at offset 18 (uint16)
   if (buf.byteLength < headOffset + 20) return null;
   const unitsPerEm = view.getUint16(headOffset + 18);
 
-  // OS/2 table: sTypoAscender (offset 68, int16), sTypoDescender (offset 70, int16),
-  // sTypoLineGap (offset 72, int16)
-  if (buf.byteLength < os2Offset + 74) return null;
-  const sTypoAscender = view.getInt16(os2Offset + 68);
-  const sTypoDescender = view.getInt16(os2Offset + 70);
-  const sTypoLineGap = view.getInt16(os2Offset + 72);
+  // hhea table: ascender (offset 4, int16), descender (offset 6, int16)
+  if (buf.byteLength < hheaOffset + 8) return null;
+  const ascender = view.getInt16(hheaOffset + 4);
+  const descender = view.getInt16(hheaOffset + 6);
 
-  return { unitsPerEm, sTypoAscender, sTypoDescender, sTypoLineGap };
+  return { unitsPerEm, ascender, descender };
 }

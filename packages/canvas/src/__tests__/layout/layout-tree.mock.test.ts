@@ -152,7 +152,7 @@ describe("buildLayoutTree", () => {
     expect(img.height).toBe(50); // 100 * (100/200) = 50
   });
 
-  it("maintains aspect ratio when img has neither width nor height", async () => {
+  it("uses natural dimensions when img has neither width nor height", async () => {
     vi.mocked(loadImage).mockResolvedValueOnce({
       width: 80,
       height: 40,
@@ -173,10 +173,9 @@ describe("buildLayoutTree", () => {
     );
     const div = tree.children[0];
     const img = div.children[0];
-    // Without explicit dimensions, Yoga stretches cross-axis (height→200)
-    // and derives width from the 2:1 aspect ratio → 400.
-    expect(img.width).toBe(400);
-    expect(img.height).toBe(200);
+    // Without explicit dimensions, image renders at its natural size.
+    expect(img.width).toBe(80);
+    expect(img.height).toBe(40);
   });
 
   it("keeps both dimensions when img has width and height set", async () => {

@@ -249,11 +249,15 @@ async function buildNode(
         const wSet = style.width !== undefined;
         const hSet = style.height !== undefined;
 
-        // Set aspect ratio when fewer than two dimensions are explicit.
-        // Yoga uses this to derive the missing dimension(s) — works for
-        // numeric values, percentages, and the zero-dimensions case alike.
-        if (naturalW > 0 && naturalH > 0 && !(wSet && hSet)) {
-          yogaNode.setAspectRatio(naturalW / naturalH);
+        if (naturalW > 0 && naturalH > 0) {
+          if (!wSet && !hSet) {
+            // No dimensions given — fall back to natural image size.
+            style.width = naturalW;
+            style.height = naturalH;
+          } else if (!(wSet && hSet)) {
+            // One dimension set (number or %) — let Yoga derive the other.
+            yogaNode.setAspectRatio(naturalW / naturalH);
+          }
         }
       } catch {
         // Silent fail — image will render at whatever size Yoga computes

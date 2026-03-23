@@ -268,6 +268,39 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: text", () => {
     expect(percentage).toBeLessThan(0.6);
   });
 
+  it("renders textShadow — shadow inherited by child text nodes", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "white",
+          fontFamily: "Liberation Sans",
+          fontSize: 48,
+          color: "black",
+          textShadow: "4px 4px 0 red",
+        }}
+      >
+        Shadow
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "text-shadow",
+    );
+
+    expect(percentage).toBeLessThan(0.2);
+  });
+
   it("renders WebkitTextStroke — text with stroke outline", async () => {
     const element = (
       <div

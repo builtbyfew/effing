@@ -191,6 +191,7 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "lineClamp",
   "textBoxTrim",
   "textBoxEdge",
+  "textShadow",
   "WebkitTextStrokeWidth",
   "WebkitTextStrokeColor",
 ];

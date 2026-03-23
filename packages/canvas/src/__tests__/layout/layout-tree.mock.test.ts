@@ -173,9 +173,9 @@ describe("buildLayoutTree", () => {
     );
     const div = tree.children[0];
     const img = div.children[0];
-    // Without explicit dimensions, image renders at its natural size.
-    expect(img.width).toBe(80);
-    expect(img.height).toBe(40);
+    // Without explicit dimensions, image fills parent width; aspect ratio derives height.
+    expect(img.width).toBe(200);
+    expect(img.height).toBe(100);
   });
 
   it("keeps both dimensions when img has width and height set", async () => {

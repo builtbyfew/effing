@@ -162,7 +162,34 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       satoriPng,
       "img-height-only-intrinsic",
     );
-    expect(percentage).toBeLessThan(1);
+    expect(percentage).toBeLessThan(0.01);
+  });
+
+  it("renders img with no dimensions — uses natural image size", async () => {
+    const imageDataUri = await makeTestImage(120, 80);
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+        }}
+      >
+        <img src={imageDataUri} />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "img-no-dimensions-natural-size",
+    );
+    expect(percentage).toBeLessThan(0.01);
   });
 
   it("renders img with border — border on image element", async () => {

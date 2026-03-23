@@ -249,15 +249,12 @@ async function buildNode(
         const wSet = style.width !== undefined;
         const hSet = style.height !== undefined;
 
-        if (naturalW > 0 && naturalH > 0) {
+        if (naturalW > 0 && naturalH > 0 && !(wSet && hSet)) {
           if (!wSet && !hSet) {
-            // No dimensions given — fall back to natural image size.
-            style.width = naturalW;
-            style.height = naturalH;
-          } else if (!(wSet && hSet)) {
-            // One dimension set (number or %) — let Yoga derive the other.
-            yogaNode.setAspectRatio(naturalW / naturalH);
+            // No dimensions given — fill parent, let aspect ratio derive height.
+            style.width = "100%";
           }
+          yogaNode.setAspectRatio(naturalW / naturalH);
         }
       } catch {
         // Silent fail — image will render at whatever size Yoga computes

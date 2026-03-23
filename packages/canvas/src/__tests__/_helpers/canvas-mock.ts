@@ -20,6 +20,7 @@ export function createCanvasMock() {
     fillRect: vi.fn(),
     strokeRect: vi.fn(),
     fillText: vi.fn(),
+    strokeText: vi.fn(),
     beginPath: vi.fn(),
     closePath: vi.fn(),
     moveTo: vi.fn(),

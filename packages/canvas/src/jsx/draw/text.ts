@@ -1,6 +1,8 @@
 import { loadImage } from "@napi-rs/canvas";
 import type { SKRSContext2D, Image } from "@napi-rs/canvas";
 
+import parseCssColor from "parse-css-color";
+
 import type { EmojiStyle } from "../emoji.ts";
 import { getEmojiCode, loadEmoji } from "../emoji.ts";
 import type { TextSegment } from "../text/index.ts";
@@ -49,6 +51,8 @@ export async function drawText(
   textShadow?: string,
   emojiStyle?: EmojiStyle,
 ): Promise<void> {
+  const shadow = textShadow ? parseShadow(textShadow) : null;
+
   for (const seg of segments) {
     if (!seg.text) continue;
 
@@ -57,6 +61,7 @@ export async function drawText(
 
     const x = offsetX + seg.x;
     const y = offsetY + seg.y;
+    const textAlpha = shadow ? getColorAlpha(seg.color) : 1;
 
     const hasStroke =
       seg.textStrokeWidth !== undefined && seg.textStrokeWidth > 0;
@@ -72,6 +77,11 @@ export async function drawText(
         hasStroke,
       );
     } else if (seg.letterSpacing && seg.letterSpacing !== 0) {
+      if (shadow) {
+        drawShadowPass(ctx, shadow, textAlpha, () =>
+          drawTextWithLetterSpacing(ctx, seg.text, x, y, seg.letterSpacing),
+        );
+      }
       if (hasStroke) {
         drawStrokeWithLetterSpacing(
           ctx,
@@ -85,8 +95,10 @@ export async function drawText(
       }
       drawTextWithLetterSpacing(ctx, seg.text, x, y, seg.letterSpacing);
     } else {
-      if (textShadow) {
-        drawTextShadow(ctx, seg.text, x, y, textShadow);
+      if (shadow) {
+        drawShadowPass(ctx, shadow, textAlpha, () =>
+          ctx.fillText(seg.text, x, y),
+        );
       }
       if (hasStroke) {
         ctx.save();
@@ -126,10 +138,27 @@ async function drawSegmentWithEmoji(
     letterSpacing,
   );
 
+  const shadow = textShadow ? parseShadow(textShadow) : null;
+  const textAlpha = shadow ? getColorAlpha(seg.color) : 1;
+
   for (const run of runs) {
     if (run.kind === "text") {
-      if (textShadow) {
-        drawTextShadow(ctx, run.text, x + run.x, y, textShadow);
+      if (shadow) {
+        if (letterSpacing !== 0) {
+          drawShadowPass(ctx, shadow, textAlpha, () =>
+            drawTextWithLetterSpacing(
+              ctx,
+              run.text,
+              x + run.x,
+              y,
+              letterSpacing,
+            ),
+          );
+        } else {
+          drawShadowPass(ctx, shadow, textAlpha, () =>
+            ctx.fillText(run.text, x + run.x, y),
+          );
+        }
       }
       if (hasStroke) {
         if (letterSpacing !== 0) {
@@ -209,24 +238,54 @@ function drawStrokeWithLetterSpacing(
   ctx.restore();
 }
 
-function drawTextShadow(
-  ctx: SKRSContext2D,
-  text: string,
-  x: number,
-  y: number,
-  shadow: string,
-): void {
+interface ParsedShadow {
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  color: string;
+}
+
+function parseShadow(shadow: string): ParsedShadow | null {
   const parts = shadow.match(
     /(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(.*)/,
   );
-  if (!parts) return;
+  if (!parts) return null;
+  return {
+    offsetX: parseFloat(parts[1]!),
+    offsetY: parseFloat(parts[2]!),
+    blur: parseFloat(parts[3]!),
+    color: parts[4]!.trim(),
+  };
+}
 
+/** Extract the alpha component from a CSS color string. */
+function getColorAlpha(color: string): number {
+  const parsed = parseCssColor(color);
+  return parsed ? parsed.alpha : 1;
+}
+
+/**
+ * Draw the text shadow manually instead of using the canvas shadow API.
+ *
+ * CSS text-shadow renders the shadow as if derived from the text's painted
+ * appearance, so when the text color has alpha < 1 the shadow is also
+ * attenuated. The canvas shadow API does NOT do this — it always renders
+ * the shadow at the full specified opacity. We match CSS behavior by
+ * drawing the shadow as a separate fillText at the offset, with
+ * globalAlpha scaled by the text color's alpha.
+ */
+function drawShadowPass(
+  ctx: SKRSContext2D,
+  shadow: ParsedShadow,
+  textAlpha: number,
+  drawFn: () => void,
+): void {
   ctx.save();
-  ctx.shadowOffsetX = parseFloat(parts[1]!);
-  ctx.shadowOffsetY = parseFloat(parts[2]!);
-  ctx.shadowBlur = parseFloat(parts[3]!);
-  ctx.shadowColor = parts[4]!.trim();
-  ctx.fillText(text, x, y);
+  ctx.fillStyle = shadow.color;
+  if (textAlpha < 1) ctx.globalAlpha *= textAlpha;
+  if (shadow.blur > 0) ctx.filter = `blur(${shadow.blur / 2}px)`;
+  ctx.translate(shadow.offsetX, shadow.offsetY);
+  drawFn();
   ctx.restore();
 }
 

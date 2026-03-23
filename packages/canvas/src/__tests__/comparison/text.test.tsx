@@ -298,7 +298,58 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: text", () => {
       "text-shadow",
     );
 
-    expect(percentage).toBeLessThan(0.2);
+    expect(percentage).toBeLessThan(0.1);
+  });
+
+  it("renders textShadow with alpha color — no double-draw", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: WIDTH,
+          height: HEIGHT,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#1a1a2e",
+          fontFamily: "Liberation Sans",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 48,
+            color: "#FFFFFFBF",
+            textShadow: "4px 4px 0 rgba(255, 100, 100, 0.8)",
+          }}
+        >
+          Alpha
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 24,
+            color: "#FFFFFFCC",
+            textShadow: "3px 3px 0 rgba(100, 100, 255, 0.8)",
+          }}
+        >
+          Semi-transparent text with shadow
+        </div>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "text-shadow-alpha",
+    );
+
+    expect(percentage).toBeLessThan(0.8);
   });
 
   it("renders WebkitTextStroke — text with stroke outline", async () => {

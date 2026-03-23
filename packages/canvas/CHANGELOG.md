@@ -1,5 +1,24 @@
 # @effing/canvas
 
+## 0.24.6
+
+### Patch Changes
+
+- f4a9717: Rewrite text shadow rendering to match CSS behavior
+
+  Replaces the canvas shadow API with manual shadow drawing. The old approach had
+  two issues: (1) `drawTextShadow` called `fillText` to trigger the shadow, then
+  callers called `fillText` again — double-painting text with alpha colors, and
+  (2) the canvas shadow API renders shadows at full specified opacity regardless of
+  text color alpha, while CSS text-shadow scales shadow opacity by the text's alpha.
+  Also fixes textShadow being silently ignored on text with letterSpacing.
+
+- 0f82a09: Use hhea table metrics for line-height: normal instead of OS/2 sTypo metrics
+
+  The previous implementation used OS/2 sTypoAscender/sTypoDescender/sTypoLineGap to compute
+  `line-height: normal`, which produced taller line heights than Chrome (macOS) and Satori.
+  Now uses hhea ascender/descender with no line gap, matching their behavior.
+
 ## 0.24.5
 
 ### Patch Changes

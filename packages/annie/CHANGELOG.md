@@ -1,5 +1,11 @@
 # @effing/annie
 
+## 0.24.4
+
+### Patch Changes
+
+- @effing/serde@0.24.4
+
 ## 0.24.3
 
 ### Patch Changes

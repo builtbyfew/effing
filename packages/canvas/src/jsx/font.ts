@@ -48,13 +48,18 @@ export function getFontMetrics(
   weight: number | string,
   style: string,
 ): FontMetrics | null {
-  // Try exact match first
-  const exact = metricsCache.get(`${family}:${weight}:${style}`);
-  if (exact) return exact;
+  // CSS font-family may be a comma-separated fallback chain; try each name
+  const families = family
+    .split(",")
+    .map((f) => f.trim().replace(/^['"]|['"]$/g, ""));
 
-  // Fallback: first entry matching the family name
-  for (const [key, metrics] of metricsCache) {
-    if (key.startsWith(`${family}:`)) return metrics;
+  for (const name of families) {
+    const exact = metricsCache.get(`${name}:${weight}:${style}`);
+    if (exact) return exact;
+
+    for (const [key, metrics] of metricsCache) {
+      if (key.startsWith(`${name}:`)) return metrics;
+    }
   }
 
   return null;

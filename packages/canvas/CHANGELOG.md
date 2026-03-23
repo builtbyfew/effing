@@ -1,5 +1,25 @@
 # @effing/canvas
 
+## 0.24.7
+
+### Patch Changes
+
+- 57d6130: Handle comma-separated font-family in getFontMetrics
+
+  `getFontMetrics` previously matched against the full CSS `font-family` string
+  (e.g. `"CentraNo1, Liberation Sans"`), which never matched cache keys stored
+  under individual family names. It now splits on commas and tries each name,
+  so hhea metrics are correctly resolved for fonts used with fallback chains.
+
+- ad5684d: Support WOFF font metric parsing in `parseFontMetrics`
+
+  Previously `parseFontMetrics` only handled TrueType/OpenType (`.ttf`/`.otf`)
+  table directories, silently returning `null` for WOFF files. This meant
+  `line-height: normal` fell back to canvas-measured metrics instead of using the
+  hhea ascender/descender values from the font. The function now detects the WOFF
+  signature, parses the WOFF table directory, and decompresses tables with zlib
+  when needed.
+
 ## 0.24.6
 
 ### Patch Changes

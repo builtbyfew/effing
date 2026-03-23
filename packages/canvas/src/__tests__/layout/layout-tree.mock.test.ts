@@ -152,7 +152,7 @@ describe("buildLayoutTree", () => {
     expect(img.height).toBe(50); // 100 * (100/200) = 50
   });
 
-  it("does not force natural dimensions when img has neither width nor height", async () => {
+  it("maintains aspect ratio when img has neither width nor height", async () => {
     vi.mocked(loadImage).mockResolvedValueOnce({
       width: 80,
       height: 40,
@@ -173,10 +173,9 @@ describe("buildLayoutTree", () => {
     );
     const div = tree.children[0];
     const img = div.children[0];
-    // Without explicit dimensions, Yoga sizes from layout constraints only.
-    // In a default flex-column container the child stretches on the cross
-    // axis (height) but collapses on the main axis (width).
-    expect(img.width).toBe(0);
+    // Without explicit dimensions, Yoga stretches cross-axis (height→200)
+    // and derives width from the 2:1 aspect ratio → 400.
+    expect(img.width).toBe(400);
     expect(img.height).toBe(200);
   });
 
@@ -470,7 +469,35 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
     );
     const div = tree.children[0];
     const img = div.children[0];
-    // width="100%" should resolve to parent width, not aspect-ratio derived
+    // width="100%" resolves to parent width; height derived from 4:3 ratio
+    expect(img.width).toBe(200);
+    expect(img.height).toBe(150); // 200 / (400/300) = 150
+  });
+
+  it("IMG with height='50%' derives width from aspect ratio", async () => {
+    vi.mocked(loadImage).mockResolvedValueOnce({
+      width: 400,
+      height: 200,
+    } as never);
+    const { tree } = await buildLayoutTree(
+      {
+        type: "div",
+        props: {
+          style: { width: 200, height: 200 },
+          children: {
+            type: "img",
+            props: { src: "test.png", height: "50%" },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const div = tree.children[0];
+    const img = div.children[0];
+    // height="50%" of 200 = 100; width derived from 2:1 ratio = 200
+    expect(img.height).toBe(100);
     expect(img.width).toBe(200);
   });
 });

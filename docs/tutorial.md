@@ -39,7 +39,7 @@ const video = effieData({
   background: { type: "color", color: "#1A1A2E" },
   segments: [
     {
-      duration: 4,
+      duration: 2.5,
       layers: [
         {
           type: "image",
@@ -51,7 +51,7 @@ const video = effieData({
 });
 ```
 
-This defines a 4-second, 1080x1920 video at 30fps with a single image layer.
+This defines a 2.5-second, 1080x1920 video at 30fps with a single image layer.
 
 The `cover` is a static image used as a thumbnail or preview — for example, when displaying the video before it starts playing. It's always required.
 
@@ -80,7 +80,7 @@ Let's make this more interesting by adding a second segment with a transition. U
 ```typescript
 segments: [
   {
-    duration: 4,
+    duration: 2.5,
     layers: [
       {
         type: "image",

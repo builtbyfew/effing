@@ -1,0 +1,23 @@
+{
+  "name": "@effing/tutorial",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx video.tsx"
+  },
+  "dependencies": {
+    "@effing/annie": "workspace:*",
+    "@effing/canvas": "workspace:*",
+    "@effing/effie": "workspace:*",
+    "@effing/ffs": "workspace:*",
+    "@effing/tween": "workspace:*",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

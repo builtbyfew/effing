@@ -17,6 +17,7 @@ npm install -D tsx
 
 We'll use `tsx` to run our TypeScript files. Files that contain JSX use the `.tsx` extension.
 
+> [!NOTE]
 > A `tsconfig.json` is not required to complete this tutorial, but if you want editor support (autocomplete, type checking), you can add one:
 >
 > ```json

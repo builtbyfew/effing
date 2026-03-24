@@ -61,7 +61,8 @@ curl http://localhost:2000/render/.../progress
 curl http://localhost:2000/render/.../video -o output.mp4
 ```
 
-The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux). This is why you might see another server running on a random port.
+> [!NOTE]
+> The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux). This is why you might see another server running on a random port.
 
 #### Environment Variables
 

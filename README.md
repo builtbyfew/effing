@@ -30,6 +30,9 @@ The “why” and design constraints are described in more detail in [`RATIONALE
 
 ## Getting Started
 
+> [!TIP]
+> For a step-by-step walkthrough, see the [Tutorial](docs/tutorial.md).
+
 ### Prerequisites
 
 Node.js 22+ is required.

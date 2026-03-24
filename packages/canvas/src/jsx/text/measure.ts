@@ -1,6 +1,7 @@
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
+import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
 
 export type TextMetrics = {
@@ -115,8 +116,9 @@ export function measureTrimMetrics(
   let fontAscent: number;
   let fontDescent: number;
   if (fontMetrics) {
-    fontAscent = (fontMetrics.ascender / fontMetrics.unitsPerEm) * fontSize;
-    fontDescent = (-fontMetrics.descender / fontMetrics.unitsPerEm) * fontSize;
+    const px = fontMetricsToPx(fontMetrics, fontSize);
+    fontAscent = px.ascent;
+    fontDescent = px.descent;
   } else {
     fontAscent =
       refMetrics.fontBoundingBoxAscent ??

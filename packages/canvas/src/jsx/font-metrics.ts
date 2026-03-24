@@ -15,17 +15,33 @@ export type FontMetrics = {
   descender: number;
 };
 
+/**
+ * Convert hhea font metrics to pixel values at a given font size.
+ */
+export function fontMetricsToPx(
+  metrics: FontMetrics,
+  fontSize: number,
+): { ascent: number; descent: number } {
+  return {
+    ascent: (metrics.ascender / metrics.unitsPerEm) * fontSize,
+    descent: (-metrics.descender / metrics.unitsPerEm) * fontSize,
+  };
+}
+
 // WOFF signature: 'wOFF' (0x774F4646)
 const WOFF_SIGNATURE = 0x774f4646;
+
+type WoffTableEntry = {
+  offset: number;
+  compLength: number;
+  origLength: number;
+};
 
 /**
  * Read the raw bytes for a table from a WOFF file,
  * decompressing with zlib if the table is compressed.
  */
-function readWoffTable(
-  view: DataView,
-  entry: { offset: number; compLength: number; origLength: number },
-): DataView | null {
+function readWoffTable(view: DataView, entry: WoffTableEntry): DataView | null {
   const compressed = entry.compLength < entry.origLength;
   if (compressed) {
     try {
@@ -56,16 +72,8 @@ function parseWoff(view: DataView): FontMetrics | null {
   const numTables = view.getUint16(12);
   if (view.byteLength < 44 + numTables * 20) return null;
 
-  let headEntry: {
-    offset: number;
-    compLength: number;
-    origLength: number;
-  } | null = null;
-  let hheaEntry: {
-    offset: number;
-    compLength: number;
-    origLength: number;
-  } | null = null;
+  let headEntry: WoffTableEntry | null = null;
+  let hheaEntry: WoffTableEntry | null = null;
 
   for (let i = 0; i < numTables; i++) {
     const r = 44 + i * 20;

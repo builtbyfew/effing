@@ -7,6 +7,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 import type { ComputedStyle } from "../style/compute.ts";
 import { resolveUnit } from "../style/compute.ts";
 import { getFontMetrics } from "../font.ts";
+import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
 import { isEmoji } from "../language.ts";
 import { findBreakOpportunities } from "./linebreak.ts";
@@ -263,7 +264,12 @@ export function layoutText(
   let maxLineWidth = 0;
   const isAutoLineHeight =
     style.lineHeight === undefined || style.lineHeight === "normal";
-  let lastMetrics: { ascent: number; descent: number } | undefined;
+  // When font metrics are available, derive positioning ascent/descent from
+  // hhea values so baseline placement is consistent with the hhea-based
+  // line-height. Canvas fontBoundingBox metrics can differ from hhea values,
+  // and mixing the two shifts the baseline. Satori uses hhea for both.
+  const fontPx = fontMetrics ? fontMetricsToPx(fontMetrics, fontSize) : null;
+  let lastPositioningDescent: number | undefined;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
@@ -284,21 +290,22 @@ export function layoutText(
       fontStyle,
       ctx,
     );
-    lastMetrics = metrics;
 
-    // Use canvas-measured ascent/descent for baseline positioning so fillText
-    // places glyphs correctly, regardless of which font table the engine uses.
-    // When line-height is "normal" and typo metrics resolve to a smaller value
-    // than the canvas content area, scale both proportionally so half-leading
+    const positioningAscent = fontPx?.ascent ?? metrics.ascent;
+    const positioningDescent = fontPx?.descent ?? metrics.descent;
+    lastPositioningDescent = positioningDescent;
+
+    // When line-height is "normal" and font content area exceeds the
+    // hhea-based line-height, scale both proportionally so half-leading
     // becomes 0 and text stays within the line box. For explicit tight
     // lineHeight values the overflow is intentional (standard CSS half-leading).
-    const contentHeight = metrics.ascent + metrics.descent;
-    let effectiveAscent = metrics.ascent;
-    let effectiveDescent = metrics.descent;
+    const contentHeight = positioningAscent + positioningDescent;
+    let effectiveAscent = positioningAscent;
+    let effectiveDescent = positioningDescent;
     if (isAutoLineHeight && contentHeight > lineHeightPx) {
       const scale = lineHeightPx / contentHeight;
-      effectiveAscent = metrics.ascent * scale;
-      effectiveDescent = metrics.descent * scale;
+      effectiveAscent = positioningAscent * scale;
+      effectiveDescent = positioningDescent * scale;
     }
     const baselineY =
       totalHeight + (lineHeightPx + effectiveAscent - effectiveDescent) / 2;
@@ -326,13 +333,17 @@ export function layoutText(
     maxLineWidth = Math.max(maxLineWidth, lineWidth);
   }
 
-  // When auto line-height (typo-based) is smaller than the canvas content
+  // When auto line-height (hhea-based) is smaller than the font content
   // area, the last line's glyph descent extends below totalHeight. Add the
   // overflow so the Yoga node height accommodates the full rendered text,
   // preventing descender clipping with overflow: hidden.
-  if (isAutoLineHeight && lastMetrics && segments.length > 0) {
+  if (
+    isAutoLineHeight &&
+    lastPositioningDescent !== undefined &&
+    segments.length > 0
+  ) {
     const lastSeg = segments[segments.length - 1]!;
-    const descentOverflow = lastSeg.y + lastMetrics.descent - totalHeight;
+    const descentOverflow = lastSeg.y + lastPositioningDescent - totalHeight;
     if (descentOverflow > 0) {
       totalHeight += descentOverflow;
     }
@@ -384,8 +395,8 @@ function resolveLineHeight(
 ): number {
   if (lineHeight === undefined || lineHeight === "normal") {
     if (fontMetrics) {
-      const { ascender, descender, unitsPerEm } = fontMetrics;
-      return ((ascender - descender) / unitsPerEm) * fontSize;
+      const px = fontMetricsToPx(fontMetrics, fontSize);
+      return px.ascent + px.descent;
     }
     // Fallback to canvas metrics (fontBoundingBox ascent + descent)
     return canvasMetrics

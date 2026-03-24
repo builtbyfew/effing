@@ -183,6 +183,48 @@ export function PropertyCard({
 }
 
 // ---------------------------------------------------------------------------
+// StatusBadge component — large standalone badge without letter-spacing
+// ---------------------------------------------------------------------------
+
+export interface StatusBadgeProps {
+  width: number;
+  height: number;
+  label: string;
+  color: string;
+}
+
+export function StatusBadge({ width, height, label, color }: StatusBadgeProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        width,
+        height,
+        fontFamily: "Liberation Sans",
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          fontSize: 24,
+          fontWeight: 700,
+          color: "#FFFFFF",
+          backgroundColor: color,
+          borderRadius: 8,
+          padding: "8px 24px",
+          textTransform: "uppercase" as const,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // PricingCard component
 // ---------------------------------------------------------------------------
 

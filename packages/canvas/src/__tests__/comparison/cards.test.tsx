@@ -12,6 +12,7 @@ import {
 } from "./_helpers/setup.ts";
 import {
   PropertyCard,
+  StatusBadge,
   PricingCard,
   TagCloud,
   StatsBar,
@@ -187,6 +188,24 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       expect(percentage).toBeLessThan(2.5);
     },
   );
+
+  it("renders StatusBadge — large badge without letter-spacing", async () => {
+    const element = (
+      <StatusBadge width={WIDTH} height={HEIGHT} label="SOLD" color="#DC2626" />
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "status-badge",
+    );
+
+    expect(percentage).toBeLessThan(1);
+  });
 
   it.each(pricingCases)(
     "renders PricingCard — $label",

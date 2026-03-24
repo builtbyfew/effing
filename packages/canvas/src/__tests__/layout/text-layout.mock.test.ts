@@ -81,10 +81,10 @@ describe("layoutText", () => {
     expect(clamped.height).toBeLessThan(unclamped.height);
   });
 
-  it("keeps baseline within line box when hhea metrics shrink auto lineHeight below canvas content", () => {
-    // Mock canvas returns ascent=12, descent=4 → contentHeight=16.
-    // Simulate hhea metrics that resolve line-height: normal to 12px (< 16),
-    // creating the mismatch between hhea-based lineHeight and canvas metrics.
+  it("keeps baseline within line box when hhea metrics shrink auto lineHeight below font content", () => {
+    // hhea metrics: ascender=600, descender=-150 → lineHeight=12px
+    // Font-derived: ascent=9.6, descent=2.4 → contentHeight=12 (equal)
+    // No scaling needed, baselineY = (12 + 9.6 - 2.4) / 2 = 9.6
     vi.mocked(getFontMetrics).mockReturnValue({
       ascender: 600,
       descender: -150,
@@ -103,25 +103,18 @@ describe("layoutText", () => {
     expect(seg.y).toBeGreaterThanOrEqual(0);
     expect(seg.y).toBeLessThanOrEqual(12);
 
-    // totalHeight must accommodate the descent below the last baseline,
-    // preventing descender clipping when parent has overflow: hidden.
-    // Canvas mock returns descent=4, so baseline + descent > lineHeightPx=12.
-    const lineHeightPx = 12;
-    expect(result.height).toBeGreaterThan(lineHeightPx);
-
-    // Height must be ceiled so Yoga integer rounding doesn't clip descent
+    // totalHeight is ceiled to prevent Yoga rounding from clipping descent
     expect(result.height).toBe(Math.ceil(result.height));
 
     // Reset mock
     vi.mocked(getFontMetrics).mockReturnValue(null);
   });
 
-  it("ceils totalHeight to prevent Yoga rounding from clipping sub-pixel descent", () => {
+  it("ceils totalHeight when descent overflows the line box", () => {
     // hhea metrics: (775 + 194) / 1000 * 16 = 15.504 lineHeightPx
-    // Canvas mock: ascent=12, descent=4 → contentHeight=16 > 15.504 → scaling
-    // Baseline Y = (15.504 + 12 - 4) / 2 * (15.504/16) = 11.378...
-    // descentOverflow = 11.378 + 4 * (15.504/16) - 15.504 = 0.124...
-    // totalHeight before ceil = 15.504 + 0.124 = 15.628 → ceiled to 16
+    // Font-derived ascent = 12.4, descent = 3.104 → contentHeight = 15.504
+    // baselineY = (15.504 + 12.4 - 3.104) / 2 = 12.4
+    // Ceiled to 16 to prevent Yoga rounding from clipping descent.
     vi.mocked(getFontMetrics).mockReturnValue({
       ascender: 775,
       descender: -194,

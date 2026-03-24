@@ -494,7 +494,6 @@ const video = effieData({
         {
           type: "animation",
           source: annieUrl,
-          effects: [{ type: "fade-in", start: 0, duration: 0.5 }],
           motion: { type: "bounce" },
         },
       ],

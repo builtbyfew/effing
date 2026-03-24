@@ -1,8 +1,17 @@
 /**
  * Parse typographic metrics from the hhea and head tables of a font binary.
  *
- * These values are needed to compute CSS `line-height: normal` to match
- * Chrome (macOS) and Satori: (ascender - descender) / unitsPerEm * fontSize
+ * We parse the font binary ourselves because the canvas API (skia) only
+ * exposes ascent and descent — not the line gap. Some fonts split their
+ * vertical spacing across three values: ascender, descender, and a separate
+ * line gap (sTypoLineGap in the OS/2 table). When the canvas reports just
+ * ascent + descent for these fonts, the line gap is lost, producing a
+ * line-height that's too tight (e.g. 1.0× font size instead of ~1.3×).
+ *
+ * We read hhea metrics specifically because that's what Satori uses (via
+ * opentype.js). For fonts with a separate line gap, the hhea ascender is
+ * typically inflated to include it, so (ascender - descender) / unitsPerEm
+ * gives the intended line-height in a single subtraction.
  *
  * Supports TrueType/OpenType (.ttf/.otf) and WOFF (.woff) formats.
  */

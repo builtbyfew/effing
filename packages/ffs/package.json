@@ -1,6 +1,6 @@
 {
   "name": "@effing/ffs",
-  "version": "0.24.8",
+  "version": "0.25.0",
   "description": "FFmpeg-based effie rendering service",
   "type": "module",
   "exports": {

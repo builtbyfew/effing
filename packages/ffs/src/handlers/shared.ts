@@ -21,6 +21,13 @@ export type OnRenderComplete = (result: {
   wallClockTime: number;
 }) => void | Promise<void>;
 
+export type OnRenderError = (result: {
+  error: Error;
+  code: ErrorCodeType;
+  effie?: EffieData<EffieSources>;
+  metadata?: Record<string, unknown>;
+}) => void | Promise<void>;
+
 export type UploadOptions = {
   videoUrl: string;
   coverUrl?: string;
@@ -86,6 +93,7 @@ export type ServerContext = {
   warmupBackendResolver?: WarmupBackendResolver;
   renderBackendResolver?: RenderBackendResolver;
   onRenderComplete?: OnRenderComplete;
+  onRenderError?: OnRenderError;
 };
 
 export type ParseEffieResult =
@@ -104,6 +112,7 @@ export async function createServerContext(options?: {
   renderBackendResolver?: RenderBackendResolver;
   httpProxy?: boolean;
   onRenderComplete?: OnRenderComplete;
+  onRenderError?: OnRenderError;
 }): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
   const enableHttpProxy = options?.httpProxy ?? true;
@@ -123,6 +132,7 @@ export async function createServerContext(options?: {
     warmupBackendResolver: options?.warmupBackendResolver,
     renderBackendResolver: options?.renderBackendResolver,
     onRenderComplete: options?.onRenderComplete,
+    onRenderError: options?.onRenderError,
   };
 }
 

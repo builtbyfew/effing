@@ -28,6 +28,37 @@ import {
 import { FetchError } from "../render";
 import { warmupSources, purgeCachedSources } from "./caching";
 import { sendError, ErrorCode } from "./errors";
+import type { ErrorCode as ErrorCodeType } from "./errors";
+
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
+function toErrorCode(error: unknown): ErrorCodeType {
+  return error instanceof FetchError
+    ? ErrorCode.FETCH_FAILED
+    : ErrorCode.INTERNAL_ERROR;
+}
+
+async function notifyRenderError(
+  ctx: ServerContext,
+  error: unknown,
+  extra?: {
+    effie?: EffieData<EffieSources>;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<void> {
+  if (!ctx.onRenderError) return;
+  try {
+    await ctx.onRenderError({
+      error: toError(error),
+      code: toErrorCode(error),
+      ...extra,
+    });
+  } catch (err) {
+    console.error("onRenderError hook error:", err);
+  }
+}
 
 /**
  * POST /render - Create a render job (warmup + render, optional purge)
@@ -240,10 +271,10 @@ export async function streamRenderProgress(
       sendEvent("keepalive", { phase: keepalivePhase });
     }, 25_000);
 
+    let job: ResolvedRenderJob | undefined;
     try {
       // Phase -1: Resolve deferred Effie URL if needed
       // Backward compat: jobs without `kind` (from before deploy) are treated as resolved
-      let job: ResolvedRenderJob;
       if (storedJob.kind === "deferred") {
         job = await resolveEffieUrl(storedJob, sendEvent, ctx);
 
@@ -387,8 +418,12 @@ export async function streamRenderProgress(
     } catch (error) {
       sendEvent("error", {
         phase: keepalivePhase,
-        message: error instanceof Error ? error.message : String(error),
-        code: error instanceof FetchError ? "FETCH_FAILED" : "INTERNAL_ERROR",
+        message: toError(error).message,
+        code: toErrorCode(error),
+      });
+      await notifyRenderError(ctx, error, {
+        effie: job?.effie,
+        metadata: job?.metadata ?? storedJob.metadata,
       });
     } finally {
       clearInterval(keepalive);
@@ -396,6 +431,7 @@ export async function streamRenderProgress(
     }
   } catch (error) {
     console.error("Error in render progress streaming:", error);
+    await notifyRenderError(ctx, error);
     if (!res.headersSent) {
       sendError(
         res,
@@ -418,12 +454,13 @@ export async function streamRenderVideo(
   res: express.Response,
   ctx: ServerContext,
 ): Promise<void> {
+  let videoJob: VideoJob | null | undefined;
   try {
     setupCORSHeaders(res);
 
     const jobId = req.params.id;
     const videoJobKey = storeKeys.videoJob(jobId);
-    const videoJob = await ctx.transientStore.getJson<VideoJob>(videoJobKey);
+    videoJob = await ctx.transientStore.getJson<VideoJob>(videoJobKey);
 
     if (!videoJob) {
       sendError(res, 404, ErrorCode.NOT_FOUND, "Video not found or expired");
@@ -480,6 +517,10 @@ export async function streamRenderVideo(
     await streamRenderDirect(res, videoJob, ctx);
   } catch (error) {
     console.error("Error streaming video:", error);
+    await notifyRenderError(ctx, error, {
+      effie: videoJob?.effie,
+      metadata: videoJob?.metadata,
+    });
     if (!res.headersSent) {
       if (error instanceof FetchError) {
         sendError(res, 422, ErrorCode.FETCH_FAILED, error.message);

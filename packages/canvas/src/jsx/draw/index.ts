@@ -10,7 +10,7 @@ import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
-import { drawRect, getBorderRadiusFromStyle } from "./rect.ts";
+import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
@@ -199,6 +199,14 @@ async function drawNodeCore(
     );
   }
 
+  const borderRadius = getBorderRadiusFromStyle(style, width, height);
+
+  // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
+  // not the element's own box-shadow.
+  if (style.boxShadow) {
+    drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
+  }
+
   // Apply clipping for overflow: hidden
   const isClipped =
     style.overflow === "hidden" ||
@@ -206,7 +214,6 @@ async function drawNodeCore(
     style.overflowY === "hidden";
 
   if (isClipped) {
-    const borderRadius = getBorderRadiusFromStyle(style, width, height);
     applyClip(ctx, x, y, width, height, borderRadius);
   }
 
@@ -216,8 +223,7 @@ async function drawNodeCore(
     style.borderTopWidth ||
     style.borderRightWidth ||
     style.borderBottomWidth ||
-    style.borderLeftWidth ||
-    style.boxShadow
+    style.borderLeftWidth
   ) {
     drawRect(ctx, x, y, width, height, style);
   }
@@ -231,7 +237,6 @@ async function drawNodeCore(
       const gradient = createGradientFromCSS(ctx, layer, x, y, width, height);
       if (gradient) {
         ctx.fillStyle = gradient;
-        const borderRadius = getBorderRadiusFromStyle(style, width, height);
         if (hasRadius(borderRadius)) {
           ctx.beginPath();
           roundedRect(
@@ -253,7 +258,6 @@ async function drawNodeCore(
         // Try url(...) background image
         const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
         if (urlMatch) {
-          const borderRadius = getBorderRadiusFromStyle(style, width, height);
           if (hasRadius(borderRadius)) {
             applyClip(ctx, x, y, width, height, borderRadius);
           }
@@ -377,7 +381,6 @@ async function drawNodeCore(
     // Images are replaced content — borderRadius clips them directly
     // (unlike child content which requires overflow:hidden)
     if (!isClipped) {
-      const borderRadius = getBorderRadiusFromStyle(style, width, height);
       if (hasRadius(borderRadius)) {
         applyClip(ctx, imgX, imgY, imgW, imgH, borderRadius);
       }

@@ -18,11 +18,6 @@ export function drawRect(
   const borderRadius = getBorderRadiusFromStyle(style, width, height);
   const hasRoundedCorners = hasRadius(borderRadius);
 
-  // Box shadow (drawn before background)
-  if (style.boxShadow) {
-    drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
-  }
-
   // Background
   if (style.backgroundColor) {
     ctx.fillStyle = style.backgroundColor;
@@ -264,7 +259,7 @@ function drawBorders(
   }
 }
 
-function drawBoxShadow(
+export function drawBoxShadow(
   ctx: SKRSContext2D,
   x: number,
   y: number,

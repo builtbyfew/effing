@@ -211,6 +211,44 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
     expect(percentage).toBeLessThan(0.01);
   });
 
+  it("renders boxShadow with overflow hidden — shadow not clipped by own overflow", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: 200,
+            height: 100,
+            backgroundColor: "#3B82F6",
+            borderRadius: 12,
+            overflow: "hidden",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}
+        />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "box-shadow-overflow-hidden",
+    );
+    expect(percentage).toBeLessThan(0.01);
+  });
+
   it("renders flex-computed text width — text wraps same as satori without explicit width", async () => {
     const text = "The quick brown fox jumps over the lazy dog";
     const W = 220;

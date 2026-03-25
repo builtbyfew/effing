@@ -1,5 +1,19 @@
 # @effing/ffs
 
+## 0.25.0
+
+### Minor Changes
+
+- 16c355e: Add onRenderError callback to server context
+
+  Callers can now pass an `onRenderError` callback to `createServerContext` to
+  observe render failures. The callback receives the error, an error code, and
+  (when available) the effie data and metadata for the failed job.
+
+### Patch Changes
+
+- @effing/effie@0.25.0
+
 ## 0.24.8
 
 ### Patch Changes

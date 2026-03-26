@@ -1,6 +1,6 @@
 # Tutorial
 
-This tutorial walks you through building a video with Effing, step by step. You'll start with a simple declarative composition, then generate custom images and animations programmatically.
+This tutorial walks you through building a video with [Effing](../README.md), step by step. You'll start with a simple declarative composition, then generate custom images and animations programmatically.
 
 We're starting from scratch here so you can understand each piece individually. At the end, we'll point you to `@effing/create`, which ties everything together in a proper framework.
 

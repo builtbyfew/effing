@@ -10,6 +10,7 @@ API documentation for [**Effing**](../../README.md) — programmatic video creat
 
 - [annie-player/src](annie-player/src/README.md)
 - [annie/src](annie/src/README.md)
+- [canvas/src](canvas/src/README.md)
 - [effie-preview/src](effie-preview/src/README.md)
 - [effie/src](effie/src/README.md)
 - [ffs/src](ffs/src/README.md)

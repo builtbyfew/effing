@@ -10,8 +10,8 @@
     "packages/effie-preview/src/index.ts",
     "packages/effie-preview/src/react.tsx",
     "packages/tween/src/index.ts",
-
-    "packages/serde/src/index.ts"
+    "packages/serde/src/index.ts",
+    "packages/canvas/src/index.ts"
   ],
   "entryPointStrategy": "expand",
   "out": "docs/api",

@@ -1,7 +1,7 @@
 # effing
 
-**Programmatic video built on URLs, but not browsers.**
-Animations are simple streams of PNG or JPEG frames, generated with canvas and JSX, or whatever you want. Compositions are declarative typed JSON. Everything is behind a URL. Rendered with just FFmpeg, no browser runtimes. Effing awesome 👌
+**Programmatic video built on web standards, without browsers.**
+Compositions are declarative JSON with typed transitions, effects, and audio. When you need custom visuals, generate frames with a server-side canvas that renders JSX and flexbox to pixels — no DOM, no headless Chrome. Everything is a URL: images, animations, entire parameterized components. Rendering is just FFmpeg.
 
 ## Overview
 

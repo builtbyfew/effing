@@ -31,6 +31,17 @@ export function sendError(
   res.status(status).json(body);
 }
 
+export class FetchError extends Error {
+  constructor(
+    public readonly url: string,
+    public readonly status: number,
+    statusText: string,
+  ) {
+    super(`Failed to fetch ${url}: ${status} ${statusText}`);
+    this.name = "FetchError";
+  }
+}
+
 export class BackendError extends Error {
   override readonly name = "BackendError";
 

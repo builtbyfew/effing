@@ -6,7 +6,7 @@
 
 # Class: EffieRenderer\<U\>
 
-Defined in: [packages/ffs/src/render.ts:49](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L49)
+Defined in: [packages/ffs/src/render.ts:39](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L39)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [packages/ffs/src/render.ts:49](https://github.com/builtbyfew/effing
 
 > **new EffieRenderer**\<`U`\>(`effieData`, `options?`): `EffieRenderer`\<`U`\>
 
-Defined in: [packages/ffs/src/render.ts:56](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L56)
+Defined in: [packages/ffs/src/render.ts:46](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L46)
 
 #### Parameters
 

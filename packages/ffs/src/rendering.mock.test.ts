@@ -9,13 +9,9 @@ import type {
   DeferredRenderJob,
 } from "./handlers/shared";
 
-vi.mock("./render", async (importOriginal) => {
-  const original = await importOriginal<typeof import("./render")>();
-  return {
-    EffieRenderer: vi.fn(),
-    FetchError: original.FetchError,
-  };
-});
+vi.mock("./render", () => ({
+  EffieRenderer: vi.fn(),
+}));
 
 vi.mock("./fetch", () => ({
   ffsFetch: vi.fn(),

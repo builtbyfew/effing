@@ -25,7 +25,7 @@ import {
   proxyRemoteSSE,
   proxyBinaryStream,
 } from "./shared";
-import { FetchError } from "../render";
+import { FetchError } from "./errors";
 import { warmupSources, purgeCachedSources } from "./caching";
 import { sendError, ErrorCode, BackendError, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";

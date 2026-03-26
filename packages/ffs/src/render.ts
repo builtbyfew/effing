@@ -6,12 +6,13 @@ import type { FFmpegInput } from "./ffmpeg";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import { processTransition } from "./transition";
 import type { EffieData, EffieSources, EffieWebUrl } from "@effing/effie";
-import sharp from "sharp";
 import { ffsFetch } from "./fetch";
 import { fileURLToPath } from "url";
 import { storeKeys } from "./storage";
 import type { TransientStore } from "./storage";
 import type { HttpProxy } from "./proxy";
+
+import { FetchError } from "./handlers/errors";
 
 export type EffieRendererOptions = {
   /**
@@ -34,17 +35,6 @@ export type EffieRendererOptions = {
    */
   httpProxy?: HttpProxy;
 };
-
-export class FetchError extends Error {
-  constructor(
-    public readonly url: string,
-    public readonly status: number,
-    statusText: string,
-  ) {
-    super(`Failed to fetch ${url}: ${status} ${statusText}`);
-    this.name = "FetchError";
-  }
-}
 
 export class EffieRenderer<U extends string = EffieWebUrl> {
   private effieData: EffieData<EffieSources<U>, U>;
@@ -608,16 +598,26 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   private createImageTransformer(scaleFactor: number) {
+    const sharpPromise =
+      scaleFactor !== 1
+        ? import("sharp").catch(() => {
+            throw new Error(
+              "sharp is required for image scaling but is not installed. Install it with: pnpm add sharp",
+            );
+          })
+        : null;
+
     return async (imageStream: Readable): Promise<Readable> => {
       if (scaleFactor === 1) return imageStream;
 
+      const { default: sharp } = await sharpPromise!;
       const sharpTransformer = sharp();
-      imageStream.on("error", (err) => {
+      imageStream.on("error", (err: Error) => {
         if (!sharpTransformer.destroyed) {
           sharpTransformer.destroy(err);
         }
       });
-      sharpTransformer.on("error", (err) => {
+      sharpTransformer.on("error", (err: Error) => {
         if (!imageStream.destroyed) {
           imageStream.destroy(err);
         }

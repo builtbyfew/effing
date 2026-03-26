@@ -359,9 +359,6 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.22.1
-      sharp:
-        specifier: ^0.33.5
-        version: 0.33.5
       tar-stream:
         specifier: ^3.1.7
         version: 3.1.7
@@ -397,6 +394,9 @@ importers:
       '@effing/ffmpeg':
         specifier: workspace:*
         version: link:../ffmpeg
+      sharp:
+        specifier: ^0.33.5
+        version: 0.33.5
 
   packages/serde:
     devDependencies:
@@ -6259,11 +6259,13 @@ snapshots:
     dependencies:
       color-name: 1.1.4
       simple-swizzle: 0.2.4
+    optional: true
 
   color@4.2.3:
     dependencies:
       color-convert: 2.0.1
       color-string: 1.9.1
+    optional: true
 
   colorette@2.0.20: {}
 
@@ -6393,7 +6395,8 @@ snapshots:
 
   detect-indent@6.1.0: {}
 
-  detect-libc@2.1.2: {}
+  detect-libc@2.1.2:
+    optional: true
 
   dir-glob@3.0.1:
     dependencies:
@@ -6978,7 +6981,8 @@ snapshots:
 
   is-arrayish@0.2.1: {}
 
-  is-arrayish@0.3.4: {}
+  is-arrayish@0.3.4:
+    optional: true
 
   is-async-function@2.1.1:
     dependencies:
@@ -7814,6 +7818,7 @@ snapshots:
       '@img/sharp-wasm32': 0.33.5
       '@img/sharp-win32-ia32': 0.33.5
       '@img/sharp-win32-x64': 0.33.5
+    optional: true
 
   shebang-command@1.2.0:
     dependencies:
@@ -7864,6 +7869,7 @@ snapshots:
   simple-swizzle@0.2.4:
     dependencies:
       is-arrayish: 0.3.4
+    optional: true
 
   slash@3.0.0: {}
 

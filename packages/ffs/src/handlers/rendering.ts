@@ -27,7 +27,7 @@ import {
 } from "./shared";
 import { FetchError } from "../render";
 import { warmupSources, purgeCachedSources } from "./caching";
-import { sendError, ErrorCode } from "./errors";
+import { sendError, ErrorCode, BackendError, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
 
 function toError(value: unknown): Error {
@@ -35,6 +35,7 @@ function toError(value: unknown): Error {
 }
 
 function toErrorCode(error: unknown): ErrorCodeType {
+  if (error instanceof BackendError) return error.code;
   return error instanceof FetchError
     ? ErrorCode.FETCH_FAILED
     : ErrorCode.INTERNAL_ERROR;
@@ -358,7 +359,7 @@ export async function streamRenderProgress(
               : undefined,
           });
           if (!response.ok) {
-            throw new Error(`Backend render failed: ${response.status}`);
+            throw await backendError(response);
           }
           const videoBuffer = Buffer.from(await response.arrayBuffer());
 
@@ -484,12 +485,8 @@ export async function streamRenderVideo(
         });
 
         if (!response.ok) {
-          sendError(
-            res,
-            response.status,
-            ErrorCode.BACKEND_FAILED,
-            "Backend render failed",
-          );
+          const err = await backendError(response);
+          sendError(res, err.status, err.code, err.message);
           return;
         }
 

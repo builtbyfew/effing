@@ -12,7 +12,7 @@ import type {
   EffieSourceWithType,
 } from "@effing/effie";
 import { effieDataSchema } from "@effing/effie";
-import { ErrorCode } from "./errors";
+import { ErrorCode, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
 
 export type OnRenderComplete = (result: {
@@ -234,7 +234,7 @@ export async function proxyRemoteSSE(
   });
 
   if (!response.ok) {
-    throw new Error(`Remote backend error: ${response.status}`);
+    throw await backendError(response);
   }
 
   const reader = response.body?.getReader();

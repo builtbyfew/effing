@@ -1,5 +1,23 @@
 # @effing/ffs
 
+## 0.25.1
+
+### Patch Changes
+
+- 8ce5c99: Make sharp an optional dependency for lighter installs when delegating rendering
+
+  FFS instances that delegate rendering to a remote backend never use sharp locally.
+  Sharp is now in `optionalDependencies` and imported lazily, so `pnpm install
+--no-optional` produces a working install without sharp's native binaries.
+
+- ac1fa72: Propagate backend error responses instead of returning generic 500s
+
+  When FFS delegates rendering to a backend instance, error responses are now
+  parsed for structured error info (code, message) and propagated to the caller.
+  Previously all backend failures surfaced as INTERNAL_ERROR with a generic
+  message.
+  - @effing/effie@0.25.1
+
 ## 0.25.0
 
 ### Minor Changes

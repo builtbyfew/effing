@@ -18,7 +18,7 @@ import {
   createEventSender,
 } from "./shared";
 import { proxyRemoteSSE } from "./shared";
-import { sendError, ErrorCode } from "./errors";
+import { sendError, ErrorCode, FetchError } from "./errors";
 
 /**
  * Check if a source should be skipped during warmup.
@@ -358,7 +358,7 @@ export async function fetchAndCache(
   });
 
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`);
+    throw new FetchError(url, response.status, response.statusText);
   }
 
   sendEvent("downloading", { url, status: "started", bytesReceived: 0 });

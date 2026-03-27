@@ -34,13 +34,13 @@ Emoji style for rendering emoji characters as images. Defaults to "twemoji". Pas
 
 ***
 
-### fonts
+### fonts?
 
-> **fonts**: [`FontData`](FontData.md)[]
+> `optional` **fonts**: [`FontData`](FontData.md)[]
 
 Defined in: [packages/canvas/src/types.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L24)
 
-Font data for text rendering
+Font data for text rendering. Defaults to `[]` (system fonts).
 
 ***
 

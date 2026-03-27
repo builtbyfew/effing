@@ -5,7 +5,7 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
-import { resolveUnit } from "../style/compute.ts";
+import { DEFAULT_FONT_FAMILY, resolveUnit } from "../style/compute.ts";
 import { getFontMetrics } from "../font.ts";
 import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
@@ -117,7 +117,7 @@ export function layoutText(
   emojiEnabled?: boolean,
 ): TextLayoutResult {
   const fontSize = style.fontSize ?? 16;
-  const fontFamily = style.fontFamily ?? "sans-serif";
+  const fontFamily = style.fontFamily ?? DEFAULT_FONT_FAMILY;
   const fontWeight = style.fontWeight ?? 400;
   const fontStyle = style.fontStyle ?? "normal";
   const color = style.color ?? "black";

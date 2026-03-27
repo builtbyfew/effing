@@ -147,6 +147,12 @@ export type ComputedStyle = {
 const ROOT_FONT_SIZE = 16;
 
 /**
+ * Default font family. Uses concrete system font names so @napi-rs/canvas
+ * resolves real font metrics instead of generic ratios for unnamed families.
+ */
+export const DEFAULT_FONT_FAMILY = "Helvetica, Arial, sans-serif";
+
+/**
  * Default styles for the root element.
  */
 export const DEFAULT_STYLE: ComputedStyle = {
@@ -161,6 +167,7 @@ export const DEFAULT_STYLE: ComputedStyle = {
   fontSize: ROOT_FONT_SIZE,
   fontWeight: 400,
   fontStyle: "normal",
+  fontFamily: DEFAULT_FONT_FAMILY,
   color: "black",
   lineHeight: "normal",
   textAlign: "left",

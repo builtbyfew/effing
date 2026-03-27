@@ -32,7 +32,7 @@ React element tree to render
 
 ### options
 
-[`RenderReactElementOptions`](../type-aliases/RenderReactElementOptions.md)
+[`RenderReactElementOptions`](../type-aliases/RenderReactElementOptions.md) = `{}`
 
 Rendering options (fonts, dimensions, debug mode)
 

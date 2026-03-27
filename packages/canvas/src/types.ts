@@ -20,8 +20,8 @@ export type FontData = {
  * Options for {@link renderReactElement}.
  */
 export type RenderReactElementOptions = {
-  /** Font data for text rendering */
-  fonts: FontData[];
+  /** Font data for text rendering. Defaults to `[]` (system fonts). */
+  fonts?: FontData[];
   /** Layout width override. Defaults to `ctx.canvas.width`. */
   width?: number;
   /** Layout height override. Defaults to `ctx.canvas.height`. */

@@ -46,10 +46,12 @@ import { buildLayoutTree } from "./layout.ts";
 export async function renderReactElement(
   ctx: SKRSContext2D,
   element: ReactNode,
-  options: RenderReactElementOptions,
+  options: RenderReactElementOptions = {},
 ): Promise<void> {
+  const fonts = options.fonts ?? [];
+
   // Register fonts
-  ensureFontsRegistered(options.fonts);
+  ensureFontsRegistered(fonts);
 
   // Get dimensions (option overrides take precedence over canvas size)
   const width = options.width ?? ctx.canvas.width;
@@ -58,7 +60,7 @@ export async function renderReactElement(
   // Build layout tree (Yoga)
   const emojiStyle =
     options.emoji === "none" ? undefined : (options.emoji ?? "twemoji");
-  const fontFamilies = [...new Set(options.fonts.map((f) => f.name))];
+  const fontFamilies = [...new Set(fonts.map((f) => f.name))];
   const { tree: layoutTree, imageCache } = await buildLayoutTree(
     element,
     width,

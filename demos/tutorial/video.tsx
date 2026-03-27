@@ -2,24 +2,11 @@ import { createWriteStream } from "fs";
 import { effieData, effieWebUrl } from "@effing/effie";
 import { EffieRenderer } from "@effing/ffs";
 import { createCanvas, renderReactElement } from "@effing/canvas";
-import type { FontData } from "@effing/canvas";
 import { annieBuffer } from "@effing/annie";
 import { tween, easeInOutCubic } from "@effing/tween";
 
-// --- Font ---
-
-const boldInter: FontData = {
-  name: "Inter",
-  data: await fetch(
-    "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf",
-  ).then((r) => r.arrayBuffer()),
-  weight: 700,
-  style: "normal",
-};
-
 const width = 1080;
 const height = 1920;
-const fonts = [boldInter];
 
 // --- Title card (canvas → PNG → data URL) ---
 
@@ -44,7 +31,6 @@ await renderReactElement(
       style={{
         fontSize: 80,
         fontWeight: 700,
-        fontFamily: "Inter",
         color: "#E94560",
         marginBottom: 24,
       }}
@@ -54,7 +40,6 @@ await renderReactElement(
     <div
       style={{
         fontSize: 40,
-        fontFamily: "Inter",
         color: "#FFFFFF",
         opacity: 0.8,
         textAlign: "center",
@@ -63,7 +48,6 @@ await renderReactElement(
       Built with Effing
     </div>
   </div>,
-  { fonts },
 );
 
 const titlePng = await titleCanvas.encode("png");
@@ -92,10 +76,10 @@ await renderReactElement(
       style={{
         fontSize: 48,
         fontWeight: 700,
-        fontFamily: "Inter",
+        textBox: "trim-both cap alphabetic",
         color: "#FFFFFF",
         backgroundColor: "#E94560",
-        padding: "16px 40px",
+        padding: "32px 40px",
         borderRadius: 8,
         transform: "rotate(-8deg)",
         letterSpacing: 2,
@@ -105,7 +89,6 @@ await renderReactElement(
       NO BROWSERS
     </div>
   </div>,
-  { fonts },
 );
 
 const badgePng = await badgeCanvas.encode("png");
@@ -115,11 +98,7 @@ const badgeUrl = effieWebUrl(
 
 // --- Progress bar animation (canvas → frames → annie → data URL) ---
 
-async function* generateFrames(
-  width: number,
-  height: number,
-  fonts: FontData[],
-) {
+async function* generateFrames(width: number, height: number) {
   const frameCount = 90; // 3 seconds at 30fps
 
   yield* tween(frameCount, async ({ lower: progress }) => {
@@ -143,7 +122,6 @@ async function* generateFrames(
         <div
           style={{
             fontSize: 48,
-            fontFamily: "Inter",
             fontWeight: 700,
             color: "#FFFFFF",
             marginBottom: 40,
@@ -171,14 +149,13 @@ async function* generateFrames(
           />
         </div>
       </div>,
-      { fonts },
     );
 
     return canvas.encode("png");
   });
 }
 
-const annie = await annieBuffer(generateFrames(width, height, fonts));
+const annie = await annieBuffer(generateFrames(width, height));
 const annieUrl = effieWebUrl(
   `data:application/x-tar;base64,${annie.toString("base64")}`,
 );

@@ -1,5 +1,16 @@
 # @effing/canvas
 
+## 0.26.0
+
+### Minor Changes
+
+- 619bcf7: Make fonts optional in renderReactElement
+
+  The `fonts` option and the entire `options` parameter are now optional. When no
+  fonts are provided, text renders using system fonts with a default family of
+  Helvetica, Arial, sans-serif — chosen so @napi-rs/canvas resolves real font
+  metrics instead of generic ratios.
+
 ## 0.25.1
 
 ## 0.25.0

@@ -1,5 +1,11 @@
 # @effing/serde
 
+## 0.26.1
+
+### Patch Changes
+
+- 64c9b1f: Change license from O'Saasy to MIT
+
 ## 0.26.0
 
 ## 0.25.1

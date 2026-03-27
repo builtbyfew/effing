@@ -671,8 +671,8 @@ describe("streamRenderProgress with deferred jobs", () => {
     expect(errorEvent).toBeDefined();
     expect(errorEvent!.data).toEqual({
       phase: "effie",
-      message: expect.stringContaining("Failed to fetch Effie data"),
-      code: "INTERNAL_ERROR",
+      message: expect.stringContaining("https://example.com/bad.json"),
+      code: "FETCH_FAILED",
     });
   });
 });

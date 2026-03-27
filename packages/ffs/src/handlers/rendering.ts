@@ -203,14 +203,15 @@ async function resolveEffieUrl(
   try {
     response = await ffsFetch(url);
   } catch (error) {
-    throw new Error(
-      `Failed to fetch Effie data: ${error instanceof Error ? error.message : String(error)}`,
+    if (error instanceof FetchError) throw error;
+    throw new FetchError(
+      url,
+      0,
+      error instanceof Error ? error.message : String(error),
     );
   }
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch Effie data: ${response.status} ${response.statusText}`,
-    );
+    throw new FetchError(url, response.status, response.statusText);
   }
 
   const body = { effie: await response.json() };
@@ -607,8 +608,10 @@ async function uploadRenderedVideo(
     } else {
       const coverFetchResponse = await ffsFetch(effie.cover);
       if (!coverFetchResponse.ok) {
-        throw new Error(
-          `Failed to fetch cover image: ${coverFetchResponse.status} ${coverFetchResponse.statusText}`,
+        throw new FetchError(
+          effie.cover,
+          coverFetchResponse.status,
+          coverFetchResponse.statusText,
         );
       }
       coverBuffer = Buffer.from(await coverFetchResponse.arrayBuffer());

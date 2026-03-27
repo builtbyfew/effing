@@ -12,7 +12,7 @@ export default defineConfig([
     dts: true,
     clean: true,
     sourcemap: true,
-    external: ["@effing/ffmpeg"],
+    external: ["@effing/ffmpeg", "sharp"],
   },
   {
     entry: ["src/server.ts"],
@@ -22,6 +22,6 @@ export default defineConfig([
     banner: {
       js: "#!/usr/bin/env node",
     },
-    external: ["@effing/ffmpeg"],
+    external: ["@effing/ffmpeg", "sharp"],
   },
 ]);

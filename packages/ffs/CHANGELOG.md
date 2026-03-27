@@ -1,5 +1,13 @@
 # @effing/ffs
 
+## 0.26.1
+
+### Patch Changes
+
+- 64c9b1f: Change license from O'Saasy to MIT
+- Updated dependencies [64c9b1f]
+  - @effing/effie@0.26.1
+
 ## 0.26.0
 
 ### Patch Changes

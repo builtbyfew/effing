@@ -43,5 +43,5 @@
   "engines": {
     "node": ">=22"
   },
-  "license": "O'Saasy"
+  "license": "MIT"
 }

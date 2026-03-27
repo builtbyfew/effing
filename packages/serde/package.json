@@ -28,7 +28,7 @@
     "hmac",
     "url-safe"
   ],
-  "license": "O'Saasy",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   }

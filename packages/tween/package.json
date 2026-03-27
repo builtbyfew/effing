@@ -28,7 +28,7 @@
     "tween",
     "interpolation"
   ],
-  "license": "O'Saasy",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   }

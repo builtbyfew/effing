@@ -38,7 +38,7 @@
     "frames",
     "video"
   ],
-  "license": "O'Saasy",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   }

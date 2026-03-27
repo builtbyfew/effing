@@ -2,7 +2,7 @@
   "name": "effing",
   "version": "0.0.0",
   "private": true,
-  "license": "O'Saasy",
+  "license": "MIT",
   "scripts": {
     "lint": "eslint --fix --cache --cache-location ./node_modules/.cache/eslint .",
     "format": "prettier --write .",

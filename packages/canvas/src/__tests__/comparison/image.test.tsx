@@ -38,9 +38,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-  }, 30_000);
+    fonts = await loadFonts();
+  });
 
   it("renders BlurShowcaseCard — filter blur on div and image", async () => {
     const imageDataUri = await makeTestImage(120, 120);

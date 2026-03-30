@@ -22,9 +22,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: text", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-  }, 30_000);
+    fonts = await loadFonts();
+  });
 
   it("renders lineClamp=2 — long text clamped to 2 lines with ellipsis", async () => {
     const W = 300;

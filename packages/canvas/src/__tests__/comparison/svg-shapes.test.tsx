@@ -14,9 +14,8 @@ import {
 describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG shapes", () => {
   let fonts: FontData[];
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-  }, 30_000);
+    fonts = await loadFonts();
+  });
 
   it("renders SVG rect with rx — rounded corners", async () => {
     const element = (

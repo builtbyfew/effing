@@ -14,9 +14,8 @@ import {
 describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG paint", () => {
   let fonts: FontData[];
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-  }, 30_000);
+    fonts = await loadFonts();
+  });
 
   it("renders SVG with fillRule evenodd — compound path cutouts", async () => {
     const element = (

@@ -20,9 +20,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-  }, 30_000);
+    fonts = await loadFonts();
+  });
 
   it("renders borderRadius 50% as a circle", async () => {
     const element = (

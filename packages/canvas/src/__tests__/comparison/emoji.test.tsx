@@ -20,10 +20,14 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
   let networkAvailable = true;
 
   beforeAll(async () => {
-    const result = await loadFonts();
-    fonts = result.fonts;
-    networkAvailable = result.remote;
-  }, 30_000);
+    fonts = await loadFonts();
+    networkAvailable = await fetch("https://cdnjs.cloudflare.com", {
+      method: "HEAD",
+      signal: AbortSignal.timeout(2000),
+    })
+      .then((r) => r.ok)
+      .catch(() => false);
+  }, 5_000);
 
   it("renders emoji characters as images (twemoji)", async ({ skip }) => {
     if (!networkAvailable) skip();

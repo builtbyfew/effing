@@ -1,5 +1,22 @@
 # @effing/ffs
 
+## 0.27.0
+
+### Minor Changes
+
+- 98293fc: Add SSRF protection to ffsFetch
+
+  All outbound HTTP requests now validate URLs against private/internal IP ranges
+  (loopback, RFC 1918, link-local, cloud metadata, IPv6 unique local) with DNS
+  pre-resolution to catch hostnames that resolve to blocked addresses. Protection
+  is enabled by default in production (NODE_ENV=production) and can be overridden
+  via FFS_ALLOW_PRIVATE_NETWORKS=true|false.
+
+### Patch Changes
+
+- 3215339: Classify Effie data and cover image fetch failures as FETCH_FAILED instead of INTERNAL_ERROR
+  - @effing/effie@0.27.0
+
 ## 0.26.1
 
 ### Patch Changes

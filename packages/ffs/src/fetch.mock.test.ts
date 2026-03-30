@@ -12,6 +12,12 @@ vi.mock("undici", async () => {
   };
 });
 
+// Mock URL validation (tested separately in url.test.ts)
+vi.mock("./url", () => ({
+  validateUrl: vi.fn(),
+  SsrfError: class SsrfError extends Error {},
+}));
+
 describe("ffsFetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();

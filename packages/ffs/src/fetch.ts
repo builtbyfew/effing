@@ -1,4 +1,5 @@
 import { fetch, Agent, type Response, type BodyInit } from "undici";
+import { validateUrl } from "./url";
 
 /**
  * Options for ffsFetch function
@@ -49,6 +50,18 @@ export async function ffsFetch(
     headersTimeout = 300000, // 5 minutes
     bodyTimeout = 300000, // 5 minutes
   } = options ?? {};
+
+  // SSRF protection is on in production, off in development by default.
+  // Override with FFS_ALLOW_PRIVATE_NETWORKS=true|false.
+  const envAllow = process.env.FFS_ALLOW_PRIVATE_NETWORKS;
+  const allowPrivate =
+    envAllow !== undefined
+      ? envAllow === "true" || envAllow === "1"
+      : process.env.NODE_ENV !== "production";
+
+  if (!allowPrivate) {
+    await validateUrl(url);
+  }
 
   const agent = new Agent({ headersTimeout, bodyTimeout });
 

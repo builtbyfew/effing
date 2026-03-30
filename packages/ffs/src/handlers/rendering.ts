@@ -26,6 +26,7 @@ import {
   proxyBinaryStream,
 } from "./shared";
 import { FetchError } from "./errors";
+import { SsrfError } from "../url";
 import { warmupSources, purgeCachedSources } from "./caching";
 import { sendError, ErrorCode, BackendError, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
@@ -36,9 +37,9 @@ function toError(value: unknown): Error {
 
 function toErrorCode(error: unknown): ErrorCodeType {
   if (error instanceof BackendError) return error.code;
-  return error instanceof FetchError
-    ? ErrorCode.FETCH_FAILED
-    : ErrorCode.INTERNAL_ERROR;
+  if (error instanceof FetchError || error instanceof SsrfError)
+    return ErrorCode.FETCH_FAILED;
+  return ErrorCode.INTERNAL_ERROR;
 }
 
 async function notifyRenderError(
@@ -203,7 +204,7 @@ async function resolveEffieUrl(
   try {
     response = await ffsFetch(url);
   } catch (error) {
-    if (error instanceof FetchError) throw error;
+    if (error instanceof FetchError || error instanceof SsrfError) throw error;
     throw new FetchError(
       url,
       0,
@@ -520,8 +521,8 @@ export async function streamRenderVideo(
       metadata: videoJob?.metadata,
     });
     if (!res.headersSent) {
-      if (error instanceof FetchError) {
-        sendError(res, 422, ErrorCode.FETCH_FAILED, error.message);
+      if (error instanceof FetchError || error instanceof SsrfError) {
+        sendError(res, 422, ErrorCode.FETCH_FAILED, (error as Error).message);
       } else {
         sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Video streaming failed");
       }

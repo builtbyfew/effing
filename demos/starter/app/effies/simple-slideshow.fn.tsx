@@ -22,17 +22,17 @@ export const previewProps: SimpleSlideshowProps = {
   slides: [
     {
       text: "How effing awesome is this?",
-      imageUrl: "https://picsum.photos/seed/slide1/1080/1920",
+      imageUrl: "https://static.effing.dev/picsum/1080/1920/water.jpg",
       duration: 6,
     },
     {
       text: "Create beautiful videos 🤩",
-      imageUrl: "https://picsum.photos/seed/slide2/1080/1920",
+      imageUrl: "https://static.effing.dev/picsum/1080/1920/road.jpg",
       duration: 5,
     },
     {
       text: "With total ease 😎",
-      imageUrl: "https://picsum.photos/seed/slide3/1080/1920",
+      imageUrl: "https://static.effing.dev/picsum/1080/1920/sky.jpg",
       duration: 4,
     },
   ],

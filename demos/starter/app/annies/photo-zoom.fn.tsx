@@ -12,7 +12,7 @@ export const propsSchema = z.object({
 export type PhotoZoomProps = z.infer<typeof propsSchema>;
 
 export const previewProps: PhotoZoomProps = {
-  imageUrl: "https://picsum.photos/1200/1200",
+  imageUrl: "https://static.effing.dev/picsum/1080/1080/coffee.jpg",
   frameCount: 120,
   zoomLevel: 0.2,
 };

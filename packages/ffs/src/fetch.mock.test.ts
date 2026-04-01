@@ -149,6 +149,31 @@ describe("ffsFetch", () => {
       });
     });
 
+    test("rejects redirects for SSRF protection", async () => {
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { Location: "http://169.254.169.254/" },
+        }),
+      );
+
+      await expect(ffsFetch("https://example.com")).rejects.toThrow(
+        "https://example.com returned a 302 redirect to http://169.254.169.254/, which is not allowed",
+      );
+    });
+
+    test("rejects redirects without location header", async () => {
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response(null, { status: 301 }));
+
+      await expect(ffsFetch("https://example.com")).rejects.toThrow(
+        "https://example.com returned a 301 redirect, which is not allowed",
+      );
+    });
+
     test("passes Agent as dispatcher to fetch", async () => {
       const mockAgentInstance = { mock: "agent" };
       const mockAgent = vi.mocked(Agent);

@@ -65,10 +65,20 @@ export async function ffsFetch(
 
   const agent = new Agent({ headersTimeout, bodyTimeout });
 
-  return fetch(url, {
+  const response = await fetch(url, {
     method,
     body,
+    redirect: "manual",
     headers: { "User-Agent": "FFS (+https://effing.dev/ffs)", ...headers },
     dispatcher: agent,
   });
+
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location");
+    throw new Error(
+      `${url} returned a ${response.status} redirect${location ? ` to ${location}` : ""}, which is not allowed`,
+    );
+  }
+
+  return response;
 }

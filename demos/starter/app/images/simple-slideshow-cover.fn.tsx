@@ -14,7 +14,7 @@ export const propsSchema = z.object({
 export type SimpleSlideshowCoverProps = z.infer<typeof propsSchema>;
 
 export const previewProps: SimpleSlideshowCoverProps = {
-  imageUrl: "https://picsum.photos/seed/cover/1080/1920",
+  imageUrl: "https://static.effing.dev/picsum/1080/1920/plants.jpg",
   text: "Hello World!",
   fontSize: 64,
 };

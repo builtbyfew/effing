@@ -7,26 +7,30 @@ export type ImageResponseOptions = {
   cacheControl?: string;
 };
 
-function detectImageContentType(buffer: Buffer): string {
-  if (buffer[0] === 0x89 && buffer[1] === 0x50) return "image/png";
-  if (buffer[0] === 0xff && buffer[1] === 0xd8) return "image/jpeg";
+function detectImageContentType(bytes: Uint8Array): string {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
   throw new Error("Unsupported image format: expected PNG or JPEG");
 }
 
 export function imageResponse(
-  buffer: Buffer,
+  bytes: Uint8Array,
   options: ImageResponseOptions = {},
 ): Response {
   const { headers: extraHeaders, cacheControl = "public, max-age=3600" } =
     options;
 
   const headers = new Headers(extraHeaders);
-  headers.set("Content-Type", detectImageContentType(buffer));
+  headers.set("Content-Type", detectImageContentType(bytes));
   if (cacheControl) {
     headers.set("Cache-Control", cacheControl);
   }
 
-  return new Response(new Uint8Array(buffer), { status: 200, headers });
+  if (!(bytes.buffer instanceof ArrayBuffer)) {
+    throw new TypeError("SharedArrayBuffer is not supported");
+  }
+
+  return new Response(bytes.buffer, { status: 200, headers });
 }
 
 export type AnnieResponseOptions = AnnieStreamOptions & {

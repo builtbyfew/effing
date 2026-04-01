@@ -1,0 +1,43 @@
+{
+  "name": "@effing/fn",
+  "version": "0.26.1",
+  "description": "Effing function runtime — pluggable module loading and URL building",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@effing/annie": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:",
+    "@effing/effie": "workspace:*"
+  },
+  "peerDependencies": {
+    "@effing/effie": "workspace:*",
+    "zod": "^3.0.0"
+  },
+  "keywords": [
+    "effing",
+    "functions",
+    "runtime"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

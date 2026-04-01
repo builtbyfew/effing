@@ -83,6 +83,9 @@ importers:
       '@effing/ffs':
         specifier: workspace:*
         version: link:../../packages/ffs
+      '@effing/fn':
+        specifier: workspace:*
+        version: link:../../packages/fn
       '@effing/serde':
         specifier: workspace:*
         version: link:../../packages/serde
@@ -397,6 +400,28 @@ importers:
       sharp:
         specifier: ^0.33.5
         version: 0.33.5
+
+  packages/fn:
+    dependencies:
+      '@effing/annie':
+        specifier: workspace:*
+        version: link:../annie
+    devDependencies:
+      '@effing/effie':
+        specifier: workspace:*
+        version: link:../effie
+      tsup:
+        specifier: 'catalog:'
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@25.0.3)(tsx@4.21.0)(yaml@2.8.2)
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
 
   packages/serde:
     devDependencies:

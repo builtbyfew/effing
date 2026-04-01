@@ -2,7 +2,7 @@ import { z } from "zod";
 import { interBold, loadFonts } from "~/fonts.server";
 import { tween } from "@effing/tween";
 import { createCanvas, renderReactElement } from "@effing/canvas";
-import type { AnnieRendererArgs } from ".";
+import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
 
 export const propsSchema = z.object({
   text: z.string(),
@@ -26,7 +26,7 @@ export const previewProps: TextTypewriterProps = {
   verticalAlignment: "center",
 };
 
-export async function* renderer({
+export async function* runner({
   props: {
     text,
     fontSize,
@@ -37,9 +37,8 @@ export async function* renderer({
     horizontalAlignment = "center",
     verticalAlignment = "center",
   },
-  width,
-  height,
-}: AnnieRendererArgs<TextTypewriterProps>): AsyncGenerator<Buffer> {
+  dimensions: { width, height },
+}: RunnerArgs<TextTypewriterProps>): AnnieRunnerReturn {
   const fonts = await loadFonts([interBold]);
 
   if (!typingFrameCount) {

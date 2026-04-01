@@ -1,16 +1,18 @@
 import { Link, useLoaderData } from "react-router";
-import { getAnnieIds } from "~/annies";
-import { getEffieIds } from "~/effies";
+import { ensureFnRuntime } from "~/fn.server";
+import { fnModuleIds } from "@effing/fn";
 
 export async function loader() {
+  ensureFnRuntime();
   return {
-    annieIds: getAnnieIds(),
-    effieIds: getEffieIds(),
+    imageIds: fnModuleIds("image"),
+    annieIds: fnModuleIds("annie"),
+    effieIds: fnModuleIds("effie"),
   };
 }
 
 export default function Index() {
-  const { annieIds, effieIds } = useLoaderData<typeof loader>();
+  const { imageIds, annieIds, effieIds } = useLoaderData<typeof loader>();
 
   return (
     <div style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
@@ -21,13 +23,43 @@ export default function Index() {
       </p>
 
       <section style={{ marginTop: "2rem" }}>
+        <h2>Images</h2>
+        <p style={{ color: "#666" }}>Single images rendered as PNG or JPEG.</p>
+        {imageIds.length === 0 ? (
+          <p>
+            No images found. Create one at <code>app/images/*.fn.tsx</code>
+          </p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {imageIds.map((id) => (
+              <li key={id} style={{ marginBottom: 8 }}>
+                <Link
+                  to={`/pim/${id}`}
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 16px",
+                    backgroundColor: "#f5f5f5",
+                    borderRadius: 4,
+                    textDecoration: "none",
+                    color: "#333",
+                  }}
+                >
+                  {id} →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section style={{ marginTop: "2rem" }}>
         <h2>Annies</h2>
         <p style={{ color: "#666" }}>
           Frame-by-frame animations rendered as TAR archives of PNG/JPEG frames.
         </p>
         {annieIds.length === 0 ? (
           <p>
-            No annies found. Create one at <code>app/annies/*.annie.tsx</code>
+            No annies found. Create one at <code>app/annies/*.fn.tsx</code>
           </p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0 }}>
@@ -59,7 +91,7 @@ export default function Index() {
         </p>
         {effieIds.length === 0 ? (
           <p>
-            No effies found. Create one at <code>app/effies/*.effie.tsx</code>
+            No effies found. Create one at <code>app/effies/*.fn.tsx</code>
           </p>
         ) : (
           <ul style={{ listStyle: "none", padding: 0 }}>

@@ -6,11 +6,11 @@
     [
       "@effing/annie",
       "@effing/effie",
+      "@effing/fn",
       "@effing/ffs",
       "@effing/tween",
       "@effing/serde",
       "@effing/create",
-
       "@effing/annie-player",
       "@effing/effie-preview",
       "@effing/ffmpeg",

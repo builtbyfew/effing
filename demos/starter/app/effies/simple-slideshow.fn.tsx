@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { effieData, effieSegment } from "@effing/effie";
-import { annieUrl, pngUrlFromReactElement } from "~/urls.server";
-import type { EffieRendererArgs } from ".";
-import { loadFonts, interSemiBold } from "~/fonts.server";
-import type { PhotoZoomProps } from "~/annies/photo-zoom.annie";
-import {
-  TextTypewriterOverlay,
-  type TextTypewriterProps,
-} from "~/annies/text-typewriter.annie";
+import { fnUrl } from "@effing/fn";
+import type { RunnerArgs, EffieRunnerReturn } from "@effing/fn";
+import type { PhotoZoomProps } from "~/annies/photo-zoom.fn";
+import type { TextTypewriterProps } from "~/annies/text-typewriter.fn";
+import type { SimpleSlideshowCoverProps } from "~/images/simple-slideshow-cover.fn";
 
 export const propsSchema = z.object({
   slides: z.array(
@@ -41,33 +38,20 @@ export const previewProps: SimpleSlideshowProps = {
   ],
 };
 
-export async function renderer({
+export async function runner({
   props: { slides },
-  width,
-  height,
-}: EffieRendererArgs<SimpleSlideshowProps>) {
-  const fonts = await loadFonts([interSemiBold]);
-
-  // Generate cover from first slide
-  const cover = await pngUrlFromReactElement(
-    <div
-      style={{
-        width,
-        height,
-        display: "flex",
-        backgroundImage: `url(${slides[0].imageUrl})`,
-      }}
-    >
-      <TextTypewriterOverlay
-        text={slides[0].text}
-        fontSize={Math.round(width * 0.06)}
-        fontColor={"#ffffff"}
-        horizontalAlignment="center"
-        verticalAlignment="center"
-        cursorShown={false}
-      />
-    </div>,
-    { width, height, fonts },
+  dimensions: { width, height },
+}: RunnerArgs<SimpleSlideshowProps>): EffieRunnerReturn {
+  const cover = await fnUrl(
+    "image",
+    "simple-slideshow-cover",
+    {
+      imageUrl: slides[0].imageUrl,
+      text: slides[0].text,
+      fontSize: Math.round(width * 0.06),
+      fontColor: "#ffffff",
+    } satisfies SimpleSlideshowCoverProps,
+    { width, height },
   );
 
   return effieData({
@@ -93,16 +77,16 @@ export async function renderer({
           layers: [
             {
               type: "animation",
-              source: await annieUrl<PhotoZoomProps>({
-                annieId: "photo-zoom",
-                props: {
+              source: await fnUrl(
+                "annie",
+                "photo-zoom",
+                {
                   imageUrl: slide.imageUrl,
                   frameCount: slide.duration * 30,
                   zoomLevel: 0.2,
-                },
-                width: width * 1.2,
-                height,
-              }),
+                } satisfies PhotoZoomProps,
+                { width: width * 1.2, height },
+              ),
               effects: [
                 {
                   type: "scroll",
@@ -114,9 +98,10 @@ export async function renderer({
             },
             {
               type: "animation",
-              source: await annieUrl<TextTypewriterProps>({
-                annieId: "text-typewriter",
-                props: {
+              source: await fnUrl(
+                "annie",
+                "text-typewriter",
+                {
                   text: slide.text,
                   fontSize: Math.round(width * 0.06),
                   fontColor: "#ffffff",
@@ -124,10 +109,9 @@ export async function renderer({
                   blinkingFrameCount: Math.round((slide.duration - 2) * 30),
                   horizontalAlignment: "center",
                   verticalAlignment: "center",
-                },
-                width,
-                height,
-              }),
+                } satisfies TextTypewriterProps,
+                { width, height },
+              ),
               delay: 1,
               effects:
                 i === slides.length - 1

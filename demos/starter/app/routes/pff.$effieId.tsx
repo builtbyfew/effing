@@ -20,7 +20,8 @@ import {
   EffieValidationErrors,
   useEffieWarmup,
 } from "@effing/effie-preview/react";
-import { getEffie } from "~/effies";
+import { ensureFnRuntime } from "~/fn.server";
+import { fnModule } from "@effing/fn";
 import type { Route } from "./+types/pff.$effieId";
 
 // ============ Constants ============
@@ -129,15 +130,16 @@ function renderReducer(state: RenderState, action: RenderAction): RenderState {
 // ============ Loader ============
 
 export async function loader({ request, params }: Route.LoaderArgs) {
+  ensureFnRuntime();
   const requestUrl = new URL(request.url);
   const width = parseInt(requestUrl.searchParams.get("w") || "1080", 10);
   const height = parseInt(requestUrl.searchParams.get("h") || "1080", 10);
 
   const {
     previewProps,
-    renderer: generateEffie,
+    runner: generateEffie,
     propsSchema,
-  } = await getEffie(params.effieId);
+  } = await fnModule("effie", params.effieId);
 
   if (propsSchema) {
     invariant(
@@ -151,7 +153,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     process.env.SECRET_KEY!,
   );
 
-  const effie = await generateEffie({ props: previewProps, width, height });
+  const effie = await generateEffie({
+    props: previewProps,
+    dimensions: { width, height },
+  });
 
   // Create warmup job if FFS is configured
   let warmupUrl: string | null = null;

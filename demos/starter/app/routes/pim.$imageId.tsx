@@ -1,13 +1,12 @@
 import { useLoaderData } from "react-router";
 import invariant from "tiny-invariant";
-import { AnniePlayer } from "@effing/annie-player/react";
 import { ensureFnRuntime } from "~/fn.server";
 import { fnModule, fnUrl } from "@effing/fn";
-import type { Route } from "./+types/pan.$annieId";
+import type { Route } from "./+types/pim.$imageId";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
-  const { previewProps, propsSchema } = await fnModule("annie", params.annieId);
+  const { previewProps, propsSchema } = await fnModule("image", params.imageId);
   invariant(
     propsSchema.safeParse(previewProps).success,
     "previewProps does not adhere to the propsSchema",
@@ -18,22 +17,22 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const height = parseInt(searchParams.get("h") || "1080", 10);
 
   const url = await fnUrl(
-    "annie",
-    params.annieId,
+    "image",
+    params.imageId,
     previewProps as Record<string, unknown>,
     { width, height },
   );
 
   return {
-    annieId: params.annieId,
-    annieUrl: `${url}&cache=no`,
+    imageId: params.imageId,
+    imageUrl: `${url}&cache=no`,
     width,
     height,
   };
 }
 
-export default function AnniePreviewPage() {
-  const { annieId, annieUrl, width, height } = useLoaderData<typeof loader>();
+export default function ImagePreviewPage() {
+  const { imageId, imageUrl, width, height } = useLoaderData<typeof loader>();
 
   const scaledDimensions = {
     width: Math.round((540 * width) / height),
@@ -49,15 +48,14 @@ export default function AnniePreviewPage() {
         gap: "2rem",
       }}
     >
-      <h1 style={{ margin: 0 }}>Annie Preview: {annieId}</h1>
+      <h1 style={{ margin: 0 }}>Image Preview: {imageId}</h1>
 
-      <AnniePlayer
-        src={annieUrl}
+      <img
+        src={imageUrl}
+        width={scaledDimensions.width}
         height={scaledDimensions.height}
-        defaultWidth={scaledDimensions.width}
-        autoLoad={true}
-        autoPlay={true}
-        fps={30}
+        alt={imageId}
+        style={{ border: "1px solid #ddd" }}
       />
 
       <div>
@@ -73,25 +71,7 @@ export default function AnniePreviewPage() {
             margin: 0,
           }}
         >
-          {annieUrl}
-        </pre>
-      </div>
-
-      <div>
-        <h3>Convert to Animated PNG</h3>
-        <pre
-          style={{
-            padding: "0.75rem 1rem",
-            backgroundColor: "#fafafa",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            overflow: "auto",
-            fontSize: "0.75rem",
-            margin: 0,
-          }}
-        >
-          {`curl '${annieUrl}' \\
-  | tar -xO | ffmpeg -f image2pipe -framerate 30 -i - -plays 0 -c:v apng -f apng ${annieId}.png`}
+          {imageUrl}
         </pre>
       </div>
     </div>

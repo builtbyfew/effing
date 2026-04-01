@@ -37,10 +37,6 @@ export type {
 } from "./extract";
 export { extractEffieSources, extractEffieSourcesWithTypes } from "./extract";
 
-// Response helper
-export type { EffieResponseOptions } from "./response";
-export { effieResponse } from "./response";
-
 // Zod schemas (optional - requires zod peer dependency)
 export {
   // URL schemas

@@ -15,6 +15,7 @@
     "@effing/annie": "workspace:*",
     "@effing/annie-player": "workspace:*",
     "@effing/effie": "workspace:*",
+    "@effing/fn": "workspace:*",
     "@effing/effie-preview": "workspace:*",
     "@effing/ffs": "workspace:*",
     "@effing/canvas": "workspace:*",

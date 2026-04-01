@@ -1,0 +1,81 @@
+import type { EffieData, EffieSources } from "@effing/effie";
+import { annieStream } from "@effing/annie";
+import type { AnnieStreamOptions } from "@effing/annie";
+
+export type ImageResponseOptions = {
+  headers?: HeadersInit;
+  cacheControl?: string;
+};
+
+function detectImageContentType(buffer: Buffer): string {
+  if (buffer[0] === 0x89 && buffer[1] === 0x50) return "image/png";
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) return "image/jpeg";
+  throw new Error("Unsupported image format: expected PNG or JPEG");
+}
+
+export function imageResponse(
+  buffer: Buffer,
+  options: ImageResponseOptions = {},
+): Response {
+  const { headers: extraHeaders, cacheControl = "public, max-age=3600" } =
+    options;
+
+  const headers = new Headers(extraHeaders);
+  headers.set("Content-Type", detectImageContentType(buffer));
+  if (cacheControl) {
+    headers.set("Cache-Control", cacheControl);
+  }
+
+  return new Response(new Uint8Array(buffer), { status: 200, headers });
+}
+
+export type AnnieResponseOptions = AnnieStreamOptions & {
+  headers?: HeadersInit;
+  cacheControl?: string;
+  filename?: string;
+};
+
+export function annieResponse(
+  frames: AsyncIterable<Buffer>,
+  options: AnnieResponseOptions = {},
+): Response {
+  const {
+    headers: extraHeaders,
+    cacheControl = "public, max-age=3600",
+    filename,
+    ...streamOptions
+  } = options;
+
+  const stream = annieStream(frames, streamOptions);
+
+  const headers = new Headers(extraHeaders);
+  headers.set("Content-Type", "application/x-tar");
+  if (cacheControl) {
+    headers.set("Cache-Control", cacheControl);
+  }
+  if (filename) {
+    headers.set("Content-Disposition", `inline; filename="${filename}.tar"`);
+  }
+
+  return new Response(stream, { status: 200, headers });
+}
+
+export type EffieResponseOptions = {
+  headers?: HeadersInit;
+  cacheControl?: string;
+};
+
+export function effieResponse<S extends EffieSources>(
+  data: EffieData<S>,
+  options: EffieResponseOptions = {},
+): Response {
+  const { headers: extraHeaders, cacheControl = "public, max-age=3600" } =
+    options;
+
+  const headers = new Headers(extraHeaders);
+  if (cacheControl) {
+    headers.set("Cache-Control", cacheControl);
+  }
+
+  return Response.json(data, { status: 200, headers });
+}

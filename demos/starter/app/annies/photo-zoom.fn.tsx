@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { tween, easeOutQuad } from "@effing/tween";
 import { createCanvas, loadImage } from "@effing/canvas";
-import type { AnnieRendererArgs } from ".";
+import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
 
 export const propsSchema = z.object({
   imageUrl: z.string().url(),
@@ -17,11 +17,10 @@ export const previewProps: PhotoZoomProps = {
   zoomLevel: 0.2,
 };
 
-export async function* renderer({
+export async function* runner({
   props: { imageUrl, frameCount = 90, zoomLevel = 0.2 },
-  width,
-  height,
-}: AnnieRendererArgs<PhotoZoomProps>): AsyncGenerator<Buffer> {
+  dimensions: { width, height },
+}: RunnerArgs<PhotoZoomProps>): AnnieRunnerReturn {
   // Fetch and decode the source image
   const response = await fetch(imageUrl);
   const imageBuffer = await response.arrayBuffer();

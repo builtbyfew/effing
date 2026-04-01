@@ -114,18 +114,23 @@ describe("runtime", () => {
       expect(() => initFnRuntime(config)).not.toThrow();
     });
 
-    test("different moduleLoader throws", () => {
+    test("different config replaces previous", () => {
+      const firstLoader = createMockLoader();
+      const firstUrlBuilder = createMockUrlBuilder();
       initFnRuntime({
-        moduleLoader: createMockLoader(),
+        moduleLoader: firstLoader,
+        urlBuilder: firstUrlBuilder,
+      });
+
+      const secondLoader = createMockLoader();
+      initFnRuntime({
+        moduleLoader: secondLoader,
         urlBuilder: createMockUrlBuilder(),
       });
 
-      expect(() =>
-        initFnRuntime({
-          moduleLoader: createMockLoader(),
-          urlBuilder: createMockUrlBuilder(),
-        }),
-      ).toThrow("different config");
+      fnModuleIds("image");
+      expect(secondLoader.listModules).toHaveBeenCalledWith("image");
+      expect(firstLoader.listModules).not.toHaveBeenCalled();
     });
   });
 });

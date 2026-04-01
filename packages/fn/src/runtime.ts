@@ -14,15 +14,6 @@ export function initFnRuntime(config: {
   moduleLoader: FnModuleLoader;
   urlBuilder: FnUrlBuilder;
 }): void {
-  if (moduleLoader && urlBuilder) {
-    if (
-      config.moduleLoader !== moduleLoader ||
-      config.urlBuilder !== urlBuilder
-    ) {
-      throw new Error("initFnRuntime() called with different config");
-    }
-    return;
-  }
   moduleLoader = config.moduleLoader;
   urlBuilder = config.urlBuilder;
 }

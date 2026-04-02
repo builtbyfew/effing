@@ -28,7 +28,6 @@
     "@effing/effie": "workspace:*"
   },
   "peerDependencies": {
-    "@effing/effie": "workspace:*",
     "zod": "^3.0.0"
   },
   "keywords": [

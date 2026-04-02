@@ -6,6 +6,7 @@ import type { Route } from "./+types/pim.$imageId";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
+
   const { previewProps, propsSchema } = await fnModule("image", params.imageId);
   invariant(
     propsSchema.safeParse(previewProps).success,

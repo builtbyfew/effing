@@ -5,6 +5,7 @@ import type { Route } from "./+types/ff.$segment";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
+
   const { effieId, ...props } = await deserialize<{
     effieId: string;
   }>(params.segment, process.env.SECRET_KEY!);

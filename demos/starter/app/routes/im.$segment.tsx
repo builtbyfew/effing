@@ -5,6 +5,7 @@ import type { Route } from "./+types/im.$segment";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
+
   const payload = await deserialize<{ imageId: string }>(
     params.segment,
     process.env.SECRET_KEY!,

@@ -131,6 +131,7 @@ function renderReducer(state: RenderState, action: RenderAction): RenderState {
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   ensureFnRuntime();
+
   const requestUrl = new URL(request.url);
   const width = parseInt(requestUrl.searchParams.get("w") || "1080", 10);
   const height = parseInt(requestUrl.searchParams.get("h") || "1080", 10);

@@ -7,6 +7,7 @@ import type { Route } from "./+types/pan.$annieId";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
+
   const { previewProps, propsSchema } = await fnModule("annie", params.annieId);
   invariant(
     propsSchema.safeParse(previewProps).success,

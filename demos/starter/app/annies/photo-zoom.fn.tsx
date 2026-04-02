@@ -19,7 +19,7 @@ export const previewProps: PhotoZoomProps = {
 
 export async function* runner({
   props: { imageUrl, frameCount = 90, zoomLevel = 0.2 },
-  dimensions: { width, height },
+  bounds: { width, height },
 }: RunnerArgs<PhotoZoomProps>): AnnieRunnerReturn {
   // Fetch and decode the source image
   const response = await fetch(imageUrl);

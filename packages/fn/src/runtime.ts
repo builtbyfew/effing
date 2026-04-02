@@ -1,6 +1,6 @@
 import type { EffieWebUrl } from "@effing/effie";
 import type {
-  Dimensions,
+  Bounds,
   FnKind,
   FnModule,
   FnModuleLoader,
@@ -47,9 +47,9 @@ export function fnUrl<P extends Record<string, unknown>>(
   kind: FnKind,
   id: string,
   props: P,
-  dimensions: Dimensions,
+  bounds: Bounds,
 ): Promise<EffieWebUrl> {
-  return getUrlBuilder().buildUrl(kind, id, props, dimensions);
+  return getUrlBuilder().buildUrl(kind, id, props, bounds);
 }
 
 export function fnModuleIds(kind: FnKind): string[] {

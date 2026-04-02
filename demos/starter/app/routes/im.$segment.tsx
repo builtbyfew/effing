@@ -22,7 +22,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const width = parseInt(url.searchParams.get("w") || "1080", 10);
   const height = parseInt(url.searchParams.get("h") || "1080", 10);
 
-  const buffer = await runner({ props, dimensions: { width, height } });
+  const buffer = await runner({ props, bounds: { width, height } });
 
   const noCache = url.searchParams.get("cache") === "no";
 

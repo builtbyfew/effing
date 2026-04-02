@@ -71,13 +71,13 @@ describe("runtime", () => {
       initFnRuntime({ moduleLoader: createMockLoader(), urlBuilder });
 
       const props = { text: "hello" };
-      const dimensions = { width: 1080, height: 1920 };
-      await fnUrl("annie", "test", props, dimensions);
+      const bounds = { width: 1080, height: 1920 };
+      await fnUrl("annie", "test", props, bounds);
       expect(urlBuilder.buildUrl).toHaveBeenCalledWith(
         "annie",
         "test",
         props,
-        dimensions,
+        bounds,
       );
     });
 

@@ -40,7 +40,7 @@ export const previewProps: SimpleSlideshowProps = {
 
 export async function runner({
   props: { slides },
-  dimensions: { width, height },
+  bounds: { width, height },
 }: RunnerArgs<SimpleSlideshowProps>): EffieRunnerReturn {
   const cover = await fnUrl(
     "image",

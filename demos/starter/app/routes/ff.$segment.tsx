@@ -22,7 +22,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const width = parseInt(url.searchParams.get("w") || "1080", 10);
   const height = parseInt(url.searchParams.get("h") || "1080", 10);
 
-  const effieData = await runner({ props, dimensions: { width, height } });
+  const effieData = await runner({ props, bounds: { width, height } });
 
   return effieResponse(effieData);
 }

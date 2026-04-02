@@ -25,7 +25,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const height = parseInt(url.searchParams.get("h") || "1080", 10);
 
   const noCache = url.searchParams.get("cache") === "no";
-  const frames = runner({ props, dimensions: { width, height } });
+  const frames = runner({ props, bounds: { width, height } });
 
   return annieResponse(frames, {
     signal: request.signal,

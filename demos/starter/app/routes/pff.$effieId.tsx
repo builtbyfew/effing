@@ -156,7 +156,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const effie = await generateEffie({
     props: previewProps,
-    dimensions: { width, height },
+    bounds: { width, height },
   });
 
   // Create warmup job if FFS is configured

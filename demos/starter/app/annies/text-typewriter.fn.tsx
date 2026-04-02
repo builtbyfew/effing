@@ -37,7 +37,7 @@ export async function* runner({
     horizontalAlignment = "center",
     verticalAlignment = "center",
   },
-  dimensions: { width, height },
+  bounds: { width, height },
 }: RunnerArgs<TextTypewriterProps>): AnnieRunnerReturn {
   const fonts = await loadFonts([interBold]);
 

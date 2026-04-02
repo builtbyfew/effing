@@ -21,7 +21,7 @@ export const previewProps: SimpleSlideshowCoverProps = {
 
 export async function runner({
   props: { imageUrl, text, fontSize, fontColor = "#ffffff" },
-  dimensions: { width, height },
+  bounds: { width, height },
 }: RunnerArgs<SimpleSlideshowCoverProps>): ImageRunnerReturn {
   const fonts = await loadFonts([interSemiBold]);
 

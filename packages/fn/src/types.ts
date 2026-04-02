@@ -1,11 +1,11 @@
 import type { z } from "zod";
 import type { EffieData, EffieSources, EffieWebUrl } from "@effing/effie";
 
-export type Dimensions = Readonly<{ width: number; height: number }>;
+export type Bounds = Readonly<{ width: number; height: number }>;
 
 export type RunnerArgs<P> = {
   props: P;
-  dimensions: Dimensions;
+  bounds: Bounds;
 };
 
 export type FnKind = "image" | "annie" | "effie";
@@ -50,6 +50,6 @@ export type FnUrlBuilder = {
     kind: FnKind,
     id: string,
     props: P,
-    dimensions: Dimensions,
+    bounds: Bounds,
   ): Promise<EffieWebUrl>;
 };

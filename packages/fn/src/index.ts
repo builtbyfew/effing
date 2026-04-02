@@ -1,6 +1,6 @@
 // Types
 export type {
-  Dimensions,
+  Bounds,
   RunnerArgs,
   ImageRunnerReturn,
   AnnieRunnerReturn,

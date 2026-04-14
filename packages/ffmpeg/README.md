@@ -1,6 +1,10 @@
 # @effing/ffmpeg
 
-FFmpeg binary downloader for the Effing monorepo. Downloads a platform-specific FFmpeg binary at install time from the [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) GitHub releases (currently tag **b6.0**, FFmpeg 6.0).
+**Platform-specific FFmpeg binary downloader.**
+
+> Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
+
+Downloads a platform-specific FFmpeg binary at install time from the [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) GitHub releases (currently tag **b6.0**, FFmpeg 6.0).
 
 ## Usage
 

@@ -35,7 +35,7 @@ const video = effieData({
   width: 1080,
   height: 1920,
   fps: 30,
-  cover: "https://picsum.photos/seed/tutorial/1080/1920",
+  cover: "https://static.effing.dev/picsum/1080/1920/water.jpg",
   background: { type: "color", color: "#1A1A2E" },
   segments: [
     {
@@ -43,7 +43,7 @@ const video = effieData({
       layers: [
         {
           type: "image",
-          source: "https://picsum.photos/seed/tutorial/1080/1920",
+          source: "https://static.effing.dev/picsum/1080/1920/water.jpg",
         },
       ],
     },
@@ -84,7 +84,7 @@ segments: [
     layers: [
       {
         type: "image",
-        source: "https://picsum.photos/seed/tutorial/1080/1920",
+        source: "https://static.effing.dev/picsum/1080/1920/water.jpg",
       },
     ],
   },
@@ -94,7 +94,7 @@ segments: [
     layers: [
       {
         type: "image",
-        source: "https://picsum.photos/id/27/1080/1920",
+        source: "https://static.effing.dev/picsum/1080/1920/sea.jpg",
       },
     ],
   },
@@ -114,7 +114,7 @@ Layers can have effects and motion applied to them, without any custom frame ren
   layers: [
     {
       type: "image",
-      source: `https://picsum.photos/id/27/${1080 * 1.5}/1920`,
+      source: `https://static.effing.dev/picsum/${1080 * 1.5}/1920/sea.jpg`,
       effects: [
         { type: "scroll", direction: "left", distance: 0.5, duration: 4 },
       ],
@@ -157,7 +157,7 @@ Segments can have their own audio. Let's add a sound effect to our second segmen
   layers: [
     {
       type: "image",
-      source: `https://picsum.photos/id/27/${1080 * 1.5}/1920`,
+      source: `https://static.effing.dev/picsum/${1080 * 1.5}/1920/sea.jpg`,
       effects: [
         { type: "scroll", direction: "left", distance: 0.5, duration: 4 },
       ],
@@ -486,7 +486,7 @@ const video = effieData({
       layers: [
         {
           type: "image",
-          source: `https://picsum.photos/id/27/${1080 * 1.5}/1920`,
+          source: `https://static.effing.dev/picsum/${1080 * 1.5}/1920/sea.jpg`,
           effects: [
             { type: "scroll", direction: "left", distance: 0.5, duration: 4 },
           ],

@@ -213,7 +213,7 @@ const video = effieData({
       layers: [
         {
           type: "image",
-          source: `https://picsum.photos/id/27/${1080 * 1.5}/1920`,
+          source: `https://static.effing.dev/picsum/${1080 * 1.5}/1920/sea.jpg`,
           effects: [
             { type: "scroll", direction: "left", distance: 0.5, duration: 4 },
           ],

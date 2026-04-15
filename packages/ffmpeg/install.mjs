@@ -26,11 +26,8 @@ const SUPPORTED = new Set([
   "darwin-x64",
   "darwin-arm64",
   "linux-x64",
-  "linux-ia32",
   "linux-arm64",
-  "linux-arm",
   "win32-x64",
-  "win32-ia32",
 ]);
 
 const platform = PLATFORM_MAP[os.platform()];
@@ -57,7 +54,7 @@ try {
 
 const baseUrl =
   process.env.FFMPEG_BINARIES_URL ||
-  "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0";
+  "https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v6.1.4";
 
 const url = `${baseUrl}/ffmpeg-${platform}-${arch}.gz`;
 

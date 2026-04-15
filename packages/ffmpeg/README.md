@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Downloads a platform-specific FFmpeg binary at install time from the [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) GitHub releases (currently tag **b6.0**, FFmpeg 6.0).
+Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v6.1.4**, FFmpeg 6.1.4).
 
 ## Usage
 
@@ -27,14 +27,14 @@ The binary is placed in the package root (`packages/ffmpeg/ffmpeg`). In the mono
 
 ## Supported platforms
 
-| Platform | Architectures         |
-| -------- | --------------------- |
-| darwin   | x64, arm64            |
-| linux    | x64, ia32, arm64, arm |
-| win32    | x64, ia32             |
+| Platform | Architectures |
+| -------- | ------------- |
+| darwin   | x64, arm64    |
+| linux    | x64, arm64    |
+| win32    | x64           |
 
 ## Environment variables
 
-| Variable              | Description                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| `FFMPEG_BINARIES_URL` | Override the base URL for binary downloads (defaults to the ffmpeg-static GitHub release) |
+| Variable              | Description                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `FFMPEG_BINARIES_URL` | Override the base URL for binary downloads (defaults to the effing-ffmpeg-builds GitHub release) |

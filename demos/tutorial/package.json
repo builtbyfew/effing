@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx video.tsx"
+    "start": "tsx generate-all.ts"
   },
   "dependencies": {
     "@effing/annie": "workspace:*",

@@ -1,0 +1,51 @@
+name: Tutorial videos
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "demos/tutorial/**"
+      - ".github/workflows/tutorial-videos.yml"
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  generate:
+    name: Generate and publish tutorial videos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm --filter "@effing/tutorial..." build
+
+      - name: Generate tutorial videos
+        run: pnpm --filter @effing/tutorial start
+
+      - name: Publish to rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view tutorial-videos >/dev/null 2>&1 \
+            || gh release create tutorial-videos \
+                 --title "Tutorial videos" \
+                 --notes "Auto-generated from demos/tutorial. Do not edit manually." \
+                 --latest=false
+          gh release upload tutorial-videos demos/tutorial/out/*.mp4 --clobber

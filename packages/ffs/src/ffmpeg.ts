@@ -1,7 +1,7 @@
 import type { ChildProcess } from "child_process";
 import { spawn } from "child_process";
 import type { Readable } from "stream";
-import { pipeline } from "stream";
+import { PassThrough, pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -225,16 +225,33 @@ export class FFmpegRunner {
       console.error(data.toString());
     });
 
-    ffmpegProc.on("close", async () => {
+    // Forward ffmpeg's stdout through a PassThrough so we can hold back
+    // the end-of-stream signal until ffmpeg has actually exited. That way
+    // consumers piping the returned stream see an `error` event on non-zero
+    // exits instead of a silently-truncated "successful" render.
+    const output = new PassThrough();
+    ffmpegProc.stdout.pipe(output, { end: false });
+    ffmpegProc.stdout.on("error", (err) => output.destroy(err));
+
+    ffmpegProc.on("close", async (code, signal) => {
       try {
         await fs.rm(tempDir, { recursive: true, force: true });
       } catch (err) {
         console.error("Error removing temp directory:", err);
       }
+      if (code === 0 || signal === "SIGTERM") {
+        output.end();
+      } else {
+        output.destroy(
+          new Error(
+            `ffmpeg exited with ${signal ? `signal ${signal}` : `code ${code}`}`,
+          ),
+        );
+      }
     });
 
     this.ffmpegProc = ffmpegProc;
-    return ffmpegProc.stdout as Readable;
+    return output;
   }
 
   close(): void {

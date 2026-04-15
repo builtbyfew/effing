@@ -1,14 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@napi-rs/canvas", async () => {
-  const { createCanvasMock } = await import("../_helpers/canvas-mock.ts");
+  const { createCanvasMock } = await import("../../canvas-mock.ts");
   return createCanvasMock();
 });
 
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
-import { drawText } from "../../jsx/draw/text.ts";
-import type { TextSegment } from "../../jsx/text/index.ts";
+import { drawText } from "./text.ts";
+import type { TextSegment } from "../text/index.ts";
 
 function makeSegment(overrides?: Partial<TextSegment>): TextSegment {
   return {

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  resolveStyle,
-  resolveUnits,
-  DEFAULT_STYLE,
-} from "../../jsx/style/compute.ts";
-import type { ExpandedStyle } from "../../jsx/style/compute.ts";
+import { resolveStyle, resolveUnits, DEFAULT_STYLE } from "./compute.ts";
+import type { ExpandedStyle } from "./compute.ts";
 
 describe("resolveStyle", () => {
   it("inherits color from parent", () => {

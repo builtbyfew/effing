@@ -1,6 +1,6 @@
 import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
-import type { FontData } from "../../types.ts";
+import type { FontData } from "../src/types.ts";
 import {
   HAS_NATIVE_DEPS,
   loadFonts,

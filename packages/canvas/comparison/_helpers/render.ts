@@ -2,17 +2,17 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type React from "react";
-import type { FontData } from "../../../types.ts";
+import type { FontData } from "../../src/types.ts";
 
 export async function renderWithCanvas(
   element: React.ReactNode,
   width: number,
   height: number,
   fonts: FontData[],
-  emoji?: import("../../../jsx/emoji.ts").EmojiStyle | "none",
+  emoji?: import("../../src/jsx/emoji.ts").EmojiStyle | "none",
 ): Promise<Buffer> {
   const { createCanvas } = await import("@napi-rs/canvas");
-  const { renderReactElement } = await import("../../../jsx/index.ts");
+  const { renderReactElement } = await import("../../src/jsx/index.ts");
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
   await renderReactElement(ctx, element, { fonts, emoji });
@@ -24,13 +24,13 @@ export async function renderWithSatori(
   width: number,
   height: number,
   fonts: FontData[],
-  emoji?: import("../../../jsx/emoji.ts").EmojiStyle | "none",
+  emoji?: import("../../src/jsx/emoji.ts").EmojiStyle | "none",
 ): Promise<Buffer> {
   const satori = (await import("satori")).default;
   const { Resvg } = await import("@resvg/resvg-js");
   const opts: Parameters<typeof satori>[1] = { width, height, fonts };
   if (emoji && emoji !== "none") {
-    const { loadEmoji, getEmojiCode } = await import("../../../jsx/emoji.ts");
+    const { loadEmoji, getEmojiCode } = await import("../../src/jsx/emoji.ts");
     opts.loadAdditionalAsset = async (code: string, segment: string) => {
       if (code === "emoji") {
         return (

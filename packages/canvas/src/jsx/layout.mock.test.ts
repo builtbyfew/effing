@@ -2,13 +2,13 @@ import type { ReactElement } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@napi-rs/canvas", async () => {
-  const { createCanvasMock } = await import("../_helpers/canvas-mock.ts");
+  const { createCanvasMock } = await import("../canvas-mock.ts");
   return createCanvasMock();
 });
 
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
-import { buildLayoutTree } from "../../jsx/layout.ts";
+import { buildLayoutTree } from "./layout.ts";
 
 describe("buildLayoutTree", () => {
   let ctx: SKRSContext2D;

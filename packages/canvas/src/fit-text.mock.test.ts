@@ -1,18 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("../jsx/font.ts", () => ({
+vi.mock("./jsx/font.ts", () => ({
   registerFont: vi.fn(),
   getFontMetrics: vi.fn(() => null),
 }));
 
-vi.mock("../jsx/text/index.ts", () => ({
+vi.mock("./jsx/text/index.ts", () => ({
   layoutText: vi.fn(),
 }));
 
-import { registerFont } from "../jsx/font.ts";
-import { layoutText } from "../jsx/text/index.ts";
-import { findLargestUsableFontSize } from "../fit-text.ts";
-import type { FontData } from "../types.ts";
+import { registerFont } from "./jsx/font.ts";
+import { layoutText } from "./jsx/text/index.ts";
+import { findLargestUsableFontSize } from "./fit-text.ts";
+import type { FontData } from "./types.ts";
 
 const font: FontData = {
   name: "TestFont",

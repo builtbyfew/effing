@@ -13,8 +13,8 @@ import { bench, group, run } from "mitata";
 import React from "react";
 import satori from "satori";
 
-import { renderReactElement } from "../../jsx/index.ts";
-import type { FontData } from "../../types.ts";
+import { renderReactElement } from "../src/jsx/index.ts";
+import type { FontData } from "../src/types.ts";
 import { easeInOutCubic, easeInOutSine } from "@effing/tween";
 
 // ---------------------------------------------------------------------------

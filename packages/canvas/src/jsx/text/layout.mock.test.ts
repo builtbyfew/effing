@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@napi-rs/canvas", async () => {
-  const { createCanvasMock } = await import("../_helpers/canvas-mock.ts");
+  const { createCanvasMock } = await import("../../canvas-mock.ts");
   return createCanvasMock();
 });
 
-vi.mock("../../jsx/font.ts", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../jsx/font.ts")>();
+vi.mock("../font.ts", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../font.ts")>();
   return {
     ...original,
     getFontMetrics: vi.fn(() => null),
@@ -15,8 +15,8 @@ vi.mock("../../jsx/font.ts", async (importOriginal) => {
 
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
-import { getFontMetrics } from "../../jsx/font.ts";
-import { layoutText } from "../../jsx/text/index.ts";
+import { getFontMetrics } from "../font.ts";
+import { layoutText } from "./index.ts";
 
 describe("layoutText", () => {
   let ctx: SKRSContext2D;

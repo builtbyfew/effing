@@ -16,8 +16,8 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:comparison": "vitest run src/__tests__/comparison/",
-    "bench": "tsx src/__tests__/benchmark/bench.tsx"
+    "test:comparison": "vitest run comparison/",
+    "bench": "tsx benchmark/bench.tsx"
   },
   "dependencies": {
     "css-background-parser": "^0.1.0",

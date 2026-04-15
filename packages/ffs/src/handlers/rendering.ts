@@ -541,7 +541,7 @@ async function streamRenderDirect(
   ctx: ServerContext,
 ): Promise<void> {
   const renderStart = performance.now();
-  const { EffieRenderer } = await import("../render");
+  const { EffieRenderer } = await import("../renderer");
   const renderer = new EffieRenderer(job.effie, {
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
@@ -672,7 +672,7 @@ export async function renderAndUploadInternal(
 ): Promise<Record<string, number>> {
   // Render effie data to video buffer
   const renderStartTime = Date.now();
-  const { EffieRenderer } = await import("../render");
+  const { EffieRenderer } = await import("../renderer");
   const renderer = new EffieRenderer(effie, {
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,

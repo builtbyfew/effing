@@ -2,12 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: [
-      "src/index.ts",
-      "src/server.ts",
-      "src/handlers/index.ts",
-      "src/sse.ts",
-    ],
+    entry: ["src/index.ts", "src/handlers/index.ts", "src/sse.ts"],
     format: ["esm"],
     dts: true,
     clean: true,
@@ -15,7 +10,7 @@ export default defineConfig([
     external: ["@effing/ffmpeg", "sharp"],
   },
   {
-    entry: ["src/server.ts"],
+    entry: { cli: "src/cli/index.ts" },
     format: ["esm"],
     dts: false,
     sourcemap: false,

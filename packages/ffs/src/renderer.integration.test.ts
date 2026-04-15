@@ -1,5 +1,5 @@
 import { describe, test, expect, afterAll } from "vitest";
-import { EffieRenderer } from "./render";
+import { EffieRenderer } from "./renderer";
 import {
   effieDataForSegment,
   effieDataForJoin,

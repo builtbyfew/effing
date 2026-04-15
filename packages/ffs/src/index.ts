@@ -1,6 +1,6 @@
 // Re-export the renderer
-export { EffieRenderer } from "./render";
-export type { EffieRendererOptions } from "./render";
+export { EffieRenderer } from "./renderer";
+export type { EffieRendererOptions } from "./renderer";
 
 // Re-export FFmpeg utilities
 export { FFmpegCommand, FFmpegRunner } from "./ffmpeg";

@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Takes an `EffieData` composition and renders it to an MP4 video using FFmpeg. Use as a library or run as a standalone HTTP server.
+Takes an `EffieData` composition and renders it to an MP4 video using FFmpeg. Use as a library, run as a standalone HTTP server, or render directly from the command line.
 
 ## Installation
 
@@ -34,10 +34,24 @@ videoStream.pipe(res);
 renderer.close();
 ```
 
+### As a CLI
+
+Render an Effie composition (URL or local JSON file) directly to an MP4:
+
+```bash
+# From a URL
+npx @effing/ffs render https://example.com/composition.json output.mp4
+
+# From a local file, at 50% scale
+npx @effing/ffs render ./composition.json output.mp4 --scale 0.5
+```
+
+Options: `--scale <n>`, `--skip-validation`, `--allow-local-files`, `-h`/`--help`.
+
 ### As an HTTP Server
 
 ```bash
-# Run the server
+# Run the server (default, equivalent to `ffs serve`)
 npx @effing/ffs
 
 # Or with custom port

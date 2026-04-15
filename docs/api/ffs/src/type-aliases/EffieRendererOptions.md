@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [packages/ffs/src/render.ts:17](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L17)
+Defined in: [packages/ffs/src/renderer.ts:17](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L17)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/ffs/src/render.ts:17](https://github.com/builtbyfew/effing
 
 > `optional` **allowLocalFiles**: `boolean`
 
-Defined in: [packages/ffs/src/render.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L24)
+Defined in: [packages/ffs/src/renderer.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L24)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -34,7 +34,7 @@ false
 
 > `optional` **httpProxy**: `HttpProxy`
 
-Defined in: [packages/ffs/src/render.ts:36](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L36)
+Defined in: [packages/ffs/src/renderer.ts:36](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L36)
 
 HTTP proxy for video/audio URLs.
 When provided, HTTP(S) URLs for video/audio inputs will be routed
@@ -47,7 +47,7 @@ instead of FFmpeg (useful for Alpine Linux with musl libc).
 
 > `optional` **transientStore**: `TransientStore`
 
-Defined in: [packages/ffs/src/render.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/render.ts#L29)
+Defined in: [packages/ffs/src/renderer.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L29)
 
 Transient store instance for source lookups.
 If not provided, sources will be fetched directly from network.

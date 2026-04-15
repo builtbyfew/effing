@@ -1,23 +1,23 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
-import type { TransientStore } from "./storage";
-import { storeKeys } from "./storage";
+import type { TransientStore } from "../storage";
+import { storeKeys } from "../storage";
 import type {
   ServerContext,
   VideoJob,
   ResolvedRenderJob,
   DeferredRenderJob,
-} from "./handlers/shared";
+} from "./shared";
 
-vi.mock("./render", () => ({
+vi.mock("../renderer", () => ({
   EffieRenderer: vi.fn(),
 }));
 
-vi.mock("./fetch", () => ({
+vi.mock("../fetch", () => ({
   ffsFetch: vi.fn(),
 }));
 
-vi.mock("./handlers/caching", () => ({
+vi.mock("./caching", () => ({
   warmupSources: vi.fn(async () => {}),
   purgeCachedSources: vi.fn(async () => ({ purged: 0, total: 0 })),
 }));
@@ -104,7 +104,7 @@ describe("streamRenderVideo", () => {
   });
 
   test("returns 404 when video job does not exist", async () => {
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: "nonexistent-id" });
     const res = mockResponse();
@@ -148,12 +148,12 @@ describe("streamRenderVideo", () => {
       close: vi.fn(),
     };
 
-    const { EffieRenderer } = await import("./render");
+    const { EffieRenderer } = await import("../renderer");
     vi.mocked(EffieRenderer).mockImplementation(
       () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
     );
 
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -198,12 +198,12 @@ describe("streamRenderVideo", () => {
       close: vi.fn(),
     };
 
-    const { EffieRenderer } = await import("./render");
+    const { EffieRenderer } = await import("../renderer");
     vi.mocked(EffieRenderer).mockImplementation(
       () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
     );
 
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -241,7 +241,7 @@ describe("streamRenderVideo", () => {
       [storeKeys.videoJob(jobId)]: videoJob,
     };
 
-    const { ffsFetch } = await import("./fetch");
+    const { ffsFetch } = await import("../fetch");
     vi.mocked(ffsFetch).mockResolvedValue({
       ok: true,
       headers: new Headers({
@@ -257,7 +257,7 @@ describe("streamRenderVideo", () => {
       },
     } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
 
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -308,12 +308,12 @@ describe("streamRenderVideo", () => {
       close: vi.fn(),
     };
 
-    const { EffieRenderer } = await import("./render");
+    const { EffieRenderer } = await import("../renderer");
     vi.mocked(EffieRenderer).mockImplementation(
       () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
     );
 
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -352,7 +352,7 @@ describe("streamRenderVideo", () => {
     };
 
     // Mock ffsFetch to return a fake binary response for the backend proxy
-    const { ffsFetch } = await import("./fetch");
+    const { ffsFetch } = await import("../fetch");
     vi.mocked(ffsFetch).mockResolvedValue({
       ok: true,
       headers: new Headers({
@@ -368,7 +368,7 @@ describe("streamRenderVideo", () => {
       },
     } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
 
-    const { streamRenderVideo } = await import("./handlers/rendering");
+    const { streamRenderVideo } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -391,7 +391,7 @@ describe("video job gating", () => {
   });
 
   test("video job is not in store after createRenderJob", async () => {
-    const { createRenderJob } = await import("./handlers/rendering");
+    const { createRenderJob } = await import("./rendering");
 
     const storeData: Record<string, unknown> = {};
     const ctx = mockContext(storeData);
@@ -449,8 +449,8 @@ describe("video job gating", () => {
   });
 
   test("URL effie stores DeferredRenderJob without calling ffsFetch", async () => {
-    const { ffsFetch } = await import("./fetch");
-    const { createRenderJob } = await import("./handlers/rendering");
+    const { ffsFetch } = await import("../fetch");
+    const { createRenderJob } = await import("./rendering");
 
     const storeData: Record<string, unknown> = {};
     const ctx = mockContext(storeData);
@@ -506,7 +506,7 @@ describe("streamRenderProgress with deferred jobs", () => {
   }
 
   test("resolves deferred job, emits effie:fetching/effie:fetched", async () => {
-    const { ffsFetch } = await import("./fetch");
+    const { ffsFetch } = await import("../fetch");
 
     const effieData = {
       width: 1080,
@@ -550,7 +550,7 @@ describe("streamRenderProgress with deferred jobs", () => {
       } satisfies DeferredRenderJob,
     };
 
-    const { streamRenderProgress } = await import("./handlers/rendering");
+    const { streamRenderProgress } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -583,7 +583,7 @@ describe("streamRenderProgress with deferred jobs", () => {
   });
 
   test("non-upload progress path does not fire onRenderComplete", async () => {
-    const { ffsFetch } = await import("./fetch");
+    const { ffsFetch } = await import("../fetch");
 
     const effieData = {
       width: 1080,
@@ -627,7 +627,7 @@ describe("streamRenderProgress with deferred jobs", () => {
       } satisfies DeferredRenderJob,
     };
 
-    const { streamRenderProgress } = await import("./handlers/rendering");
+    const { streamRenderProgress } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();
@@ -642,7 +642,7 @@ describe("streamRenderProgress with deferred jobs", () => {
   });
 
   test("deferred fetch failure emits SSE error with phase effie", async () => {
-    const { ffsFetch } = await import("./fetch");
+    const { ffsFetch } = await import("../fetch");
 
     vi.mocked(ffsFetch).mockRejectedValue(new Error("Network error"));
 
@@ -657,7 +657,7 @@ describe("streamRenderProgress with deferred jobs", () => {
       } satisfies DeferredRenderJob,
     };
 
-    const { streamRenderProgress } = await import("./handlers/rendering");
+    const { streamRenderProgress } = await import("./rendering");
 
     const req = mockRequest({ id: jobId });
     const res = mockResponse();

@@ -8,10 +8,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
-    },
     "./handlers": {
       "types": "./dist/handlers/index.d.ts",
       "import": "./dist/handlers/index.js"
@@ -22,7 +18,7 @@
     }
   },
   "bin": {
-    "ffs": "./dist/server.js"
+    "ffs": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -30,8 +26,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "dev": "tsx --watch src/server.ts",
-    "start": "node dist/server.js",
+    "dev": "tsx --watch src/cli/index.ts",
+    "start": "node dist/cli.js",
     "test": "vitest run --exclude '**/*.integration.test.ts'",
     "test:integration": "vitest run integration"
   },

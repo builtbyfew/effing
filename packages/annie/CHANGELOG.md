@@ -1,5 +1,12 @@
 # @effing/annie
 
+## 0.29.0
+
+### Patch Changes
+
+- Updated dependencies [01e4e6a]
+  - @effing/serde@0.29.0
+
 ## 0.28.0
 
 ### Minor Changes

@@ -1,5 +1,20 @@
 # @effing/ffs
 
+## 0.29.0
+
+### Minor Changes
+
+- 5b31489: Add `ffs render` CLI for direct video rendering
+
+  The `ffs` binary now supports a `render <url-or-json-file> <output.mp4>` subcommand that fetches an Effie composition (URL or local JSON), validates it, and renders to an MP4 file without going through the HTTP server. The previous default behavior (starting the HTTP server) is preserved and also available as `ffs serve`. As part of this, the binary entry moved from `dist/server.js` to `dist/cli.js` and the `./server` subpath export was removed (it had no known consumers).
+
+### Patch Changes
+
+- 1e0faa7: Surface non-zero ffmpeg exit codes as stream errors
+
+  The stream returned by `EffieRenderer.render()` (and used internally by the `ffs render` CLI and HTTP handlers) previously ended normally when the underlying ffmpeg process exited non-zero, letting callers' `pipeline()` resolve successfully on truncated or empty output. It now holds back the end-of-stream signal until ffmpeg has exited and emits an `error` event on non-zero exits so downstream consumers fail loudly.
+  - @effing/effie@0.29.0
+
 ## 0.28.0
 
 ### Patch Changes

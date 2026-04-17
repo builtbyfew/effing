@@ -1,5 +1,32 @@
 # @effing/create
 
+## 0.29.0
+
+### Minor Changes
+
+- c7f6f10: Use clearer URL segments in starter demo routes
+
+  The scaffolded starter now routes annies/effies/images at `/annie/:segment`,
+  `/effie/:segment`, `/image/:segment` with preview pages under
+  `/preview/annie/:id`, `/preview/effie/:id`, `/preview/image/:id`, replacing the
+  cryptic two-letter segments (`an`, `ff`, `im`, `pan`, `pff`, `pim`). The
+  `kindPrefix` indirection in `fn.server.ts` is gone since the URL segment now
+  equals the `FnKind`.
+
+- 01e4e6a: Switch demo URL segments to `{ id, props }` shape and make serde key conversion recursive
+
+  The demos/starter URL segments now serialize as `{ id, props }` instead of
+  spreading props at the top level alongside a kind-specific id key
+  (`{ imageId | annieId | effieId, ...props }`). This gives a uniform contract
+  for all three kinds and a clean separation between the module identifier and
+  its props.
+
+  To preserve Python `snake_case` → `camelCase` interop for prop names now
+  nested one level deeper under `props`, `@effing/serde`'s
+  `convertKeysToCamel` conversion in `deserialize` is now recursive across
+  plain objects and arrays; primitives and non-plain objects (Date, Buffer,
+  class instances) still pass through unchanged.
+
 ## 0.28.0
 
 ### Minor Changes

@@ -6,13 +6,12 @@ import type { Route } from "./+types/im.$segment";
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
 
-  const payload = await deserialize<{ imageId: string }>(
-    params.segment,
-    process.env.SECRET_KEY!,
-  );
+  const { id, props } = await deserialize<{
+    id: string;
+    props: Record<string, unknown>;
+  }>(params.segment, process.env.SECRET_KEY!);
 
-  const { imageId, ...props } = payload;
-  const { runner, propsSchema } = await fnModule("image", imageId);
+  const { runner, propsSchema } = await fnModule("image", id);
 
   if (propsSchema) {
     propsSchema.parse(props);

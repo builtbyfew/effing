@@ -118,7 +118,7 @@ async function loader({ params }) {
 ```
 
 > [!NOTE]
-> The `convertKeysToCamel` deserialization option (which is `true` by default) is useful when URLs are built in Python (with itsdangerous) and then consumed by Effing. Python typically uses `snake_case` keys, while TypeScript prefers `camelCase`.
+> The `convertKeysToCamel` deserialization option (which is `true` by default) is useful when URLs are built in Python (with itsdangerous) and then consumed by Effing. Python typically uses `snake_case` keys, while TypeScript prefers `camelCase`. The conversion is recursive — keys inside nested objects and arrays of objects are converted too.
 
 ### Secure Tokens
 

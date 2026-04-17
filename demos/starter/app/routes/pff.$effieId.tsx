@@ -150,7 +150,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   const urlSegment = await serialize(
-    { effieId: params.effieId, ...previewProps },
+    { id: params.effieId, props: previewProps },
     process.env.SECRET_KEY!,
   );
 

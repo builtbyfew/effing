@@ -6,11 +6,12 @@ import type { Route } from "./+types/ff.$segment";
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
 
-  const { effieId, ...props } = await deserialize<{
-    effieId: string;
+  const { id, props } = await deserialize<{
+    id: string;
+    props: Record<string, unknown>;
   }>(params.segment, process.env.SECRET_KEY!);
 
-  const { runner, propsSchema } = await fnModule("effie", effieId);
+  const { runner, propsSchema } = await fnModule("effie", id);
 
   // Validate props if schema exists
   if (propsSchema) {

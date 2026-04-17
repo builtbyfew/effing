@@ -47,18 +47,10 @@ const moduleLoader: FnModuleLoader = {
 };
 
 const kindPrefix = { image: "im", annie: "an", effie: "ff" } as const;
-const kindIdKey = {
-  image: "imageId",
-  annie: "annieId",
-  effie: "effieId",
-} as const;
 
 const urlBuilder: FnUrlBuilder = {
   async buildUrl(kind, id, props, { width, height }) {
-    const segment = await serialize(
-      { [kindIdKey[kind]]: id, ...props },
-      process.env.SECRET_KEY!,
-    );
+    const segment = await serialize({ id, props }, process.env.SECRET_KEY!);
     return effieWebUrl(
       `${process.env.BASE_URL!}/${kindPrefix[kind]}/${segment}?w=${width}&h=${height}`,
     );

@@ -49,19 +49,23 @@ function deriveSigningKey(
 }
 
 /**
- * Convert snake_case keys to camelCase.
+ * Recursively convert snake_case keys to camelCase in plain objects and
+ * arrays. Primitives and non-plain objects (Date, Buffer, class instances…)
+ * pass through unchanged.
  */
-function keysToCamel<T extends Record<string, unknown>>(
-  obj: T,
-): Record<string, unknown> {
-  const newObj: Record<string, unknown> = {};
-  Object.keys(obj).forEach((key) => {
+function keysToCamel(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(keysToCamel);
+  if (value === null || typeof value !== "object") return value;
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
     const camelKey = key.replace(/(_[a-z])/gi, (s) =>
       s.toUpperCase().replace("_", ""),
     );
-    newObj[camelKey] = obj[key];
-  });
-  return newObj;
+    out[camelKey] = keysToCamel(v);
+  }
+  return out;
 }
 
 export interface SerializeOptions {

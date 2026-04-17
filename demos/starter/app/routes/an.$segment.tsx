@@ -6,13 +6,12 @@ import type { Route } from "./+types/an.$segment";
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();
 
-  const payload = await deserialize<{ annieId: string }>(
-    params.segment,
-    process.env.SECRET_KEY!,
-  );
+  const { id, props } = await deserialize<{
+    id: string;
+    props: Record<string, unknown>;
+  }>(params.segment, process.env.SECRET_KEY!);
 
-  const { annieId, ...props } = payload;
-  const { runner, propsSchema } = await fnModule("annie", annieId);
+  const { runner, propsSchema } = await fnModule("annie", id);
 
   // Validate props if schema exists
   if (propsSchema) {
@@ -29,7 +28,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   return annieResponse(frames, {
     signal: request.signal,
-    filename: annieId,
+    filename: id,
     ...(noCache && { cacheControl: "no-store" }),
   });
 }

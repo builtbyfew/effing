@@ -78,6 +78,38 @@ describe("serialize", () => {
     expect(deserialized.another_test).toBe(456);
     expect(deserialized.anotherTest).toBeUndefined();
   });
+
+  test("camelCase conversion recurses into nested objects and arrays", async () => {
+    const original = {
+      id: "foo",
+      props: {
+        image_url: "https://example.com/pic.png",
+        nested_thing: { sub_key: "v", keep_null: null },
+        slide_list: [
+          { image_url: "a.png", alt_text: "a" },
+          { image_url: "b.png", alt_text: "b" },
+        ],
+      },
+    };
+    const serialized = await serialize(original, "testkey");
+    const deserialized = await deserialize<{
+      id: string;
+      props: {
+        imageUrl: string;
+        nestedThing: { subKey: string; keepNull: null };
+        slideList: { imageUrl: string; altText: string }[];
+      };
+    }>(serialized, "testkey");
+
+    expect(deserialized.id).toBe("foo");
+    expect(deserialized.props.imageUrl).toBe("https://example.com/pic.png");
+    expect(deserialized.props.nestedThing.subKey).toBe("v");
+    expect(deserialized.props.nestedThing.keepNull).toBeNull();
+    expect(deserialized.props.slideList).toEqual([
+      { imageUrl: "a.png", altText: "a" },
+      { imageUrl: "b.png", altText: "b" },
+    ]);
+  });
 });
 
 describe("deserialize", () => {

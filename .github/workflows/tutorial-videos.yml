@@ -15,8 +15,6 @@ jobs:
   generate:
     name: Generate and publish tutorial videos
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,13 +37,15 @@ jobs:
       - name: Generate tutorial videos
         run: pnpm --filter @effing/tutorial start
 
-      - name: Publish to rolling release
+      - name: Publish to R2
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
         run: |
-          gh release view tutorial-videos >/dev/null 2>&1 \
-            || gh release create tutorial-videos \
-                 --title "Tutorial videos" \
-                 --notes "Auto-generated from demos/tutorial. Do not edit manually." \
-                 --latest=false
-          gh release upload tutorial-videos demos/tutorial/out/*.mp4 --clobber
+          aws s3 cp demos/tutorial/out/ s3://effing-static-assets/tutorial/ \
+            --recursive --exclude "*" --include "*.mp4" \
+            --content-type video/mp4 \
+            --endpoint-url "${{ secrets.R2_ENDPOINT_URL }}"

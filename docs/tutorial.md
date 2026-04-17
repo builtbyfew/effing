@@ -73,7 +73,7 @@ stream.on("end", () => renderer.close());
 
 Run it with `npx tsx video.ts` and you'll get an `output.mp4`.
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/1a-first.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/1a-first.mp4)
 
 ### Adding a Second Segment
 
@@ -105,7 +105,7 @@ segments: [
 
 The second image slices in over 0.5 seconds. Effie supports [many transition types](../packages/effie/README.md#transitions): `fade`, `slide`, `wipe`, `zoom`, `dissolve`, `barn`, `circle`, `pixelize`, and more.
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/1b-two-segments.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/1b-two-segments.mp4)
 
 ### Effects and Motion
 
@@ -150,7 +150,7 @@ Here we're using a wider image (1.5x the video width) and scrolling it to the le
 
 You can combine multiple effects with one motion on the same layer. This covers a lot of common video animations — you only need to generate custom frames when you want something more specific.
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/1c-effects-motion.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/1c-effects-motion.mp4)
 
 ### Audio
 
@@ -185,7 +185,7 @@ Segments can have their own audio. Let's add a sound effect to our second segmen
 
 Audio supports `volume`, `fadeIn`, `fadeOut`, and `seek` for fine-grained control. You can also set a global `audio` on the composition itself for a background soundtrack.
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/1d-audio.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/1d-audio.mp4)
 
 ## 2. Generating Images with Canvas
 
@@ -275,7 +275,7 @@ Now replace the first segment with our generated title card:
 
 We can also use `titleUrl` as the `cover`, since it's a good preview image for the video.
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/2a-title-card.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/2a-title-card.mp4)
 
 ### Stacking Layers
 
@@ -352,7 +352,7 @@ Now add it as a second layer in the title card segment. It slides in from the ri
 
 Layers are drawn bottom to top, so the badge renders on top of the title card. You can use `delay`, `from`, and `until` to [control when each layer appears](../packages/effie/README.md#segments--layers).
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/2b-badge-stacked.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/2b-badge-stacked.mp4)
 
 ## 3. Creating Annie Animations
 
@@ -522,7 +522,7 @@ const video = effieData({
 
 Three segments — a generated title card, an animated progress bar with bounce, and a panning photo — each with their own transition and audio. The complete code is in [`demos/tutorial/3-final.tsx`](../demos/tutorial/3-final.tsx).
 
-[Watch the rendered video](https://github.com/builtbyfew/effing/releases/download/tutorial-videos/3-final.mp4)
+[Watch the rendered video](https://static.effing.dev/tutorial/3-final.mp4)
 
 ## How It All Fits Together
 

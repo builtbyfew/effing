@@ -22,7 +22,7 @@ import {
 } from "@effing/effie-preview/react";
 import { ensureFnRuntime } from "~/fn.server";
 import { fnModule } from "@effing/fn";
-import type { Route } from "./+types/pff.$effieId";
+import type { Route } from "./+types/preview.effie.$effieId";
 
 // ============ Constants ============
 
@@ -186,7 +186,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     width,
     height,
     effie,
-    jsonUrl: `/ff/${urlSegment}?w=${width}&h=${height}`,
+    jsonUrl: `/effie/${urlSegment}?w=${width}&h=${height}`,
     warmupUrl,
   };
 }
@@ -504,7 +504,9 @@ export default function EffiePreviewPage() {
                       {r.width}x{r.height} ({r.label})
                     </strong>
                   ) : (
-                    <a href={`/pff/${effieId}?w=${r.width}&h=${r.height}`}>
+                    <a
+                      href={`/preview/effie/${effieId}?w=${r.width}&h=${r.height}`}
+                    >
                       {r.width}x{r.height} ({r.label})
                     </a>
                   )}

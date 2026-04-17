@@ -83,7 +83,7 @@ const source = await annieUrl({
   width: 1080,
   height: 1920,
 });
-// → "https://your.app/an/eJxLtDK0MrYyNzE2sQIAC7IB4Q?w=1080&h=1920"
+// → "https://your.app/annie/eJxLtDK0MrYyNzE2sQIAC7IB4Q?w=1080&h=1920"
 ```
 
 The props get serialized into a (compressed and signed) URL-safe segment. Same inputs, same URL. This turns Annies into reusable components that are basically just URLs, so caching and deduplication come naturally. If two videos use the same animation with the same parameters, you only generate it once.

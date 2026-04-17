@@ -1,7 +1,7 @@
 import { ensureFnRuntime } from "~/fn.server";
 import { deserialize } from "@effing/serde";
 import { fnModule, imageResponse } from "@effing/fn";
-import type { Route } from "./+types/im.$segment";
+import type { Route } from "./+types/image.$segment";
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   ensureFnRuntime();

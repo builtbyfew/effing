@@ -46,13 +46,11 @@ const moduleLoader: FnModuleLoader = {
   hasModule: (kind, id) => id in modulesByKind[kind],
 };
 
-const kindPrefix = { image: "im", annie: "an", effie: "ff" } as const;
-
 const urlBuilder: FnUrlBuilder = {
   async buildUrl(kind, id, props, { width, height }) {
     const segment = await serialize({ id, props }, process.env.SECRET_KEY!);
     return effieWebUrl(
-      `${process.env.BASE_URL!}/${kindPrefix[kind]}/${segment}?w=${width}&h=${height}`,
+      `${process.env.BASE_URL!}/${kind}/${segment}?w=${width}&h=${height}`,
     );
   },
 };

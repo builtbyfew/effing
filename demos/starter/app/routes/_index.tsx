@@ -34,7 +34,7 @@ export default function Index() {
             {imageIds.map((id) => (
               <li key={id} style={{ marginBottom: 8 }}>
                 <Link
-                  to={`/pim/${id}`}
+                  to={`/preview/image/${id}`}
                   style={{
                     display: "inline-block",
                     padding: "8px 16px",
@@ -66,7 +66,7 @@ export default function Index() {
             {annieIds.map((id) => (
               <li key={id} style={{ marginBottom: 8 }}>
                 <Link
-                  to={`/pan/${id}`}
+                  to={`/preview/annie/${id}`}
                   style={{
                     display: "inline-block",
                     padding: "8px 16px",
@@ -98,7 +98,7 @@ export default function Index() {
             {effieIds.map((id) => (
               <li key={id} style={{ marginBottom: 8 }}>
                 <Link
-                  to={`/pff/${id}`}
+                  to={`/preview/effie/${id}`}
                   style={{
                     display: "inline-block",
                     padding: "8px 16px",

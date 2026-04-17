@@ -25,11 +25,13 @@ demos/starter/
 │   │   ├── index.ts         # Effie registry and types
 │   │   └── *.effie.tsx      # Effies
 │   ├── routes/
-│   │   ├── _index.tsx       # Homepage listing all annies/effies
-│   │   ├── an.$segment.tsx  # Annie TAR streaming endpoint
-│   │   ├── ff.$segment.tsx  # Effie JSON endpoint
-│   │   ├── pan.$annieId.tsx # Annie preview page
-│   │   └── pff.$effieId.tsx # Effie preview page
+│   │   ├── _index.tsx                   # Homepage listing all annies/effies
+│   │   ├── annie.$segment.tsx           # Annie TAR streaming endpoint
+│   │   ├── effie.$segment.tsx           # Effie JSON endpoint
+│   │   ├── image.$segment.tsx           # Image rendering endpoint
+│   │   ├── preview.annie.$annieId.tsx   # Annie preview page
+│   │   ├── preview.effie.$effieId.tsx   # Effie preview page
+│   │   └── preview.image.$imageId.tsx   # Image preview page
 │   ├── fonts.server.ts      # Font definitions and loading utils
 │   └── urls.server.ts       # URL generation helpers
 └── vite.config.ts
@@ -94,8 +96,8 @@ export async function* renderer({
 
 The Annie will automatically appear on the homepage and be accessible at:
 
-- **Preview:** `/pan/my-animation`
-- **TAR stream:** `/an/{signed-segment}?w=1080&h=1080`
+- **Preview:** `/preview/annie/my-animation`
+- **TAR stream:** `/annie/{signed-segment}?w=1080&h=1080`
 
 ## Creating Effies
 
@@ -156,8 +158,8 @@ export async function renderer({
 
 The Effie will automatically appear on the homepage and be accessible at:
 
-- **Preview:** `/pff/my-video`
-- **JSON:** `/ff/{signed-segment}?ratio=1:1`
+- **Preview:** `/preview/effie/my-video`
+- **JSON:** `/effie/{signed-segment}?ratio=1:1`
 
 ## Routes
 
@@ -165,14 +167,14 @@ The Effie will automatically appear on the homepage and be accessible at:
 
 Lists all available Annies and Effies with links to their preview pages.
 
-### Annie Preview (`/pan/:annieId`)
+### Annie Preview (`/preview/annie/:annieId`)
 
 Displays an interactive preview of an Annie using `@effing/annie-player`. Shows:
 
 - Playable animation with load/play/pause controls
 - Direct URL to the TAR stream
 
-### Effie Preview (`/pff/:effieId`)
+### Effie Preview (`/preview/effie/:effieId`)
 
 Comprehensive preview of an Effie composition using `@effing/effie-preview`. Shows:
 
@@ -181,14 +183,14 @@ Comprehensive preview of an Effie composition using `@effing/effie-preview`. Sho
 - All segments with their layers
 - Render button to generate video via FFS
 
-### Annie Stream (`/an/:segment`)
+### Annie Stream (`/annie/:segment`)
 
 Serves Annie TAR archives. The segment is a signed payload containing:
 
 - `annieId` — Which Annie to render
 - Props — Animation parameters
 
-### Effie JSON (`/ff/:segment`)
+### Effie JSON (`/effie/:segment`)
 
 Serves Effie JSON. The segment is a signed payload containing:
 
@@ -197,7 +199,7 @@ Serves Effie JSON. The segment is a signed payload containing:
 
 ## CDN Caching
 
-Both the `/an/:segment` and `/ff/:segment` routes can easily be placed behind a CDN in production. Since the segment contains signed, deterministic parameters, the same URL always produces the same output, making them ideal cache keys.
+Both the `/annie/:segment` and `/effie/:segment` routes can easily be placed behind a CDN in production. Since the segment contains signed, deterministic parameters, the same URL always produces the same output, making them ideal cache keys.
 
 Note also that CDN timeouts are not a concern for the annies, even though they might take a while to generate in practice, because they are streamed frame by frame. The CDN receives data continuously and won't time out waiting for the first byte.
 
@@ -235,10 +237,10 @@ const url = await annieUrl({
 The preview page can render videos if FFS is configured:
 
 1. Set `FFS_BASE_URL` and `FFS_API_KEY` environment variables
-2. Open an Effie preview page (`/pff/:effieId`)
+2. Open an Effie preview page (`/preview/effie/:effieId`)
 3. Click "Render it FFS" to send the composition to the rendering service
 4. The rendered video appears in place of the cover image
 
 You can also render at different scales (33%, 67%, 100%, 200%) for faster previews or higher quality output.
 
-In production, you'd use an FFS server directly to render effies. Point FFS at your `/ff/:segment` endpoint and it will fetch the effie JSON, resolve all annie URLs, and produce the final video.
+In production, you'd use an FFS server directly to render effies. Point FFS at your `/effie/:segment` endpoint and it will fetch the effie JSON, resolve all annie URLs, and produce the final video.

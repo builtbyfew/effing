@@ -1,5 +1,7 @@
 # @effing/ffmpeg
 
+## 0.29.1
+
 ## 0.29.0
 
 ### Patch Changes

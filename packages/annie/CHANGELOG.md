@@ -1,5 +1,14 @@
 # @effing/annie
 
+## 0.29.1
+
+### Patch Changes
+
+- 8825191: Drop unused `@effing/serde` dependency
+
+  `@effing/annie` no longer imports anything from `@effing/serde`, so the
+  runtime dependency has been removed. No public API change.
+
 ## 0.29.0
 
 ### Patch Changes

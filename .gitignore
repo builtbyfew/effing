@@ -6,3 +6,4 @@ build/
 packages/create/template/
 test-output/
 .DS_Store
+.pnpm-store/

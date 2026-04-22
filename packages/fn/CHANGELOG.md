@@ -1,5 +1,12 @@
 # @effing/fn
 
+## 0.29.1
+
+### Patch Changes
+
+- Updated dependencies [8825191]
+  - @effing/annie@0.29.1
+
 ## 0.29.0
 
 ### Patch Changes

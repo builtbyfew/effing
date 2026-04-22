@@ -17,9 +17,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@effing/serde": "workspace:*"
-  },
   "devDependencies": {
     "tsup": "catalog:",
     "typescript": "catalog:",

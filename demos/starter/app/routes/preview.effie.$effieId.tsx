@@ -7,7 +7,6 @@ import {
 } from "react-router";
 import { useEffect, useReducer, useRef, useState } from "react";
 import invariant from "tiny-invariant";
-import { serialize } from "@effing/serde";
 import {
   createEffieSourceResolver,
   parseEffieValidationIssues,
@@ -21,7 +20,7 @@ import {
   useEffieWarmup,
 } from "@effing/effie-preview/react";
 import { ensureFnRuntime } from "~/fn.server";
-import { fnModule } from "@effing/fn";
+import { fnModule, fnUrl } from "@effing/fn";
 import type { Route } from "./+types/preview.effie.$effieId";
 
 // ============ Constants ============
@@ -149,9 +148,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     );
   }
 
-  const urlSegment = await serialize(
-    { id: params.effieId, props: previewProps },
-    process.env.SECRET_KEY!,
+  const jsonUrl = await fnUrl(
+    "effie",
+    params.effieId,
+    previewProps as Record<string, unknown>,
+    { width, height },
   );
 
   const effie = await generateEffie({
@@ -186,7 +187,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     width,
     height,
     effie,
-    jsonUrl: `/effie/${urlSegment}?w=${width}&h=${height}`,
+    jsonUrl,
     warmupUrl,
   };
 }

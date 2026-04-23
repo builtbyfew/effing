@@ -5,9 +5,9 @@ import {
   type FnModuleLoader,
   type FnUrlBuilder,
 } from "@effing/fn";
-import { serialize } from "@effing/serde";
 import { effieWebUrl } from "@effing/effie";
 import invariant from "tiny-invariant";
+import { serializeUrlSegment } from "~/urls.server";
 
 function parseGlobModules(
   globs: Record<string, () => Promise<unknown>>,
@@ -48,10 +48,8 @@ const moduleLoader: FnModuleLoader = {
 
 const urlBuilder: FnUrlBuilder = {
   async buildUrl(kind, id, props, { width, height }) {
-    const segment = await serialize({ id, props }, process.env.SECRET_KEY!);
-    return effieWebUrl(
-      `${process.env.BASE_URL!}/${kind}/${segment}?w=${width}&h=${height}`,
-    );
+    const segment = await serializeUrlSegment({ id, props, width, height });
+    return effieWebUrl(`${process.env.BASE_URL!}/${kind}/${segment}`);
   },
 };
 

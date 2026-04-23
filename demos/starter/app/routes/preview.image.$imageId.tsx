@@ -26,7 +26,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   return {
     imageId: params.imageId,
-    imageUrl: `${url}&cache=no`,
+    imageUrl: `${url}?cache=no`,
     width,
     height,
   };

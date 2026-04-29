@@ -1,5 +1,57 @@
 # @effing/create
 
+## 0.30.0
+
+### Minor Changes
+
+- 2d72d84: Add effing-cloud scripts to starter template
+
+  Adds `cloud:deploy` and `cloud:url-secret` scripts wired to the `effing-cloud`
+  CLI, along with an `effing-cloud.config.ts`.
+
+### Patch Changes
+
+- 1315cbc: Slugify project name and apply to effing-cloud config
+
+  The scaffolder now slugifies the directory basename (lowercase, non-alphanumeric
+  characters collapsed to hyphens) and writes it to both `package.json#name` and
+  `effing-cloud.config.ts#project`. Previously the cloud config kept its template
+  default of `"starter"`, which would collide for every scaffolded project.
+
+- 7d10310: Bump effing-cloud to ^0.4.0 in starter template
+- b28fcd6: Allow `@effing/ffmpeg` install script to run under pnpm
+
+  Adds `pnpm.onlyBuiltDependencies` to the scaffolded project's `package.json`
+  so pnpm 9+/10 runs the `@effing/ffmpeg` postinstall that downloads the
+  ffmpeg binary. Without this, scaffolded projects using pnpm would silently
+  skip the binary download and `ffs` would have no ffmpeg to invoke.
+
+- c522951: Update starter README to match the current fn runtime
+
+  The starter's README still described the old `*.annie.tsx`/`*.effie.tsx`
+  modules with `AnnieRendererArgs`/`EffieRendererArgs` and an `annieUrl`
+  helper. It now documents the unified `*.fn.tsx` modules with a `runner`
+  typed via `RunnerArgs` from `@effing/fn`, including a Creating Images
+  section and a rewritten URL Generation section around `fnUrl`.
+
+- d69bf35: Move image/annie/effie dimensions into the signed URL segment
+
+  Width and height were previously read from `?w=` and `?h=` query parameters,
+  so anyone holding a valid signed segment could request arbitrary dimensions
+  (e.g. 100000x100000) and exhaust server resources. The starter now bakes
+  width/height into the signed payload alongside `id` and `props` and rejects
+  any segment whose bounds aren't positive integers ≤ 8192. Previously-issued
+  URLs with `?w=&h=` query strings will no longer resolve — callers need to
+  rebuild them via `fnUrl()`.
+
+- 8bf3100: Add `@types/node` to starter devDependencies
+
+  The starter's `tsconfig.json` declares `"types": ["node", "vite/client"]`,
+  but `@types/node` was not listed in the package's devDependencies. Inside
+  this monorepo it resolved via workspace hoisting, but projects scaffolded
+  from the template via `pnpm create @effing` failed to typecheck with
+  missing-node-types errors.
+
 ## 0.29.1
 
 ## 0.29.0

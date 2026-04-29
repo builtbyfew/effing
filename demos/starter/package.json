@@ -36,6 +36,7 @@
   "devDependencies": {
     "@react-router/dev": "^7.0.0",
     "@react-router/fs-routes": "^7.0.0",
+    "@types/node": "^25.0.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "effing-cloud": "^0.4.0",

@@ -20,16 +20,53 @@ The root structure describing a complete video composition:
 
 ```typescript
 type EffieData = {
-  width: number; // Frame width in pixels
-  height: number; // Frame height in pixels
-  fps: number; // Frames per second
-  cover: EffieWebUrl; // Cover image URL
+  width: number; // Frame width in pixels (positive)
+  height: number; // Frame height in pixels (positive)
+  fps: number; // Frames per second (positive)
+  cover: EffieWebUrl; // Cover image URL — direct URL only, NOT a #ref
   sources?: EffieSources; // Named source references (for reuse)
-  background: EffieBackground; // Video background
+  background: EffieBackground; // All-encompassing background
   audio?: EffieAudio; // Global soundtrack
-  segments: EffieSegment[]; // Consecutive video segments
+  segments: EffieSegment[]; // Consecutive video segments (rendered in order)
 };
 ```
+
+All required fields above must be present. `cover` is a direct URL — unlike other source-bearing fields, it does **not** accept `#ref`.
+
+### Backgrounds
+
+`EffieBackground` is a discriminated union with three variants:
+
+| `type`  | Required fields  | Optional fields            |
+| ------- | ---------------- | -------------------------- |
+| `image` | `source`         | —                          |
+| `video` | `source`         | `seek` (seconds into clip) |
+| `color` | `color` (string) | —                          |
+
+```typescript
+type EffieBackground =
+  | { type: "image"; source: EffieSource }
+  | { type: "video"; source: EffieSource; seek?: number }
+  | { type: "color"; color: string };
+```
+
+`color` accepts a CSS color name or a hex string (`RRGGBB`, `#RRGGBB`, `0xRRGGBB`, optionally with `AA` alpha). The format is **not** runtime-validated — pass strings your renderer accepts.
+
+A segment-level `background` overrides the top-level background for that segment only.
+
+### Audio
+
+```typescript
+type EffieAudio = {
+  source: EffieSource;
+  volume?: number; // [0, 1] — runtime-enforced
+  fadeIn?: number; // fade-in duration in seconds
+  fadeOut?: number; // fade-out duration in seconds
+  seek?: number; // seek to this position in seconds
+};
+```
+
+Audio can appear at the top level (global soundtrack across all segments) or per-segment (overrides the global track for that segment). `volume` is the only audio field validated at runtime — it must be in `[0, 1]`.
 
 ### Segments & Layers
 
@@ -37,23 +74,27 @@ Videos are composed of **segments** (consecutive time blocks) containing **layer
 
 ```typescript
 type EffieSegment = {
-  duration: number; // Duration in seconds
-  layers: EffieLayer[]; // Visual layers (bottom to top)
+  duration: number; // Duration in seconds (positive)
+  layers: EffieLayer[]; // Visual layers, stacked bottom → top
   background?: EffieBackground; // Override global background for this segment
   audio?: EffieAudio; // Segment-specific audio
-  transition?: EffieTransition; // Transition from previous segment
+  transition?: EffieTransition; // Transition INTO this segment — ignored on segment 0
 };
 
 type EffieLayer = {
   type: "image" | "animation"; // PNG/JPEG or Annie TAR
   source: EffieSource; // URL or #reference
-  delay?: number; // Delay before appearing
-  from?: number; // Show from this time
-  until?: number; // Show until this time
+  delay?: number; // Delay before appearing (seconds, non-negative)
+  from?: number; // Clip source from this time (seconds)
+  until?: number; // Clip source until this time (seconds)
   effects?: EffieEffect[]; // Visual effects (see below)
   motion?: EffieMotion; // Motion animation (see below)
 };
 ```
+
+Layers in a segment are stacked **bottom to top**: `layers[0]` is drawn first, later entries paint over it. A segment's `transition` describes how that segment enters from the previous one; the very first segment's transition is silently ignored.
+
+`delay`, `from`, and `until` are all in seconds, measured against the segment's timeline (`delay`) or the source's own timeline (`from`/`until`).
 
 ### Effects vs Motion
 
@@ -69,7 +110,7 @@ A layer can have **multiple effects** (applied in sequence) but only **one motio
 
 ### Source References
 
-To avoid duplicating long URLs, define sources once and reference them with `#name`:
+To avoid duplicating long URLs, define sources once in the top-level `sources` map and reference them as `#name` from any `source: EffieSource` field — segment/global backgrounds, segment/global audio, and any layer:
 
 ```typescript
 const video = effieData({
@@ -82,6 +123,8 @@ const video = effieData({
   // ...
 });
 ```
+
+The top-level `cover` field is the one exception: it must be a direct `EffieWebUrl` and does **not** accept `#ref`. Every `#name` used elsewhere must resolve to a key in `sources` — this is enforced at runtime by the schema.
 
 ## Quick Start
 
@@ -115,6 +158,26 @@ const video = effieData({
   ],
 });
 ```
+
+## Validation
+
+`@effing/effie` ships two complementary checking layers:
+
+- **Type checking** — `effieData()`, `effieSegment()`, `effieLayer()`, and `effieBackground()` are **identity functions at runtime**; they exist purely to give TypeScript better inference (especially for `#ref` literal types). Calling them does **not** perform any structural validation.
+- **Runtime validation** — import the zod schemas from `@effing/effie` (zod is an optional peer dependency) and call `safeParse`:
+
+```typescript
+import { effieDataSchema } from "@effing/effie";
+
+const result = effieDataSchema.safeParse(unknownInput);
+if (!result.success) {
+  console.error(result.error.issues);
+} else {
+  const data = result.data; // typed EffieData
+}
+```
+
+Schemas are also exported per shape (`effieSegmentSchema`, `effieLayerSchema`, `effieBackgroundSchema`, `effieAudioSchema`, `effieTransitionSchema`, `effieEffectSchema`, `effieMotionSchema`) and as factories (`createEffieDataSchema(urlSchema)`) when you need to extend the URL universe — `effieDataWithFilesSchema` is one such variant that also accepts `file:` URLs for trusted operations.
 
 ## API Overview
 
@@ -213,11 +276,41 @@ Available transition types:
 
 ## Motion
 
-| Type     | Properties                                    | Description     |
-| -------- | --------------------------------------------- | --------------- |
-| `bounce` | `amplitude`, `start`, `duration`              | Bouncing motion |
-| `shake`  | `intensity`, `frequency`, `start`, `duration` | Shake effect    |
-| `slide`  | `direction`, `distance`, `reverse`, `easing`  | Slide animation |
+All motion variants share optional `start` and `duration` (in seconds). Variant-specific fields:
+
+| Type     | Required    | Optional                        | Description     |
+| -------- | ----------- | ------------------------------- | --------------- |
+| `bounce` | —           | `amplitude`                     | Bouncing motion |
+| `shake`  | —           | `intensity`, `frequency`        | Shake effect    |
+| `slide`  | `direction` | `distance`, `reverse`, `easing` | Slide animation |
+
+`direction` is required for `slide` only; `bounce` and `shake` need no required fields beyond `type`.
+
+## Runtime Constraints
+
+### Enforced by `effieDataSchema`
+
+The schema rejects the following at parse time:
+
+- **Volume** — `audio.volume` must be in `[0, 1]`.
+- **Source references** — every `#name` in a `source` field must resolve to a key in the top-level `sources` map.
+- **Transition fits both segments** — for any segment _i_ ≥ 1 with a `transition`, both `segments[i].duration` and `segments[i - 1].duration` must be ≥ `transition.duration`.
+- **URL shape** — sources must be HTTP/HTTPS or `data:` URLs (plus `file:` if you use `effieDataWithFilesSchema`); the cover must be a web URL.
+- **Strict objects** — unknown keys are rejected on every shape.
+
+### NOT enforced — write defensively
+
+The format does not currently validate these. Producers should ensure them themselves; renderers may misbehave or silently truncate otherwise:
+
+- **Positive dimensions/fps** — `width`, `height`, `fps` must be positive (not checked).
+- **Non-negative `delay`** — layer `delay` should be `≥ 0`.
+- **Layer clip ordering** — `from < until`, both within the source media's actual length.
+- **Effect timing within layer's effective duration** — `effect.start` and `effect.start + effect.duration` should fall inside the window the layer is on screen (segment duration, minus `delay`, minus any clipping).
+- **Motion timing** — same caveat for `motion.start` / `motion.duration`.
+- **Transition duration on segment 0** — accepted by the schema but ignored at render time.
+- **Color string format** — any string is accepted; it's the renderer's job to parse it.
+
+If something is uncertain, assert it in your producer or extend the schema — the format does not catch these for you.
 
 ## Related Packages
 

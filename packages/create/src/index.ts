@@ -4,6 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /**
  * Recursively copy a directory, restoring underscore-prefixed files to dotfiles.
  */
@@ -74,11 +81,26 @@ async function main(): Promise<void> {
   // Copy template files, restoring dotfiles
   await copyDir(templateDir, root);
 
+  const slug = slugify(path.basename(root));
+
   // Update package.json with project name
   const pkgPath = path.join(root, "package.json");
   const pkg = JSON.parse(await fs.readFile(pkgPath, "utf-8"));
-  pkg.name = path.basename(root);
+  pkg.name = slug;
   await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+
+  // Update effing-cloud.config.ts with project name
+  const cloudConfigPath = path.join(root, "effing-cloud.config.ts");
+  try {
+    const cloudConfig = await fs.readFile(cloudConfigPath, "utf-8");
+    const updated = cloudConfig.replace(
+      /project:\s*"[^"]*"/,
+      `project: "${slug}"`,
+    );
+    await fs.writeFile(cloudConfigPath, updated);
+  } catch {
+    // effing-cloud.config.ts is optional
+  }
 
   console.log("Done! To get started:\n");
   console.log(`  cd ${projectName}`);

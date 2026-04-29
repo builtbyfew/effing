@@ -1,6 +1,6 @@
 {
   "name": "@effing/serde",
-  "version": "0.29.1",
+  "version": "0.30.0",
   "description": "URL-safe serialization with compression and HMAC signing",
   "type": "module",
   "exports": {

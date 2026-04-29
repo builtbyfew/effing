@@ -133,8 +133,8 @@ importers:
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.7)
       effing-cloud:
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.4.0
+        version: 0.4.0
       npm-run-all:
         specifier: ^4.1.5
         version: 4.1.5
@@ -2477,8 +2477,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  effing-cloud@0.3.0:
-    resolution: {integrity: sha512-624rEuC2VfXY0ZWvduWbsA1kE52WXAJ0pZdfhtgIVxuAcIYVBQN0lWZO4zqVf8Ipaij4gn4SQ4+PCyP3ZsfVzw==}
+  effing-cloud@0.4.0:
+    resolution: {integrity: sha512-8+cgIxxou7pM7FapvDdQ+/LXW7PVEIlYA6RbrcZUqoVB1nyuhnvCOcYOiMykJ4W1zJlaq4K6Ym+xVFRwd3xz2A==}
     hasBin: true
 
   electron-to-chromium@1.5.267:
@@ -3435,6 +3435,10 @@ packages:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
     engines: {node: '>=12'}
 
+  picomatch@4.0.4:
+    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
+    engines: {node: '>=12'}
+
   pidtree@0.3.1:
     resolution: {integrity: sha512-qQbW94hLHEqCg7nhby4yRC7G2+jYHY4Rguc2bjw7Uug4GIJuu1tvf2uHaZv5Q8zdt+WKJ6qK1FOI6amaWUo5FA==}
     engines: {node: '>=0.10'}
@@ -3925,6 +3929,10 @@ packages:
 
   tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
+    engines: {node: '>=12.0.0'}
+
+  tinyglobby@0.2.16:
+    resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
     engines: {node: '>=12.0.0'}
 
   tinypool@1.1.1:
@@ -6688,11 +6696,11 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effing-cloud@0.3.0:
+  effing-cloud@0.4.0:
     dependencies:
       commander: 13.1.0
       esbuild: 0.28.0
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.16
       zod: 3.25.76
 
   electron-to-chromium@1.5.267: {}
@@ -7062,6 +7070,10 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.3):
     optionalDependencies:
       picomatch: 4.0.3
+
+  fdir@6.5.0(picomatch@4.0.4):
+    optionalDependencies:
+      picomatch: 4.0.4
 
   fflate@0.7.4: {}
 
@@ -7800,6 +7812,8 @@ snapshots:
 
   picomatch@4.0.3: {}
 
+  picomatch@4.0.4: {}
+
   pidtree@0.3.1: {}
 
   pidtree@0.6.0: {}
@@ -8390,6 +8404,11 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
+
+  tinyglobby@0.2.16:
+    dependencies:
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
 
   tinypool@1.1.1: {}
 

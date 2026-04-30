@@ -84,9 +84,9 @@ type EffieSegment = {
 type EffieLayer = {
   type: "image" | "animation"; // PNG/JPEG or Annie TAR
   source: EffieSource; // URL or #reference
-  delay?: number; // Delay before appearing (seconds, non-negative)
-  from?: number; // Clip source from this time (seconds)
-  until?: number; // Clip source until this time (seconds)
+  delay?: number; // Defer content start by this many seconds (non-negative; defaults to 0)
+  from?: number; // Visible from this segment time (seconds; defaults to `delay`)
+  until?: number; // Visible until this segment time (seconds; defaults to `segment.duration`)
   effects?: EffieEffect[]; // Visual effects (see below)
   motion?: EffieMotion; // Motion animation (see below)
 };
@@ -94,7 +94,7 @@ type EffieLayer = {
 
 Layers in a segment are stacked **bottom to top**: `layers[0]` is drawn first, later entries paint over it. A segment's `transition` describes how that segment enters from the previous one; the very first segment's transition is silently ignored.
 
-`delay`, `from`, and `until` are all in seconds, measured against the segment's timeline (`delay`) or the source's own timeline (`from`/`until`).
+All three timing fields are in seconds of segment time (where `t = 0` is when the segment begins). `delay` shifts when the layer's source content starts playing — and the layer's default visibility window starts there too: `from` defaults to `delay`, so an unset `from` keeps in step with `delay` automatically. `until` defaults to `segment.duration`. Set `from` or `until` explicitly only when you want a tighter visibility window than that.
 
 ### Effects vs Motion
 
@@ -304,9 +304,9 @@ The format does not currently validate these. Producers should ensure them thems
 
 - **Positive dimensions/fps** — `width`, `height`, `fps` must be positive (not checked).
 - **Non-negative `delay`** — layer `delay` should be `≥ 0`.
-- **Layer clip ordering** — `from < until`, both within the source media's actual length.
-- **Effect timing within layer's effective duration** — `effect.start` and `effect.start + effect.duration` should fall inside the window the layer is on screen (segment duration, minus `delay`, minus any clipping).
-- **Motion timing** — same caveat for `motion.start` / `motion.duration`.
+- **Layer visibility window** — `from < until`, both within `[0, segment.duration]`.
+- **Effect timing inside the content window** — `effect.start` is measured from when the layer's source content begins playing (segment time `delay`), so `effect.start` and `effect.start + effect.duration` should fit within `[0, segment.duration - delay]`.
+- **Motion timing** — `motion.start` is measured the same way as `effect.start`; same fit constraint.
 - **Transition duration on segment 0** — accepted by the schema but ignored at render time.
 - **Color string format** — any string is accepted; it's the renderer's job to parse it.
 

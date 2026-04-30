@@ -75,9 +75,9 @@ export type EffieLayer<
     | "image" // png or jpeg
     | "animation"; // annie
   source: EffieSource<S, U>;
-  delay?: number; // delay (before start) time in seconds
-  from?: number; // clip from this time in seconds
-  until?: number; // clip until this time in seconds
+  delay?: number; // defer content start by this many seconds (segment time; defaults to 0)
+  from?: number; // visible from this segment time in seconds (defaults to `delay`)
+  until?: number; // visible until this segment time in seconds (defaults to `segment.duration`)
   effects?: EffieEffect[];
   motion?: EffieMotion;
 };

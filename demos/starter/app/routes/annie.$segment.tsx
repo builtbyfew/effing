@@ -16,12 +16,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     propsSchema.parse(props);
   }
 
-  const noCache = new URL(request.url).searchParams.get("cache") === "no";
   const frames = runner({ props, bounds: { width, height } });
 
   return annieResponse(frames, {
     signal: request.signal,
     filename: id,
-    ...(noCache && { cacheControl: "no-store" }),
+    cacheControl:
+      process.env.NODE_ENV !== "production" ? "no-store" : undefined,
   });
 }

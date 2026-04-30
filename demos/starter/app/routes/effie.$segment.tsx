@@ -18,5 +18,8 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   const effieData = await runner({ props, bounds: { width, height } });
 
-  return effieResponse(effieData);
+  return effieResponse(effieData, {
+    cacheControl:
+      process.env.NODE_ENV !== "production" ? "no-store" : undefined,
+  });
 }

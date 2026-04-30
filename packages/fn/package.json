@@ -1,6 +1,6 @@
 {
   "name": "@effing/fn",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "Effing function runtime — pluggable module loading and URL building",
   "type": "module",
   "exports": {

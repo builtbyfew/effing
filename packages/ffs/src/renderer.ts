@@ -284,7 +284,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       }
       const overlayOutputLabel = `${labelPrefix}tmp${l}`;
       const offset = layer.motion ? processMotion(delay, layer.motion) : "0:0";
-      const fromTime = layer.from ?? 0;
+      const fromTime = layer.from ?? delay;
       const untilTime = layer.until ?? segment.duration;
       filterParts.push(
         `[${currentVidLabel}][${overlayInputLabel}]overlay=${offset}:enable='between(t,${fromTime},${untilTime})',fps=${this.effieData.fps}[${overlayOutputLabel}]`,

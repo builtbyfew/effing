@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.31.1
+
+### Patch Changes
+
+- f2be1fa: Add .gitignore to scaffolded starter template
+
 ## 0.31.0
 
 ### Minor Changes

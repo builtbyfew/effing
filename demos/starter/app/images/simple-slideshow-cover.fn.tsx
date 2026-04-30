@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { RunnerArgs, ImageRunnerReturn } from "@effing/fn";
 import { createCanvas, renderReactElement } from "@effing/canvas";
-import { loadFonts, interSemiBold } from "~/fonts.server";
+import { loadFonts, interSemiBold } from "~/fonts";
 import { TextTypewriterOverlay } from "~/annies/text-typewriter.fn";
 
 export const propsSchema = z.object({

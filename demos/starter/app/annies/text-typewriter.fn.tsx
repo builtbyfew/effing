@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { interBold, loadFonts } from "~/fonts.server";
+import { interBold, loadFonts } from "~/fonts";
 import { tween } from "@effing/tween";
 import { createCanvas, renderReactElement } from "@effing/canvas";
 import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";

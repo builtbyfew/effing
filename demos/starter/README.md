@@ -33,7 +33,7 @@ demos/starter/
 │   │   ├── preview.effie.$effieId.tsx   # Effie preview page
 │   │   └── preview.image.$imageId.tsx   # Image preview page
 │   ├── fn.server.ts         # Wires the @effing/fn runtime to the app
-│   ├── fonts.server.ts      # Font definitions and loading utils
+│   ├── fonts.ts             # Font definitions and loading utils
 │   └── urls.server.ts       # Signed URL segment helpers
 └── vite.config.ts
 ```
@@ -84,7 +84,7 @@ import { z } from "zod";
 import { createCanvas, renderReactElement } from "@effing/canvas";
 import { tween, easeOutQuad } from "@effing/tween";
 import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
-import { interBold, loadFonts } from "~/fonts.server";
+import { interBold, loadFonts } from "~/fonts";
 
 // 1. Define props schema
 export const propsSchema = z.object({

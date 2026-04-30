@@ -2,6 +2,7 @@ import { useLoaderData } from "react-router";
 import invariant from "tiny-invariant";
 import { AnniePlayer } from "@effing/annie-player/react";
 import { ensureFnRuntime } from "~/fn.server";
+import { parseBoundsFromUrl } from "~/urls.server";
 import { fnModule, fnUrl } from "@effing/fn";
 import type { Route } from "./+types/preview.annie.$annieId";
 
@@ -14,9 +15,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     "previewProps does not adhere to the propsSchema",
   );
 
-  const searchParams = new URL(request.url).searchParams;
-  const width = parseInt(searchParams.get("w") || "1080", 10);
-  const height = parseInt(searchParams.get("h") || "1080", 10);
+  const { width, height } = parseBoundsFromUrl(request.url);
 
   const url = await fnUrl(
     "annie",

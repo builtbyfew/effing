@@ -20,6 +20,7 @@ import {
   useEffieWarmup,
 } from "@effing/effie-preview/react";
 import { ensureFnRuntime } from "~/fn.server";
+import { parseBoundsFromUrl } from "~/urls.server";
 import { fnModule, fnUrl } from "@effing/fn";
 import type { Route } from "./+types/preview.effie.$effieId";
 
@@ -131,15 +132,12 @@ function renderReducer(state: RenderState, action: RenderAction): RenderState {
 export async function loader({ request, params }: Route.LoaderArgs) {
   ensureFnRuntime();
 
-  const requestUrl = new URL(request.url);
-  const width = parseInt(requestUrl.searchParams.get("w") || "1080", 10);
-  const height = parseInt(requestUrl.searchParams.get("h") || "1080", 10);
+  const { width, height } = parseBoundsFromUrl(request.url);
 
-  const {
-    previewProps,
-    runner: generateEffie,
-    propsSchema,
-  } = await fnModule("effie", params.effieId);
+  const { previewProps, runner, propsSchema } = await fnModule(
+    "effie",
+    params.effieId,
+  );
 
   if (propsSchema) {
     invariant(
@@ -155,7 +153,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     { width, height },
   );
 
-  const effie = await generateEffie({
+  const effie = await runner({
     props: previewProps,
     bounds: { width, height },
   });

@@ -36,3 +36,22 @@ export async function deserializeUrlSegment(
 
   return { id, props, width, height };
 }
+
+export function parseBoundsFromUrl(url: string): {
+  width: number;
+  height: number;
+} {
+  const searchParams = new URL(url).searchParams;
+  const width = Number(searchParams.get("w") ?? 1080);
+  const height = Number(searchParams.get("h") ?? 1080);
+  invariant(
+    Number.isInteger(width) &&
+      Number.isInteger(height) &&
+      width > 0 &&
+      height > 0 &&
+      width <= MAX_DIMENSION &&
+      height <= MAX_DIMENSION,
+    `invalid bounds: ${width}x${height}`,
+  );
+  return { width, height };
+}

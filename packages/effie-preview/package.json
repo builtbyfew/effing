@@ -1,6 +1,6 @@
 {
   "name": "@effing/effie-preview",
-  "version": "0.30.2",
+  "version": "0.31.0",
   "description": "Preview components for Effie video compositions",
   "type": "module",
   "exports": {

@@ -36,10 +36,19 @@ export async function drawNode(
   const opacity = style.opacity ?? 1;
   if (opacity <= 0) return;
 
-  // Detect scale in transform — if present, render to offscreen buffer at 1x
-  // then composite scaled. This avoids Skia re-rasterizing glyphs per-frame.
+  // Detect pure-scale transforms — render to offscreen buffer at 1x then
+  // composite scaled, to avoid Skia re-rasterizing glyphs per-frame.
+  // Mixed transforms (scale combined with translate/rotate/skew) bypass this
+  // path because the layout-box-sized offscreen would clip any drawing the
+  // translate/rotate moves outside that box.
   const scaleInfo = style.transform ? extractScale(style.transform) : null;
-  if (scaleInfo && (scaleInfo.sx !== 1 || scaleInfo.sy !== 1)) {
+  const hasOtherTransforms =
+    scaleInfo !== null && scaleInfo.remaining.length > 0;
+  if (
+    scaleInfo &&
+    (scaleInfo.sx !== 1 || scaleInfo.sy !== 1) &&
+    !hasOtherTransforms
+  ) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;

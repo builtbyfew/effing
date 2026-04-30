@@ -180,6 +180,90 @@ describe("drawNode", () => {
     expect(ctx.fillRect).toHaveBeenCalledWith(15, 15, 50, 30);
   });
 
+  it("uses offscreen compositing for pure-scale transforms", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backgroundColor: "red",
+          transform: "scale(0.9)",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // Pure scale renders to an offscreen and composites with drawImage.
+    expect(ctx.drawImage).toHaveBeenCalled();
+  });
+
+  it("bypasses offscreen for transforms combining scale with translate", async () => {
+    // Repro of the mixed-transform clipping bug: an offscreen sized only to
+    // the layout box would clip drawing the translate moves outside it.
+    // The fix is to render directly to ctx with the full transform applied.
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backgroundColor: "red",
+          transform: "translate(80px, 0px) scale(0.9)",
+          transformOrigin: "left center",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+      false,
+    );
+
+    // No offscreen compositing
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    // Translate from the transform was applied directly to ctx (80px, 0)
+    expect(ctx.translate).toHaveBeenCalledWith(80, 0);
+    // Scale also applied directly to ctx
+    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+  });
+
+  it("bypasses offscreen for transforms combining scale with rotate", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backgroundColor: "red",
+          transform: "rotate(-6deg) scale(0.9)",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+      false,
+    );
+
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(ctx.rotate).toHaveBeenCalled();
+    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+  });
+
   it("padding as percentage correctly insets content", async () => {
     await drawNode(
       ctx,

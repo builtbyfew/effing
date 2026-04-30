@@ -248,6 +248,49 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
     expect(percentage).toBeLessThan(0.01);
   });
 
+  it("renders mixed scale+translate transform without clipping past layout box", async () => {
+    // Repro from the bug report: a pill with transform combining translate
+    // with scale used to render clipped at the layout box's right edge,
+    // because the offscreen scale buffer was sized to that layout box and
+    // the translate-inside-offscreen pushed content past its bounds.
+    const W = 800;
+    const H = 200;
+
+    const element = (
+      <div
+        style={{
+          width: W,
+          height: H,
+          display: "flex",
+          backgroundColor: "black",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: 200,
+            height: 60,
+            backgroundColor: "white",
+            borderRadius: 999,
+            transform: "translate(80px, 0px) scale(0.9)",
+            transformOrigin: "left center",
+          }}
+        />
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, W, H, fonts),
+      renderWithSatori(element, W, H, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "mixed-scale-translate",
+    );
+    expect(percentage).toBeLessThan(0.1);
+  });
+
   it("renders flex-computed text width — text wraps same as satori without explicit width", async () => {
     const text = "The quick brown fox jumps over the lazy dog";
     const W = 220;

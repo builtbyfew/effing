@@ -1,5 +1,17 @@
 # @effing/effie
 
+## 0.30.1
+
+### Patch Changes
+
+- a599d8c: Expand README with full Effie format reference and add JSDoc breadcrumbs on helpers
+
+  The README now documents the EffieBackground variants, EffieAudio (including the runtime-enforced volume range), segment/layer semantics (bottom-to-top stacking, first-segment transition ignored), the cover/`#ref` rule, validation usage (identity helpers vs `effieDataSchema.safeParse`), and a Runtime Constraints section splitting what the schema enforces from what callers must guard themselves. `effieData` and `effieSegment` gain JSDoc that survives tsup bundling and points consumers at the README from `dist/index.d.ts`.
+
+- bc9afd0: Correct README and JSDoc descriptions of `from`/`until` and `delay`
+
+  The previous wording described `from`/`until` as source-time clipping and treated `delay` as separate from layer visibility. In practice (and matching FFS's renderer), all three fields are measured in segment time: `delay` shifts when the layer's content starts playing, `from` defaults to `delay` so the visibility window opens when content begins, and `until` defaults to `segment.duration`. Effect and motion `start` values are measured from when content starts (segment time `delay`), not from `t = 0`. The Runtime Constraints "NOT enforced" section is updated to match.
+
 ## 0.30.0
 
 ## 0.29.1

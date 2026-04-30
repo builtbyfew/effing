@@ -1,5 +1,6 @@
 import {
   Form,
+  href,
   useActionData,
   useLoaderData,
   useNavigation,
@@ -21,7 +22,7 @@ import {
 } from "@effing/effie-preview/react";
 import { ensureFnRuntime } from "~/fn.server";
 import { parseBoundsFromUrl } from "~/urls.server";
-import { fnModule, fnUrl } from "@effing/fn";
+import { fnModule } from "@effing/fn";
 import type { Route } from "./+types/preview.effie.$effieId";
 
 // ============ Constants ============
@@ -146,12 +147,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     );
   }
 
-  const jsonUrl = await fnUrl(
-    "effie",
-    params.effieId,
-    previewProps as Record<string, unknown>,
-    { width, height },
-  );
+  const jsonUrl = `${href("/preview/effie/:effieId.json", { effieId: params.effieId })}?w=${width}&h=${height}`;
 
   const effie = await runner({
     props: previewProps,

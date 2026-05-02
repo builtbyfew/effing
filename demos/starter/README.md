@@ -1,60 +1,69 @@
-# Effing Starter Demo
+# Effing project `starter`
 
-A complete example application demonstrating how to build Images, Annies (animations), and Effies (video compositions) using the `@effing/*` packages.
+A React Router app for creating Effing Images, Effing Annies, and Effing Effies with the `@effing/*` packages.
 
-## Getting Started
+- **Effing Images** — single-frame stills. Useful for slideshow covers, thumbnails, social cards, or any composed graphic.
+- **Effing Annies** — frame-based animations, streamed as TAR archives of PNG/JPEG frames. Useful for typewriter text, photo zooms, Ken Burns effects, animated overlays.
+- **Effing Effies** — video compositions that assemble images, annies, audio, and effects into an MP4.
+
+## Getting started
 
 ```bash
-cd demos/starter
 pnpm install
 cp .env.example .env
 pnpm dev
 ```
 
-Open [http://localhost:3839](http://localhost:3839) to see the demo.
+Open [http://localhost:3839](http://localhost:3839) — the homepage lists every image, annie, and effie in the project with links to their preview pages.
 
-## Project Structure
+`pnpm dev` also runs a local FFS rendering service alongside the app, so the "Render it FFS" button on effie previews works out of the box.
+
+## Project structure
 
 ```
-demos/starter/
+.
 ├── app/
-│   ├── images/              # Single-image fns
+│   ├── images/              # Effing Image fns
 │   │   └── *.fn.tsx
-│   ├── annies/              # Animation fns
+│   ├── annies/              # Effing Annie fns
 │   │   └── *.fn.tsx
-│   ├── effies/              # Composition fns
+│   ├── effies/              # Effing Effie fns
 │   │   └── *.fn.tsx
-│   ├── routes/
-│   │   ├── _index.tsx                   # Homepage listing all images/annies/effies
-│   │   ├── annie.$segment.tsx           # Annie TAR streaming endpoint
-│   │   ├── effie.$segment.tsx           # Effie JSON endpoint
-│   │   ├── image.$segment.tsx           # Image rendering endpoint
-│   │   ├── preview.annie.$annieId.tsx   # Annie preview page
-│   │   ├── preview.effie.$effieId.tsx   # Effie preview page
-│   │   └── preview.image.$imageId.tsx   # Image preview page
+│   ├── routes/              # React Router routes (preview pages and signed endpoints)
 │   ├── fn.server.ts         # Wires the @effing/fn runtime to the app
 │   ├── fonts.ts             # Font definitions and loading utils
 │   └── urls.server.ts       # Signed URL segment helpers
+├── effing-cloud.config.ts
 └── vite.config.ts
 ```
 
-Fns of all three kinds (image, annie, effie) share one module shape: a `propsSchema`, a `previewProps`, and an exported `runner`. They live in `app/{images,annies,effies}/*.fn.tsx` and are auto-discovered by `app/fn.server.ts` via `import.meta.glob`, so just dropping a file in is enough to register it.
+Drop a file into `app/images/`, `app/annies/`, or `app/effies/` and it's automatically registered — no routing or registry edits needed. `app/fn.server.ts` discovers fns via `import.meta.glob`, so registration is implicit in the filename.
 
-## Creating Images
+## The fn module shape
 
-Images are single-frame fns — useful for slideshow covers, thumbnails, or any other one-off rendered still. Create a file at `app/images/*.fn.tsx`:
+Every fn — image, annie, or effie — exports the same three things:
+
+- **`propsSchema`** — a Zod schema describing the runner's input.
+- **`previewProps`** — a concrete object matching the schema, used by the preview page to render a sample.
+- **`runner`** — the function that produces the output. Its return type is what differentiates the three kinds.
+
+A fn's id is its filename without the `.fn.tsx` suffix (`app/annies/my-animation.fn.tsx` → `my-animation`).
+
+## Creating Effing Images
+
+Drop a file into `app/images/`:
 
 ```tsx
 // app/images/my-cover.fn.tsx
 import { z } from "zod";
 import { createCanvas, renderReactElement } from "@effing/canvas";
 import type { RunnerArgs, ImageRunnerReturn } from "@effing/fn";
+import { interBold, loadFonts } from "~/fonts";
 
 export const propsSchema = z.object({
   text: z.string(),
 });
-
-type MyCoverProps = z.infer<typeof propsSchema>;
+export type MyCoverProps = z.infer<typeof propsSchema>;
 
 export const previewProps: MyCoverProps = { text: "Hello!" };
 
@@ -62,21 +71,43 @@ export async function runner({
   props: { text },
   bounds: { width, height },
 }: RunnerArgs<MyCoverProps>): ImageRunnerReturn {
+  const fonts = await loadFonts([interBold]);
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
+
   await renderReactElement(
     ctx,
-    <div style={{ width, height, display: "flex" }}>{text}</div>,
+    <div
+      style={{
+        width,
+        height,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter",
+        fontSize: 72,
+      }}
+    >
+      {text}
+    </div>,
+    { fonts },
   );
   return canvas.encode("jpeg");
 }
 ```
 
-Accessible at `/preview/image/my-cover` and `/image/{signed-segment}`.
+`renderReactElement` lays out a React element with CSS flexbox and rasterizes onto the canvas — JSX in, image bytes out. `@effing/canvas` is satori-like, but a separate implementation with its own feature set — don't assume satori-only props or features carry over. Like satori, it only supports a subset of CSS; `node_modules/@effing/canvas/README.md` documents the subset in detail. You can also draw directly to `ctx` with the standard 2D canvas API; `renderReactElement` is a layout convenience, not the only way in.
 
-## Creating Annies
+Encode as `"jpeg"` for photo-heavy stills, `"png"` when you need transparency or crisp text on solid backgrounds.
 
-Annies are frame-based animations. Create a file at `app/annies/*.fn.tsx`:
+The image is accessible at:
+
+- **Preview:** `/preview/image/my-cover`
+- **Rendered bytes:** `/image/{signed-segment}`
+
+## Creating Effing Annies
+
+Drop a file into `app/annies/`:
 
 ```tsx
 // app/annies/my-animation.fn.tsx
@@ -86,29 +117,25 @@ import { tween, easeOutQuad } from "@effing/tween";
 import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
 import { interBold, loadFonts } from "~/fonts";
 
-// 1. Define props schema
 export const propsSchema = z.object({
   text: z.string(),
   frameCount: z.number().int().min(1).optional(),
 });
+export type MyAnimationProps = z.infer<typeof propsSchema>;
 
-type MyAnimationProps = z.infer<typeof propsSchema>;
-
-// 2. Define preview props (used by preview page)
 export const previewProps: MyAnimationProps = {
   text: "Hello!",
   frameCount: 60,
 };
 
-// 3. Export async generator that yields PNG frames
 export async function* runner({
   props: { text, frameCount = 60 },
   bounds: { width, height },
 }: RunnerArgs<MyAnimationProps>): AnnieRunnerReturn {
   const fonts = await loadFonts([interBold]);
 
-  yield* tween(frameCount, async ({ lower: progress }) => {
-    const scale = 1 + 0.3 * easeOutQuad(progress);
+  yield* tween(frameCount, async ({ lower: p }) => {
+    const scale = 1 + 0.3 * easeOutQuad(p);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
@@ -134,14 +161,24 @@ export async function* runner({
 }
 ```
 
-The Annie will automatically appear on the homepage and be accessible at:
+The runner is an async generator that yields one encoded frame at a time. `tween(count, callback)` from `@effing/tween` calls the callback `count` times — once per frame — and yields whatever buffer it returns. The callback receives a `{ lower, upper }` interval in `[0, 1]` representing where the frame sits in the timeline. `@effing/tween` exports the standard Penner easing functions (`easeOutQuad`, `easeInOutCubic`, etc.) for non-linear motion.
+
+Multi-phase animations chain `yield* tween(...)` blocks back-to-back — one tween per phase, e.g. a typing phase followed by a blinking-cursor phase.
+
+Encode each frame as `"png"` for text/alpha-heavy frames, `"jpeg"` for photo-heavy frames — JPEG is typically both faster to encode and smaller on the wire, which adds up across an animation.
+
+The annie is accessible at:
 
 - **Preview:** `/preview/annie/my-animation`
 - **TAR stream:** `/annie/{signed-segment}`
 
-## Creating Effies
+Frames are streamed as they're rendered, so the TAR endpoint won't time out behind a CDN even for long animations.
 
-Effies are video compositions that combine Annies, images, audio, and effects. Create a file at `app/effies/*.fn.tsx`:
+## Creating Effing Effies
+
+An effie is a sequence of segments holding image and animation layers, optional segment-level audio, and optional transitions between segments. The runner returns a _description_ of the composition — an `effieData` value — not rendered pixels. Rendering happens separately by FFS, which fetches the layer URLs and assembles the MP4.
+
+Drop a file into `app/effies/`:
 
 ```tsx
 // app/effies/my-video.fn.tsx
@@ -149,23 +186,19 @@ import { z } from "zod";
 import { effieData, effieSegment } from "@effing/effie";
 import { fnUrl } from "@effing/fn";
 import type { RunnerArgs, EffieRunnerReturn } from "@effing/fn";
-import type { TextTypewriterProps } from "~/annies/text-typewriter.fn";
+import type { MyAnimationProps } from "~/annies/my-animation.fn";
 
-// 1. Define props schema
 export const propsSchema = z.object({
   title: z.string(),
   imageUrl: z.string().url(),
 });
-
 type MyVideoProps = z.infer<typeof propsSchema>;
 
-// 2. Define preview props
 export const previewProps: MyVideoProps = {
   title: "My Video",
   imageUrl: "https://picsum.photos/1080/1920",
 };
 
-// 3. Export async function that returns EffieData
 export async function runner({
   props: { title, imageUrl },
   bounds: { width, height },
@@ -184,11 +217,11 @@ export async function runner({
             type: "animation",
             source: await fnUrl(
               "annie",
-              "text-typewriter",
+              "my-animation",
               {
                 text: title,
-                fontSize: 72,
-              } satisfies TextTypewriterProps,
+                frameCount: 150,
+              } satisfies MyAnimationProps,
               { width, height },
             ),
           },
@@ -199,61 +232,55 @@ export async function runner({
 }
 ```
 
-The Effie will automatically appear on the homepage and be accessible at:
+A few things to know:
+
+- **`fnUrl(kind, id, props, bounds)`** returns a signed URL pointing at another fn's output. The renderer fetches it when it needs the layer's pixels. Always run the dependency's props through `satisfies <DependencyProps>` (here, `satisfies MyAnimationProps`) — typos in prop names then fail the typecheck instead of silently producing a broken URL at runtime.
+- **Bounds for child fns can differ from the effie's own bounds.** Useful when an effect needs over-canvas content — e.g. passing `{ width: width * 1.2, height }` to a child annie so it has horizontal slack for a `scroll` effect that pans across.
+- **For the full format vocabulary** — layer types, transitions, effects, source `#refs`, backgrounds, motion, validation — see `node_modules/@effing/effie/README.md`. This README only covers the basics.
+
+The effie is accessible at:
 
 - **Preview:** `/preview/effie/my-video`
-- **JSON:** `/effie/{signed-segment}?ratio=1:1`
+- **JSON:** `/effie/{signed-segment}`
 
-## Routes
+## Inspecting an Effing Effie
 
-### Homepage (`/`)
+The preview page lays out the cover and segments visually so you can easily inspect each segment and its layers. For agents working on an effie, there's a parallel JSON endpoint:
 
-Lists all available Images, Annies, and Effies with links to their preview pages.
+```
+/preview/effie/:effieId.json?w=1080&h=1920
+```
 
-### Image Preview (`/preview/image/:imageId`)
+It returns the effie's `effieData` with every layer source already signed, so an agent can follow the URLs into individual annie frames or image stills without scraping the HTML preview or signing its own URL segments. Handy for verifying the output and iterating on a composition without bouncing back to the user for every change.
 
-Renders a single image fn using its `previewProps`.
+The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to 1080×1080) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
 
-### Annie Preview (`/preview/annie/:annieId`)
+## Fonts
 
-Displays an interactive preview of an Annie using `@effing/annie-player`. Shows:
+`renderReactElement` doesn't ship fonts — pass them via `options.fonts: FontData[]` whenever you render text. `app/fonts.ts` exposes a few Google Fonts ready to import:
 
-- Playable animation with load/play/pause controls
-- Direct URL to the TAR stream
+```ts
+import {
+  loadFonts,
+  interBold,
+  interSemiBold,
+  robotoRegular,
+  robotoBold,
+  openSansRegular,
+  openSansSemiBold,
+} from "~/fonts";
 
-### Effie Preview (`/preview/effie/:effieId`)
+const fonts = await loadFonts([interBold, robotoRegular]);
+```
 
-Comprehensive preview of an Effie composition using `@effing/effie-preview`. Shows:
+To add another, copy one of the existing exports in `app/fonts.ts` and point it at the relevant `https://fonts.gstatic.com/s/...ttf` URL. Fonts are fetched at runtime — never bundle them, since that limits your options for where you can run your fns.
 
-- Cover image (or rendered video after clicking "Render it FFS")
-- Background preview
-- All segments with their layers
-- Render button to generate video via FFS
-
-### Image Endpoint (`/image/:segment`)
-
-Serves a rendered image (PNG or JPEG). The segment is a signed payload containing the fn `id`, `props`, and bounds (`width`, `height`).
-
-### Annie Stream (`/annie/:segment`)
-
-Serves Annie TAR archives. The segment is a signed payload containing the fn `id`, `props`, and bounds.
-
-### Effie JSON (`/effie/:segment`)
-
-Serves Effie JSON. The segment is a signed payload containing the fn `id`, `props`, and bounds.
-
-## CDN Caching
-
-Both the `/annie/:segment` and `/effie/:segment` routes can easily be placed behind a CDN in production. Since the segment contains signed, deterministic parameters, the same URL always produces the same output, making them ideal cache keys.
-
-Note also that CDN timeouts are not a concern for the annies, even though they might take a while to generate in practice, because they are streamed frame by frame. The CDN receives data continuously and won't time out waiting for the first byte.
-
-## Environment Variables
+## Environment variables
 
 ```bash
-# Required: Base URL for the application
+# Required: base URL for the application
 BASE_URL=http://localhost:3839
-# Required: Secret for signing URL segments
+# Required: secret for signing URL segments
 SECRET_KEY=your-secret-key
 
 # Optional: FFS rendering service
@@ -261,32 +288,29 @@ FFS_BASE_URL=http://localhost:2000
 FFS_API_KEY=your-ffs-api-key
 ```
 
-## URL Generation
+`pnpm dev` starts a local FFS sidecar automatically; the `FFS_*` vars only matter when pointing at a remote FFS server.
 
-Inside an effie's `runner`, use `fnUrl` from `@effing/fn` to build a signed URL to any other fn (image, annie, or effie):
+## Scripts
 
-```typescript
-import { fnUrl } from "@effing/fn";
+| Script                  | What it does                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `pnpm dev`              | Runs the app and a local FFS rendering service in parallel.                   |
+| `pnpm build`            | Builds the app for production.                                                |
+| `pnpm start`            | Starts the production server.                                                 |
+| `pnpm typecheck`        | Generates React Router types and runs `tsc`.                                  |
+| `pnpm cloud:deploy`     | Deploys to [Effing Cloud](https://effing.dev) using `effing-cloud.config.ts`. |
+| `pnpm cloud:url-secret` | Prints the project's URL signing secret from Effing Cloud.                    |
 
-const url = await fnUrl(
-  "annie",
-  "text-typewriter",
-  { text: "Hello", fontSize: 72 },
-  { width: 1080, height: 1920 },
-);
-```
+## Deploying
 
-The runtime's URL builder is configured in `app/fn.server.ts`, which signs the payload via `serializeUrlSegment` from `app/urls.server.ts`.
+[Effing Cloud](https://effing.dev) is the easiest path: `pnpm cloud:deploy` ships the project (configured via `effing-cloud.config.ts`) and everything around production hardening is handled for you. To self-host instead, use the included `Dockerfile` — it builds the app and serves it with `react-router-serve`, but production hardening is up to you.
 
-## Rendering Videos
+## Further reading
 
-The preview page can render videos if FFS is configured:
+The `@effing/*` packages each ship a README under `node_modules/@effing/<name>/README.md`. The most useful when working on a fn:
 
-1. Set `FFS_BASE_URL` and `FFS_API_KEY` environment variables
-2. Open an Effie preview page (`/preview/effie/:effieId`)
-3. Click "Render it FFS" to send the composition to the rendering service
-4. The rendered video appears in place of the cover image
-
-You can also render at different scales (33%, 67%, 100%, 200%) for faster previews or higher quality output.
-
-In production, you'd use an FFS server directly to render effies. Point FFS at your `/effie/:segment` endpoint and it will fetch the effie JSON, resolve all annie URLs, and produce the final video.
+- **`@effing/effie`** — the full Effing Effie format spec (layer types, transitions, effects, source `#refs`, backgrounds, motion, validation).
+- **`@effing/canvas`** — the supported CSS subset for `renderReactElement`, plus image and Lottie helpers.
+- **`@effing/fn`** — the runner contract and `fnUrl` semantics in detail.
+- **`@effing/tween`** — the full list of easing functions and `tween` interval shape.
+- **`@effing/annie`** — the TAR frame format if you ever need to consume an annie stream directly.

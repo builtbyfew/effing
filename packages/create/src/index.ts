@@ -102,6 +102,19 @@ async function main(): Promise<void> {
     // effing-cloud.config.ts is optional
   }
 
+  // Update README.md title with project name
+  const readmePath = path.join(root, "README.md");
+  try {
+    const readme = await fs.readFile(readmePath, "utf-8");
+    const updated = readme.replace(
+      /^# Effing project `starter`$/m,
+      `# Effing project \`${slug}\``,
+    );
+    await fs.writeFile(readmePath, updated);
+  } catch {
+    // README.md is optional
+  }
+
   console.log("Done! To get started:\n");
   console.log(`  cd ${projectName}`);
   console.log("  npm install    # or: pnpm install");

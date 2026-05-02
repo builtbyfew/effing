@@ -1,0 +1,1 @@
+This is an Effing project — programmatic image and video creation with the `@effing/*` packages. Read `README.md` before writing or modifying any fn (`app/{images,annies,effies}/*.fn.tsx`) or touching the preview/signed-URL routes. Always typecheck after changes.

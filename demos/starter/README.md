@@ -85,6 +85,7 @@ export async function runner({
         alignItems: "center",
         justifyContent: "center",
         fontFamily: "Inter",
+        fontWeight: 700,
         fontSize: 72,
       }}
     >
@@ -148,6 +149,8 @@ export async function* runner({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          fontFamily: "Inter",
+          fontWeight: 700,
           fontSize: 72,
           transform: `scale(${scale})`,
         }}

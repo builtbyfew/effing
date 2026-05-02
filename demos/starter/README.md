@@ -303,7 +303,7 @@ FFS_API_KEY=your-ffs-api-key
 
 ## Deploying
 
-[Effing Cloud](https://effing.dev) is the easiest path: `pnpm cloud:deploy` ships the project (configured via `effing-cloud.config.ts`) and everything around production hardening is handled for you. To self-host instead, use the included `Dockerfile` — it builds the app and serves it with `react-router-serve`, but production hardening is up to you.
+[Effing Cloud](https://effing.dev) is the easiest path: `pnpm cloud:deploy` ships the project (configured via `effing-cloud.config.ts`) and everything around running it in production is handled for you. To self-host instead, use the included `Dockerfile` — it builds the app and serves it with `react-router-serve`, but all the rest is up to you.
 
 ## Further reading
 

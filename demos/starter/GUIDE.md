@@ -1,7 +1,5 @@
 # Guide
 
-Reference for working in this Effing project — what the kinds of fn are, how to get the dev server running, project structure, the fn module shape, creating images, annies, and effies, fonts, environment variables, scripts, and deployment.
-
 This is a React Router app for creating Effing Images, Effing Annies, and Effing Effies with the `@effing/*` packages.
 
 - **Effing Images** — single-frame stills. Useful for slideshow covers, thumbnails, social cards, or any composed graphic.

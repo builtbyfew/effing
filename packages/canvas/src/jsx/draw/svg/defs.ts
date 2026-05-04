@@ -13,6 +13,8 @@ export function collectDefs(children: SvgChild[]): SvgDefs {
   const filters = new Map<string, SvgChild>();
 
   function insertDef(def: SvgChild): void {
+    if (!def || typeof def !== "object" || !("props" in def) || !def.props)
+      return;
     const id = def.props.id as string | undefined;
     if (!id) return;
     if (def.type === "clipPath") clips.set(id, normalizeChildren(def));

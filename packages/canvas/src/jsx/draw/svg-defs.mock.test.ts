@@ -179,6 +179,37 @@ describe("SVG defs — mask handling", () => {
     expect(createCanvas).not.toHaveBeenCalled();
   });
 
+  it("does not crash when children contain nested arrays", async () => {
+    await expect(
+      drawNode(
+        ctx,
+        {
+          type: "svg",
+          style: {},
+          children: [],
+          props: {
+            viewBox: "0 0 24 24",
+            children: [
+              [
+                { type: "rect", props: { width: 4, height: 4, fill: "red" } },
+                { type: "rect", props: { width: 6, height: 6, fill: "blue" } },
+              ],
+              [{ type: "circle", props: { cx: 2, cy: 2, r: 1 } }],
+              { type: "path", props: { d: "M0 0L10 10" } },
+            ],
+          },
+          x: 0,
+          y: 0,
+          width: 24,
+          height: 24,
+        },
+        0,
+        0,
+        false,
+      ),
+    ).resolves.not.toThrow();
+  });
+
   it("top-level mask (outside <defs>) is collected and applied", async () => {
     vi.mocked(createCanvas).mockClear();
 

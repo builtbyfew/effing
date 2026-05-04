@@ -55,9 +55,14 @@ export function drawSvgContainer(
   // Traverse React children
   const children = node.props.children;
   if (children != null) {
-    const childArray = Array.isArray(children) ? children : [children];
+    // Deep-flatten so helpers returning arrays don't slip nested arrays through
+    // to the defs collector or shape switch (both expect element-shaped nodes).
+    const childArray = (
+      Array.isArray(children) ? children.flat(Infinity) : [children]
+    ) as unknown[];
     const svgChildren = childArray.filter(
-      (c): c is SvgChild => c != null && typeof c === "object",
+      (c): c is SvgChild =>
+        c != null && typeof c === "object" && !Array.isArray(c),
     );
 
     // First pass: collect definitions from <defs>

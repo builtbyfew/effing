@@ -535,6 +535,66 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
     expect(svg.width).toBe(100);
   });
 
+  it("expands function components inside <svg>", async () => {
+    const Bike = () => ({
+      type: "circle",
+      props: { cx: 5, cy: 5, r: 3, fill: "blue" },
+    });
+    const { tree } = await buildLayoutTree(
+      {
+        type: "svg",
+        props: {
+          width: 24,
+          height: 24,
+          viewBox: "0 0 10 10",
+          children: [
+            { type: Bike, props: {} },
+            { type: "rect", props: { width: 1, height: 1 } },
+          ],
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    const children = svg.props.children as Array<{ type: string }>;
+    expect(children).toHaveLength(2);
+    expect(children[0].type).toBe("circle");
+    expect(children[1].type).toBe("rect");
+  });
+
+  it("flattens nested arrays from helpers inside <svg>", async () => {
+    const helper = () => [
+      { type: "rect", props: { width: 1, height: 1 } },
+      { type: "rect", props: { width: 2, height: 2 } },
+    ];
+    const { tree } = await buildLayoutTree(
+      {
+        type: "svg",
+        props: {
+          width: 24,
+          height: 24,
+          viewBox: "0 0 10 10",
+          children: [helper(), helper(), { type: "circle", props: { r: 1 } }],
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    const children = svg.props.children as Array<{ type: string }>;
+    expect(children).toHaveLength(5);
+    expect(children.map((c) => c.type)).toEqual([
+      "rect",
+      "rect",
+      "rect",
+      "rect",
+      "circle",
+    ]);
+  });
+
   it("resolves vh unit on SVG height attribute", async () => {
     const { tree } = await buildLayoutTree(
       {

@@ -268,11 +268,12 @@ async function buildNode(
   // SVG containers: children use SVG coordinate space, not flex layout.
   // Skip Yoga child nodes and keep React children in props for the SVG drawer.
   if (tagName === "svg") {
+    const resolvedChildren = resolveSvgTree(props.children as ReactNode);
     return {
       type: tagName,
       style,
       children: [],
-      props,
+      props: { ...props, children: resolvedChildren },
       yogaNode,
     };
   }
@@ -443,6 +444,56 @@ function extractTextContent(children: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * Resolve function components and flatten nested arrays inside an `<svg>`
+ * subtree. The SVG drawer switches on primitive element strings (path, rect,
+ * etc.) and does not flatten its own children, so without this preprocessing
+ * (a) function components silently disappear and (b) helpers returning arrays
+ * crash the defs collector.
+ */
+function resolveSvgTree(node: ReactNode): ReactNode {
+  if (node === null || node === undefined || typeof node === "boolean")
+    return null;
+  if (typeof node === "string" || typeof node === "number") return node;
+
+  if (Array.isArray(node)) {
+    const out: ReactNode[] = [];
+    let changed = false;
+    for (const child of node as ReactNode[]) {
+      const resolved = resolveSvgTree(child);
+      if (resolved === null || resolved === undefined) {
+        changed = true;
+        continue;
+      }
+      if (Array.isArray(resolved)) {
+        changed = true;
+        for (const r of resolved) out.push(r);
+      } else {
+        if (resolved !== child) changed = true;
+        out.push(resolved);
+      }
+    }
+    return changed ? out : node;
+  }
+
+  const el = node as ReactElement<Record<string, unknown>>;
+  if (typeof el.type === "function") {
+    const rendered = (el.type as (props: Record<string, unknown>) => ReactNode)(
+      el.props ?? {},
+    );
+    return resolveSvgTree(rendered);
+  }
+
+  const elProps = (el.props ?? {}) as Record<string, unknown>;
+  if (elProps.children !== undefined) {
+    const resolvedChildren = resolveSvgTree(elProps.children as ReactNode);
+    if (resolvedChildren !== elProps.children) {
+      return { ...el, props: { ...elProps, children: resolvedChildren } };
+    }
+  }
+  return el;
 }
 
 /**

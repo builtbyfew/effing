@@ -239,9 +239,10 @@ export async function runner({
 
 A few things to know:
 
+- **Independent elements belong on their own layers.** Use one layer per visually independent element (each its own image or annie fn) so each can fade, transition, and be cached independently. Elements that stay constant across segments can be defined once in `effieData.sources` and referenced as `"#name"` from each segment — see the `@effing/effie` README for `#ref` semantics.
 - **`fnUrl(kind, id, props, bounds)`** returns a signed URL pointing at another fn's output. The renderer fetches it when it needs the layer's pixels. Always run the dependency's props through `satisfies <DependencyProps>` (here, `satisfies MyAnimationProps`) — typos in prop names then fail the typecheck instead of silently producing a broken URL at runtime.
 - **Bounds for child fns can differ from the effie's own bounds.** Useful when an effect needs over-canvas content — e.g. passing `{ width: width * 1.2, height }` to a child annie so it has horizontal slack for a `scroll` effect that pans across.
-- **For the full format vocabulary** — layer types, transitions, effects, source `#refs`, backgrounds, motion, validation — see `node_modules/@effing/effie/README.md`. This guide only covers the very basics.
+- **For the full format vocabulary** — layer types, transitions, effects, backgrounds, motion, validation — see `node_modules/@effing/effie/README.md`. This guide only covers the very basics.
 
 The effie is accessible at:
 

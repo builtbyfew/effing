@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.31.4
+
+### Patch Changes
+
+- 55be25e: Document multi-layer composition in the starter GUIDE.md effie section
+
 ## 0.31.3
 
 ### Patch Changes

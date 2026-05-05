@@ -249,15 +249,17 @@ The effie is accessible at:
 - **Preview:** `/preview/effie/my-video`
 - **JSON:** `/effie/{signed-segment}`
 
-## Inspecting an Effing Effie
+## Inspecting from an agent
 
-The preview page lays out the cover and segments visually so you can easily inspect each segment and its layers. For agents working on an effie, there's a parallel JSON endpoint:
+The HTML preview pages are designed for humans clicking through. For agents inspecting output, each kind has a parallel endpoint that delivers the artifact directly — no HTML scraping, no URL signing required:
 
 ```
-/preview/effie/:effieId.json?w=1080&h=1920
+/preview/image/:imageId.bytes
+/preview/annie/:annieId.tar
+/preview/effie/:effieId.json
 ```
 
-It returns the effie's `effieData` with every layer source already signed, so an agent can follow the URLs into individual annie frames or image stills without scraping the HTML preview or signing its own URL segments. Handy for verifying the output and iterating on a composition without bouncing back to the user for every change.
+The image and annie endpoints stream the encoded bytes — a JPEG/PNG still, or a TAR of frames — so an agent can fetch and inspect the rendered output by id alone. The effie endpoint is JSON-shaped because an effie _is_ JSON: a description of how to compose other fns, not pixels. It returns the effie's `effieData` with every layer source already signed, so the agent can follow those URLs into the individual annie frames and image stills the composition references — handy for verifying output and iterating without bouncing back to the user for every change.
 
 The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to 1080×1080) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
 

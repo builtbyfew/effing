@@ -1,6 +1,7 @@
 import { useLoaderData } from "react-router";
 import invariant from "tiny-invariant";
 import { ensureFnRuntime } from "~/fn.server";
+import { RESOLUTIONS } from "~/resolutions";
 import { parseBoundsFromUrl } from "~/urls.server";
 import { fnModule, fnUrl } from "@effing/fn";
 import type { Route } from "./+types/preview.image.$imageId";
@@ -48,7 +49,31 @@ export default function ImagePreviewPage() {
         gap: "2rem",
       }}
     >
-      <h1 style={{ margin: 0 }}>Image Preview: {imageId}</h1>
+      <div>
+        <h1 style={{ margin: 0 }}>Image Preview: {imageId}</h1>
+        <p style={{ color: "#666" }}>
+          Resolution:{" "}
+          {RESOLUTIONS.map((r, i) => {
+            const isCurrent = r.width === width && r.height === height;
+            return (
+              <span key={`${r.width}x${r.height}`}>
+                {i > 0 && " | "}
+                {isCurrent ? (
+                  <strong>
+                    {r.width}x{r.height} ({r.label})
+                  </strong>
+                ) : (
+                  <a
+                    href={`/preview/image/${imageId}?w=${r.width}&h=${r.height}`}
+                  >
+                    {r.width}x{r.height} ({r.label})
+                  </a>
+                )}
+              </span>
+            );
+          })}
+        </p>
+      </div>
 
       <img
         src={imageUrl}

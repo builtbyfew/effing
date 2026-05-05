@@ -19,7 +19,7 @@ const silenceChromeDevtoolsProbe: Plugin = {
 };
 
 export default defineConfig({
-  server: { port: 3839 }, // 3839 = 0xEFF, how effing cool is that? ʘ‿ʘ
+  server: { host: "127.0.0.1", port: 3839 }, // 3839 = 0xEFF, how effing cool is that? ʘ‿ʘ
   plugins: [silenceChromeDevtoolsProbe, reactRouter(), tsconfigPaths()],
   optimizeDeps: {
     exclude: ["@effing/canvas"],

@@ -21,17 +21,12 @@ import {
   useEffieWarmup,
 } from "@effing/effie-preview/react";
 import { ensureFnRuntime } from "~/fn.server";
+import { RESOLUTIONS } from "~/resolutions";
 import { parseBoundsFromUrl } from "~/urls.server";
 import { fnModule } from "@effing/fn";
 import type { Route } from "./+types/preview.effie.$effieId";
 
 // ============ Constants ============
-
-const RESOLUTIONS = [
-  { width: 1080, height: 1080, label: "1:1" },
-  { width: 1080, height: 1350, label: "4:5" },
-  { width: 1080, height: 1920, label: "9:16" },
-] as const;
 
 const RENDER_SCALES = [
   { value: 1 / 3, label: "33%" },

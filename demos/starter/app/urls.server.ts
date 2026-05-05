@@ -1,7 +1,9 @@
 import { deserialize, serialize } from "@effing/serde";
 import invariant from "tiny-invariant";
+import { RESOLUTIONS } from "~/resolutions";
 
 const MAX_DIMENSION = 8192;
+const DEFAULT_RESOLUTION = RESOLUTIONS[0];
 
 type UrlSegmentPayload = {
   id: string;
@@ -42,8 +44,8 @@ export function parseBoundsFromUrl(url: string): {
   height: number;
 } {
   const searchParams = new URL(url).searchParams;
-  const width = Number(searchParams.get("w") ?? 1080);
-  const height = Number(searchParams.get("h") ?? 1080);
+  const width = Number(searchParams.get("w") ?? DEFAULT_RESOLUTION.width);
+  const height = Number(searchParams.get("h") ?? DEFAULT_RESOLUTION.height);
   invariant(
     Number.isInteger(width) &&
       Number.isInteger(height) &&

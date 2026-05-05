@@ -34,6 +34,7 @@ Open [http://localhost:3839](http://localhost:3839) — the homepage lists every
 │   ├── routes/              # React Router routes (preview pages and signed endpoints)
 │   ├── fn.server.ts         # Wires the @effing/fn runtime to the app
 │   ├── fonts.ts             # Font definitions and loading utils
+│   ├── resolutions.ts       # Preview resolutions and default bounds
 │   └── urls.server.ts       # Signed URL segment helpers
 ├── effing-cloud.config.ts
 └── vite.config.ts
@@ -261,7 +262,7 @@ The HTML preview pages are designed for humans clicking through. For agents insp
 
 The image and annie endpoints stream the encoded bytes — a JPEG/PNG still, or a TAR of frames — so an agent can fetch and inspect the rendered output by id alone. The effie endpoint is JSON-shaped because an effie _is_ JSON: a description of how to compose other fns, not pixels. It returns the effie's `effieData` with every layer source already signed, so the agent can follow those URLs into the individual annie frames and image stills the composition references — handy for verifying output and iterating without bouncing back to the user for every change.
 
-The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to 1080×1080) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
+The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to the first entry in `app/resolutions.ts`) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
 
 ## Fonts
 

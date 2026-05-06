@@ -1,5 +1,34 @@
 # @effing/create
 
+## 0.32.0
+
+### Minor Changes
+
+- 0c4e0f5: Add resolution picker to annie and image preview pages
+
+  The annie and image preview pages now show the same resolution selector as the
+  effie preview, driven by the shared `app/resolutions.ts` list, so all three
+  preview kinds let you switch between configured aspect ratios with a click.
+
+- cd4f4b5: Make preview resolutions configurable via `app/resolutions.ts`
+
+  The starter now reads its preview resolution selector and the default bounds
+  for `parseBoundsFromUrl` from a single `app/resolutions.ts` module, so users
+  can adjust the considered aspect ratios in one place instead of editing the
+  effie preview route and the URL parser separately.
+
+- 4c68689: Add agent-friendly preview routes for images and annies (`/preview/image/:imageId.bytes`, `/preview/annie/:annieId.tar`) that stream the preview-rendered output directly, mirroring the existing `/preview/effie/:effieId.json` endpoint
+
+### Patch Changes
+
+- 6baa5a8: Drop "Starter" branding from the landing page and meta title
+
+  The meta title is now "Effing" and the landing page heading is "Effing
+  Overview", so scaffolded projects don't inherit the starter's branding by
+  default and the page describes what it actually is — an index of every fn.
+
+- 6088f5d: Bind starter Vite dev server to 127.0.0.1
+
 ## 0.31.4
 
 ### Patch Changes

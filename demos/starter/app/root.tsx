@@ -2,8 +2,8 @@ import type { MetaFunction } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 export const meta: MetaFunction = () => [
-  { title: "Effing Starter" },
-  { name: "description", content: "Starter project for annies and effies" },
+  { title: "Effing" },
+  { name: "description", content: "An Effing project" },
 ];
 
 export default function App() {

@@ -16,10 +16,9 @@ export default function Index() {
 
   return (
     <div style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ marginTop: 0 }}>Effing Starter</h1>
+      <h1 style={{ marginTop: 0 }}>Effing Overview</h1>
       <p style={{ color: "#666", fontSize: 18 }}>
-        A starter project for developing annies and effies using the @effing/*
-        packages.
+        Index of every image, annie, and effie in this project.
       </p>
 
       <section style={{ marginTop: "2rem" }}>

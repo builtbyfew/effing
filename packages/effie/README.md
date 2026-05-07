@@ -84,8 +84,8 @@ type EffieSegment = {
 type EffieLayer = {
   type: "image" | "animation"; // PNG/JPEG or Annie TAR
   source: EffieSource; // URL or #reference
-  delay?: number; // Defer content start by this many seconds (non-negative; defaults to 0)
-  from?: number; // Visible from this segment time (seconds; defaults to `delay`)
+  delay?: number; // Defer when the layer's content starts playing (non-negative; defaults to 0)
+  from?: number; // Hide the layer until this segment time; its content keeps playing from t=0 regardless (defaults to `delay`)
   until?: number; // Visible until this segment time (seconds; defaults to `segment.duration`)
   effects?: EffieEffect[]; // Visual effects (see below)
   motion?: EffieMotion; // Motion animation (see below)
@@ -94,7 +94,12 @@ type EffieLayer = {
 
 Layers in a segment are stacked **bottom to top**: `layers[0]` is drawn first, later entries paint over it. A segment's `transition` describes how that segment enters from the previous one; the very first segment's transition is silently ignored.
 
-All three timing fields are in seconds of segment time (where `t = 0` is when the segment begins). `delay` shifts when the layer's source content starts playing — and the layer's default visibility window starts there too: `from` defaults to `delay`, so an unset `from` keeps in step with `delay` automatically. `until` defaults to `segment.duration`. Set `from` or `until` explicitly only when you want a tighter visibility window than that.
+All three timing fields are in seconds of segment time (where `t = 0` is when the segment begins). `delay` and `from` both make a layer appear later in a segment, but they treat the content differently:
+
+- `from: t` is a visibility gate — the layer is hidden until segment time `t`, but its content has been playing since `t = 0`, so an animation would skip its first `t` seconds. Effect and motion `start` values are measured from segment `t = 0`.
+- `delay: t` defers when the content itself starts — an animation begins from its first frame, just `t` seconds later. Effect and motion `start` values are measured from when the content begins (segment time `delay`).
+
+For static image layers the two are visually equivalent. `from` defaults to `delay` so an unset `from` doesn't show an empty layer during the deferred span. `until` defaults to `segment.duration`. Set `from` or `until` explicitly only when you want a tighter visibility window.
 
 ### Effects vs Motion
 

@@ -258,6 +258,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       const inputIdx = layerInputOffset + l;
       const layerLabel = `${labelPrefix}layer${l}`;
       const layer = segment.layers[l];
+      const delay = layer.delay ?? 0;
       const effectChain = layer.effects
         ? processEffects(
             layer.effects,
@@ -267,12 +268,11 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
           )
         : "";
       filterParts.push(
-        `[${inputIdx}:v]trim=start=0:duration=${segment.duration},${
+        `[${inputIdx}:v]trim=start=0:duration=${segment.duration - delay},${
           effectChain ? effectChain + "," : ""
         }setsar=1,setpts=PTS-STARTPTS[${layerLabel}]`,
       );
       let overlayInputLabel = layerLabel;
-      const delay = layer.delay ?? 0;
       if (delay > 0) {
         filterParts.push(
           `nullsrc=size=${frameWidth}x${frameHeight}:duration=${delay},setpts=PTS-STARTPTS[null_${layerLabel}]`,

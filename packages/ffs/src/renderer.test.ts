@@ -68,4 +68,14 @@ describe("EffieRenderer overlay enable window", () => {
       "enable='between(t,2,5)'",
     );
   });
+
+  test("layer trim is reduced by `delay` so the padded stream matches segment duration", () => {
+    // The nullsrc-padded layer must be exactly `segment.duration` long, not
+    // `segment.duration + delay` — otherwise overlay's default eof_action
+    // extends the rendered output past the segment.
+    expect(filterComplex({ delay: 2 })).toContain("trim=start=0:duration=8");
+    expect(filterComplex({ delay: 2 })).toContain(
+      "nullsrc=size=100x100:duration=2",
+    );
+  });
 });

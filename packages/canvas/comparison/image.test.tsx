@@ -24,10 +24,24 @@ import {
 const backgroundImageCases: {
   label: string;
   backgroundSize?: string;
+  backgroundRepeat?: string;
+  // Override the loose file-default 1% for cases where Satori parity should
+  // be near-pixel-perfect, so a future regression isn't absorbed by slack.
+  threshold?: number;
 }[] = [
   { label: "default tiling" },
   { label: "cover", backgroundSize: "cover" },
   { label: "contain", backgroundSize: "contain" },
+  { label: "repeat", backgroundRepeat: "repeat", threshold: 0.1 },
+  { label: "no-repeat", backgroundRepeat: "no-repeat", threshold: 0.1 },
+  { label: "repeat-x", backgroundRepeat: "repeat-x", threshold: 0.1 },
+  { label: "repeat-y", backgroundRepeat: "repeat-y", threshold: 0.1 },
+  {
+    label: "contain + no-repeat",
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
+    threshold: 0.1,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -89,7 +103,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
 
   it.each(backgroundImageCases)(
     "renders backgroundImage — $label",
-    async ({ label, backgroundSize }) => {
+    async ({ label, backgroundSize, backgroundRepeat, threshold }) => {
       const imageDataUri = await makeTestImage(160, 80); // landscape image
       const element = (
         <BackgroundImageCard
@@ -97,6 +111,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
           height={HEIGHT}
           imageDataUri={imageDataUri}
           backgroundSize={backgroundSize}
+          backgroundRepeat={backgroundRepeat}
         />
       );
 
@@ -107,7 +122,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       const slug = `backgroundimage-${label.replace(/\s+/g, "-")}`;
       const { percentage } = await compareImages(canvasPng, satoriPng, slug);
 
-      expect(percentage).toBeLessThan(1);
+      expect(percentage).toBeLessThan(threshold ?? 1);
     },
   );
 

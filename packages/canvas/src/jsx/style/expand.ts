@@ -2,6 +2,7 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
+import { splitGradientArgs } from "../draw/gradient.ts";
 import type { ExpandedStyle } from "./compute.ts";
 
 type RawStyle = Record<string, unknown>;
@@ -186,12 +187,15 @@ export function expandStyle(
 
   // background shorthand
   if (style.background !== undefined) {
-    const bg = String(style.background);
-    if (bg.includes("gradient(") || bg.includes("url(")) {
-      if (style.backgroundImage === undefined) style.backgroundImage = bg;
-    } else {
-      if (style.backgroundColor === undefined) style.backgroundColor = bg;
-    }
+    const parts = parseBackgroundShorthand(String(style.background));
+    if (parts.image !== undefined && style.backgroundImage === undefined)
+      style.backgroundImage = parts.image;
+    if (parts.repeat !== undefined && style.backgroundRepeat === undefined)
+      style.backgroundRepeat = parts.repeat;
+    if (parts.size !== undefined && style.backgroundSize === undefined)
+      style.backgroundSize = parts.size;
+    if (parts.color !== undefined && style.backgroundColor === undefined)
+      style.backgroundColor = parts.color;
     delete style.background;
   }
 
@@ -249,4 +253,130 @@ export function expandStyle(
   }
 
   return style as unknown as ExpandedStyle;
+}
+
+const BG_REPEAT_KEYWORDS = new Set([
+  "repeat",
+  "no-repeat",
+  "repeat-x",
+  "repeat-y",
+  "space",
+  "round",
+]);
+const BG_POSITION_KEYWORDS = new Set([
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "center",
+]);
+const BG_ATTACHMENT_KEYWORDS = new Set(["scroll", "fixed", "local"]);
+const BG_BOX_KEYWORDS = new Set(["border-box", "padding-box", "content-box"]);
+const BG_IMAGE_FN =
+  /^(?:url|image-set|(?:repeating-)?(?:linear|radial|conic)-gradient)\(/;
+
+// Whitespace-tokenize a CSS value, keeping balanced-paren blocks intact and
+// emitting `/` as its own token (the position/size separator).
+function tokenizeBackground(value: string): string[] {
+  const tokens: string[] = [];
+  let buf = "";
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i]!;
+    if (c === "(") {
+      let depth = 1;
+      buf += c;
+      i++;
+      while (i < value.length && depth > 0) {
+        const ch = value[i]!;
+        if (ch === "(") depth++;
+        else if (ch === ")") depth--;
+        buf += ch;
+        i++;
+      }
+      i--;
+    } else if (/\s/.test(c)) {
+      if (buf) {
+        tokens.push(buf);
+        buf = "";
+      }
+    } else if (c === "/") {
+      if (buf) {
+        tokens.push(buf);
+        buf = "";
+      }
+      tokens.push("/");
+    } else {
+      buf += c;
+    }
+  }
+  if (buf) tokens.push(buf);
+  return tokens;
+}
+
+interface BackgroundParts {
+  image?: string;
+  repeat?: string;
+  size?: string;
+  color?: string;
+}
+
+function parseLayer(value: string): BackgroundParts {
+  const out: BackgroundParts = {};
+  const sizeTokens: string[] = [];
+  let afterSlash = false;
+  for (const tok of tokenizeBackground(value)) {
+    if (tok === "/") {
+      afterSlash = true;
+      continue;
+    }
+    if (afterSlash) {
+      sizeTokens.push(tok);
+      continue;
+    }
+    if (BG_IMAGE_FN.test(tok)) {
+      out.image = tok;
+      continue;
+    }
+    if (tok === "none") continue;
+    if (BG_REPEAT_KEYWORDS.has(tok)) {
+      out.repeat = tok;
+      continue;
+    }
+    // Position/attachment/box/length tokens are recognized so they don't fall
+    // through and get treated as colors; the renderer doesn't honor them yet.
+    if (
+      BG_POSITION_KEYWORDS.has(tok) ||
+      BG_ATTACHMENT_KEYWORDS.has(tok) ||
+      BG_BOX_KEYWORDS.has(tok) ||
+      /^-?\d/.test(tok)
+    ) {
+      continue;
+    }
+    out.color = tok;
+  }
+  if (sizeTokens.length > 0) out.size = sizeTokens.join(" ");
+  return out;
+}
+
+/**
+ * Parse the CSS `background` shorthand into image/repeat/size/color longhands.
+ * For multi-layer values, image is comma-joined and color is taken only from
+ * the final layer (the only layer permitted a color per the CSS spec).
+ */
+export function parseBackgroundShorthand(value: string): BackgroundParts {
+  const layers = splitGradientArgs(value).map((l) => l.trim());
+  if (layers.length <= 1) return parseLayer(layers[0] ?? "");
+
+  const parsed = layers.map(parseLayer);
+  const out: BackgroundParts = {};
+  const images = parsed.map((p) => p.image ?? "none");
+  if (images.some((i) => i !== "none")) out.image = images.join(", ");
+  for (const p of parsed) {
+    if (p.repeat !== undefined && out.repeat === undefined)
+      out.repeat = p.repeat;
+    if (p.size !== undefined && out.size === undefined) out.size = p.size;
+  }
+  const finalColor = parsed[parsed.length - 1]?.color;
+  if (finalColor !== undefined) out.color = finalColor;
+  return out;
 }

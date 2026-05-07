@@ -317,9 +317,13 @@ async function drawNodeCore(
               tileW = image.width;
               tileH = image.height;
             }
-            // Tile the image to fill the box (CSS background-repeat: repeat)
-            for (let ty = y; ty < y + height; ty += tileH) {
-              for (let tx = x; tx < x + width; tx += tileW) {
+            const repeat = style.backgroundRepeat ?? "repeat";
+            const stepX =
+              repeat === "repeat" || repeat === "repeat-x" ? tileW : width;
+            const stepY =
+              repeat === "repeat" || repeat === "repeat-y" ? tileH : height;
+            for (let ty = y; ty < y + height; ty += stepY) {
+              for (let tx = x; tx < x + width; tx += stepX) {
                 ctx.drawImage(image, tx, ty, tileW, tileH);
               }
             }

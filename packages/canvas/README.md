@@ -184,14 +184,15 @@ const png = canvas.encodeSync("png");
 
 ### Color & Background
 
-| Property          | Values / Notes                                     |
-| ----------------- | -------------------------------------------------- |
-| `color`           | Any CSS color (inherited)                          |
-| `backgroundColor` | Any CSS color                                      |
-| `opacity`         | Number (0–1)                                       |
-| `background`      | Shorthand → `backgroundColor` or `backgroundImage` |
-| `backgroundImage` | `linear-gradient()`, `radial-gradient()`, `url()`  |
-| `backgroundSize`  | `cover`, `contain`, length, percentage             |
+| Property           | Values / Notes                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| `color`            | Any CSS color (inherited)                                                                              |
+| `backgroundColor`  | Any CSS color                                                                                          |
+| `opacity`          | Number (0–1)                                                                                           |
+| `background`       | Shorthand → decomposed into `backgroundColor`, `backgroundImage`, `backgroundRepeat`, `backgroundSize` |
+| `backgroundImage`  | `linear-gradient()`, `radial-gradient()`, `url()`                                                      |
+| `backgroundSize`   | `cover`, `contain`, length, percentage                                                                 |
+| `backgroundRepeat` | `repeat` (default), `no-repeat`, `repeat-x`, `repeat-y`                                                |
 
 ### Typography
 

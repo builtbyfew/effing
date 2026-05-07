@@ -105,6 +105,13 @@ export type ComputedStyle = {
   opacity?: number;
   backgroundImage?: string;
   backgroundSize?: string;
+  backgroundRepeat?:
+    | "repeat"
+    | "no-repeat"
+    | "repeat-x"
+    | "repeat-y"
+    | "space"
+    | "round";
 
   // Typography
   fontSize?: number;

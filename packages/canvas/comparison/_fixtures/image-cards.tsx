@@ -119,11 +119,13 @@ export function BackgroundImageCard({
   height,
   imageDataUri,
   backgroundSize,
+  backgroundRepeat,
 }: {
   width: number;
   height: number;
   imageDataUri: string;
   backgroundSize?: string;
+  backgroundRepeat?: string;
 }) {
   return (
     <div
@@ -133,6 +135,7 @@ export function BackgroundImageCard({
         height,
         backgroundImage: `url(${imageDataUri})`,
         ...(backgroundSize ? { backgroundSize } : {}),
+        ...(backgroundRepeat ? { backgroundRepeat } : {}),
         borderRadius: 12,
         overflow: "hidden",
       }}

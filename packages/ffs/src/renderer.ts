@@ -566,8 +566,13 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
           fadeIn: segment.audio.fadeIn,
           fadeOut: segment.audio.fadeOut,
         });
+        // apad before atrim so audio shorter than the segment is padded with
+        // silence — without it, concat would start the next segment's audio
+        // before the current segment's video ends.
+        // (concat stitches clips back-to-back by the actual stream length,
+        // not the segment's video length.)
         filterParts.push(
-          `[${audioInputIndex}:a]atrim=start=0:duration=${realDuration},${audioFilter},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
+          `[${audioInputIndex}:a]apad,atrim=start=0:duration=${realDuration},${audioFilter},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
         );
         audioCounter++;
       } else {

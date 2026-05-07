@@ -279,6 +279,14 @@ Available transition types:
 | `saturate-out` | `start`, `duration`                 | Saturation out |
 | `scroll`       | `direction`, `distance`, `duration` | Scroll layer   |
 
+### Scroll options
+
+- `direction`: which way the content moves — `"left"`, `"right"`, `"up"`, or `"down"`
+- `distance`: how far to scroll, expressed in frame widths (`left`/`right`) or frame heights (`up`/`down`)
+- `duration`: scroll duration in seconds
+
+The layer's source must be `(1 + distance)` times the frame dimension along the scroll axis. Example: a 1080-wide frame with `direction: "left"`, `distance: 1` requires a source 2160 px wide so the scroll covers exactly one frame width without revealing empty edges. Fractional values follow the same rule — `distance: 0.5` needs a source 1.5× the frame size and produces a half-frame drift.
+
 ## Motion
 
 All motion variants share optional `start` and `duration` (in seconds). Variant-specific fields:

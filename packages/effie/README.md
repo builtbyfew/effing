@@ -66,7 +66,7 @@ type EffieAudio = {
 };
 ```
 
-Audio can appear at the top level (global soundtrack across all segments) or per-segment (overrides the global track for that segment). `volume` is the only audio field validated at runtime — it must be in `[0, 1]`.
+Audio can appear at the top level (global soundtrack across all segments) and/or per-segment (mixed on top of the global track for that segment). `volume` is the only audio field validated at runtime — it must be in `[0, 1]`.
 
 ### Segments & Layers
 

@@ -1,6 +1,6 @@
 {
   "name": "@effing/canvas",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "description": "Low-level canvas rendering for JSX and Lottie using @napi-rs/canvas (Skia)",
   "type": "module",
   "exports": {

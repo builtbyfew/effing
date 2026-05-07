@@ -1,5 +1,7 @@
 # @effing/create
 
+## 0.33.0
+
 ## 0.32.0
 
 ### Minor Changes

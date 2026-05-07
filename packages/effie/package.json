@@ -1,6 +1,6 @@
 {
   "name": "@effing/effie",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "description": "Effie video composition format and utilities",
   "type": "module",
   "exports": {

@@ -1,5 +1,13 @@
 # @effing/ffs
 
+## 0.33.1
+
+### Patch Changes
+
+- Updated dependencies [b18e42f]
+- Updated dependencies [c481551]
+  - @effing/effie@0.33.1
+
 ## 0.33.0
 
 ### Patch Changes

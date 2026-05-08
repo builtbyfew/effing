@@ -1,5 +1,12 @@
 # @effing/effie
 
+## 0.33.1
+
+### Patch Changes
+
+- b18e42f: Document what scroll `distance` means and how to size the layer source
+- c481551: Correct README to say segment audio is mixed on top of the global track, not overriding it
+
 ## 0.33.0
 
 ### Patch Changes

@@ -54,7 +54,7 @@ try {
 
 const baseUrl =
   process.env.FFMPEG_BINARIES_URL ||
-  "https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v6.1.4";
+  "https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v6.1.5";
 
 const url = `${baseUrl}/ffmpeg-${platform}-${arch}.gz`;
 

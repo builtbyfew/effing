@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v6.1.4**, FFmpeg 6.1.4).
+Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v6.1.5**, FFmpeg 6.1.5).
 
 ## Usage
 

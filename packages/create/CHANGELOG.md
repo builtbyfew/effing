@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.33.1
+
+### Patch Changes
+
+- 405aa93: Nudge starter projects toward small, single-purpose annies
+
 ## 0.33.0
 
 ## 0.32.0

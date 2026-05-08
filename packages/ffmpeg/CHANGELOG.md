@@ -1,5 +1,11 @@
 # @effing/ffmpeg
 
+## 0.33.1
+
+### Patch Changes
+
+- 81d7ca0: Upgrade bundled FFmpeg from 6.1.4 to 6.1.5
+
 ## 0.33.0
 
 ## 0.32.0

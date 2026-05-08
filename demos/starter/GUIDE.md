@@ -6,6 +6,8 @@ This is a React Router app for creating Effing Images, Effing Annies, and Effing
 - **Effing Annies** — frame-based animations, streamed as TAR archives of PNG/JPEG frames. Useful for typewriter text, photo zooms, Ken Burns effects, animated overlays.
 - **Effing Effies** — video compositions that assemble images, annies, audio, and effects into an MP4.
 
+The typical effie composes several images and annies as separate layers, rather than baking everything into a single big annie. Small, single-purpose annies combine flexibly into an effie; they cache independently and render in parallel; they're cheap to re-render while iterating on them; and they're easy to preview and reuse on their own. If an annie is animating conceptually independent things — or one element holds still while another moves — split it up.
+
 ## Getting started
 
 ```bash

@@ -159,16 +159,37 @@ export function effingVite(options: EffingVitePluginOptions = {}): Plugin {
         ignoreInitial: true,
         ignored: /(^|[/\\])\../,
       });
-      const onChange = (file: string) => {
-        if (!file.endsWith(SUFFIX)) return;
-        if (cachedFnsId) {
-          const mod = server.moduleGraph.getModuleById(cachedFnsId);
-          if (mod) server.moduleGraph.invalidateModule(mod);
-        }
-        server.ws.send({ type: "full-reload" });
+      const invalidateVirtual = () => {
+        if (!cachedFnsId) return;
+        const mod = server.moduleGraph.getModuleById(cachedFnsId);
+        if (mod) server.moduleGraph.invalidateModule(mod);
       };
-      watcher.on("add", onChange);
-      watcher.on("unlink", onChange);
+      const invalidateFile = (file: string) => {
+        // Vite indexes modules by their resolved file path. Invalidate every
+        // module entry associated with the file so the SSR runner re-evaluates
+        // on the next loader call.
+        const mods = server.moduleGraph.getModulesByFile(path.resolve(file));
+        if (!mods) return;
+        for (const mod of mods) server.moduleGraph.invalidateModule(mod);
+      };
+      const reload = () => server.ws.send({ type: "full-reload" });
+
+      // Add/unlink change the SET of fns → the virtual map's content changes.
+      const onAddOrUnlink = (file: string) => {
+        if (!file.endsWith(SUFFIX)) return;
+        invalidateVirtual();
+        reload();
+      };
+      // Content edit: only that file's module needs invalidating; the virtual
+      // map (id → absPath dynamic import) is unchanged.
+      const onContentChange = (file: string) => {
+        if (!file.endsWith(SUFFIX)) return;
+        invalidateFile(file);
+        reload();
+      };
+      watcher.on("add", onAddOrUnlink);
+      watcher.on("unlink", onAddOrUnlink);
+      watcher.on("change", onContentChange);
 
       // Silence Chrome DevTools probes that would otherwise log noisy 404s.
       server.middlewares.use((req, res, next) => {

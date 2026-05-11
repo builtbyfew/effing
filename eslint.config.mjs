@@ -6,7 +6,12 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   {
-    ignores: ["**/node_modules/", "**/dist/", "**/build/", "**/.react-router/"],
+    ignores: [
+      "**/node_modules/",
+      "**/dist/",
+      "**/build/",
+      "packages/dev/preview/",
+    ],
   },
   {
     files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

@@ -1,0 +1,60 @@
+import { Command } from "commander";
+import { createRequire } from "node:module";
+import { runDev } from "./dev";
+import { runBuild } from "./build";
+
+const require_ = createRequire(import.meta.url);
+const { version } = require_("../../package.json") as { version: string };
+
+function wrap(
+  fn: (...args: never[]) => Promise<unknown> | unknown,
+): (...args: never[]) => Promise<void> {
+  return async (...args) => {
+    try {
+      await fn(...args);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(message);
+      process.exitCode = 1;
+    }
+  };
+}
+
+const program = new Command();
+program
+  .name("effing")
+  .description("Dev tooling for Effing projects")
+  .version(version);
+
+program
+  .command("dev")
+  .description("Start the Effing dev server")
+  .option("-c, --config <path>", "path to the effing.config.ts file")
+  .option("-p, --port <number>", "port to listen on", (v) => parseInt(v, 10))
+  .option("-h, --host <host>", "host to bind to")
+  .option("--no-ffs", "do not auto-start the FFS sidecar")
+  .action(
+    wrap(
+      async (options: {
+        config?: string;
+        port?: number;
+        host?: string;
+        ffs?: boolean;
+      }) => {
+        await runDev(options);
+      },
+    ) as never,
+  );
+
+program
+  .command("build")
+  .description("Bundle a production server to dist/server.js")
+  .option("-c, --config <path>", "path to the effing.config.ts file")
+  .option("-o, --out <path>", "output path", "dist/server.js")
+  .action(
+    wrap(async (options: { config?: string; out: string }) => {
+      await runBuild({ config: options.config, outFile: options.out });
+    }) as never,
+  );
+
+program.parse();

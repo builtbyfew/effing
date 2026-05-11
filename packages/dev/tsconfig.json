@@ -1,5 +1,4 @@
 {
-  "include": ["app/**/*", "effing.config.ts"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["node"],
@@ -12,10 +11,8 @@
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
-    "paths": {
-      "~/*": ["./app/*"]
-    }
-  }
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src/**/*"]
 }

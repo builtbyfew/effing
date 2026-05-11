@@ -2,7 +2,7 @@ FROM node:22-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
-# Stage: install all deps and build
+# Stage: install all deps and build the production server bundle
 FROM base AS build
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
@@ -13,7 +13,7 @@ RUN if [ -f pnpm-lock.yaml ]; then \
       npm install; \
     fi
 COPY . .
-RUN npm run build
+RUN npx effing build
 
 # Stage: production deps only
 FROM base AS prod-deps
@@ -33,6 +33,6 @@ ENV NODE_ENV=production
 ENV PORT=8080
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/build ./build
+COPY --from=build /app/dist ./dist
 EXPOSE $PORT
-CMD ["./node_modules/.bin/react-router-serve", "./build/server/index.js"]
+CMD ["node", "dist/server.js"]

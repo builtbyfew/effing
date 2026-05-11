@@ -89,17 +89,17 @@ async function main(): Promise<void> {
   pkg.name = slug;
   await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-  // Update effing-cloud.config.ts with project name
-  const cloudConfigPath = path.join(root, "effing-cloud.config.ts");
+  // Update effing.config.ts with project name
+  const effingConfigPath = path.join(root, "effing.config.ts");
   try {
-    const cloudConfig = await fs.readFile(cloudConfigPath, "utf-8");
-    const updated = cloudConfig.replace(
+    const effingConfig = await fs.readFile(effingConfigPath, "utf-8");
+    const updated = effingConfig.replace(
       /project:\s*"[^"]*"/,
       `project: "${slug}"`,
     );
-    await fs.writeFile(cloudConfigPath, updated);
+    await fs.writeFile(effingConfigPath, updated);
   } catch {
-    // effing-cloud.config.ts is optional
+    // effing.config.ts is optional
   }
 
   // Update README.md title with project name

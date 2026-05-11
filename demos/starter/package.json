@@ -4,54 +4,33 @@
   "type": "module",
   "sideEffects": false,
   "scripts": {
-    "build": "react-router build",
-    "dev": "run-p dev:*",
-    "dev:app": "react-router dev",
-    "dev:ffs": "ffs",
-    "start": "cross-env NODE_ENV=production node ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
+    "dev": "effing dev",
+    "build": "effing build",
+    "start": "node dist/server.js",
+    "typecheck": "tsc",
     "cloud:deploy": "effing-cloud deploy",
     "cloud:url-secret": "effing-cloud url-secret"
   },
   "dependencies": {
     "@effing/annie": "workspace:*",
-    "@effing/annie-player": "workspace:*",
     "@effing/canvas": "workspace:*",
     "@effing/effie": "workspace:*",
-    "@effing/effie-preview": "workspace:*",
-    "@effing/ffs": "workspace:*",
     "@effing/fn": "workspace:*",
-    "@effing/serde": "workspace:*",
     "@effing/tween": "workspace:*",
-    "@react-router/node": "^7.0.0",
-    "@react-router/serve": "^7.0.0",
-    "cross-env": "^7.0.3",
-    "isbot": "^5.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router": "^7.0.0",
     "tiny-invariant": "^1.3.1",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.0.0",
-    "@react-router/fs-routes": "^7.0.0",
+    "@effing/dev": "workspace:*",
+    "@effing/ffs": "workspace:*",
     "@types/node": "^25.0.3",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
     "effing-cloud": "^0.4.0",
-    "npm-run-all": "^4.1.5",
-    "typescript": "catalog:",
-    "vite": "^7.0.0",
-    "vite-tsconfig-paths": "^4.3.2"
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=22"
   },
-  "license": "MIT",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@effing/ffmpeg"
-    ]
-  }
+  "license": "MIT"
 }

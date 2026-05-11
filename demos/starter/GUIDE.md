@@ -33,16 +33,12 @@ Open [http://localhost:3839](http://localhost:3839) — the homepage lists every
 │   │   └── *.fn.tsx
 │   ├── effies/              # Effing Effie fns
 │   │   └── *.fn.tsx
-│   ├── routes/              # React Router routes (preview pages and signed endpoints)
-│   ├── fn.server.ts         # Wires the @effing/fn runtime to the app
-│   ├── fonts.ts             # Font definitions and loading utils
-│   ├── resolutions.ts       # Preview resolutions and default bounds
-│   └── urls.server.ts       # Signed URL segment helpers
-├── effing-cloud.config.ts
-└── vite.config.ts
+│   └── fonts.ts             # Font definitions and loading utils
+├── effing.config.ts         # Project config (globs, dev settings, …)
+└── package.json
 ```
 
-Drop a file into `app/images/`, `app/annies/`, or `app/effies/` and it's automatically registered — no routing or registry edits needed. `app/fn.server.ts` discovers fns via `import.meta.glob`, so registration is implicit in the filename.
+Drop a file into `app/images/`, `app/annies/`, or `app/effies/` and it's automatically registered — no routing or registry edits needed. The dev server (`@effing/dev`) discovers fns via the globs declared in `effing.config.ts`.
 
 ## The fn module shape
 
@@ -305,18 +301,18 @@ FFS_API_KEY=your-ffs-api-key
 
 ## Scripts
 
-| Script                     | What it does                                                                  |
-| -------------------------- | ----------------------------------------------------------------------------- |
-| `npm run dev`              | Runs the app and a local FFS rendering service in parallel.                   |
-| `npm run build`            | Builds the app for production.                                                |
-| `npm start`                | Starts the production server.                                                 |
-| `npm run typecheck`        | Generates React Router types and runs `tsc`.                                  |
-| `npm run cloud:deploy`     | Deploys to [Effing Cloud](https://effing.dev) using `effing-cloud.config.ts`. |
-| `npm run cloud:url-secret` | Prints the project's URL signing secret from Effing Cloud.                    |
+| Script                     | What it does                                                            |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`              | Runs the Effing dev server and a local FFS rendering service.           |
+| `npm run build`            | Bundles a production server to `dist/server.js`.                        |
+| `npm start`                | Runs the production server (`node dist/server.js`).                     |
+| `npm run typecheck`        | Runs `tsc`.                                                             |
+| `npm run cloud:deploy`     | Deploys to [Effing Cloud](https://effing.dev) using `effing.config.ts`. |
+| `npm run cloud:url-secret` | Prints the project's URL signing secret from Effing Cloud.              |
 
 ## Deploying
 
-[Effing Cloud](https://effing.dev) is the easiest path: `npm run cloud:deploy` ships the project (configured via `effing-cloud.config.ts`) and everything around running it in production is handled for you. To self-host instead, use the included `Dockerfile` — it builds the app and serves it with `react-router-serve`, but all the rest is up to you.
+[Effing Cloud](https://effing.dev) is the easiest path: `npm run cloud:deploy` ships the project (configured via `effing.config.ts`) and everything around running it in production is handled for you. To self-host instead, use the included `Dockerfile` — `effing build` produces a small Node server that the Dockerfile runs with `node dist/server.js`.
 
 ## Further reading
 

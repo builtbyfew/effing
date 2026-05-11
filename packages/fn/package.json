@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
     }
   },
   "files": [
@@ -18,14 +22,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effing/annie": "workspace:*"
+    "@effing/annie": "workspace:*",
+    "@effing/effie": "workspace:*",
+    "@effing/serde": "workspace:*"
   },
   "devDependencies": {
     "tsup": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "catalog:",
-    "@effing/effie": "workspace:*"
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "zod": "^3.0.0"

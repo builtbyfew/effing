@@ -296,6 +296,8 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.0.3)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/create-effing: {}
+
   packages/effie:
     devDependencies:
       tsup:

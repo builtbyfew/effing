@@ -15,7 +15,7 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   {
-    files: ["**/install.mjs"],
+    files: ["**/install.mjs", "packages/create-effing/**/*.js"],
     languageOptions: { globals: globals.node },
   },
   tseslint.configs.recommended,

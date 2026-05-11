@@ -1,0 +1,32 @@
+{
+  "name": "create-effing",
+  "version": "0.1.0",
+  "description": "Defensive placeholder — use `npm create @effing` (with the @ scope) to scaffold an Effing project.",
+  "type": "module",
+  "bin": {
+    "create-effing": "index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "effing",
+    "create",
+    "scaffold",
+    "cli",
+    "placeholder"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/builtbyfew/effing/tree/main/packages/create-effing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/create-effing"
+  }
+}

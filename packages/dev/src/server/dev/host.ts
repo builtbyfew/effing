@@ -113,8 +113,7 @@ export async function startDevServer(
   };
 
   const clientDir = path.join(buildDir, "client");
-  const userPublicDir = path.join(options.configDir, "public");
-  const userPublicDirExists = fs.existsSync(userPublicDir);
+  const faviconFile = faviconPath();
 
   // Reuse Vite's own chokidar watcher (rooted at options.configDir) instead
   // of standing up a second one. On content edits, Vite's SSR module graph
@@ -157,9 +156,16 @@ export async function startDevServer(
       if (await tryServeStatic(clientDir, pathname, res, IMMUTABLE_CACHE))
         return;
     }
-    if (userPublicDirExists && pathname !== "/") {
-      // User-managed files may change without a hash flip; revalidate.
-      if (await tryServeStatic(userPublicDir, pathname, res, REVALIDATE_CACHE))
+    if (pathname === "/favicon.ico") {
+      // Dev-server branding shipped with @effing/dev — users can't override.
+      if (
+        await tryServeStatic(
+          path.dirname(faviconFile),
+          "/favicon.ico",
+          res,
+          REVALIDATE_CACHE,
+        )
+      )
         return;
     }
 
@@ -212,6 +218,22 @@ function appBuildDir(): string {
   throw new Error(
     `Could not locate the built dev app — tried:\n  ${candidates.join("\n  ")}\n` +
       `Run \`pnpm --filter @effing/dev build\` to produce it.`,
+  );
+}
+
+function faviconPath(): string {
+  // Layouts:
+  //  - bundled CLI:    dist/cli/index.js        → ../../assets/favicon.ico
+  //  - in-repo source: src/server/dev/host.ts   → ../../../assets/favicon.ico
+  const candidates = [
+    path.resolve(__dirname, "../../assets/favicon.ico"),
+    path.resolve(__dirname, "../../../assets/favicon.ico"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  throw new Error(
+    `Could not locate bundled favicon — tried:\n  ${candidates.join("\n  ")}`,
   );
 }
 

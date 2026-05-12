@@ -5,6 +5,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "effing dev",
+    "url": "effing url",
     "build": "effing build",
     "start": "node dist/server.js",
     "typecheck": "tsc",

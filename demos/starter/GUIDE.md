@@ -260,7 +260,17 @@ The HTML preview pages are designed for humans clicking through. For agents insp
 
 The image and annie endpoints stream the encoded bytes — a JPEG/PNG still, or a TAR of frames — so an agent can fetch and inspect the rendered output by id alone. The effie endpoint is JSON-shaped because an effie _is_ JSON: a description of how to compose other fns, not pixels. It returns the effie's `effieData` with every layer source already signed, so the agent can follow those URLs into the individual annie frames and image stills the composition references — handy for verifying output and iterating without bouncing back to the user for every change.
 
-The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to the first entry in `app/resolutions.ts`) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
+The preview endpoints render with the fn's `previewProps` and let you set bounds via `?w=` and `?h=` at request time (defaulting to the first entry in `effing.config.ts`'s `dev.resolutions`) — useful for inspection without a signing key, though the props are fixed to whatever the file declares. To render with custom props you need a signed URL instead: the `/image/:segment`, `/annie/:segment`, and `/effie/:segment` endpoints encode both props and bounds inside the segment, signed with the project's `SECRET_KEY` so nobody without the key can mint URLs with arbitrary inputs. As a bonus, since the URL fully determines the output, the same signed URL always produces the same bytes — a clean CDN cache key.
+
+To mint one of those signed URLs from the command line — handy when you want an agent (or `curl`) to fetch a specific propped variant — run `npm run url`:
+
+```bash
+npm run url -- annie my-animation \
+  --props '{"text":"Hello"}' \
+  --width 1080 --height 1080
+```
+
+The script reads `BASE_URL` and `SECRET_KEY` from `.env`, defaults width/height to the first entry in `dev.resolutions`, and prints the full signed URL on stdout. Kind is one of `image`, `annie`, or `effie`; the id matches the fn's filename without the `.fn.tsx` suffix.
 
 ## Fonts
 
@@ -304,6 +314,7 @@ FFS_API_KEY=your-ffs-api-key
 | Script                     | What it does                                                            |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `npm run dev`              | Runs the Effing dev server and a local FFS rendering service.           |
+| `npm run url`              | Mints a signed fn URL for given props (see "Inspecting from an agent"). |
 | `npm run build`            | Bundles a production server to `dist/server.js`.                        |
 | `npm start`                | Runs the production server (`node dist/server.js`).                     |
 | `npm run typecheck`        | Runs `tsc`.                                                             |

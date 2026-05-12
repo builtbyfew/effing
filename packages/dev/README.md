@@ -82,6 +82,23 @@ The dev server gives you:
 
 If `@effing/ffs` is installed and `ffs` is enabled, an FFS sidecar is auto-spawned at startup.
 
+### `effing url`
+
+Prints a signed fn URL for the given props — handy for agents or `curl` fetching a specific propped variant without going through the HTML preview pages.
+
+```bash
+npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
+```
+
+| Option               | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `-c, --config <p>`   | Path to `effing.config.ts`.                                   |
+| `-p, --props <json>` | Props as a JSON object (default: `{}`).                       |
+| `-w, --width <n>`    | Width in pixels (default: first entry in `dev.resolutions`).  |
+| `--height <n>`       | Height in pixels (default: first entry in `dev.resolutions`). |
+
+Reads `BASE_URL` and `SECRET_KEY` from `.env` files in the project root.
+
 ### `effing build`
 
 Bundles a production HTTP server to `dist/server.js`.

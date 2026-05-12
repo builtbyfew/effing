@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { createRequire } from "node:module";
 import { runDev } from "./dev";
 import { runBuild } from "./build";
+import { runUrl } from "./url";
 
 const require_ = createRequire(import.meta.url);
 const { version } = require_("../../package.json") as { version: string };
@@ -55,6 +56,36 @@ program
     wrap(async (options: { config?: string; out: string }) => {
       await runBuild({ config: options.config, outFile: options.out });
     }) as never,
+  );
+
+program
+  .command("url <kind> <id>")
+  .description(
+    "Print a signed fn URL for the given props (kind: image|annie|effie)",
+  )
+  .option("-c, --config <path>", "path to the effing.config.ts file")
+  .option(
+    "-p, --props <json>",
+    "props as a JSON object (default: {})",
+    (v) => v,
+  )
+  .option("-w, --width <number>", "width in pixels", (v) => parseInt(v, 10))
+  .option("--height <number>", "height in pixels", (v) => parseInt(v, 10))
+  .action(
+    wrap(
+      async (
+        kind: string,
+        id: string,
+        options: {
+          config?: string;
+          props?: string;
+          width?: number;
+          height?: number;
+        },
+      ) => {
+        await runUrl(kind, id, options);
+      },
+    ) as never,
   );
 
 program.parse();

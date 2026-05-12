@@ -1,5 +1,5 @@
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import type { IncomingMessage, RequestListener } from "node:http";
+import { Writable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { z } from "zod";
 import type { FnKind, FnModule, FnModuleLoader } from "../types";
@@ -79,27 +79,91 @@ function makeLoader(
   };
 }
 
-async function startServer(loader: FnModuleLoader): Promise<{
-  server: Server;
-  baseUrl: string;
-}> {
-  const server = createServer(
-    createFnHttpListener({ moduleLoader: loader, secretKey: SECRET }),
-  );
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const port = (server.address() as AddressInfo).port;
-  return { server, baseUrl: `http://127.0.0.1:${port}` };
+type CallResult = {
+  status: number;
+  headers: Record<string, string>;
+  body: Buffer;
+};
+
+// Invoke the listener with synthetic req/res. Avoids binding a real TCP
+// socket, which keeps the test runnable under sandboxes that deny listen().
+async function callListener(
+  listener: RequestListener,
+  opts: { method?: string; url: string },
+): Promise<CallResult> {
+  const req = {
+    method: opts.method ?? "GET",
+    url: opts.url,
+    headers: {},
+  } as IncomingMessage;
+
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const headers: Record<string, string> = {};
+
+    class FakeRes extends Writable {
+      statusCode = 200;
+      headersSent = false;
+      writableEnded = false;
+
+      setHeader(name: string, value: string | number | readonly string[]) {
+        headers[name.toLowerCase()] = String(value);
+      }
+      getHeader(name: string) {
+        return headers[name.toLowerCase()];
+      }
+      writeHead(code: number, h?: Record<string, string>) {
+        this.statusCode = code;
+        if (h)
+          for (const [k, v] of Object.entries(h))
+            headers[k.toLowerCase()] = String(v);
+        this.headersSent = true;
+        return this;
+      }
+      override end(chunk?: unknown, ...rest: unknown[]): this {
+        if (chunk != null) chunks.push(Buffer.from(chunk as Uint8Array));
+        this.headersSent = true;
+        this.writableEnded = true;
+        super.end(...(rest as []));
+        return this;
+      }
+      override _write(
+        chunk: Buffer | Uint8Array | string,
+        _enc: BufferEncoding,
+        cb: (err?: Error) => void,
+      ) {
+        chunks.push(Buffer.from(chunk));
+        cb();
+      }
+    }
+
+    const res = new FakeRes();
+    res.on("finish", () =>
+      resolve({ status: res.statusCode, headers, body: Buffer.concat(chunks) }),
+    );
+    res.on("error", reject);
+
+    try {
+      listener(req, res as unknown as Parameters<RequestListener>[1]);
+    } catch (e) {
+      reject(e as Error);
+    }
+  });
+}
+
+function makeListener(loader: FnModuleLoader): RequestListener {
+  return createFnHttpListener({ moduleLoader: loader, secretKey: SECRET });
 }
 
 describe("createFnHttpListener", () => {
-  let cleanups: Array<() => Promise<void>> = [];
+  let pending: Array<Promise<unknown>> = [];
 
   beforeEach(() => {
-    cleanups = [];
+    pending = [];
   });
 
   afterEach(async () => {
-    for (const cleanup of cleanups) await cleanup();
+    await Promise.all(pending);
   });
 
   test("serves a signed image segment as PNG", async () => {
@@ -114,9 +178,6 @@ describe("createFnHttpListener", () => {
         ),
       },
     });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
     const segment = await signFnSegment(
       {
         id: "my-image",
@@ -125,11 +186,12 @@ describe("createFnHttpListener", () => {
       },
       SECRET,
     );
-    const res = await fetch(`${baseUrl}/image/${segment}`);
+    const res = await callListener(makeListener(loader), {
+      url: `/image/${segment}`,
+    });
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toBe("image/png");
-    const buf = new Uint8Array(await res.arrayBuffer());
-    expect(Array.from(buf)).toEqual(Array.from(PNG_BYTES));
+    expect(res.headers["content-type"]).toBe("image/png");
+    expect(Array.from(new Uint8Array(res.body))).toEqual(Array.from(PNG_BYTES));
   });
 
   test("serves an effie segment as JSON", async () => {
@@ -149,9 +211,6 @@ describe("createFnHttpListener", () => {
         ),
       },
     });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
     const segment = await signFnSegment(
       {
         id: "my-effie",
@@ -160,10 +219,11 @@ describe("createFnHttpListener", () => {
       },
       SECRET,
     );
-    const res = await fetch(`${baseUrl}/effie/${segment}`);
+    const res = await callListener(makeListener(loader), {
+      url: `/effie/${segment}`,
+    });
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data).toEqual(effieValue);
+    expect(JSON.parse(res.body.toString("utf8"))).toEqual(effieValue);
   });
 
   test("streams annie frames as a TAR", async () => {
@@ -176,9 +236,6 @@ describe("createFnHttpListener", () => {
         "my-annie": makeAnnieModule(z.object({}).passthrough(), () => frames()),
       },
     });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
     const segment = await signFnSegment(
       {
         id: "my-annie",
@@ -187,12 +244,13 @@ describe("createFnHttpListener", () => {
       },
       SECRET,
     );
-    const res = await fetch(`${baseUrl}/annie/${segment}`);
+    const res = await callListener(makeListener(loader), {
+      url: `/annie/${segment}`,
+    });
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toBe("application/x-tar");
-    const buf = Buffer.from(await res.arrayBuffer());
+    expect(res.headers["content-type"]).toBe("application/x-tar");
     // TAR consists of 512-byte blocks; two frames + headers should be a few KB.
-    expect(buf.byteLength).toBeGreaterThan(512);
+    expect(res.body.byteLength).toBeGreaterThan(512);
   });
 
   test("returns 400 for an unsigned / tampered segment", async () => {
@@ -201,18 +259,14 @@ describe("createFnHttpListener", () => {
         x: makeImageModule(z.object({}).passthrough(), async () => PNG_BYTES),
       },
     });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
-    const res = await fetch(`${baseUrl}/image/garbage-segment`);
+    const res = await callListener(makeListener(loader), {
+      url: "/image/garbage-segment",
+    });
     expect(res.status).toBe(400);
   });
 
   test("returns 404 for unknown id", async () => {
     const loader = makeLoader({ image: {} });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
     const segment = await signFnSegment(
       {
         id: "ghost",
@@ -221,7 +275,9 @@ describe("createFnHttpListener", () => {
       },
       SECRET,
     );
-    const res = await fetch(`${baseUrl}/image/${segment}`);
+    const res = await callListener(makeListener(loader), {
+      url: `/image/${segment}`,
+    });
     expect(res.status).toBe(404);
   });
 
@@ -234,36 +290,34 @@ describe("createFnHttpListener", () => {
         ),
       },
     });
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
     const segment = await signFnSegment(
       {
         id: "strict",
-        props: { text: 123 }, // wrong type
+        props: { text: 123 },
         bounds: { width: 100, height: 100 },
       },
       SECRET,
     );
-    const res = await fetch(`${baseUrl}/image/${segment}`);
+    const res = await callListener(makeListener(loader), {
+      url: `/image/${segment}`,
+    });
     expect(res.status).toBe(400);
   });
 
   test("returns 404 on unknown route shape", async () => {
     const loader = makeLoader({});
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
-    const res = await fetch(`${baseUrl}/nope/whatever`);
+    const res = await callListener(makeListener(loader), {
+      url: "/nope/whatever",
+    });
     expect(res.status).toBe(404);
   });
 
   test("returns 405 for non-GET", async () => {
     const loader = makeLoader({});
-    const { server, baseUrl } = await startServer(loader);
-    cleanups.push(() => new Promise((r) => server.close(() => r())));
-
-    const res = await fetch(`${baseUrl}/image/x`, { method: "POST" });
+    const res = await callListener(makeListener(loader), {
+      method: "POST",
+      url: "/image/x",
+    });
     expect(res.status).toBe(405);
   });
 });

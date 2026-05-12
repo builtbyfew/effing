@@ -1,18 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
-import { build as esbuild } from "esbuild";
-import { glob } from "tinyglobby";
+import { fileURLToPath } from "node:url";
+import { build as esbuild, type Plugin } from "esbuild";
 import { loadConfig } from "../config/load";
-import type { EffingConfig } from "../config/schema";
+import { resolveFns, FN_KINDS, type ResolvedFns } from "../fns";
 
 export type BuildOptions = {
   config?: string;
   outFile?: string;
 };
 
-type FnKind = "image" | "annie" | "effie";
-const KINDS: FnKind[] = ["image", "annie", "effie"];
-const SUFFIX = ".fn.tsx";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function runBuild(options: BuildOptions = {}): Promise<void> {
   const cwd = process.cwd();
@@ -32,17 +31,12 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     );
   }
 
-  const entry = renderEntry(resolved);
+  const entryPoint = prodEntryPath();
   const outFile = path.resolve(configDir, options.outFile ?? "dist/server.js");
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
 
   await esbuild({
-    stdin: {
-      contents: entry,
-      resolveDir: configDir,
-      loader: "tsx",
-      sourcefile: "effing-server-entry.tsx",
-    },
+    entryPoints: [entryPoint],
     outfile: outFile,
     bundle: true,
     format: "esm",
@@ -50,6 +44,7 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     target: "node22",
     packages: "external",
     logLevel: "info",
+    plugins: [effingFnsPlugin(resolved)],
     banner: {
       // Make the bundle directly runnable with `node dist/server.js`.
       js: '#!/usr/bin/env node\nimport { createRequire as _effingCreateRequire } from "node:module";\nconst require = _effingCreateRequire(import.meta.url);',
@@ -64,108 +59,62 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
   console.log(`\nRun with: node ${path.relative(configDir, outFile)}`);
 }
 
-type ResolvedFns = Record<FnKind, { id: string; absPath: string }[]>;
-
-async function resolveFns(
-  configDir: string,
-  config: EffingConfig,
-): Promise<ResolvedFns> {
-  const out: ResolvedFns = { image: [], annie: [], effie: [] };
-  for (const kind of KINDS) {
-    const key = (kind + "s") as "images" | "annies" | "effies";
-    const patterns = config[key];
-    if (!patterns) continue;
-    const arr = Array.isArray(patterns) ? patterns : [patterns];
-    const matched = await glob(arr, { cwd: configDir, absolute: true });
-    const seen = new Map<string, string>();
-    for (const abs of matched) {
-      const base = path.basename(abs);
-      if (!base.endsWith(SUFFIX)) continue;
-      const id = base.slice(0, -SUFFIX.length);
-      const existing = seen.get(id);
-      if (existing && existing !== abs) {
-        throw new Error(
-          `Duplicate ${kind} id "${id}" — matched by both ${existing} and ${abs}.`,
-        );
-      }
-      seen.set(id, abs);
-    }
-    out[kind] = [...seen.entries()]
-      .map(([id, absPath]) => ({ id, absPath }))
-      .sort((a, b) => a.id.localeCompare(b.id));
+function prodEntryPath(): string {
+  // Layouts:
+  //  - bundled CLI: dist/cli/index.js → ../server/prod/entry.js
+  //  - in-repo src: src/cli/build.ts  → ../server/prod/entry.ts
+  const candidates = [
+    path.resolve(__dirname, "../server/prod/entry.js"),
+    path.resolve(__dirname, "../server/prod/entry.ts"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
   }
-  return out;
+  throw new Error(
+    `Could not locate prod entry — tried:\n  ${candidates.join("\n  ")}`,
+  );
 }
 
-function renderEntry(resolved: ResolvedFns): string {
+function effingFnsPlugin(resolved: ResolvedFns): Plugin {
+  return {
+    name: "effing-fns",
+    setup(build) {
+      build.onResolve({ filter: /^virtual:effing\/fns$/ }, (args) => ({
+        path: args.path,
+        namespace: "effing-fns",
+      }));
+      build.onLoad({ filter: /.*/, namespace: "effing-fns" }, () => ({
+        contents: renderFnsMap(resolved),
+        // resolveDir so esbuild can locate transitive packages (e.g. user's
+        // own node_modules) from the absolute paths embedded below.
+        resolveDir: process.cwd(),
+        loader: "ts",
+      }));
+    },
+  };
+}
+
+function renderFnsMap(resolved: ResolvedFns): string {
   const lines: string[] = [];
-  lines.push(
-    `import { createServer } from "node:http";`,
-    `import {`,
-    `  initFnRuntime,`,
-    `  type FnKind,`,
-    `  type FnModule,`,
-    `  type FnModuleLoader,`,
-    `} from "@effing/fn";`,
-    `import {`,
-    `  createFlatUrlBuilder,`,
-    `  createFnHttpListener,`,
-    `} from "@effing/fn/server";`,
-    `import invariant from "tiny-invariant";`,
-  );
+  const nameOf = (kind: string, idx: number) => `_${kind}_${idx}`;
 
-  const nameOf = (kind: FnKind, idx: number) => `_${kind}_${idx}`;
-
-  for (const kind of KINDS) {
+  for (const kind of FN_KINDS) {
     resolved[kind].forEach((entry, idx) => {
       lines.push(
         `import * as ${nameOf(kind, idx)} from ${JSON.stringify(entry.absPath)};`,
       );
     });
   }
-
   lines.push("");
-  lines.push("const modulesByKind = {");
-  for (const kind of KINDS) {
+  lines.push("export const modulesByKind = {");
+  for (const kind of FN_KINDS) {
     lines.push(`  ${kind}: {`);
     resolved[kind].forEach((entry, idx) => {
       lines.push(`    ${JSON.stringify(entry.id)}: ${nameOf(kind, idx)},`);
     });
-    lines.push(`  } as Record<string, FnModule<FnKind>>,`);
+    lines.push("  },");
   }
   lines.push("};");
-  lines.push("");
-  lines.push(
-    `const baseUrl = process.env.BASE_URL;`,
-    `const secretKey = process.env.SECRET_KEY;`,
-    `invariant(baseUrl, "BASE_URL env var is required");`,
-    `invariant(secretKey, "SECRET_KEY env var is required");`,
-    "",
-    `const moduleLoader: FnModuleLoader = {`,
-    `  async loadModule(kind, id) {`,
-    `    const collection = modulesByKind[kind as FnKind];`,
-    `    const mod = collection?.[id];`,
-    `    if (!mod) throw new Error(\`no \${kind} found for id '\${id}'\`);`,
-    `    return mod as any;`,
-    `  },`,
-    `  listModules(kind) { return Object.keys(modulesByKind[kind as FnKind] ?? {}); },`,
-    `  hasModule(kind, id) { return Boolean(modulesByKind[kind as FnKind]?.[id]); },`,
-    `};`,
-    "",
-    `initFnRuntime({`,
-    `  moduleLoader,`,
-    `  urlBuilder: createFlatUrlBuilder({ baseUrl: baseUrl!, secretKey: secretKey! }),`,
-    `});`,
-    "",
-    `const listener = createFnHttpListener({ moduleLoader, secretKey: secretKey! });`,
-    `const port = Number(process.env.PORT ?? 8080);`,
-    `const host = process.env.HOST ?? "0.0.0.0";`,
-    "",
-    `createServer(listener).listen(port, host, () => {`,
-    `  console.log(\`Effing fn server listening on http://\${host}:\${port}\`);`,
-    `});`,
-  );
-
   return lines.join("\n");
 }
 

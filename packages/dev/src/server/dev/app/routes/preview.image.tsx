@@ -1,43 +1,50 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
-import { AnniePlayer } from "@effing/annie-player/react";
 import { fnModule, fnUrl } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
-import { RESOLUTIONS } from "../resolutions";
+import { getResolutions, type Resolution } from "../resolutions.server";
 
-export type AnniePreviewData = {
-  annieId: string;
-  annieUrl: string;
+export type ImagePreviewData = {
+  imageId: string;
+  imageUrl: string;
   width: number;
   height: number;
+  resolutions: Resolution[];
 };
 
 export async function loader({
   request,
   params,
-}: LoaderFunctionArgs): Promise<AnniePreviewData> {
+}: LoaderFunctionArgs): Promise<ImagePreviewData> {
   ensureFnRuntime();
-  const annieId = params.annieId!;
-  const { previewProps, propsSchema } = await fnModule("annie", annieId);
+  const imageId = params.imageId!;
+  const { previewProps, propsSchema } = await fnModule("image", imageId);
   if (!propsSchema.safeParse(previewProps).success) {
     throw new Error("previewProps does not adhere to the propsSchema");
   }
 
   const { width, height } = parseBoundsFromUrl(request.url);
+
   const url = await fnUrl(
-    "annie",
-    annieId,
+    "image",
+    imageId,
     previewProps as Record<string, unknown>,
     { width, height },
   );
 
-  return { annieId, annieUrl: url, width, height };
+  return {
+    imageId,
+    imageUrl: url,
+    width,
+    height,
+    resolutions: getResolutions(),
+  };
 }
 
-export default function AnniePreviewPage() {
-  const { annieId, annieUrl, width, height } =
-    useLoaderData() as AnniePreviewData;
+export default function ImagePreviewPage() {
+  const { imageId, imageUrl, width, height, resolutions } =
+    useLoaderData() as ImagePreviewData;
   const scaled = {
     width: Math.round((540 * width) / height),
     height: 540,
@@ -53,10 +60,10 @@ export default function AnniePreviewPage() {
       }}
     >
       <div>
-        <h1 style={{ margin: 0 }}>Annie Preview: {annieId}</h1>
+        <h1 style={{ margin: 0 }}>Image Preview: {imageId}</h1>
         <p style={{ color: "#666" }}>
           Resolution:{" "}
-          {RESOLUTIONS.map((r, i) => {
+          {resolutions.map((r, i) => {
             const isCurrent = r.width === width && r.height === height;
             return (
               <span key={`${r.width}x${r.height}`}>
@@ -67,7 +74,7 @@ export default function AnniePreviewPage() {
                   </strong>
                 ) : (
                   <a
-                    href={`/preview/annie/${annieId}?w=${r.width}&h=${r.height}`}
+                    href={`/preview/image/${imageId}?w=${r.width}&h=${r.height}`}
                   >
                     {r.width}x{r.height} ({r.label})
                   </a>
@@ -78,13 +85,12 @@ export default function AnniePreviewPage() {
         </p>
       </div>
 
-      <AnniePlayer
-        src={annieUrl}
+      <img
+        src={imageUrl}
+        width={scaled.width}
         height={scaled.height}
-        defaultWidth={scaled.width}
-        autoLoad={true}
-        autoPlay={true}
-        fps={30}
+        alt={imageId}
+        style={{ border: "1px solid #ddd" }}
       />
 
       <div>
@@ -100,25 +106,7 @@ export default function AnniePreviewPage() {
             margin: 0,
           }}
         >
-          {annieUrl}
-        </pre>
-      </div>
-
-      <div>
-        <h3>Convert to Animated PNG</h3>
-        <pre
-          style={{
-            padding: "0.75rem 1rem",
-            backgroundColor: "#fafafa",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            overflow: "auto",
-            fontSize: "0.75rem",
-            margin: 0,
-          }}
-        >
-          {`curl '${annieUrl}' \\
-  | tar -xO | ffmpeg -f image2pipe -framerate 30 -i - -plays 0 -c:v apng -f apng ${annieId}.png`}
+          {imageUrl}
         </pre>
       </div>
     </div>

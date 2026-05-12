@@ -37,14 +37,13 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 ### Options
 
-| Option        | Type                  | Description                                                                             |
-| ------------- | --------------------- | --------------------------------------------------------------------------------------- |
-| `project`     | `string`              | Project name. Required.                                                                 |
-| `images`      | `string \| string[]`  | Glob(s) for image function modules.                                                     |
-| `annies`      | `string \| string[]`  | Glob(s) for annie function modules.                                                     |
-| `effies`      | `string \| string[]`  | Glob(s) for effie function modules.                                                     |
-| `resolutions` | `Resolution[]`        | Preview resolutions shown in the dev UI. Defaults to 1080×1080, 1080×1350, 1080×1920.   |
-| `dev`         | `{ host, port, ffs }` | Dev server defaults. Default host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar). |
+| Option    | Type                               | Description                                                                                                                                                      |
+| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project` | `string`                           | Project name. Required.                                                                                                                                          |
+| `images`  | `string \| string[]`               | Glob(s) for image function modules.                                                                                                                              |
+| `annies`  | `string \| string[]`               | Glob(s) for annie function modules.                                                                                                                              |
+| `effies`  | `string \| string[]`               | Glob(s) for effie function modules.                                                                                                                              |
+| `dev`     | `{ host, port, ffs, resolutions }` | Dev server settings. Defaults: host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar), `resolutions` 1080×1080 / 1080×1350 / 1080×1920 in the preview picker. |
 
 ### Environment
 
@@ -77,7 +76,7 @@ npx effing dev
 The dev server gives you:
 
 - **Overview page** listing every image, annie, and effie in the project.
-- **Preview pages** per module, with selectable resolutions and live HMR when fn files change.
+- **Preview pages** per module, with selectable resolutions and auto-reload when fn files change.
 - **Raw artifact URLs** (`.bytes`, `.tar`, `.json`) for piping output into other tools.
 - **Signed-segment endpoints** matching what the production server serves, so URLs built via `fnUrl` work identically in dev and prod.
 

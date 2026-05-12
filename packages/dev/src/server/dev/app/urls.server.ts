@@ -6,9 +6,7 @@ import {
   type FnSegmentPayload,
 } from "@effing/fn/server";
 import invariant from "tiny-invariant";
-import { RESOLUTIONS } from "./resolutions";
-
-const DEFAULT_RESOLUTION = RESOLUTIONS[0];
+import { getResolutions } from "./resolutions.server";
 
 export function signSegment(payload: FnSegmentPayload): Promise<string> {
   return signFnSegment(payload, requireSecret());
@@ -23,8 +21,9 @@ export function parseBoundsFromUrl(url: string): {
   height: number;
 } {
   const searchParams = new URL(url).searchParams;
-  const width = Number(searchParams.get("w") ?? DEFAULT_RESOLUTION.width);
-  const height = Number(searchParams.get("h") ?? DEFAULT_RESOLUTION.height);
+  const fallback = getResolutions()[0];
+  const width = Number(searchParams.get("w") ?? fallback.width);
+  const height = Number(searchParams.get("h") ?? fallback.height);
   return validateBounds({ width, height });
 }
 

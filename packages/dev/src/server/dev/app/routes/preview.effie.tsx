@@ -16,7 +16,7 @@ import {
 import { fnModule } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
-import { RESOLUTIONS } from "../resolutions";
+import { getResolutions, type Resolution } from "../resolutions.server";
 
 const RENDER_SCALES = [
   { value: 1 / 3, label: "33%" },
@@ -35,6 +35,7 @@ export type EffiePreviewData = {
   effie: any;
   jsonUrl: string;
   warmupUrl: string | null;
+  resolutions: Resolution[];
 };
 
 export async function loader({
@@ -80,7 +81,15 @@ export async function loader({
     }
   }
 
-  return { effieId, width, height, effie, jsonUrl, warmupUrl };
+  return {
+    effieId,
+    width,
+    height,
+    effie,
+    jsonUrl,
+    warmupUrl,
+    resolutions: getResolutions(),
+  };
 }
 
 // ============ Render state machine ============
@@ -156,7 +165,8 @@ type RenderError = { error: string; issues?: EffieValidationIssue[] } | null;
 
 export default function EffiePreviewPage() {
   const data = useLoaderData() as EffiePreviewData;
-  const { effie, jsonUrl, effieId, width, height, warmupUrl } = data;
+  const { effie, jsonUrl, effieId, width, height, warmupUrl, resolutions } =
+    data;
 
   const [render, dispatch] = useReducer(renderReducer, INITIAL_RENDER_STATE);
   const [elapsedToPlay, setElapsedToPlay] = useState<number | null>(null);
@@ -363,7 +373,7 @@ export default function EffiePreviewPage() {
           <h1 style={{ margin: 0 }}>Effie Preview: {effieId}</h1>
           <p style={{ color: "#666" }}>
             Resolution:{" "}
-            {RESOLUTIONS.map((r, i) => {
+            {resolutions.map((r, i) => {
               const isCurrent = r.width === width && r.height === height;
               return (
                 <span key={`${r.width}x${r.height}`}>

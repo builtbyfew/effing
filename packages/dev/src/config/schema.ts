@@ -14,6 +14,7 @@ export const devOptionsSchema = z.object({
   host: z.string().optional(),
   port: z.number().int().positive().optional(),
   ffs: z.boolean().optional(),
+  resolutions: z.array(resolutionSchema).nonempty().optional(),
 });
 
 export type DevOptions = z.infer<typeof devOptionsSchema>;
@@ -23,7 +24,6 @@ export const effingConfigSchema = z.object({
   images: globSchema.optional(),
   annies: globSchema.optional(),
   effies: globSchema.optional(),
-  resolutions: z.array(resolutionSchema).nonempty().optional(),
   dev: devOptionsSchema.optional(),
 });
 

@@ -1,5 +1,19 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
+// Reload the page when the dev server's SSE channel emits "reload" — fires
+// on user fn file edits. Self-healing if the connection drops.
+const RELOAD_SCRIPT = `
+(function(){
+  if (typeof EventSource === "undefined") return;
+  function connect() {
+    var es = new EventSource("/__effing/reload");
+    es.addEventListener("reload", function(){ location.reload(); });
+    es.onerror = function(){ es.close(); setTimeout(connect, 1000); };
+  }
+  connect();
+})();
+`;
+
 export default function Root() {
   return (
     <html lang="en">
@@ -20,6 +34,7 @@ export default function Root() {
         <Outlet />
         <ScrollRestoration />
         <Scripts />
+        <script dangerouslySetInnerHTML={{ __html: RELOAD_SCRIPT }} />
       </body>
     </html>
   );

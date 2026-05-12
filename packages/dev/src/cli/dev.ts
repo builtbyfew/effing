@@ -4,7 +4,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { loadEnv } from "vite";
 import { loadConfig } from "../config/load";
 import { DEFAULT_DEV } from "../config/schema";
-import { HOISTED_DEPS, startPreviewServer } from "../preview-server";
+import { startDevServer } from "../server/dev/host";
 
 export type DevOptions = {
   config?: string;
@@ -27,7 +27,7 @@ export async function runDev(options: DevOptions = {}): Promise<void> {
   const port = options.port ?? config.dev?.port ?? DEFAULT_DEV.port;
   const ffsEnabled = options.ffs ?? config.dev?.ffs ?? DEFAULT_DEV.ffs;
 
-  const server = await startPreviewServer({ configDir, config, host, port });
+  const server = await startDevServer({ configDir, config, host, port });
 
   let ffsProc: ChildProcess | null = null;
   if (ffsEnabled) {
@@ -53,27 +53,6 @@ export async function runDev(options: DevOptions = {}): Promise<void> {
   };
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-  // Belt-and-suspenders: clean up the staged preview dir if the process
-  // exits abnormally (uncaught throw, etc.) before normal shutdown runs.
-  process.on("exit", () => {
-    try {
-      fs.rmSync(path.join(configDir, ".effing-preview"), {
-        recursive: true,
-        force: true,
-      });
-    } catch {
-      // ignore
-    }
-    // Best-effort sync cleanup of hoisted dep symlinks.
-    for (const dep of HOISTED_DEPS) {
-      try {
-        const p = path.join(configDir, "node_modules", dep);
-        if (fs.lstatSync(p).isSymbolicLink()) fs.unlinkSync(p);
-      } catch {
-        // ignore
-      }
-    }
-  });
 }
 
 /**

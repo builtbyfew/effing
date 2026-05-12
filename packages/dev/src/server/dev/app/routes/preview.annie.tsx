@@ -4,13 +4,14 @@ import { AnniePlayer } from "@effing/annie-player/react";
 import { fnModule, fnUrl } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
-import { RESOLUTIONS } from "../resolutions";
+import { getResolutions, type Resolution } from "../resolutions.server";
 
 export type AnniePreviewData = {
   annieId: string;
   annieUrl: string;
   width: number;
   height: number;
+  resolutions: Resolution[];
 };
 
 export async function loader({
@@ -32,11 +33,17 @@ export async function loader({
     { width, height },
   );
 
-  return { annieId, annieUrl: url, width, height };
+  return {
+    annieId,
+    annieUrl: url,
+    width,
+    height,
+    resolutions: getResolutions(),
+  };
 }
 
 export default function AnniePreviewPage() {
-  const { annieId, annieUrl, width, height } =
+  const { annieId, annieUrl, width, height, resolutions } =
     useLoaderData() as AnniePreviewData;
   const scaled = {
     width: Math.round((540 * width) / height),
@@ -56,7 +63,7 @@ export default function AnniePreviewPage() {
         <h1 style={{ margin: 0 }}>Annie Preview: {annieId}</h1>
         <p style={{ color: "#666" }}>
           Resolution:{" "}
-          {RESOLUTIONS.map((r, i) => {
+          {resolutions.map((r, i) => {
             const isCurrent = r.width === width && r.height === height;
             return (
               <span key={`${r.width}x${r.height}`}>

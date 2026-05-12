@@ -1,1 +1,5 @@
-This is an Effing project — programmatic image and video creation with the `@effing/*` packages. Read `GUIDE.md` before writing or modifying any fn (`app/{images,annies,effies}/*.fn.tsx`) or touching the preview/signed-URL routes. The guide's commands use `npm`, but match whatever package manager the project actually uses (check the lockfile). Always typecheck after changes.
+This is an Effing project — programmatic image and video creation with the `@effing/*` packages.
+
+Before writing or modifying any fn (`app/{images,annies,effies}/*.fn.tsx`), read the Effing manual by running `./node_modules/.bin/effing manual`.
+
+Always typecheck after changes.

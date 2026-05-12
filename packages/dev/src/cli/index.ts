@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { runDev } from "./dev";
 import { runBuild } from "./build";
 import { runUrl } from "./url";
+import { runManual } from "./manual";
 
 const require_ = createRequire(import.meta.url);
 const { version } = require_("../../package.json") as { version: string };
@@ -86,6 +87,18 @@ program
         await runUrl(kind, id, options);
       },
     ) as never,
+  );
+
+program
+  .command("manual")
+  .description(
+    "Print the Effing manual — tool-level reference for the CLI and fn module shape",
+  )
+  .option("-c, --config <path>", "path to the effing.config.ts file")
+  .action(
+    wrap(async (options: { config?: string }) => {
+      await runManual(options);
+    }) as never,
   );
 
 program.parse();

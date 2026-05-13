@@ -26,13 +26,21 @@ export async function* runner({
   const imageBuffer = await response.arrayBuffer();
   const image = await loadImage(Buffer.from(imageBuffer));
 
+  // Cover-crop the source to the target aspect ratio before zooming
+  const targetAspect = width / height;
+  const imageAspect = image.width / image.height;
+  const baseW =
+    imageAspect > targetAspect ? image.height * targetAspect : image.width;
+  const baseH =
+    imageAspect > targetAspect ? image.height : image.width / targetAspect;
+
   // Generate frames with zoom effect
   yield* tween(frameCount, async ({ lower: p }) => {
     const zoomValue = 1 + zoomLevel * easeOutQuad(p);
 
     // Source rectangle shrinks toward center as zoom increases
-    const sw = image.width / zoomValue;
-    const sh = image.height / zoomValue;
+    const sw = baseW / zoomValue;
+    const sh = baseH / zoomValue;
     const sx = (image.width - sw) / 2;
     const sy = (image.height - sh) / 2;
 

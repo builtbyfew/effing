@@ -1,5 +1,17 @@
 # @effing/annie-player
 
+## 0.35.0
+
+### Minor Changes
+
+- 4602b17: Add scrubbing support to the Annie player
+
+  Exposes a new `seek()` method and `currentFrame` field on `AnniePlayerCore`,
+  plus `AnniePlayer.Scrubber` and `AnniePlayer.FrameCounter` compound
+  components. The simple `<AnniePlayer />` now renders a scrubber and frame
+  counter overlay at the bottom of the canvas. `play()` resumes from the
+  current frame instead of restarting at frame 0; only `stop()` resets.
+
 ## 0.34.0
 
 ## 0.33.1

@@ -1,5 +1,17 @@
 # @effing/dev
 
+## 0.35.0
+
+### Patch Changes
+
+- a24519c: Default the Effie preview render scale to 100%
+- Updated dependencies [4602b17]
+  - @effing/annie-player@0.35.0
+  - @effing/effie-preview@0.35.0
+  - @effing/effie@0.35.0
+  - @effing/fn@0.35.0
+  - @effing/serde@0.35.0
+
 ## 0.34.0
 
 ### Minor Changes

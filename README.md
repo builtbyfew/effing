@@ -18,6 +18,7 @@ The “why” and design constraints are described in more detail in [`RATIONALE
 | Package                                                     | Description                                         |
 | ----------------------------------------------------------- | --------------------------------------------------- |
 | [`@effing/create`](packages/create/README.md)               | Scaffold a new Effing project                       |
+| [`@effing/dev`](packages/dev/README.md)                     | Dev server and build tooling for Effing projects    |
 | [`@effing/effie`](packages/effie/README.md)                 | Types and helpers for defining video compositions   |
 | [`@effing/annie`](packages/annie/README.md)                 | Generate TARs of PNG or JPEG frames for animations  |
 | [`@effing/ffs`](packages/ffs/README.md)                     | FFmpeg render Service (library or HTTP server)      |
@@ -26,6 +27,7 @@ The “why” and design constraints are described in more detail in [`RATIONALE
 | [`@effing/effie-preview`](packages/effie-preview/README.md) | React components for previewing Effie compositions  |
 | [`@effing/tween`](packages/tween/README.md)                 | Easing functions and step iteration for animations  |
 | [`@effing/canvas`](packages/canvas/README.md)               | Server-side canvas with JSX and Lottie support      |
+| [`@effing/fn`](packages/fn/README.md)                       | Pluggable module loading and URL building           |
 | [`@effing/serde`](packages/serde/README.md)                 | URL-safe serialization with compression and signing |
 
 ## Getting Started

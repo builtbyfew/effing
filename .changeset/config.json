@@ -14,7 +14,8 @@
       "@effing/annie-player",
       "@effing/effie-preview",
       "@effing/ffmpeg",
-      "@effing/canvas"
+      "@effing/canvas",
+      "@effing/dev"
     ]
   ],
   "linked": [],

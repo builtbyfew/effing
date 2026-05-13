@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.35.0
+
+### Patch Changes
+
+- 9cccb2f: Update starter README description to no longer claim it is a React Router app
+
 ## 0.34.0
 
 ### Minor Changes

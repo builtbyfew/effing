@@ -76,7 +76,6 @@ export default function AnniePreviewPage() {
           gap: "1.5rem",
         }}
       >
-
         <AnniePlayer
           src={annieUrl}
           height={scaled.height}

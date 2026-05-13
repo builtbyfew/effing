@@ -12,11 +12,19 @@ Defined in: [packages/annie-player/src/core.ts:3](https://github.com/builtbyfew/
 
 ## Properties
 
+### currentFrame
+
+> **currentFrame**: `number`
+
+Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L9)
+
+***
+
 ### dimensions
 
 > **dimensions**: \{ `height`: `number`; `width`: `number`; \} \| `null`
 
-Defined in: [packages/annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L9)
+Defined in: [packages/annie-player/src/core.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L10)
 
 ***
 

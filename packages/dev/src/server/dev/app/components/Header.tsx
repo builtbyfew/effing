@@ -68,90 +68,88 @@ export function Header({
           gap: "0.65rem",
         }}
       >
-      <Link
-        to="/"
-        aria-label="Effing overview"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          height: "100%",
-          textDecoration: "none",
-          flexShrink: 0,
-        }}
-      >
-        <EffingLogo />
-      </Link>
-      {projectName && (
-        <>
-          {separator}
-          <Link
-            to="/preview"
-            className="header-link"
-            aria-label={`${projectName} overview`}
-            style={{ ...projectStyle, flexShrink: 0 }}
-          >
-            {projectName}
-          </Link>
-        </>
-      )}
-      {current && (
-        <>
-          {separator}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              minWidth: 0,
-            }}
-          >
-            <span
+        <Link
+          to="/"
+          aria-label="Effing overview"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            height: "100%",
+            textDecoration: "none",
+            flexShrink: 0,
+          }}
+        >
+          <EffingLogo />
+        </Link>
+        {projectName && (
+          <>
+            {separator}
+            <Link
+              to="/preview"
+              className="header-link"
+              aria-label={`${projectName} overview`}
+              style={{ ...projectStyle, flexShrink: 0 }}
+            >
+              {projectName}
+            </Link>
+          </>
+        )}
+        {current && (
+          <>
+            {separator}
+            <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                fontSize: "0.6rem",
-                fontWeight: 700,
-                lineHeight: 1,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: "var(--color-salad-dark-1)",
-                backgroundColor: "var(--color-salad-light-5)",
-                padding: "0.26rem 0.5rem 0.22rem",
-                borderRadius: 999,
-                flexShrink: 0,
-              }}
-            >
-              {kindLabel(current.kind)}
-            </span>
-            <span
-              title={current.id}
-              style={{
-                fontSize: "0.95rem",
-                fontWeight: 600,
-                color: "var(--color-coal)",
-                letterSpacing: "-0.01em",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                gap: "0.5rem",
                 minWidth: 0,
               }}
             >
-              {current.id}
-            </span>
-          </div>
-          {separator}
-          <ResolutionPicker
-            width={current.width}
-            height={current.height}
-            resolutions={current.resolutions}
-            onPick={(w, h) =>
-              navigate(
-                `/preview/${current.kind}/${current.id}?w=${w}&h=${h}`,
-              )
-            }
-          />
-        </>
-      )}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: "var(--color-salad-dark-1)",
+                  backgroundColor: "var(--color-salad-light-5)",
+                  padding: "0.26rem 0.5rem 0.22rem",
+                  borderRadius: 999,
+                  flexShrink: 0,
+                }}
+              >
+                {kindLabel(current.kind)}
+              </span>
+              <span
+                title={current.id}
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  color: "var(--color-coal)",
+                  letterSpacing: "-0.01em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                }}
+              >
+                {current.id}
+              </span>
+            </div>
+            {separator}
+            <ResolutionPicker
+              width={current.width}
+              height={current.height}
+              resolutions={current.resolutions}
+              onPick={(w, h) =>
+                navigate(`/preview/${current.kind}/${current.id}?w=${w}&h=${h}`)
+              }
+            />
+          </>
+        )}
       </div>
     </header>
   );
@@ -178,10 +176,7 @@ function ResolutionPicker({
       }}
     >
       {resolutions.map((r) => (
-        <option
-          key={`${r.width}x${r.height}`}
-          value={`${r.width}x${r.height}`}
-        >
+        <option key={`${r.width}x${r.height}`} value={`${r.width}x${r.height}`}>
           {r.label} · {r.width}×{r.height}
         </option>
       ))}

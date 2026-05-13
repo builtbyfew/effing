@@ -9,6 +9,7 @@ type AnniePlayerContextValue = {
     load: () => void;
     play: () => void;
     pause: () => void;
+    seek: (frameIndex: number) => void;
   };
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   canvasDimensions: { width: number; height: number };
@@ -66,6 +67,7 @@ function AnniePlayerRoot({
     isLoading: false,
     isPlaying: false,
     frameCount: 0,
+    currentFrame: 0,
     dimensions: null,
   });
   const [canvasDimensions, setCanvasDimensions] = useState({
@@ -117,6 +119,7 @@ function AnniePlayerRoot({
     load: () => playerRef.current?.load(),
     play: () => playerRef.current?.play(),
     pause: () => playerRef.current?.pause(),
+    seek: (frameIndex: number) => playerRef.current?.seek(frameIndex),
   };
 
   const value: AnniePlayerContextValue = {
@@ -307,6 +310,85 @@ function AnniePlayerPauseButton({
   );
 }
 
+// ============ Scrubber Component ============
+
+type AnniePlayerScrubberProps = {
+  className?: string;
+  style?: React.CSSProperties;
+  /** If true, pause playback while the user is interacting with the scrubber. */
+  pauseWhileScrubbing?: boolean;
+};
+
+function AnniePlayerScrubber({
+  className,
+  style,
+  pauseWhileScrubbing = false,
+}: AnniePlayerScrubberProps) {
+  const { state, actions } = useAnniePlayerContext();
+  const wasPlayingRef = useRef(false);
+  const disabled = state.frameCount === 0;
+  const max = Math.max(0, state.frameCount - 1);
+
+  const handlePointerDown = () => {
+    if (pauseWhileScrubbing && state.isPlaying) {
+      wasPlayingRef.current = true;
+      actions.pause();
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (pauseWhileScrubbing && wasPlayingRef.current) {
+      wasPlayingRef.current = false;
+      actions.play();
+    }
+  };
+
+  return (
+    <input
+      type="range"
+      min={0}
+      max={max}
+      step={1}
+      value={state.currentFrame}
+      disabled={disabled}
+      data-disabled={disabled}
+      onChange={(e) => actions.seek(Number(e.target.value))}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={className}
+      style={{ width: "100%", ...style }}
+    />
+  );
+}
+
+// ============ Frame Counter Component ============
+
+type AnniePlayerFrameCounterProps = {
+  className?: string;
+  style?: React.CSSProperties;
+  /** Render the counter contents. Defaults to "current / total". */
+  children?: (frame: { current: number; total: number }) => React.ReactNode;
+};
+
+function AnniePlayerFrameCounter({
+  className,
+  style,
+  children,
+}: AnniePlayerFrameCounterProps) {
+  const { state } = useAnniePlayerContext();
+  const current = state.currentFrame;
+  const total = Math.max(0, state.frameCount - 1);
+  return (
+    <span
+      className={className}
+      style={{ fontVariantNumeric: "tabular-nums", ...style }}
+    >
+      {children ? children({ current, total }) : `${current} / ${total}`}
+    </span>
+  );
+}
+
 // ============ Status Component ============
 
 type AnniePlayerStatusProps = {
@@ -389,8 +471,9 @@ function AnniePlayerSimple({
         const playDisabled =
           state.isLoading || state.isPlaying || state.frameCount === 0;
         const pauseDisabled = !state.isPlaying;
-        const buttonContainerVisible = !state.isPlaying || isHovering;
-        const statusVisible = isHovering;
+        const scrubberDisabled = state.frameCount === 0;
+        const overlayVisible = !state.isPlaying || isHovering;
+        const totalFrames = Math.max(0, state.frameCount - 1);
 
         const buttonStyle = (disabled: boolean): React.CSSProperties => ({
           backgroundColor: "#222",
@@ -430,7 +513,7 @@ function AnniePlayerSimple({
                 gap: 4,
                 zIndex: 10,
                 transition: "opacity 0.3s ease",
-                opacity: buttonContainerVisible ? 1 : 0,
+                opacity: overlayVisible ? 1 : 0,
               }}
             >
               <button
@@ -463,24 +546,69 @@ function AnniePlayerSimple({
               style={{
                 position: "absolute",
                 bottom: 16,
-                left: 0,
-                right: 0,
-                margin: "0 auto",
-                width: "fit-content",
-                maxWidth: "90%",
+                left: 16,
+                right: 16,
                 zIndex: 10,
-                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "8px 12px",
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
                 color: "white",
-                padding: 8,
                 borderRadius: 4,
-                fontSize: 14,
+                fontSize: 13,
                 transition: "opacity 0.3s ease",
-                opacity: statusVisible ? 1 : 0,
+                opacity: overlayVisible ? 1 : 0,
+                pointerEvents: overlayVisible ? "auto" : "none",
               }}
             >
-              {state.status}
-              {state.error && <span> Error: {state.error}</span>}
+              <input
+                type="range"
+                min={0}
+                max={totalFrames}
+                step={1}
+                value={state.currentFrame}
+                disabled={scrubberDisabled}
+                onChange={(e) => actions.seek(Number(e.target.value))}
+                style={{
+                  flex: 1,
+                  accentColor: "#fff",
+                  cursor: scrubberDisabled ? "not-allowed" : "pointer",
+                }}
+              />
+              <span
+                style={{
+                  fontVariantNumeric: "tabular-nums",
+                  whiteSpace: "nowrap",
+                  minWidth: 64,
+                  textAlign: "right",
+                }}
+              >
+                {state.currentFrame} / {totalFrames}
+              </span>
             </div>
+
+            {state.error && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 64,
+                  left: 0,
+                  right: 0,
+                  margin: "0 auto",
+                  width: "fit-content",
+                  maxWidth: "90%",
+                  zIndex: 10,
+                  backgroundColor: "rgba(180, 0, 0, 0.85)",
+                  color: "white",
+                  padding: 8,
+                  borderRadius: 4,
+                  fontSize: 14,
+                }}
+              >
+                Error: {state.error}
+              </div>
+            )}
 
             <canvas
               ref={canvasRef}
@@ -515,5 +643,7 @@ export const AnniePlayer = Object.assign(AnniePlayerSimple, {
   LoadButton: AnniePlayerLoadButton,
   PlayButton: AnniePlayerPlayButton,
   PauseButton: AnniePlayerPauseButton,
+  Scrubber: AnniePlayerScrubber,
+  FrameCounter: AnniePlayerFrameCounter,
   Status: AnniePlayerStatus,
 });

@@ -6,6 +6,7 @@ export type AnniePlayerState = {
   isLoading: boolean;
   isPlaying: boolean;
   frameCount: number;
+  currentFrame: number;
   dimensions: { width: number; height: number } | null;
 };
 
@@ -86,6 +87,7 @@ export class AnniePlayerCore {
       isLoading: this._isLoading,
       isPlaying: this._isPlaying,
       frameCount: this.frames.length,
+      currentFrame: this.currentFrameIndex,
       dimensions: this._dimensions,
     };
   }
@@ -219,20 +221,20 @@ export class AnniePlayerCore {
   }
 
   /**
-   * Start playing the animation.
+   * Start playing the animation from the current frame.
    */
   play(): void {
     if (this._isPlaying || this.frames.length === 0) return;
 
     this._isPlaying = true;
-    this.currentFrameIndex = 0;
     this.lastFrameTime = 0;
+    this.drawFrame(this.currentFrameIndex);
     this.setStatus("Playing...");
-    this.animate(performance.now());
+    this.animationFrameId = requestAnimationFrame(this.animate);
   }
 
   /**
-   * Pause the animation.
+   * Pause the animation at the current frame.
    */
   pause(): void {
     if (!this._isPlaying) return;
@@ -246,7 +248,7 @@ export class AnniePlayerCore {
   }
 
   /**
-   * Stop the animation and reset to the beginning.
+   * Stop the animation and reset to the first frame.
    */
   stop(): void {
     this._isPlaying = false;
@@ -256,6 +258,39 @@ export class AnniePlayerCore {
     }
     this.currentFrameIndex = 0;
     this.lastFrameTime = 0;
+  }
+
+  /**
+   * Seek to a specific frame. The frame is drawn immediately. Playback state
+   * is preserved — if playing, playback continues forward from the new frame.
+   */
+  seek(frameIndex: number): void {
+    if (this.frames.length === 0) return;
+    const clamped = Math.max(
+      0,
+      Math.min(Math.floor(frameIndex), this.frames.length - 1),
+    );
+    this.lastFrameTime = 0;
+    this.drawFrame(clamped);
+  }
+
+  private drawFrame(index: number): void {
+    const indexChanged = index !== this.currentFrameIndex;
+    if (!this.canvas || !this.context) {
+      if (indexChanged) {
+        this.currentFrameIndex = index;
+        this.emitStateChange();
+      }
+      return;
+    }
+    const frame = this.frames[index];
+    if (!frame) return;
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.drawImage(frame, 0, 0, this.canvas.width, this.canvas.height);
+    if (indexChanged) {
+      this.currentFrameIndex = index;
+      this.emitStateChange();
+    }
   }
 
   private animate = (timestamp: number): void => {
@@ -277,19 +312,8 @@ export class AnniePlayerCore {
 
     if (elapsed >= this.frameInterval) {
       this.lastFrameTime = timestamp - (elapsed % this.frameInterval);
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      const frameToDraw = this.frames[this.currentFrameIndex];
-      if (frameToDraw) {
-        this.context.drawImage(
-          frameToDraw,
-          0,
-          0,
-          this.canvas.width,
-          this.canvas.height,
-        );
-      }
-      this.currentFrameIndex =
-        (this.currentFrameIndex + 1) % this.frames.length;
+      const nextIndex = (this.currentFrameIndex + 1) % this.frames.length;
+      this.drawFrame(nextIndex);
     }
 
     this.animationFrameId = requestAnimationFrame(this.animate);

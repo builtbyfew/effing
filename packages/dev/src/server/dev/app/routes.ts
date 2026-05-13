@@ -6,6 +6,13 @@ import type { RouteConfig, RouteConfigEntry } from "@react-router/dev/routes";
 const routes: RouteConfigEntry[] = [
   { id: "index", index: true, file: "routes/index.tsx" },
 
+  // Overview page
+  {
+    id: "preview",
+    path: "preview",
+    file: "routes/preview._index.tsx",
+  },
+
   // Raw artifact endpoints (must come before HTML preview routes)
   {
     id: "preview.image.bytes",

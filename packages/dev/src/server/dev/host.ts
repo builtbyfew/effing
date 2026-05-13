@@ -90,6 +90,7 @@ export async function startDevServer(
   globalThis.__effingDevFnModuleLoader = fnLoader;
   globalThis.__effingDevResolutions =
     options.config.dev?.resolutions ?? DEFAULT_RESOLUTIONS;
+  globalThis.__effingDevProjectName = options.config.project;
 
   // Pre-built RR Node server. We import dynamically so this module can be
   // typechecked / bundled before the preview build artifact exists.
@@ -199,6 +200,8 @@ export async function startDevServer(
       await vite.close();
       if (globalThis.__effingDevFnModuleLoader === fnLoader) {
         globalThis.__effingDevFnModuleLoader = undefined;
+        globalThis.__effingDevResolutions = undefined;
+        globalThis.__effingDevProjectName = undefined;
       }
     },
   };

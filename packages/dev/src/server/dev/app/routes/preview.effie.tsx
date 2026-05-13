@@ -17,6 +17,9 @@ import { fnModule } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
 import { getResolutions, type Resolution } from "../resolutions.server";
+import { getProjectName } from "../project.server";
+import { Header } from "../components/Header";
+import { Select } from "../components/Select";
 
 const RENDER_SCALES = [
   { value: 1 / 3, label: "33%" },
@@ -26,6 +29,7 @@ const RENDER_SCALES = [
 ] as const;
 
 export type EffiePreviewData = {
+  projectName: string;
   effieId: string;
   width: number;
   height: number;
@@ -82,6 +86,7 @@ export async function loader({
   }
 
   return {
+    projectName: getProjectName(),
     effieId,
     width,
     height,
@@ -165,8 +170,16 @@ type RenderError = { error: string; issues?: EffieValidationIssue[] } | null;
 
 export default function EffiePreviewPage() {
   const data = useLoaderData() as EffiePreviewData;
-  const { effie, jsonUrl, effieId, width, height, warmupUrl, resolutions } =
-    data;
+  const {
+    projectName,
+    effie,
+    jsonUrl,
+    effieId,
+    width,
+    height,
+    warmupUrl,
+    resolutions,
+  } = data;
 
   const [render, dispatch] = useReducer(renderReducer, INITIAL_RENDER_STATE);
   const [elapsedToPlay, setElapsedToPlay] = useState<number | null>(null);
@@ -339,61 +352,48 @@ export default function EffiePreviewPage() {
   };
 
   return (
-    <div>
+    <>
+      <Header
+        projectName={projectName}
+        current={{
+          kind: "effie",
+          id: effieId,
+          width,
+          height,
+          resolutions,
+        }}
+      />
+
       <div
         style={{
           width: "100%",
-          height: 6,
-          backgroundColor: "#E5E7EB",
+          height: 3,
+          backgroundColor: "var(--color-coal-light-5)",
           opacity: showProgressBar ? 1 : 0,
           position: "sticky",
-          top: 0,
-          zIndex: 100,
+          top: "var(--header-h)",
+          zIndex: 49,
         }}
       >
         <div
           style={{
             height: "100%",
-            backgroundColor: "#4CAE4C",
+            backgroundColor: "var(--color-salad)",
             transition: "width 0.3s ease",
             width: showProgressBar ? `${warmupProgress}%` : "0%",
           }}
         />
       </div>
 
-      <div
+      <main
         style={{
-          padding: "2rem",
+          padding: "1.25rem 2rem 4rem",
+          maxWidth: 1080,
           display: "flex",
           flexDirection: "column",
-          gap: "2rem",
+          gap: "1.75rem",
         }}
       >
-        <div>
-          <h1 style={{ margin: 0 }}>Effie Preview: {effieId}</h1>
-          <p style={{ color: "#666" }}>
-            Resolution:{" "}
-            {resolutions.map((r, i) => {
-              const isCurrent = r.width === width && r.height === height;
-              return (
-                <span key={`${r.width}x${r.height}`}>
-                  {i > 0 && " | "}
-                  {isCurrent ? (
-                    <strong>
-                      {r.width}x{r.height} ({r.label})
-                    </strong>
-                  ) : (
-                    <a
-                      href={`/preview/effie/${effieId}?w=${r.width}&h=${r.height}`}
-                    >
-                      {r.width}x{r.height} ({r.label})
-                    </a>
-                  )}
-                </span>
-              );
-            })}
-          </p>
-        </div>
 
         <div
           style={{
@@ -416,8 +416,8 @@ export default function EffiePreviewPage() {
             onPlay={handleVideoPlay}
             onFullyBuffered={handleFullyBuffered}
             style={{
-              border: "1px solid black",
-              backgroundColor: "#eee",
+              border: "1px solid var(--color-coal-light-5)",
+              backgroundColor: "var(--color-coal-light-6)",
             }}
           />
 
@@ -430,28 +430,63 @@ export default function EffiePreviewPage() {
               minWidth: 260,
             }}
           >
-            <a href={jsonUrl} target="_blank" rel="noreferrer">
+            <a
+              href={jsonUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontWeight: 600, alignSelf: "flex-start" }}
+            >
               JSON →
             </a>
 
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+                padding: "0.875rem 1rem",
+                backgroundColor: "var(--color-snow)",
+                border: "1px solid var(--color-coal-light-5)",
+                borderRadius: 6,
+                fontSize: "0.9rem",
+              }}
             >
               <div>
-                {effie.width}x{effie.height} @ {effie.fps} fps
-              </div>
-              <div>{effie.segments.length} segments</div>
-              <div>
-                <span>
-                  {warmup.state.cached}/{warmup.state.total} sources cached
+                <span style={{ color: "var(--color-coal-light-2)" }}>
+                  Resolution:{" "}
                 </span>
+                <strong>
+                  {effie.width}×{effie.height}
+                </strong>{" "}
+                <span style={{ color: "var(--color-coal-light-2)" }}>
+                  @ {effie.fps} fps
+                </span>
+              </div>
+              <div>
+                <span style={{ color: "var(--color-coal-light-2)" }}>
+                  Segments:{" "}
+                </span>
+                <strong>{effie.segments.length}</strong>
+              </div>
+              <div>
+                <span style={{ color: "var(--color-coal-light-2)" }}>
+                  Sources cached:{" "}
+                </span>
+                <strong>
+                  {warmup.state.cached}/{warmup.state.total}
+                </strong>
                 {warmup.state.failed > 0 && (
-                  <span style={{ color: "#E44444" }}>
+                  <span style={{ color: "var(--color-tomato-dark-1)" }}>
                     {" "}
-                    - {warmup.state.failed} failed
+                    — {warmup.state.failed} failed
                   </span>
                 )}
-                {warmupElapsed > 0 && <span> (in {warmupElapsed}s)</span>}
+                {warmupElapsed > 0 && (
+                  <span style={{ color: "var(--color-coal-light-2)" }}>
+                    {" "}
+                    (in {warmupElapsed}s)
+                  </span>
+                )}
               </div>
             </div>
 
@@ -470,38 +505,33 @@ export default function EffiePreviewPage() {
                 <button
                   disabled={isRendering}
                   style={{
-                    padding: "0.5rem 1rem",
-                    backgroundColor: "#222",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                    fontWeight: 500,
+                    padding: "0.55rem 1rem",
+                    backgroundColor: "var(--color-salad)",
+                    color: "var(--color-snow)",
+                    border: "1px solid var(--color-salad)",
+                    borderRadius: 6,
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
                     cursor: isRendering ? "wait" : "pointer",
                     opacity: isRendering ? 0.6 : 1,
                   }}
                 >
                   {isRendering ? "Rendering..." : "Render it FFS"}
                 </button>
-                <span>at</span>
-                <select
+                <span style={{ color: "var(--color-coal-light-2)" }}>at</span>
+                <Select
                   name="scale"
-                  defaultValue={RENDER_SCALES[0].value}
-                  style={{
-                    padding: "0.4rem",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                    backgroundColor: "white",
-                    cursor: "pointer",
-                  }}
+                  defaultValue={String(RENDER_SCALES[0].value)}
+                  ariaLabel="Render scale"
+                  size="md"
                 >
                   {RENDER_SCALES.map(({ value, label }) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </form>
 
               <form onSubmit={handleReloadSubmit}>
@@ -509,12 +539,14 @@ export default function EffiePreviewPage() {
                   type="submit"
                   disabled={isReloadProhibited}
                   style={{
-                    padding: "0.4rem 0.75rem",
-                    backgroundColor: "#fff",
-                    color: "#222",
-                    border: "1px solid black",
-                    borderRadius: 4,
-                    fontSize: "14px",
+                    padding: "0.45rem 0.85rem",
+                    backgroundColor: "var(--color-snow)",
+                    color: "var(--color-coal)",
+                    border: "1px solid var(--color-coal-light-4)",
+                    borderRadius: 6,
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
                     cursor: isReloadProhibited ? "wait" : "pointer",
                     opacity: isReloadProhibited ? 0.6 : 1,
                   }}
@@ -531,12 +563,14 @@ export default function EffiePreviewPage() {
               />
             )}
             {render.step === "idle" && render.error && (
-              <div style={{ color: "#E44444" }}>{render.error}</div>
+              <div style={{ color: "var(--color-tomato-dark-1)" }}>
+                {render.error}
+              </div>
             )}
 
             {(render.step === "starting" || render.step === "streaming") &&
               elapsedToPlay !== null && (
-                <div style={{ color: "#4CAE4C" }}>
+                <div style={{ color: "var(--color-salad-dark-1)" }}>
                   Rendering... {elapsedToPlay.toFixed(1)}s
                 </div>
               )}
@@ -551,7 +585,7 @@ export default function EffiePreviewPage() {
                 }}
               >
                 {render.playbackAt !== null && elapsedToPlay !== null && (
-                  <span style={{ color: "#4CAE4C" }}>
+                  <span style={{ color: "var(--color-salad-dark-1)" }}>
                     Started playing after {elapsedToPlay.toFixed(1)}s (at{" "}
                     {Math.round(render.scale * 100)}%)
                   </span>
@@ -561,12 +595,13 @@ export default function EffiePreviewPage() {
                     href={render.downloadUrl}
                     download={`${effieId}-${width}x${height}.mp4`}
                     style={{
-                      padding: "0.4rem 0.75rem",
-                      backgroundColor: "#fff",
-                      color: "#4CAE4C",
-                      border: "1px solid #4CAE4C",
-                      borderRadius: 4,
-                      fontSize: "14px",
+                      padding: "0.45rem 0.85rem",
+                      backgroundColor: "var(--color-snow)",
+                      color: "var(--color-salad-dark-1)",
+                      border: "1px solid var(--color-salad)",
+                      borderRadius: 6,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
                       textDecoration: "none",
                     }}
                   >
@@ -579,7 +614,8 @@ export default function EffiePreviewPage() {
             {warmupDownloadingItems.length > 0 && (
               <div
                 style={{
-                  color: "#666",
+                  color: "var(--color-coal-light-2)",
+                  fontSize: "0.85rem",
                   maxWidth: 520,
                   overflowWrap: "anywhere",
                   wordBreak: "break-word",
@@ -597,17 +633,21 @@ export default function EffiePreviewPage() {
           </div>
         </div>
 
-        <div>
-          <h2>Background</h2>
+        <section>
+          <h2 style={{ margin: "0 0 0.75rem", fontSize: "1.1rem" }}>
+            Background
+          </h2>
           <EffieBackgroundPreview
             background={effie.background}
             resolveSource={resolveSource}
             resolution={previewResolution}
           />
-        </div>
+        </section>
 
-        <div>
-          <h2>Segments</h2>
+        <section>
+          <h2 style={{ margin: "0 0 0.75rem", fontSize: "1.1rem" }}>
+            Segments
+          </h2>
           <div
             style={{ display: "flex", flexDirection: "column", gap: "2rem" }}
           >
@@ -625,8 +665,8 @@ export default function EffiePreviewPage() {
               ),
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
+      </main>
+    </>
   );
 }

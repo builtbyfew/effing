@@ -76,7 +76,6 @@ export default function ImagePreviewPage() {
           gap: "1.5rem",
         }}
       >
-
         <img
           src={imageUrl}
           width={scaled.width}

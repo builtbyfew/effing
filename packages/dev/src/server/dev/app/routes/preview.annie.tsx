@@ -5,8 +5,12 @@ import { fnModule, fnUrl } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
 import { getResolutions, type Resolution } from "../resolutions.server";
+import { getProjectName } from "../project.server";
+import { Header } from "../components/Header";
+import { CodeBlock } from "../components/Preview";
 
 export type AnniePreviewData = {
+  projectName: string;
   annieId: string;
   annieUrl: string;
   width: number;
@@ -34,6 +38,7 @@ export async function loader({
   );
 
   return {
+    projectName: getProjectName(),
     annieId,
     annieUrl: url,
     width,
@@ -43,7 +48,7 @@ export async function loader({
 }
 
 export default function AnniePreviewPage() {
-  const { annieId, annieUrl, width, height, resolutions } =
+  const { projectName, annieId, annieUrl, width, height, resolutions } =
     useLoaderData() as AnniePreviewData;
   const scaled = {
     width: Math.round((540 * width) / height),
@@ -51,83 +56,53 @@ export default function AnniePreviewPage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "2rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "2rem",
-      }}
-    >
-      <div>
-        <h1 style={{ margin: 0 }}>Annie Preview: {annieId}</h1>
-        <p style={{ color: "#666" }}>
-          Resolution:{" "}
-          {resolutions.map((r, i) => {
-            const isCurrent = r.width === width && r.height === height;
-            return (
-              <span key={`${r.width}x${r.height}`}>
-                {i > 0 && " | "}
-                {isCurrent ? (
-                  <strong>
-                    {r.width}x{r.height} ({r.label})
-                  </strong>
-                ) : (
-                  <a
-                    href={`/preview/annie/${annieId}?w=${r.width}&h=${r.height}`}
-                  >
-                    {r.width}x{r.height} ({r.label})
-                  </a>
-                )}
-              </span>
-            );
-          })}
-        </p>
-      </div>
-
-      <AnniePlayer
-        src={annieUrl}
-        height={scaled.height}
-        defaultWidth={scaled.width}
-        autoLoad={true}
-        autoPlay={true}
-        fps={30}
+    <>
+      <Header
+        projectName={projectName}
+        current={{
+          kind: "annie",
+          id: annieId,
+          width,
+          height,
+          resolutions,
+        }}
       />
+      <main
+        style={{
+          padding: "1.25rem 2rem 4rem",
+          maxWidth: 1080,
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
+        }}
+      >
 
-      <div>
-        <h3>Direct URL</h3>
-        <pre
-          style={{
-            padding: "0.75rem 1rem",
-            backgroundColor: "#fafafa",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            overflow: "auto",
-            fontSize: "0.75rem",
-            margin: 0,
-          }}
-        >
-          {annieUrl}
-        </pre>
-      </div>
+        <AnniePlayer
+          src={annieUrl}
+          height={scaled.height}
+          defaultWidth={scaled.width}
+          autoLoad={true}
+          autoPlay={true}
+          fps={30}
+        />
 
-      <div>
-        <h3>Convert to Animated PNG</h3>
-        <pre
-          style={{
-            padding: "0.75rem 1rem",
-            backgroundColor: "#fafafa",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            overflow: "auto",
-            fontSize: "0.75rem",
-            margin: 0,
-          }}
-        >
-          {`curl '${annieUrl}' \\
+        <div>
+          <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>
+            Direct URL
+          </h3>
+          <CodeBlock>{annieUrl}</CodeBlock>
+        </div>
+
+        <div>
+          <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>
+            Convert to Animated PNG
+          </h3>
+          <CodeBlock>
+            {`curl '${annieUrl}' \\
   | tar -xO | ffmpeg -f image2pipe -framerate 30 -i - -plays 0 -c:v apng -f apng ${annieId}.png`}
-        </pre>
-      </div>
-    </div>
+          </CodeBlock>
+        </div>
+      </main>
+    </>
   );
 }

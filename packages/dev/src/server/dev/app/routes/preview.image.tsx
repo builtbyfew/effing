@@ -4,8 +4,12 @@ import { fnModule, fnUrl } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
 import { getResolutions, type Resolution } from "../resolutions.server";
+import { getProjectName } from "../project.server";
+import { Header } from "../components/Header";
+import { CodeBlock } from "../components/Preview";
 
 export type ImagePreviewData = {
+  projectName: string;
   imageId: string;
   imageUrl: string;
   width: number;
@@ -34,6 +38,7 @@ export async function loader({
   );
 
   return {
+    projectName: getProjectName(),
     imageId,
     imageUrl: url,
     width,
@@ -43,7 +48,7 @@ export async function loader({
 }
 
 export default function ImagePreviewPage() {
-  const { imageId, imageUrl, width, height, resolutions } =
+  const { projectName, imageId, imageUrl, width, height, resolutions } =
     useLoaderData() as ImagePreviewData;
   const scaled = {
     width: Math.round((540 * width) / height),
@@ -51,64 +56,45 @@ export default function ImagePreviewPage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "2rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "2rem",
-      }}
-    >
-      <div>
-        <h1 style={{ margin: 0 }}>Image Preview: {imageId}</h1>
-        <p style={{ color: "#666" }}>
-          Resolution:{" "}
-          {resolutions.map((r, i) => {
-            const isCurrent = r.width === width && r.height === height;
-            return (
-              <span key={`${r.width}x${r.height}`}>
-                {i > 0 && " | "}
-                {isCurrent ? (
-                  <strong>
-                    {r.width}x{r.height} ({r.label})
-                  </strong>
-                ) : (
-                  <a
-                    href={`/preview/image/${imageId}?w=${r.width}&h=${r.height}`}
-                  >
-                    {r.width}x{r.height} ({r.label})
-                  </a>
-                )}
-              </span>
-            );
-          })}
-        </p>
-      </div>
-
-      <img
-        src={imageUrl}
-        width={scaled.width}
-        height={scaled.height}
-        alt={imageId}
-        style={{ border: "1px solid #ddd" }}
+    <>
+      <Header
+        projectName={projectName}
+        current={{
+          kind: "image",
+          id: imageId,
+          width,
+          height,
+          resolutions,
+        }}
       />
+      <main
+        style={{
+          padding: "1.25rem 2rem 4rem",
+          maxWidth: 1080,
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
+        }}
+      >
 
-      <div>
-        <h3>Direct URL</h3>
-        <pre
+        <img
+          src={imageUrl}
+          width={scaled.width}
+          height={scaled.height}
+          alt={imageId}
           style={{
-            padding: "0.75rem 1rem",
-            backgroundColor: "#fafafa",
-            border: "1px solid #ddd",
-            borderRadius: 4,
-            overflow: "auto",
-            fontSize: "0.75rem",
-            margin: 0,
+            border: "1px solid var(--color-coal-light-5)",
+            backgroundColor: "var(--color-snow)",
           }}
-        >
-          {imageUrl}
-        </pre>
-      </div>
-    </div>
+        />
+
+        <div>
+          <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>
+            Direct URL
+          </h3>
+          <CodeBlock>{imageUrl}</CodeBlock>
+        </div>
+      </main>
+    </>
   );
 }

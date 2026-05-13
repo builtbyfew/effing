@@ -1,5 +1,7 @@
 # @effing/annie-player
 
+## 0.35.1
+
 ## 0.35.0
 
 ### Minor Changes

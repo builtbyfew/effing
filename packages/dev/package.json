@@ -1,6 +1,6 @@
 {
   "name": "@effing/dev",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "description": "Dev server and build tooling for Effing projects",
   "type": "module",
   "bin": {

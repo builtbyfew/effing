@@ -394,7 +394,6 @@ export default function EffiePreviewPage() {
           gap: "1.75rem",
         }}
       >
-
         <div
           style={{
             display: "flex",
@@ -522,7 +521,7 @@ export default function EffiePreviewPage() {
                 <span style={{ color: "var(--color-coal-light-2)" }}>at</span>
                 <Select
                   name="scale"
-                  defaultValue={String(RENDER_SCALES[0].value)}
+                  defaultValue="1"
                   ariaLabel="Render scale"
                   size="md"
                 >

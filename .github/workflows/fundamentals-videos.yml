@@ -1,19 +1,19 @@
-name: Tutorial videos
+name: Fundamentals videos
 
 on:
   push:
     branches:
       - main
     paths:
-      - "demos/tutorial/**"
-      - ".github/workflows/tutorial-videos.yml"
+      - "demos/fundamentals/**"
+      - ".github/workflows/fundamentals-videos.yml"
   workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   generate:
-    name: Generate and publish tutorial videos
+    name: Generate and publish fundamentals videos
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,10 +32,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace packages
-        run: pnpm --filter "@effing/tutorial..." build
+        run: pnpm --filter "@effing/fundamentals..." build
 
-      - name: Generate tutorial videos
-        run: pnpm --filter @effing/tutorial start
+      - name: Generate fundamentals videos
+        run: pnpm --filter @effing/fundamentals start
 
       - name: Publish to R2
         env:
@@ -45,7 +45,7 @@ jobs:
           AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
           AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
         run: |
-          aws s3 cp demos/tutorial/out/ s3://effing-static-assets/tutorial/ \
+          aws s3 cp demos/fundamentals/out/ s3://effing-static-assets/fundamentals/ \
             --recursive --exclude "*" --include "*.mp4" \
             --content-type video/mp4 \
             --endpoint-url "${{ secrets.R2_ENDPOINT_URL }}"

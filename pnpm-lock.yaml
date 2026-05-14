@@ -63,6 +63,34 @@ importers:
         specifier: ^8.50.1
         version: 8.50.1(eslint@9.39.2)(typescript@5.9.3)
 
+  demos/fundamentals:
+    dependencies:
+      '@effing/annie':
+        specifier: workspace:*
+        version: link:../../packages/annie
+      '@effing/canvas':
+        specifier: workspace:*
+        version: link:../../packages/canvas
+      '@effing/effie':
+        specifier: workspace:*
+        version: link:../../packages/effie
+      '@effing/ffs':
+        specifier: workspace:*
+        version: link:../../packages/ffs
+      '@effing/tween':
+        specifier: workspace:*
+        version: link:../../packages/tween
+      react:
+        specifier: ^19.0.0
+        version: 19.2.3
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.7
+      tsx:
+        specifier: ^4.19.3
+        version: 4.21.0
+
   demos/starter:
     dependencies:
       '@effing/annie':
@@ -108,34 +136,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
-
-  demos/tutorial:
-    dependencies:
-      '@effing/annie':
-        specifier: workspace:*
-        version: link:../../packages/annie
-      '@effing/canvas':
-        specifier: workspace:*
-        version: link:../../packages/canvas
-      '@effing/effie':
-        specifier: workspace:*
-        version: link:../../packages/effie
-      '@effing/ffs':
-        specifier: workspace:*
-        version: link:../../packages/ffs
-      '@effing/tween':
-        specifier: workspace:*
-        version: link:../../packages/tween
-      react:
-        specifier: ^19.0.0
-        version: 19.2.3
-    devDependencies:
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.2.7
-      tsx:
-        specifier: ^4.19.3
-        version: 4.21.0
 
   packages/annie:
     dependencies:

@@ -1,6 +1,6 @@
 # Effing Design Rationale
 
-Effing came to life because we wanted programmatic video creation without headless browsers, SaaS lock-in, or clunky integration into modern web architectures. The result: a modular toolkit of TypeScript packages that basically only need Node.js and FFmpeg to run.
+Effing came to life because we wanted programmatic image and video creation without headless browsers, SaaS lock-in, or clunky integration into modern web architectures. The result: a modular toolkit of TypeScript packages that basically only need Node.js and FFmpeg to run.
 
 ## The core idea
 
@@ -14,146 +14,62 @@ Three guiding principles:
 
 ## How it works
 
-Effing splits video creation into three independent layers:
+Effing splits image and video creation into four independent pieces:
 
-1. **Annie** — Generate animation frames (async generators → PNG or JPEG buffers → TAR archives)
-2. **Effie** — Describe video compositions (typed JSON: segments, layers, transitions, effects, motion)
-3. **FFS** — Render to video (FFmpeg orchestration → MP4 stream)
+1. **Image** — A single PNG or JPEG, generated however you like — canvas drawing, JSX-to-canvas, or anything that produces image bytes.
+2. **Annie** — A streamable animation format: a TAR archive of sequentially-named PNG or JPEG frames. Frames come from the same generation primitives, packaged for streaming.
+3. **Effie** — A declarative composition format: typed JSON describing segments, layers, transitions, effects, motion, and audio. Layers reference content by URL — images, annies, audio, video backgrounds.
+4. **FFS** — An FFmpeg-based rendering service that turns an Effie into an MP4. Library, CLI, or HTTP server.
 
-Each layer has a single job and a clear contract. Annie doesn't know about Effie. Effie doesn't know about FFmpeg. Problems stay local to their domain.
+Each piece has a single job and a clear contract. Images and annies don't know about effies. Effies don't know about FFmpeg. Problems stay local to their domain.
 
 ## Key design decisions
 
-### Compositions are data, not code
+### Compositions in JSON
 
-An Effie composition is plain JSON. Not a component tree, not imperative code, not a timeline you scrub:
+An Effie is plain JSON. You can log it, diff it, serialize it to storage, generate it programmatically, send it over the wire, you name it.
 
-```ts
-const video = effieData({
-  width: 1080,
-  height: 1920,
-  fps: 30,
-  cover: "https://example.com/cover.png",
-  background: { type: "color", color: "black" },
-  segments: [
-    { duration: 5, layers: [{ type: "animation", source: "https://..." }] },
-    { duration: 4, layers: [...], transition: { type: "fade", duration: 0.5 } },
-  ],
-});
-```
-
-You can log it, diff it, serialize it to storage, generate it programmatically, send it over the wire, you name it.
-
-### Strong typing without ceremony
-
-Helper functions provide full TypeScript inference for your Effies:
-
-```ts
-const video = effieData({
-  width: 1080,
-  height: 1920,
-  fps: 30,
-  cover: "https://example.com/cover.png",
-  background: { type: "color", color: "black" },
-  // ... everything is fully typed from here down
-});
-```
-
-You get autocomplete, type errors, and inline documentation without decorators, schemas, or config files.
+Helper functions provide full TypeScript inference for compositions authored in code — autocomplete, type errors, and inline documentation.
 
 ### URLs all the way down
 
-Every source (animations, images, audio, video backgrounds) is represented as a URL:
+Every source — animation, image, audio, video — is referenced by URL. This makes rendering stateless and reproducible, and gives you HTTP's entire ecosystem for free: caching, CDNs, standard tooling.
 
-```ts
-layers: [
-  { type: "animation", source: "https://example.com/intro.tar" },
-  { type: "image", source: "https://example.com/overlay.png" },
-];
-```
-
-This makes rendering stateless and reproducible. And more importantly: you get HTTP's entire ecosystem for free.
-
-Props can live inside URLs too. E.g. an Annie like `photo-zoom` becomes a URL:
-
-```ts
-const source = await annieUrl({
-  annieId: "photo-zoom",
-  props: { imageUrl: "https://...", zoomLevel: 0.2 },
-  width: 1080,
-  height: 1920,
-});
-// → "https://your.app/annie/eJxLtDK0MrYyNzE2sQIAC7IB4Q?w=1080&h=1920"
-```
-
-The props get serialized into a (compressed and signed) URL-safe segment. Same inputs, same URL. This turns Annies into reusable components that are basically just URLs, so caching and deduplication come naturally. If two videos use the same animation with the same parameters, you only generate it once.
-
-Standard tools (curl, browsers, caching proxies) also just work. You're building on HTTP, not inventing custom protocols.
+Props can live inside URLs too. The props for any generated content — image, animation, or whole composition — get serialized into a compressed, signed URL-safe segment, so that the function's parameterized output _is_ a URL. Same inputs, same URL — caching and deduplication come for free. Two videos referencing the same generated image or animation only produce it once.
 
 ### Just generate images
 
-Annie animations are async generators that yield PNG or JPEG buffers:
+There's no special rendering engine. No browser in the rendering loop, no headless Puppeteer screenshots.
 
-```ts
-async function* generateFrames() {
-  yield* tween(60, async ({ lower: progress }) => {
-    return somePngBuffer; // however you produce it
-  });
-}
-```
-
-No browser in the rendering loop. No framework lifecycle. No headless Puppeteer screenshots. You just generate images, using canvas directly, our JSX-to-canvas rendering, sharp for image manipulation, or whatever you want.
-
-This makes animations trivially testable (call the generator, collect frames, assert on pixels), composable (splice generators together), and framework-independent.
+This makes both single-shot image generation and frame-by-frame animation generation easily testable (call the function, assert on the pixels), composable, and framework-independent.
 
 ### Inspectable intermediates
 
-Animation archives are TAR files containing numbered PNG/JPEG frames:
+Animation archives are TAR files of numbered PNG or JPEG frames. Inspect them with standard Unix tools, extract individual frames, view them in any image viewer, or pipe them straight into FFmpeg for generating GIFs, APNGs, or videos.
 
-```
-frame_00000
-frame_00001
-frame_00002
-...
-```
-
-You can inspect them with standard Unix tools (`tar -tf`, extract individual frames, view in any image viewer) or pipe them directly into FFmpeg for generating GIFs, APNGs, or videos.
-
-Why TAR over ZIP? ZIP stores its file index at the end, so you need the whole archive before you can read anything. TAR streams: each file's header comes right before its contents, so frames can be written and read one at a time without buffering the entire animation.
+TAR over ZIP because TAR streams: the headers sit before the contents, so frames can be written and read one at a time without buffering the whole archive.
 
 ### Streaming by default
 
-Frames stream out as they're generated. Renders stream as they run, either the MP4 bytes directly or SSE progress events. Nothing waits for the whole thing to finish.
-
-This keeps memory bounded, avoids CDN timeouts (Cloudflare has a 100s timeout for instance), and lets you cancel mid-stream.
+Frames stream out as they're generated. Renders stream as they run — either the MP4 bytes directly or SSE progress events. Nothing waits for the whole thing to finish, so memory stays bounded, CDN timeouts (Cloudflare's 100s limit, for instance) are avoided, and you can cancel mid-stream.
 
 ### Built-in partitioning
 
-Split compositions for distributed rendering and join them back:
-
-```ts
-// Render each segment on a different machine
-const segmentEffie = effieDataForSegment(video, segmentIndex);
-
-// Join the results
-const joinEffie = effieDataForJoin(video, renderedSegmentUrls);
-```
-
-The URL-based architecture means segments can be rendered anywhere and assembled later.
+Compositions can be split for distributed rendering and joined back. The URL-based architecture means segments can be rendered anywhere and assembled later.
 
 ## What Effing deliberately avoids
 
-**Browser-based rendering.** Some tools screenshot React components in a headless browser. This adds complexity and the entire browser runtime. Effing generates images directly. No browser required.
+**Browser-based rendering.** Some tools screenshot React components in a headless browser. This adds complexity and an entire browser runtime. Effing generates images directly. No browser required.
 
 **Framework coupling.** Effing is plain TypeScript functions. No specific web framework required, no runtime dependencies beyond Node.js and FFmpeg. Use it in Express, Fastify, Next.js, or a plain script.
 
-**SaaS dependency.** You can run the entire pipeline on your own infrastructure if you want to. It's all open source, no vendor lock-in.
+**SaaS dependency.** Run the entire pipeline on your own infrastructure if you want to. It's all open source.
 
 **Visual editors.** There's no timeline to drag clips around on. Effing is for people who want to write code. If you need a visual editor, this isn't the right tool.
 
-## Works well with AI
+## Designed for coding agents
 
-No framework magic to get wrong. AI can generate Effie compositions and Annie animations using standard patterns—and you can diff the results.
+The same properties that make Effing easy to reason about make it well-suited to coding agents: small modules with strong types and schema-validated props, and inspectable JSON compositions. Agents can iterate on one module at a time and walk an effie's JSON to debug a composition.
 
 ## Real trade-offs
 
@@ -161,4 +77,4 @@ No framework magic to get wrong. AI can generate Effie compositions and Annie an
 
 **No zero-latency previews.** Generating real PNG/JPEG frames is slower than a dedicated preview renderer. What you preview is exactly what you render though. Accuracy over speed.
 
-The goal is a small, correct, understandable system for turning code into useful videos. Not everything to everyone.
+The goal is a small, correct, understandable system for turning code into useful images and videos. Not everything to everyone.

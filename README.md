@@ -1,14 +1,15 @@
 # effing
 
-**Programmatic video built on web standards, without browsers.**
-Compositions are declarative JSON with typed transitions, effects, and audio. When you need custom visuals, generate frames with a server-side canvas that renders JSX and flexbox to pixels — no DOM, no headless Chrome. Everything is a URL: images, animations, entire parameterized components. Rendering is just FFmpeg.
+**Programmatic images and videos built on web standards, without browsers.**
+Generate images with a server-side canvas that renders JSX and flexbox to pixels — no DOM, no headless Chrome. Compose videos as declarative JSON with typed transitions, effects, and audio. Serve everything as parameterized URLs: images, animations, entire video compositions. Rendering is just FFmpeg.
 
 ## Overview
 
-Effing is a modular TypeScript toolkit for programmatic video creation. It introduces three core concepts:
+Effing is a modular TypeScript toolkit. It splits image and video creation into four independent pieces:
 
-- **Annie** — A streamable animation format (TAR archive of PNG or JPEG frames) that can easily be generated server-side and played in the browser
-- **Effie** — A declarative video composition format that describes (in JSON) how to combine animations, images, audio, transitions, and effects into a final video
+- **Image** — A single PNG or JPEG, generated with canvas drawing, JSX-to-canvas, or anything else that produces image bytes
+- **Annie** — A streamable animation format (TAR archive of PNG or JPEG frames) that can be generated server-side and played in the browser
+- **Effie** — A declarative composition format that describes (in JSON) how to combine images, annies, audio, transitions, and effects into a final video
 - **FFS** — An FFmpeg-based rendering service that takes an Effie composition and produces an MP4 video, usable as a library or standalone HTTP server
 
 The “why” and design constraints are described in more detail in [`RATIONALE.md`](RATIONALE.md).
@@ -141,22 +142,25 @@ Or run FFS as a standalone server:
 ```bash
 npx @effing/ffs
 
-# First obtain a stream URL
+# 1. Create a render job
 curl -X POST http://localhost:2000/render \
   -H "Content-Type: application/json" \
   -d @composition.json
-# Returns: { "id": "...", "url": "http://localhost:2000/render/123e4567-e89b-12d3-a456-426614174000" }
+# Returns: { "id": "...", "progressUrl": "http://localhost:2000/render/.../progress" }
 
-# Then stream the URL to get the video
-curl http://localhost:2000/render/123e4567-e89b-12d3-a456-426614174000 -o output.mp4
+# 2. Connect to the SSE progress stream. The `ready` event carries the video URL.
+curl http://localhost:2000/render/.../progress
+
+# 3. Fetch the rendered video.
+curl http://localhost:2000/render/.../video -o output.mp4
 ```
 
 ## Demo
 
 The [starter template](demos/starter) is a complete example application showing how to:
 
-- Define reusable Annie animations
-- Build Effie compositions from Annies
+- Define reusable image and annie generators
+- Build effie compositions that reference them by URL
 - Preview compositions in the browser
 - Render final videos
 

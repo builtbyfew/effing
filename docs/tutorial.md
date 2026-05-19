@@ -250,6 +250,7 @@ A useful trick here is to tell your agent to RTFM. The starter's `AGENTS.md` nud
 ## Where to go next
 
 - **[Fundamentals](fundamentals.md)** — the same building blocks without the framework, in plain Node scripts. Useful for fully grasping the basics.
+- **[Example projects](https://github.com/builtbyfew/effing-examples)** — a monorepo of full Effing projects (meme generation, real estate, weather forecast) you can read end-to-end or clone and adapt.
 - **Package READMEs** for depth — [`@effing/fn`](../packages/fn/README.md), [`@effing/dev`](../packages/dev/README.md), [`@effing/ffs`](../packages/ffs/README.md), [`@effing/canvas`](../packages/canvas/README.md), [`@effing/tween`](../packages/tween/README.md), [`@effing/annie`](../packages/annie/README.md), [`@effing/effie`](../packages/effie/README.md).
 - **[API docs](api/README.md)** — full reference, auto-generated from source.
 

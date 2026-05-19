@@ -99,6 +99,20 @@ npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
 
 Reads `BASE_URL` and `SECRET_KEY` from `.env` files in the project root.
 
+### `effing manual`
+
+Prints a tool-level reference for the CLI and fn module shape — designed to be piped into an agent's context so it knows how to drive the project.
+
+```bash
+npx effing manual
+```
+
+| Option             | Description                 |
+| ------------------ | --------------------------- |
+| `-c, --config <p>` | Path to `effing.config.ts`. |
+
+The output is resolved against your config: it picks up your project's glob directories, dev resolutions, and the right package-manager invocation form (`pnpm exec`, `yarn`, `npx --no`, or a direct `./node_modules/.bin/effing` path).
+
 ### `effing build`
 
 Bundles a production HTTP server to `dist/server.js`.
@@ -132,8 +146,6 @@ my-app/
 │   │   └── intro.fn.tsx
 │   └── effies/
 │       └── promo.fn.tsx
-├── public/         # static assets — served at the root URL in dev
-│   └── favicon.ico
 └── package.json
 ```
 

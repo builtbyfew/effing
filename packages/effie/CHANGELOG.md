@@ -1,5 +1,11 @@
 # @effing/effie
 
+## 0.35.2
+
+### Patch Changes
+
+- 9143bdd: Document that transitions overlap the previous segment and end at the segment boundary
+
 ## 0.35.1
 
 ## 0.35.0

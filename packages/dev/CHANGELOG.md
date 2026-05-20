@@ -1,5 +1,16 @@
 # @effing/dev
 
+## 0.35.2
+
+### Patch Changes
+
+- Updated dependencies [9143bdd]
+  - @effing/effie@0.35.2
+  - @effing/effie-preview@0.35.2
+  - @effing/fn@0.35.2
+  - @effing/serde@0.35.2
+  - @effing/annie-player@0.35.2
+
 ## 0.35.1
 
 ### Patch Changes

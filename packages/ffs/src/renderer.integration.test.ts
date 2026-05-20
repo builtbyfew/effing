@@ -6,10 +6,16 @@ import {
   effieFileUrl,
 } from "@effing/effie";
 import type { EffieData, EffieSources, EffieFileUrl } from "@effing/effie";
+import { annieBuffer } from "@effing/annie";
+import { pathToFFmpeg } from "@effing/ffmpeg";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import { pathToFileURL, fileURLToPath } from "url";
+
+const execFileP = promisify(execFile);
 
 /**
  * Integration tests for distributed rendering.
@@ -402,6 +408,153 @@ describe("distributed rendering integration", () => {
       joinRenderer.close();
 
       expect(chunks.length).toBeGreaterThan(0);
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("delay padding produces the right frame count and no green leak", async () => {
+    // Regression test for two bugs in the layer.delay > 0 path:
+    //
+    //   1. Off-by-one: the old nullsrc default rate (25) didn't match the
+    //      effie's fps, so the concat'd stream had a frame-rate boundary that
+    //      the trailing fps= resample turned into one or more extra frames.
+    //   2. Green leak: nullsrc emits uninitialised YUV bytes that decode to
+    //      opaque #008700 when the overlaid layer has no alpha channel
+    //      (JPEG-encoded annie frames).
+    //
+    // The fix replaces nullsrc with color=c=black@0:rate=${fps},format=yuva420p
+    // — explicit framerate eliminates the boundary and explicit transparent
+    // alpha makes the padding composite over the background instead of leaking.
+    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const tempDir = await createTestOutputDir("delay-jpeg-annie");
+
+    try {
+      // 1. Produce a single solid-red 64x64 JPEG (no alpha by definition).
+      const redJpegPath = path.join(tempDir, "red.jpg");
+      await execFileP(ffmpegBin, [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=red:s=64x64:d=0.04",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        "yuvj420p",
+        redJpegPath,
+      ]);
+      const redJpeg = await fs.readFile(redJpegPath);
+
+      // 2. Pack 30 copies into an annie TAR using the in-repo encoder.
+      const anniePath = path.join(tempDir, "annie.tar");
+      async function* repeatJpeg(): AsyncGenerator<Buffer> {
+        for (let i = 0; i < 30; i++) yield redJpeg;
+      }
+      await fs.writeFile(anniePath, await annieBuffer(repeatJpeg()));
+
+      // 3. Build an effie with a 0.5s delay before the annie content starts.
+      //    Crucially we set from=0: the overlay's enable window opens at t=0,
+      //    so the delay padding is actually composited over the background
+      //    during [0, delay] — that is when the nullsrc green leak appears.
+      //    (With the default from=delay the overlay is gated off during the
+      //    delay window and the bug stays hidden — see effing-examples'
+      //    repro-jpeg-annie-delay for the canonical reproduction.)
+      const fps = 30;
+      const delay = 0.5;
+      const sources: EffieSources<EffieFileUrl> = {
+        anim: effieFileUrl(pathToFileURL(anniePath).toString()),
+      };
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width: 64,
+        height: 64,
+        fps,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "blue" },
+        sources,
+        segments: [
+          {
+            duration: 1.0,
+            layers: [{ type: "animation", source: "#anim", from: 0, delay }],
+          },
+        ],
+      };
+
+      // 4. Render and write to disk.
+      const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
+      const outPath = path.join(tempDir, "out.mp4");
+      const stream = await renderer.render();
+      const outChunks: Buffer[] = [];
+      for await (const c of stream) outChunks.push(c);
+      await fs.writeFile(outPath, Buffer.concat(outChunks));
+      renderer.close();
+
+      // 5. Sample the centre pixel at t=0.25 (mid-delay) and t=0.75 (well
+      //    inside the annie). Output is rawvideo rgb24 of a single pixel.
+      async function sampleRGB(
+        t: number,
+      ): Promise<{ r: number; g: number; b: number }> {
+        const rawPath = path.join(tempDir, `pixel_${t}.bin`);
+        await execFileP(ffmpegBin, [
+          "-y",
+          "-ss",
+          t.toString(),
+          "-i",
+          outPath,
+          "-frames:v",
+          "1",
+          "-vf",
+          "scale=1:1",
+          "-pix_fmt",
+          "rgb24",
+          "-f",
+          "rawvideo",
+          rawPath,
+        ]);
+        const bytes = await fs.readFile(rawPath);
+        return { r: bytes[0], g: bytes[1], b: bytes[2] };
+      }
+
+      const [midDelay, postDelay, probe] = await Promise.all([
+        sampleRGB(0.25),
+        sampleRGB(0.75),
+        execFileP(ffmpegBin, [
+          "-i",
+          outPath,
+          "-map",
+          "0:v:0",
+          "-an",
+          "-f",
+          "null",
+          "-",
+        ]),
+      ]);
+
+      // Pre-fix bug produced #008700 (G≈135, R≈0, B≈0). Post-fix the
+      // transparent padding composites over the blue background so we expect
+      // mostly blue. Guard against any non-trivial green leak.
+      expect(midDelay.g).toBeLessThan(40);
+      expect(midDelay.b).toBeGreaterThan(150);
+
+      // Annie content is solid red — verify the layer is actually drawn.
+      expect(postDelay.r).toBeGreaterThan(150);
+      expect(postDelay.g).toBeLessThan(60);
+
+      // 6. Verify the decoded stream ends at exactly 1.00s. The pre-fix
+      //    nullsrc's 25fps default introduced a frame-rate boundary at the
+      //    concat point that pushed the final PTS to 1.03s.
+      const timeMatches = [
+        ...probe.stderr.matchAll(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/g),
+      ];
+      expect(timeMatches.length).toBeGreaterThan(0);
+      const last = timeMatches[timeMatches.length - 1];
+      const seconds =
+        parseInt(last[1], 10) * 3600 +
+        parseInt(last[2], 10) * 60 +
+        parseInt(last[3], 10) +
+        parseInt(last[4], 10) / 100;
+      // Segment is 1.0s; allow ≤1.01 for rounding. Pre-fix gives 1.03.
+      expect(seconds).toBeLessThanOrEqual(1.01);
     } finally {
       await cleanupTestOutput(tempDir);
     }

@@ -46,6 +46,7 @@
     "sharp": "^0.33.5"
   },
   "devDependencies": {
+    "@effing/annie": "workspace:*",
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.0",
     "@types/tar-stream": "^3.1.3",

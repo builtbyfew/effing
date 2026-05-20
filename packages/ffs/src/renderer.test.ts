@@ -52,7 +52,7 @@ describe("EffieRenderer overlay enable window", () => {
   });
 
   test("with delay and no `from`, enable starts at delay", () => {
-    // Without this, the nullsrc-padded prefix would be composited over
+    // Without this, the transparent padding prefix would be composited over
     // the canvas during [0, delay] — see commit message for detail.
     expect(filterComplex({ delay: 2 })).toContain("enable='between(t,2,10)'");
   });
@@ -70,12 +70,12 @@ describe("EffieRenderer overlay enable window", () => {
   });
 
   test("layer trim is reduced by `delay` so the padded stream matches segment duration", () => {
-    // The nullsrc-padded layer must be exactly `segment.duration` long, not
+    // The padded layer must be exactly `segment.duration` long, not
     // `segment.duration + delay` — otherwise overlay's default eof_action
     // extends the rendered output past the segment.
     expect(filterComplex({ delay: 2 })).toContain("trim=start=0:duration=8");
     expect(filterComplex({ delay: 2 })).toContain(
-      "nullsrc=size=100x100:duration=2",
+      "color=c=black@0:size=100x100:duration=2:rate=30,format=yuva420p",
     );
   });
 });

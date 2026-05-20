@@ -237,8 +237,8 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
    * @param bgLabel - Label for the background input (e.g., "bg_seg0" or "bg_seg")
    * @param labelPrefix - Prefix for generated labels (e.g., "seg0_" or "")
    * @param layerInputOffset - Starting input index for layers
-   * @param frameWidth - Frame width for nullsrc
-   * @param frameHeight - Frame height for nullsrc
+   * @param frameWidth - Frame width for the delay padding source
+   * @param frameHeight - Frame height for the delay padding source
    * @param outputLabel - Label for the final video output
    * @returns Array of filter parts to add to the filter chain
    */
@@ -274,8 +274,13 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       );
       let overlayInputLabel = layerLabel;
       if (delay > 0) {
+        // Pad the layer with transparent frames at the effie's fps. nullsrc
+        // leaves Y/U/V planes uninitialised (which decode to opaque #008700
+        // on JPEG-encoded layers that lack alpha) and defaults to rate=25
+        // (which causes a 1-frame off-by-one when concat'd with a 30fps
+        // layer). color=c=black@0 with explicit rate and yuva420p avoids both.
         filterParts.push(
-          `nullsrc=size=${frameWidth}x${frameHeight}:duration=${delay},setpts=PTS-STARTPTS[null_${layerLabel}]`,
+          `color=c=black@0:size=${frameWidth}x${frameHeight}:duration=${delay}:rate=${this.effieData.fps},format=yuva420p,setpts=PTS-STARTPTS[null_${layerLabel}]`,
         );
         filterParts.push(
           `[null_${layerLabel}][${layerLabel}]concat=n=2:v=1:a=0[delayed_${layerLabel}]`,

@@ -92,7 +92,7 @@ type EffieLayer = {
 };
 ```
 
-Layers in a segment are stacked **bottom to top**: `layers[0]` is drawn first, later entries paint over it. A segment's `transition` describes how that segment enters from the previous one; the very first segment's transition is silently ignored.
+Layers in a segment are stacked **bottom to top**: `layers[0]` is drawn first, later entries paint over it. A segment's `transition` describes how that segment enters from the previous one and overlaps both segments (see [Transitions](#transitions) for the timing); the very first segment's transition is silently ignored.
 
 All three timing fields are in seconds of segment time (where `t = 0` is when the segment begins). `delay` and `from` both make a layer appear later in a segment, but they treat the content differently:
 
@@ -234,6 +234,8 @@ const joinEffie = effieDataForJoin(effieData, [
 | `EffieSource`     | URL or #reference                      |
 
 ## Transitions
+
+A transition straddles the boundary between two segments: the new segment starts `transition.duration` seconds _before_ the boundary (overlapping the end of the previous segment) and the transition completes _at_ the boundary. The new segment's clock — and therefore its layer timing (`delay`, `from`, effect/motion `start`) — is measured from that earlier start, not from the boundary, so a layer with `delay: 0` is already on-screen while the transition is animating.
 
 Available transition types:
 

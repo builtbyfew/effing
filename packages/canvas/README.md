@@ -1,6 +1,6 @@
 # @effing/canvas
 
-**Server-side canvas with JSX and Lottie support.**
+**Server-side canvas with JSX, SVG, and Lottie support.**
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
@@ -109,6 +109,41 @@ const fontSize = findLargestUsableFontSize({
 ```
 
 Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `minFontSize` (default 1), and `maxFontSize` (default 1000).
+
+## Inline SVG
+
+Use SVG markup directly in JSX — no need to convert icons to data URLs or `backgroundImage`. The `<svg>` element is sized from its `width`/`height` props (or derived from `viewBox` if only one is given), and its children render in SVG coordinate space rather than flex layout.
+
+```typescript
+await renderReactElement(
+  ctx,
+  <div
+    style={{ display: "flex", alignItems: "center", gap: 8, color: "#ffffff" }}
+  >
+    <svg
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 17v-3h-20" />
+      <path d="M2 8v9" />
+      <circle cx="7" cy="17" r="2" />
+      <circle cx="17" cy="17" r="2" />
+    </svg>
+    <span>Truck</span>
+  </div>,
+  { fonts },
+);
+```
+
+Supported elements: `<path>`, `<circle>`, `<rect>`, `<line>`, `<ellipse>`, `<polygon>`, `<polyline>`, `<g>`, `<defs>`, `<clipPath>`, `<mask>`, `<filter>`, `<linearGradient>`, `<radialGradient>`.
+
+Supported presentation props: `fill`, `stroke`, `strokeWidth`, `strokeLinecap`, `strokeLinejoin`, `strokeOpacity`, `fillOpacity`, `opacity`, `transform`, `clipPath`, `mask`, `filter`. `currentColor` resolves to the inherited CSS `color`, so SVG icons recolor with their surrounding text.
 
 ## Lottie Animations
 

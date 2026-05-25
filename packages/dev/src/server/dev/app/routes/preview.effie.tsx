@@ -124,12 +124,15 @@ type RenderAction =
   | { type: "stream"; videoUrl: string; scale: number }
   | { type: "play" }
   | { type: "finish"; downloadUrl: string }
-  | { type: "error"; error?: string };
+  | { type: "error"; error?: string }
+  | { type: "reset" };
 
 const INITIAL_RENDER_STATE: RenderState = { step: "idle", error: null };
 
 function renderReducer(state: RenderState, action: RenderAction): RenderState {
   switch (action.type) {
+    case "reset":
+      return INITIAL_RENDER_STATE;
     case "start":
       return { step: "starting", startedAt: Date.now() };
     case "stream":
@@ -210,6 +213,15 @@ export default function EffiePreviewPage() {
       }
     }
   }, [render]);
+
+  useEffect(() => {
+    dispatch({ type: "reset" });
+    setRenderError(null);
+    if (prevDownloadUrlRef.current) {
+      URL.revokeObjectURL(prevDownloadUrlRef.current);
+      prevDownloadUrlRef.current = null;
+    }
+  }, [effieId, width, height]);
 
   const warmup = useEffieWarmup(warmupUrl);
   const resolveSource = createEffieSourceResolver(effie.sources);
@@ -594,13 +606,17 @@ export default function EffiePreviewPage() {
                     href={render.downloadUrl}
                     download={`${effieId}-${width}x${height}.mp4`}
                     style={{
+                      display: "inline-flex",
+                      alignItems: "center",
                       padding: "0.45rem 0.85rem",
                       backgroundColor: "var(--color-snow)",
                       color: "var(--color-salad-dark-1)",
                       border: "1px solid var(--color-salad)",
                       borderRadius: 6,
+                      fontFamily: "var(--font-sans)",
                       fontSize: "0.85rem",
                       fontWeight: 600,
+                      lineHeight: "normal",
                       textDecoration: "none",
                     }}
                   >

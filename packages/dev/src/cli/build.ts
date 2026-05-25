@@ -42,7 +42,15 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     format: "esm",
     platform: "node",
     target: "node22",
-    packages: "external",
+    // Inline everything except: built-in node modules, native deps whose
+    // `.node` binding a bundler can't embed (@napi-rs/canvas), and
+    // @effing/fn — its `initFnRuntime()` sets up module-scoped state that
+    // the host runtime and the bundle must share via the same module
+    // instance. Using `packages: "external"` instead would keep workspace
+    // deps unbundled, and workspace packages that ship raw TypeScript
+    // (`"main": "src/index.ts"`) then crash node with
+    // ERR_UNKNOWN_FILE_EXTENSION ".ts" at runtime.
+    external: ["node:*", "@napi-rs/canvas", "@effing/fn"],
     logLevel: "info",
     plugins: [effingFnsPlugin(resolved)],
     banner: {

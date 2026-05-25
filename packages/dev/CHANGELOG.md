@@ -1,5 +1,26 @@
 # @effing/dev
 
+## 0.35.3
+
+### Patch Changes
+
+- 02dde82: Inline workspace deps in effing build to avoid ERR_UNKNOWN_FILE_EXTENSION
+
+  `effing build` previously used esbuild's `packages: "external"`, which kept
+  every dependency unbundled — including pnpm workspace packages. Workspace
+  packages whose `main` points at raw TypeScript (e.g. `"main": "src/index.ts"`)
+  then crashed `node dist/server.js` with `ERR_UNKNOWN_FILE_EXTENSION ".ts"`.
+  Replaced with an explicit external list (`node:*`, `@napi-rs/canvas`); only
+  node built-ins and the native `.node` binding stay external, everything else
+  is inlined.
+
+- f48abe6: Reset effie preview render state when switching resolution, and vertically center the download-video button label
+  - @effing/effie@0.35.3
+  - @effing/fn@0.35.3
+  - @effing/serde@0.35.3
+  - @effing/annie-player@0.35.3
+  - @effing/effie-preview@0.35.3
+
 ## 0.35.2
 
 ### Patch Changes

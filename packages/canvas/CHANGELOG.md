@@ -1,5 +1,11 @@
 # @effing/canvas
 
+## 0.35.3
+
+### Patch Changes
+
+- d541d0a: Document inline SVG support in JSX
+
 ## 0.35.2
 
 ## 0.35.1

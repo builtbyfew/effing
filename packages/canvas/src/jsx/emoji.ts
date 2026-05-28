@@ -65,10 +65,7 @@ export async function loadEmoji(
   if (key in emojiCache) return emojiCache[key];
 
   const api = emojiApis[type];
-  if (typeof api === "function") {
-    return (emojiCache[key] = fetch(api(code)).then((r) => r.text()));
-  }
-  return (emojiCache[key] = fetch(`${api}${code.toUpperCase()}.svg`).then((r) =>
-    r.text(),
-  ));
+  const url =
+    typeof api === "function" ? api(code) : `${api}${code.toUpperCase()}.svg`;
+  return (emojiCache[key] = fetch(url).then((r) => r.text()));
 }

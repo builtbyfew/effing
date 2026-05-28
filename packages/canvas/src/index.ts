@@ -4,9 +4,16 @@ export {
   Canvas,
   type SKRSContext2D,
   GlobalFonts,
-  loadImage,
   Image,
 } from "@napi-rs/canvas";
+
+// loadImage is wrapped (not re-exported) so remote URLs go through the same
+// fetch path as <img> sources — see ./image.ts.
+export {
+  loadImage,
+  type LoadImageOptions,
+  type LoadImageSource,
+} from "./image.ts";
 
 export function createCanvas(width: number, height: number) {
   const canvas = _createCanvas(width, height);

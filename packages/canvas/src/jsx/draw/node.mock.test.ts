@@ -33,7 +33,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.save).toHaveBeenCalled();
@@ -56,7 +55,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillRect).not.toHaveBeenCalled();
@@ -77,7 +75,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillRect).not.toHaveBeenCalled();
@@ -98,7 +95,7 @@ describe("drawNode", () => {
       },
       0,
       0,
-      true,
+      { imageCache: new Map(), debug: true },
     );
 
     expect(ctx.strokeRect).toHaveBeenCalledWith(0, 0, 100, 50);
@@ -120,7 +117,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillText).toHaveBeenCalled();
@@ -141,7 +137,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.clip).toHaveBeenCalled();
@@ -173,7 +168,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     // Child drawn at parent offset + child offset
@@ -198,7 +192,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     // Pure scale renders to an offscreen and composites with drawImage.
@@ -227,7 +220,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     // No offscreen compositing
@@ -256,7 +248,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.drawImage).not.toHaveBeenCalled();
@@ -286,7 +277,6 @@ describe("drawNode", () => {
       },
       0,
       0,
-      false,
     );
 
     // 10% of 200px width = 20px padding on each side

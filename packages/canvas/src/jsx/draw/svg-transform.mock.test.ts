@@ -49,7 +49,6 @@ describe("SVG transform attribute on shape elements", () => {
       },
       0,
       0,
-      false,
     );
 
     // Transform should cause save/restore pair and a rotate+translate call
@@ -108,7 +107,6 @@ describe("SVG opacity on <g> elements and shape elements", () => {
       },
       0,
       0,
-      false,
     );
 
     // opacity on <g> should trigger save/restore and set globalAlpha
@@ -146,7 +144,6 @@ describe("SVG opacity on <g> elements and shape elements", () => {
       },
       0,
       0,
-      false,
     );
 
     // opacity on shape should trigger save/restore

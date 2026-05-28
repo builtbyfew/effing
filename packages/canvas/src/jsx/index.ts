@@ -5,6 +5,7 @@ import type { RenderReactElementOptions } from "../types.ts";
 import { drawNode } from "./draw/index.ts";
 import { ensureFontsRegistered } from "./font.ts";
 import { buildLayoutTree } from "./layout.ts";
+import type { RenderContext } from "./context.ts";
 
 /**
  * Render a React element tree to a canvas context.
@@ -42,6 +43,13 @@ import { buildLayoutTree } from "./layout.ts";
  *   height: 1080,
  * });
  * ```
+ *
+ * @example Custom User-Agent for remote image fetches
+ * ```tsx
+ * await renderReactElement(ctx, <MyComponent />, {
+ *   userAgent: "my-renderer/1.0",
+ * });
+ * ```
  */
 export async function renderReactElement(
   ctx: SKRSContext2D,
@@ -57,27 +65,28 @@ export async function renderReactElement(
   const width = options.width ?? ctx.canvas.width;
   const height = options.height ?? ctx.canvas.height;
 
+  // Per-render context: shared image cache + cross-cutting fetch/diagnostic
+  // config, threaded through both the layout and draw phases.
+  const renderContext: RenderContext = {
+    imageCache: new Map(),
+    userAgent: options.userAgent,
+    debug: options.debug ?? false,
+  };
+
   // Build layout tree (Yoga)
   const emojiStyle =
     options.emoji === "none" ? undefined : (options.emoji ?? "twemoji");
   const fontFamilies = [...new Set(fonts.map((f) => f.name))];
-  const { tree: layoutTree, imageCache } = await buildLayoutTree(
+  const { tree: layoutTree } = await buildLayoutTree(
     element,
     width,
     height,
     ctx,
     !!emojiStyle,
     fontFamilies,
+    renderContext,
   );
 
   // Draw to canvas
-  await drawNode(
-    ctx,
-    layoutTree,
-    0,
-    0,
-    options.debug ?? false,
-    emojiStyle,
-    imageCache,
-  );
+  await drawNode(ctx, layoutTree, 0, 0, renderContext, emojiStyle);
 }

@@ -295,6 +295,25 @@ async function renderReactElement(
 ): Promise<void>;
 ```
 
+### `loadImage(source, options?)`
+
+Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@napi-rs/canvas`'s native loader.
+
+```typescript
+function loadImage(
+  source: string | URL | Buffer | ArrayBufferLike | Uint8Array | Image,
+  options?: LoadImageOptions, // { userAgent?: string }
+): Promise<Image>;
+```
+
+```typescript
+import { loadImage } from "@effing/canvas";
+
+const image = await loadImage("https://example.com/pic.png", {
+  userAgent: "my-renderer/1.0",
+});
+```
+
 ### `loadLottie(data, options?)`
 
 Load a Lottie animation from a JSON string or Buffer.
@@ -350,13 +369,14 @@ const fontSize = findLargestUsableFontSize({
 
 ### Options
 
-| Option   | Type                   | Required | Description                                           |
-| -------- | ---------------------- | -------- | ----------------------------------------------------- |
-| `fonts`  | `FontData[]`           | Yes      | Font data for text rendering                          |
-| `width`  | `number`               | No       | Layout width override (default: `ctx.canvas.width`)   |
-| `height` | `number`               | No       | Layout height override (default: `ctx.canvas.height`) |
-| `debug`  | `boolean`              | No       | Draw layout bounding boxes for debugging              |
-| `emoji`  | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)                    |
+| Option      | Type                   | Required | Description                                           |
+| ----------- | ---------------------- | -------- | ----------------------------------------------------- |
+| `fonts`     | `FontData[]`           | Yes      | Font data for text rendering                          |
+| `width`     | `number`               | No       | Layout width override (default: `ctx.canvas.width`)   |
+| `height`    | `number`               | No       | Layout height override (default: `ctx.canvas.height`) |
+| `debug`     | `boolean`              | No       | Draw layout bounding boxes for debugging              |
+| `emoji`     | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)                    |
+| `userAgent` | `string`               | No       | User-Agent header for remote image fetches            |
 
 ### Types
 
@@ -377,7 +397,7 @@ type EmojiStyle =
   | "fluentFlat";
 ```
 
-Also re-exports from `@napi-rs/canvas`: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `loadImage`, `Image`, `LottieAnimation`.
+Also re-exports from `@napi-rs/canvas`: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
 
 ## Examples
 

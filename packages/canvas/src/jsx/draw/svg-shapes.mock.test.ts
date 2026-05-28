@@ -39,7 +39,6 @@ describe("SVG shapes — rect rx/ry rounded corners", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fill).toHaveBeenCalled();
@@ -66,7 +65,6 @@ describe("SVG shapes — rect rx/ry rounded corners", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fill).toHaveBeenCalled();
@@ -93,7 +91,6 @@ describe("SVG shapes — rect rx/ry rounded corners", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fill).toHaveBeenCalled();

@@ -1,9 +1,9 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { EmojiStyle } from "../emoji.ts";
-import type { ImageCache } from "../image-cache.ts";
-import { cachedLoadImage } from "../image-cache.ts";
+import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
+import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
@@ -23,13 +23,18 @@ export async function drawNode(
   node: LayoutNode,
   parentX: number,
   parentY: number,
-  debug: boolean,
+  context?: RenderContext,
   emojiStyle?: EmojiStyle,
-  imageCache?: ImageCache,
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
   const { width, height, style } = node;
+
+  // Resolve a context once so children and the offscreen path share one cache.
+  const renderContext: RenderContext = context ?? {
+    imageCache: new Map(),
+    debug: false,
+  };
 
   if (style.display === "none") return;
 
@@ -66,7 +71,6 @@ export async function drawNode(
       // Render at qx×qy resolution — logical coords produce more pixels
       offCtx.save();
       offCtx.scale(qx, qy);
-      const cache: ImageCache = imageCache ?? new Map();
       await drawNodeCore(
         offCtx,
         node,
@@ -74,9 +78,8 @@ export async function drawNode(
         parentY,
         1 - x,
         1 - y,
-        debug,
         emojiStyle,
-        cache,
+        renderContext,
         transformWithoutScale,
       );
       offCtx.restore();
@@ -118,7 +121,6 @@ export async function drawNode(
     }
   }
 
-  const cache: ImageCache = imageCache ?? new Map();
   await drawNodeCore(
     ctx,
     node,
@@ -126,9 +128,8 @@ export async function drawNode(
     parentY,
     0,
     0,
-    debug,
     emojiStyle,
-    cache,
+    renderContext,
   );
 }
 
@@ -167,9 +168,8 @@ async function drawNodeCore(
   parentY: number,
   offsetX: number,
   offsetY: number,
-  debug: boolean,
   emojiStyle: EmojiStyle | undefined,
-  imageCache: ImageCache,
+  context: RenderContext,
   overrideTransform?: string,
 ): Promise<void> {
   const x = parentX + node.x + offsetX;
@@ -271,7 +271,11 @@ async function drawNodeCore(
             applyClip(ctx, x, y, width, height, borderRadius);
           }
 
-          const image = await cachedLoadImage(imageCache, urlMatch[1]!);
+          const image = await cachedLoadImage(
+            context.imageCache,
+            urlMatch[1]!,
+            context.userAgent,
+          );
           const bgSize = style.backgroundSize;
 
           if (bgSize === "cover") {
@@ -334,7 +338,7 @@ async function drawNodeCore(
   }
 
   // Debug: draw bounding boxes
-  if (debug) {
+  if (context.debug) {
     ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, width, height);
@@ -406,7 +410,7 @@ async function drawNodeCore(
       imgY,
       imgW,
       imgH,
-      imageCache,
+      context,
       style,
     );
   }
@@ -420,19 +424,9 @@ async function drawNodeCore(
     // since x,y already incorporates the offset.
     for (const child of node.children) {
       if (offsetX === 0 && offsetY === 0) {
-        await drawNode(ctx, child, x, y, debug, emojiStyle, imageCache);
+        await drawNode(ctx, child, x, y, context, emojiStyle);
       } else {
-        await drawNodeCore(
-          ctx,
-          child,
-          x,
-          y,
-          0,
-          0,
-          debug,
-          emojiStyle,
-          imageCache,
-        );
+        await drawNodeCore(ctx, child, x, y, 0, 0, emojiStyle, context);
       }
     }
   }

@@ -54,6 +54,21 @@ Layout height override. Defaults to `ctx.canvas.height`.
 
 ***
 
+### userAgent?
+
+> `optional` **userAgent**: `string`
+
+Defined in: [packages/canvas/src/types.ts:41](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L41)
+
+User-Agent header sent on remote (http/https) image fetches — `<img>` and
+`background-image: url(...)` sources. When unset, fetch uses its default.
+An empty string is passed through as an explicit empty header. Values
+containing CR/LF or other invalid header characters will cause fetch to
+throw `TypeError`. (Emoji sprites are fetched from public CDNs without
+this header.)
+
+***
+
 ### width?
 
 > `optional` **width**: `number`

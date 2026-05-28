@@ -5,8 +5,9 @@
 import type { SKRSContext2D } from "@napi-rs/canvas";
 import type { ReactElement, ReactNode } from "react";
 
-import type { ImageCache } from "./image-cache.ts";
-import { cachedLoadImage } from "./image-cache.ts";
+import type { ImageCache } from "../image.ts";
+import { cachedLoadImage } from "../image.ts";
+import type { RenderContext } from "./context.ts";
 import { expandStyle } from "./style/expand.ts";
 import {
   resolveStyle,
@@ -54,8 +55,12 @@ export async function buildLayoutTree(
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
+  context?: RenderContext,
 ): Promise<{ tree: LayoutNode; imageCache: ImageCache }> {
-  const imageCache: ImageCache = new Map();
+  const renderContext: RenderContext = context ?? {
+    imageCache: new Map(),
+    debug: false,
+  };
   const elementYogaNode = createYogaNode();
 
   // Set font families as default on root style so all nodes inherit them
@@ -73,7 +78,7 @@ export async function buildLayoutTree(
     ctx,
     emojiEnabled,
     fontFamilies,
-    imageCache,
+    renderContext,
   );
 
   // Wrap the user element in a canvas-sized container (like Satori) so that
@@ -99,7 +104,7 @@ export async function buildLayoutTree(
     width: containerWidth,
     height: containerHeight,
   };
-  return { tree, imageCache };
+  return { tree, imageCache: renderContext.imageCache };
 }
 
 async function buildNode(
@@ -111,7 +116,7 @@ async function buildNode(
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
-  imageCache?: ImageCache,
+  context?: RenderContext,
 ): Promise<IntermediateNode> {
   // Handle null/undefined/boolean
   if (
@@ -165,7 +170,7 @@ async function buildNode(
       ctx,
       emojiEnabled,
       fontFamilies,
-      imageCache,
+      context,
     );
   }
 
@@ -242,7 +247,11 @@ async function buildNode(
     const src = props.src as string | Buffer | undefined;
     if (src) {
       try {
-        const image = await cachedLoadImage(imageCache ?? new Map(), src);
+        const image = await cachedLoadImage(
+          context?.imageCache ?? new Map(),
+          src,
+          context?.userAgent,
+        );
         const naturalW = image.width;
         const naturalH = image.height;
 
@@ -256,8 +265,19 @@ async function buildNode(
           }
           yogaNode.setAspectRatio(naturalW / naturalH);
         }
-      } catch {
-        // Silent fail — image will render at whatever size Yoga computes
+      } catch (err) {
+        // Don't fail layout when the image is unreachable — render at whatever
+        // size Yoga computes. Surface the error (only in debug) so misconfigured
+        // URLs and UA-gated CDNs are diagnosable instead of silently dropping
+        // pixels, without spamming logs on every frame of a normal render.
+        if (context?.debug) {
+          const id = Buffer.isBuffer(src) ? "<Buffer>" : src;
+          console.warn(
+            `[@effing/canvas] failed to load image for layout (${id}): ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
       }
     }
   }
@@ -368,7 +388,7 @@ async function buildNode(
           ctx,
           emojiEnabled,
           fontFamilies,
-          imageCache,
+          context,
         ),
       );
     }

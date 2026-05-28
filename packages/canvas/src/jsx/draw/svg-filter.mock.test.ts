@@ -65,7 +65,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     // Offscreen canvases created for element + filter pipeline
@@ -122,7 +121,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     // The mock ctx is shared — filter should have been set to blur(5px)
@@ -177,7 +175,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     // drawImage called with offset for feOffset and for compositing
@@ -235,7 +232,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.getImageData).toHaveBeenCalled();
@@ -304,7 +300,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.drawImage).toHaveBeenCalled();
@@ -391,7 +386,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     // Full pipeline executed — element drawn via offscreen + filter chain
@@ -446,7 +440,6 @@ describe("SVG filter support", () => {
       },
       0,
       0,
-      false,
     );
 
     // No offscreen canvas when element doesn't reference a filter

@@ -62,7 +62,6 @@ describe("SVG defs — mask handling", () => {
       },
       0,
       0,
-      false,
     );
 
     // Only the <path> should produce a fill call, not the mask definition
@@ -115,7 +114,6 @@ describe("SVG defs — mask handling", () => {
       },
       0,
       0,
-      false,
     );
 
     // Offscreen canvases created for element + mask
@@ -170,7 +168,6 @@ describe("SVG defs — mask handling", () => {
       },
       0,
       0,
-      false,
     );
 
     // No offscreen canvas created when element doesn't reference a mask
@@ -205,7 +202,6 @@ describe("SVG defs — mask handling", () => {
         },
         0,
         0,
-        false,
       ),
     ).resolves.not.toThrow();
   });
@@ -251,7 +247,6 @@ describe("SVG defs — mask handling", () => {
       },
       0,
       0,
-      false,
     );
 
     // Offscreen canvases created for element + mask (same as defs-wrapped case)

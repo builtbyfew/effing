@@ -30,6 +30,15 @@ export type RenderReactElementOptions = {
   debug?: boolean;
   /** Emoji style for rendering emoji characters as images. Defaults to "twemoji". Pass "none" to disable. */
   emoji?: EmojiStyle | "none";
+  /**
+   * User-Agent header sent on remote (http/https) image fetches — `<img>` and
+   * `background-image: url(...)` sources. When unset, fetch uses its default.
+   * An empty string is passed through as an explicit empty header. Values
+   * containing CR/LF or other invalid header characters will cause fetch to
+   * throw `TypeError`. (Emoji sprites are fetched from public CDNs without
+   * this header.)
+   */
+  userAgent?: string;
 };
 
 /**

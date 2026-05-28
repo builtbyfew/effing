@@ -42,7 +42,6 @@ describe("SVG paint — fill, stroke, currentColor", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillStyle).toBe("blue");
@@ -74,7 +73,6 @@ describe("SVG paint — fill, stroke, currentColor", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillStyle).toBe("blue");
@@ -104,7 +102,6 @@ describe("SVG paint — fill, stroke, currentColor", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.fillStyle).toBe("red");
@@ -136,7 +133,6 @@ describe("SVG paint — fill, stroke, currentColor", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.strokeStyle).toBe("green");
@@ -171,7 +167,6 @@ describe("SVG paint — fill, stroke, currentColor", () => {
       },
       0,
       0,
-      false,
     );
 
     expect(ctx.strokeStyle).toBe("red");

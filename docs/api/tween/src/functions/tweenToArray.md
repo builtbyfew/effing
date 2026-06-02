@@ -8,7 +8,7 @@
 
 > **tweenToArray**\<`T`\>(`count`, `fn`, `options`): `Promise`\<`T`[]\>
 
-Defined in: [packages/tween/src/tween.ts:77](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L77)
+Defined in: [packages/tween/src/tween.ts:82](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L82)
 
 Tween frames with concurrency control, returning an array
 

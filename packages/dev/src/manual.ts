@@ -240,9 +240,13 @@ HTML previews are for humans clicking through. Each kind also has a machine-read
 /preview/effie/:effieId.json
 \`\`\`
 
-Image and annie endpoints stream encoded bytes (JPEG/PNG still, or TAR of frames). The effie endpoint returns JSON — an effie *is* JSON, a description of how to compose other fns. The returned \`effieData\` has every layer source pre-signed, so an agent can follow those URLs into the individual annie frames and image stills the composition references.
+The image and annie endpoints stream encoded bytes (a JPEG/PNG still, or a TAR of frames). The effie endpoint returns JSON — an effie *is* JSON, a description of how to compose other fns, not rendered pixels. These endpoints are pinned to each fn's \`previewProps\`; to inspect custom props you mint a signed URL (see below).
 
-Preview endpoints are fixed to the fn's \`previewProps\`. To render with custom props you need a signed URL — see below.`);
+When something looks wrong in a composition, it's usually quickest to work down from that description before reaching for a full render:
+
+- **Start with the effie JSON.** Many composition issues — a missing or misordered layer, a wrong duration or delay, a malformed source, a \`#ref\` with no matching entry in \`sources\` — are visible directly in \`effieData\` without rendering anything. The JSON is also your index into the layers and the sources they point at.
+- **Then drill into a single layer.** Follow a layer's \`source\` from the JSON and fetch it — an annie source returns its TAR of frames, an image source returns its bytes. A \`source\` is usually a URL you can request directly: a signed fn URL (the extensionless \`/annie/:segment\` / \`/image/:segment\` form, not the props-pinned \`.tar\`/\`.bytes\` preview endpoints above), but equally any other URL — a CDN that hosts the TAR or still outright, say. If a \`source\` is instead a \`#ref\` like \`#logo\`, resolve it against the effie's top-level \`sources\` map first. Pulling a single source — one annie's frames, for instance — is far cheaper than rendering the whole composition, and isolates most "this element is off" problems to the layer that owns them.
+- **Render the full MP4 when the question needs it.** Things that only emerge once everything plays together — cross-segment timing, transitions, motion and effects interacting, audio sync — genuinely need a render. It's the heaviest path (FFS renders the MP4, then you pull frames back out with ffmpeg), so it's worth confirming the layers look right first; for those whole-timeline questions it's the right tool.`);
 
   sections.push(`## Signed URLs
 
@@ -511,6 +515,8 @@ A few things to know:
 - **Bounds for child fns can differ from the effie's own bounds.** Useful when an effect needs over-canvas content — e.g. passing \`{ width: width * 1.2, height }\` to a child annie so it has horizontal slack for a \`scroll\` effect that pans across.
 - **Transitions overlap the previous segment.** A \`transition.duration\` of \`T\` means the new segment starts \`T\` seconds *before* the segment boundary and the transition ends at the boundary. Layer timing (\`delay\`, \`from\`, effect/motion \`start\`) in the new segment is measured from that earlier start, so a layer with \`delay: 0\` is on-screen during the transition.
 - **For the full format vocabulary** — layer types, transitions, effects, backgrounds, motion, validation — see \`node_modules/@effing/effie/README.md\`. This manual only covers the basics.
+
+To debug a composition, work down from the description before rendering: read the effie JSON, then fetch the individual layer sources it references, and reach for a full MP4 render only for whole-timeline questions — see "Inspecting from an agent".
 
 Endpoints:
 

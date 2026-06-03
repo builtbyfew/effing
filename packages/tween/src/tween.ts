@@ -21,14 +21,19 @@ export type TweenInterval = {
 export async function* tween<T>(
   count: number,
   fn: (interval: TweenInterval, index: number) => Promise<T>,
-  options: { concurrency?: number } = { concurrency: os.cpus().length },
+  options: { concurrency?: number } = {
+    concurrency: os.availableParallelism(),
+  },
 ): AsyncGenerator<T> {
   if (count === 0) {
     return;
   }
 
   const range = steps(count);
-  const maxConcurrency = Math.max(1, options.concurrency ?? os.cpus().length);
+  const maxConcurrency = Math.max(
+    1,
+    options.concurrency ?? os.availableParallelism(),
+  );
   const activeTasks = new Map<number, Promise<T>>();
 
   let nextIndexToStart = 0;
@@ -77,7 +82,9 @@ export async function* tween<T>(
 export async function tweenToArray<T>(
   count: number,
   fn: (interval: TweenInterval, index: number) => Promise<T>,
-  options: { concurrency?: number } = { concurrency: os.cpus().length },
+  options: { concurrency?: number } = {
+    concurrency: os.availableParallelism(),
+  },
 ): Promise<T[]> {
   return Array.fromAsync(tween(count, fn, options));
 }

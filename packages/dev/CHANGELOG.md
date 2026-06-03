@@ -1,5 +1,22 @@
 # @effing/dev
 
+## 0.36.1
+
+### Patch Changes
+
+- 6201b3a: Guide agents to inspect effie JSON and layer sources before full renders
+
+  The `effing manual` "Inspecting from an agent" section now lays out a
+  cheapest-first debugging ladder — read the effie JSON, drill into individual
+  layer sources (resolving `#ref`s and fetching signed/CDN source URLs directly),
+  and render the full MP4 only for whole-timeline questions like timing,
+  transitions, and audio sync. The effie section cross-references it.
+  - @effing/effie@0.36.1
+  - @effing/fn@0.36.1
+  - @effing/serde@0.36.1
+  - @effing/annie-player@0.36.1
+  - @effing/effie-preview@0.36.1
+
 ## 0.36.0
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @effing/tween
 
+## 0.36.1
+
+### Patch Changes
+
+- 2f76772: Use os.availableParallelism() for default concurrency
+
+  The default concurrency now derives from `os.availableParallelism()` instead of
+  `os.cpus().length`, so it respects cgroup CPU quotas and CPU affinity. This
+  avoids over-subscribing worker tasks when running inside a CPU-limited container.
+
 ## 0.36.0
 
 ## 0.35.3

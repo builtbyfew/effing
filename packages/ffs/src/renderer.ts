@@ -363,8 +363,14 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         fadeIn: this.effieData.audio.fadeIn,
         fadeOut: this.effieData.audio.fadeOut,
       });
+      // Reset PTS to 0 *before* applying fades. `atrim` preserves the source
+      // timestamps, so after a seek the stream's PTS starts at `audioSeek`, not
+      // 0. The fade filters anchor on PTS (fade-in at start_time=0, fade-out at
+      // start_time=duration-fadeOut), so running them before the reset would
+      // shift both fades by `audioSeek` — starting the fade-out ~seek seconds
+      // early and skipping the fade-in entirely when seek > fadeIn.
       filterParts.push(
-        `[${generalAudioInputIndex}:a]atrim=start=${audioSeek}:duration=${totalDuration},${generalAudioFilter},asetpts=PTS-STARTPTS[general_audio]`,
+        `[${generalAudioInputIndex}:a]atrim=start=${audioSeek}:duration=${totalDuration},asetpts=PTS-STARTPTS,${generalAudioFilter}[general_audio]`,
       );
       filterParts.push(
         `${audioSegmentLabels.join("")}concat=n=${

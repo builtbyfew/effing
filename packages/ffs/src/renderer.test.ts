@@ -122,3 +122,62 @@ describe("EffieRenderer segment audio padding", () => {
     expect(command.filterComplex).toContain("[aud_seg1]");
   });
 });
+
+describe("EffieRenderer general audio fades", () => {
+  function audioEffie(audio: {
+    seek?: number;
+    fadeIn?: number;
+    fadeOut?: number;
+  }): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+      audio: { source: "https://example.com/music.mp3", ...audio },
+      segments: [
+        {
+          duration: 10,
+          layers: [{ type: "image", source: "https://example.com/img.png" }],
+        },
+      ],
+    };
+  }
+
+  function generalAudioFilter(audio: {
+    seek?: number;
+    fadeIn?: number;
+    fadeOut?: number;
+  }): string {
+    const renderer = new EffieRenderer(audioEffie(audio));
+    const command = (
+      renderer as unknown as {
+        buildFFmpegCommand: (
+          out: string,
+          scale: number,
+        ) => { filterComplex: string };
+      }
+    ).buildFFmpegCommand("out.mp4", 1);
+    return command.filterComplex;
+  }
+
+  test("fades are applied after PTS is reset, so a seek doesn't shift the fade anchors", () => {
+    // `atrim` preserves source timestamps, so after a 4.9s seek the stream's
+    // PTS starts at 4.9. afade anchors on PTS, so resetting PTS to 0 must
+    // happen *before* the fades — otherwise the 1s fade-out would start at
+    // ~4.1s of playback (10 - 1 - 4.9) and the back half would be silent.
+    expect(generalAudioFilter({ seek: 4.9, fadeIn: 1, fadeOut: 1 })).toContain(
+      "atrim=start=4.9:duration=10,asetpts=PTS-STARTPTS," +
+        "afade=type=in:start_time=0:duration=1," +
+        "afade=type=out:start_time=9:duration=1[general_audio]",
+    );
+  });
+
+  test("fade-out still anchors at the end with no seek", () => {
+    expect(generalAudioFilter({ fadeOut: 2 })).toContain(
+      "atrim=start=0:duration=10,asetpts=PTS-STARTPTS," +
+        "afade=type=out:start_time=8:duration=2[general_audio]",
+    );
+  });
+});

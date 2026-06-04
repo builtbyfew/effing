@@ -1,5 +1,32 @@
 # @effing/dev
 
+## 0.36.2
+
+### Patch Changes
+
+- 9100543: Prefix downloaded effie videos with the project name
+
+  The "Download video" link on the effie preview page now names the file
+  `<project>-<effieId>-<width>x<height>.mp4` instead of just
+  `<effieId>-<width>x<height>.mp4`, so renders from different projects no longer
+  share an indistinguishable filename. The project name is slugified
+  (non-alphanumeric runs collapse to `-`, with leading/trailing hyphens trimmed)
+  and the prefix is omitted entirely when the project name is empty.
+
+- 054aed5: Point the manual at `ffs render` for full-composition renders
+
+  The `effing manual` now surfaces the `@effing/ffs` render CLI: the
+  "Inspecting from an agent" render step and the CLI commands table both show
+  `ffs render <effie-json-or-url> <out.mp4>` as the straightforward way to turn an
+  effie into an MP4 — point it at a `/preview/effie/:id.json` URL, a signed
+  `/effie/:segment` URL, or a saved JSON file — instead of driving the FFS HTTP
+  API by hand. Commands stay tailored to the detected package manager.
+  - @effing/effie-preview@0.36.2
+  - @effing/effie@0.36.2
+  - @effing/fn@0.36.2
+  - @effing/serde@0.36.2
+  - @effing/annie-player@0.36.2
+
 ## 0.36.1
 
 ### Patch Changes

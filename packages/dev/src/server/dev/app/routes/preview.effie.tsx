@@ -363,6 +363,12 @@ export default function EffiePreviewPage() {
     return `${url.slice(0, keepStart)}[...]${url.slice(-keepEnd)}`;
   };
 
+  const projectSlug = projectName
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const downloadName = `${projectSlug ? `${projectSlug}-` : ""}${effieId}-${width}x${height}.mp4`;
+
   return (
     <>
       <Header
@@ -604,7 +610,7 @@ export default function EffiePreviewPage() {
                 {render.step === "done" && (
                   <a
                     href={render.downloadUrl}
-                    download={`${effieId}-${width}x${height}.mp4`}
+                    download={downloadName}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",

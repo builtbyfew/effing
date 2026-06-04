@@ -8,10 +8,10 @@ export type PackageManager = {
   /** `null` means "no recognized lockfile" — falls back to the direct bin path. */
   name: "npm" | "pnpm" | "yarn" | null;
   /**
-   * Render an `effing <subcommand>` invocation using this PM's most idiomatic
-   * form that runs the locally-installed binary AND never falls back to
-   * fetching `effing` from the registry. (The npm `effing` package is not
-   * ours, so a stray fetch could run unrelated code.)
+   * Render a `<bin> <args>` invocation using this PM's most idiomatic form that
+   * runs the locally-installed binary AND never falls back to fetching it from
+   * the registry. (A bin name like `effing` collides with an unrelated npm
+   * package, so a stray fetch could run code that isn't ours.)
    *
    * - pnpm: `pnpm exec` is local-only by design (`pnpm dlx` is the fetch form).
    * - yarn: `yarn <bin>` consults only the local install (`yarn dlx` is the
@@ -20,28 +20,28 @@ export type PackageManager = {
    *   prompting/auto-installing on a miss.
    * - other (bun, deno, no lockfile, …): bun's `bunx` auto-fetches with no
    *   opt-out, and we don't want to guess for unknown PMs — invoke the bin
-   *   directly via `./node_modules/.bin/effing`.
+   *   directly via `./node_modules/.bin/<bin>`.
    */
+  bin: (bin: string, args: string) => string;
+  /** Convenience for the project's own `effing` bin (from `@effing/dev`). */
   effing: (subcommand: string) => string;
 };
 
+function packageManager(
+  name: PackageManager["name"],
+  bin: (bin: string, args: string) => string,
+): PackageManager {
+  return { name, bin, effing: (subcommand) => bin("effing", subcommand) };
+}
+
 const PMS = {
-  pnpm: {
-    name: "pnpm" as const,
-    effing: (s: string) => `pnpm exec effing ${s}`,
-  },
-  yarn: {
-    name: "yarn" as const,
-    effing: (s: string) => `yarn effing ${s}`,
-  },
-  npm: {
-    name: "npm" as const,
-    effing: (s: string) => `npx --no effing ${s}`,
-  },
-  unknown: {
-    name: null,
-    effing: (s: string) => `./node_modules/.bin/effing ${s}`,
-  },
+  pnpm: packageManager("pnpm", (bin, args) => `pnpm exec ${bin} ${args}`),
+  yarn: packageManager("yarn", (bin, args) => `yarn ${bin} ${args}`),
+  npm: packageManager("npm", (bin, args) => `npx --no ${bin} ${args}`),
+  unknown: packageManager(
+    null,
+    (bin, args) => `./node_modules/.bin/${bin} ${args}`,
+  ),
 } satisfies Record<string, PackageManager>;
 
 const LOCKFILES: Array<{ file: string; pm: PackageManager }> = [
@@ -246,7 +246,7 @@ When something looks wrong in a composition, it's usually quickest to work down 
 
 - **Start with the effie JSON.** Many composition issues — a missing or misordered layer, a wrong duration or delay, a malformed source, a \`#ref\` with no matching entry in \`sources\` — are visible directly in \`effieData\` without rendering anything. The JSON is also your index into the layers and the sources they point at.
 - **Then drill into a single layer.** Follow a layer's \`source\` from the JSON and fetch it — an annie source returns its TAR of frames, an image source returns its bytes. A \`source\` is usually a URL you can request directly: a signed fn URL (the extensionless \`/annie/:segment\` / \`/image/:segment\` form, not the props-pinned \`.tar\`/\`.bytes\` preview endpoints above), but equally any other URL — a CDN that hosts the TAR or still outright, say. If a \`source\` is instead a \`#ref\` like \`#logo\`, resolve it against the effie's top-level \`sources\` map first. Pulling a single source — one annie's frames, for instance — is far cheaper than rendering the whole composition, and isolates most "this element is off" problems to the layer that owns them.
-- **Render the full MP4 when the question needs it.** Things that only emerge once everything plays together — cross-segment timing, transitions, motion and effects interacting, audio sync — genuinely need a render. It's the heaviest path (FFS renders the MP4, then you pull frames back out with ffmpeg), so it's worth confirming the layers look right first; for those whole-timeline questions it's the right tool.`);
+- **Render the full MP4 when the question needs it.** Things that only emerge once everything plays together — cross-segment timing, transitions, motion and effects interacting, audio sync — genuinely need a render. \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` is the straightforward way to get one: hand it an effie — the same \`/preview/effie/:effieId.json\` URL from the first step, a signed \`/effie/:segment\` URL, or a saved \`.json\` file — plus an output path, and it writes the MP4 directly, no driving the FFS HTTP API by hand. It's still the heaviest path (FFS renders the MP4, then you pull frames back out with ffmpeg), so confirm the layers look right first; for those whole-timeline questions it's the right tool.`);
 
   sections.push(`## Signed URLs
 
@@ -286,6 +286,7 @@ FFS_API_KEY=your-ffs-api-key
 | \`${pm.effing("dev")}\` | Start the dev server (and a local FFS sidecar if installed). |
 | \`${pm.effing("build")}\` | Bundle a production server to \`dist/server.js\`. Run with \`node dist/server.js\`. |
 | \`${pm.effing("url <kind> <id>")}\` | Mint a signed fn URL for given props. |
+| \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` | Render an effie to an MP4, no HTTP API needed (the \`@effing/ffs\` bin; present when the FFS sidecar is installed). Run with \`--help\` for options. |
 | \`${pm.effing("manual")}\` | Print this manual. |
 
 Your project may wrap these as \`package.json\` scripts under shorter names — check \`package.json\`${guideFile ? ` (and \`${guideFile}\`, which may list them)` : ""}.`);

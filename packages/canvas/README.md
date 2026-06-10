@@ -179,8 +179,8 @@ const png = canvas.encodeSync("png");
 | `flexDirection`       | `row`, `column`, `row-reverse`, `column-reverse`                                    |
 | `flexWrap`            | `nowrap`, `wrap`, `wrap-reverse`                                                    |
 | `justifyContent`      | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` |
-| `alignItems`          | `flex-start`, `flex-end`, `center`, `stretch`, `baseline`                           |
-| `alignSelf`           | `auto`, `flex-start`, `flex-end`, `center`, `stretch`, `baseline`                   |
+| `alignItems`          | `flex-start`, `flex-end`, `center`, `stretch`, `baseline`¹                          |
+| `alignSelf`           | `auto`, `flex-start`, `flex-end`, `center`, `stretch`, `baseline`¹                  |
 | `alignContent`        | `flex-start`, `flex-end`, `center`, `stretch`, `space-between`, `space-around`      |
 | `flex`                | Shorthand for `flexGrow`, `flexShrink`, `flexBasis`                                 |
 | `flexGrow`            | Number                                                                              |
@@ -188,6 +188,12 @@ const png = canvas.encodeSync("png");
 | `flexBasis`           | Length, percentage                                                                  |
 | `gap`                 | Shorthand for `rowGap`, `columnGap`                                                 |
 | `rowGap`, `columnGap` | Number                                                                              |
+
+> ¹ `baseline` aligns children to the line-box **bottom** (the same result as
+> `flex-end`), **not** the typographic baseline. Rows mixing different font
+> sizes will not share a text baseline. This is a limitation of the bundled
+> Yoga layout engine, whose JS binding exposes no baseline function; the same
+> caveat applies to Satori.
 
 ### Dimensions
 

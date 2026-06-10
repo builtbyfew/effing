@@ -595,6 +595,107 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
     ]);
   });
 
+  it("unwraps fragments inside <svg>", async () => {
+    const { tree } = await buildLayoutTree(
+      {
+        type: "svg",
+        props: {
+          width: 24,
+          height: 24,
+          viewBox: "0 0 10 10",
+          children: {
+            type: Symbol.for("react.fragment"),
+            props: {
+              children: [
+                { type: "circle", props: { cx: 5, cy: 5, r: 3 } },
+                { type: "rect", props: { width: 1, height: 1 } },
+              ],
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    const children = svg.props.children as Array<{ type: string }>;
+    expect(children).toHaveLength(2);
+    expect(children.map((c) => c.type)).toEqual(["circle", "rect"]);
+  });
+
+  it("unwraps fragments returned by function components inside <svg>", async () => {
+    const Icon = () => ({
+      type: Symbol.for("react.fragment"),
+      props: {
+        children: [
+          { type: "path", props: { d: "M0 0" } },
+          { type: "path", props: { d: "M1 1" } },
+        ],
+      },
+    });
+    const { tree } = await buildLayoutTree(
+      {
+        type: "svg",
+        props: {
+          width: 24,
+          height: 24,
+          viewBox: "0 0 10 10",
+          children: [
+            { type: Icon, props: {} },
+            { type: "circle", props: { r: 1 } },
+          ],
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    const children = svg.props.children as Array<{ type: string }>;
+    expect(children).toHaveLength(3);
+    expect(children.map((c) => c.type)).toEqual(["path", "path", "circle"]);
+  });
+
+  it("unwraps fragments nested inside <g> elements", async () => {
+    const { tree } = await buildLayoutTree(
+      {
+        type: "svg",
+        props: {
+          width: 24,
+          height: 24,
+          viewBox: "0 0 10 10",
+          children: {
+            type: "g",
+            props: {
+              children: {
+                type: Symbol.for("react.fragment"),
+                props: {
+                  children: [
+                    { type: "line", props: { x1: 0, y1: 0, x2: 1, y2: 1 } },
+                    { type: "ellipse", props: { rx: 1, ry: 2 } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      } as unknown as ReactElement,
+      200,
+      200,
+      ctx,
+    );
+    const svg = tree.children[0];
+    const g = svg.props.children as {
+      type: string;
+      props: { children: unknown };
+    };
+    expect(g.type).toBe("g");
+    const gChildren = g.props.children as Array<{ type: string }>;
+    expect(gChildren).toHaveLength(2);
+    expect(gChildren.map((c) => c.type)).toEqual(["line", "ellipse"]);
+  });
+
   it("resolves vh unit on SVG height attribute", async () => {
     const { tree } = await buildLayoutTree(
       {

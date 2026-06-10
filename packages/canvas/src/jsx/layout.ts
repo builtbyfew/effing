@@ -467,11 +467,17 @@ function extractTextContent(children: unknown): string | undefined {
 }
 
 /**
- * Resolve function components and flatten nested arrays inside an `<svg>`
- * subtree. The SVG drawer switches on primitive element strings (path, rect,
- * etc.) and does not flatten its own children, so without this preprocessing
- * (a) function components silently disappear and (b) helpers returning arrays
- * crash the defs collector.
+ * React's `Fragment` type. A registered symbol shared by all React copies,
+ * so we can detect fragments without a runtime dependency on `react`.
+ */
+const REACT_FRAGMENT = Symbol.for("react.fragment");
+
+/**
+ * Resolve function components, unwrap fragments, and flatten nested arrays
+ * inside an `<svg>` subtree. The SVG drawer switches on primitive element
+ * strings (path, rect, etc.) and does not flatten its own children, so
+ * without this preprocessing (a) function components and fragments silently
+ * disappear and (b) helpers returning arrays crash the defs collector.
  */
 function resolveSvgTree(node: ReactNode): ReactNode {
   if (node === null || node === undefined || typeof node === "boolean")
@@ -504,6 +510,12 @@ function resolveSvgTree(node: ReactNode): ReactNode {
       el.props ?? {},
     );
     return resolveSvgTree(rendered);
+  }
+
+  // Unwrap fragments: their children take the fragment's place in the parent
+  // (callers flatten arrays), since the drawer only knows SVG element strings.
+  if ((el.type as unknown) === REACT_FRAGMENT) {
+    return resolveSvgTree((el.props ?? {}).children as ReactNode);
   }
 
   const elProps = (el.props ?? {}) as Record<string, unknown>;

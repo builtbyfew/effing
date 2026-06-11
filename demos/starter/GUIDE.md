@@ -39,13 +39,14 @@ To add another font, copy one of the existing exports in `app/fonts.ts` and poin
 ## Environment variables
 
 ```bash
-# Required: base URL the dev/prod server is reachable at
-BASE_URL=http://localhost:3839
 # Required: secret for signing URL segments
 SECRET_KEY=your-secret-key
+# Optional in dev (defaults to the dev server's own address); required in production
+BASE_URL=http://localhost:3839
 
-# Optional: FFS rendering service (only when pointing at a remote FFS)
-FFS_BASE_URL=http://localhost:2000
+# Optional: FFS rendering service (only when pointing at a remote FFS —
+# the local sidecar is wired up automatically)
+FFS_BASE_URL=https://your-ffs.example.com
 FFS_API_KEY=your-ffs-api-key
 ```
 

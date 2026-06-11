@@ -260,24 +260,24 @@ ${pm.effing("url")} annie my-animation \\
   --width ${defaultWidth} --height ${defaultHeight}
 \`\`\`
 
-Reads \`BASE_URL\` and \`SECRET_KEY\` from \`.env\`. Width/height default to the first entry in \`dev.resolutions\`. Kind is one of \`image\`, \`annie\`, or \`effie\`; the id matches the fn's filename without the \`.fn.tsx\` suffix.
+Reads \`SECRET_KEY\` from \`.env\`; \`BASE_URL\` defaults to the dev server address from the config. Width/height default to the first entry in \`dev.resolutions\`. Kind is one of \`image\`, \`annie\`, or \`effie\`; the id matches the fn's filename without the \`.fn.tsx\` suffix.
 
 From inside an effie runner, use \`fnUrl(kind, id, props, bounds)\` from \`@effing/fn\` instead — it signs against the same \`SECRET_KEY\` and returns the same URL shape.`);
 
   sections.push(`## Environment variables
 
 \`\`\`bash
-# Required: base URL the dev/prod server is reachable at
-BASE_URL=http://${host}:${port}
 # Required: secret for signing URL segments
 SECRET_KEY=your-secret-key
+# Optional in dev (defaults to the dev server's own address); required in production
+BASE_URL=http://${host}:${port}
 
 # Optional: FFS rendering service (only when pointing at a remote FFS)
 FFS_BASE_URL=http://localhost:2000
 FFS_API_KEY=your-ffs-api-key
 \`\`\`
 
-\`${pm.effing("dev")}\` starts a local FFS sidecar automatically (if \`@effing/ffs\` is installed); the \`FFS_*\` vars only matter when pointing at a remote FFS server.`);
+\`${pm.effing("dev")}\` starts a local FFS sidecar automatically (if \`@effing/ffs\` is installed) and points \`FFS_BASE_URL\` at it; setting the \`FFS_*\` vars only matters when targeting a remote FFS server.`);
 
   sections.push(`## CLI commands
 

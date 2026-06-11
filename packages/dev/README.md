@@ -84,7 +84,9 @@ If `@effing/ffs` is installed and `ffs` is enabled, an FFS sidecar is auto-spawn
 
 ### Running multiple projects
 
-Running several dev servers side by side is a normal setup — each just needs its own port. The recommended way is a stable, distinct `dev.port` per project in its `effing.config.ts`:
+Running several dev servers side by side works out of the box: when the default port (`3839`) is taken, `effing dev` walks up to the next free port and prints the URL it actually bound.
+
+If you'd rather a project always sit on the same, bookmarkable port, give it its own `dev.port` in `effing.config.ts`:
 
 ```typescript
 export default defineConfig({
@@ -94,9 +96,9 @@ export default defineConfig({
 });
 ```
 
-Without one, `effing dev` still does the right thing: when the default port (`3839`) is taken, it walks up to the next free port and prints the URL it actually bound. Explicitly chosen ports (`--port` or `dev.port`) are strict — a collision there usually means another instance of the same project is already running, so the server fails fast instead of silently moving.
+Explicitly chosen ports (`--port` or `dev.port`) are strict — a collision there usually means another instance of the same project is already running, so the server fails fast instead of silently moving.
 
-Everything else follows the chosen port automatically:
+Either way, everything else follows the chosen port automatically:
 
 - `BASE_URL` defaults to the dev server's own address when not set, so signed fn URLs always point at the right instance. If a `.env` pins a localhost `BASE_URL` whose port doesn't match, the server warns about it at startup.
 - Each instance's FFS sidecar gets its own free port (starting at `2000`), and `FFS_BASE_URL` is auto-set to match — two projects never share a sidecar by accident.

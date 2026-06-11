@@ -2,6 +2,11 @@
   "name": "@effing/annie-player",
   "version": "0.37.0",
   "description": "Annie animation player that runs in the browser",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/annie-player"
+  },
   "type": "module",
   "exports": {
     ".": {

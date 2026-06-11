@@ -2,6 +2,11 @@
   "name": "@effing/fn",
   "version": "0.37.0",
   "description": "Effing function runtime — pluggable module loading and URL building",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/fn"
+  },
   "type": "module",
   "exports": {
     ".": {

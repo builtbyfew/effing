@@ -1,5 +1,11 @@
 # @effing/ffs
 
+## 0.37.0
+
+### Patch Changes
+
+- @effing/effie@0.37.0
+
 ## 0.36.2
 
 ### Patch Changes

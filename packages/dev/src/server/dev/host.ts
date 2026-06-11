@@ -26,11 +26,17 @@ export type StartDevServerOptions = {
   config: EffingConfig;
   host: string;
   port: number;
+  /**
+   * Fail on EADDRINUSE instead of trying the next port. Set when the port was
+   * chosen explicitly (CLI flag or config) — a collision then usually means
+   * another instance of the same project is already running.
+   */
+  strictPort?: boolean;
 };
 
 export async function startDevServer(
   options: StartDevServerOptions,
-): Promise<{ close: () => Promise<void> }> {
+): Promise<{ port: number; close: () => Promise<void> }> {
   // Mutable snapshot, refreshed when fn files are added/removed.
   let resolved: ResolvedFns = await resolveFns(
     options.configDir,
@@ -42,7 +48,11 @@ export async function startDevServer(
   // transforms + evaluates user fn files through the SSR module graph.
   const vite = await createViteServer({
     root: options.configDir,
-    server: { middlewareMode: true, hmr: false },
+    // `ws: false` matters alongside `hmr: false`: in middleware mode Vite
+    // otherwise still binds its HMR WebSocket server on its own port (24678),
+    // which collides across instances. Reload uses our SSE channel, and the
+    // module runner talks in-process, so the WS server is unused anyway.
+    server: { middlewareMode: true, hmr: false, ws: false },
     appType: "custom",
     optimizeDeps: { noDiscovery: true },
     ssr: {
@@ -173,12 +183,15 @@ export async function startDevServer(
     rrListener(req, res);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(options.port, options.host, () => resolve());
-  });
+  const port = await listenWithRetry(
+    server,
+    options.host,
+    options.port,
+    options.strictPort ?? false,
+  );
 
   return {
+    port,
     async close() {
       for (const c of sseClients) {
         try {
@@ -205,6 +218,46 @@ export async function startDevServer(
       }
     },
   };
+}
+
+const MAX_PORT_ATTEMPTS = 16;
+
+/**
+ * Bind the server, walking up from `port` on EADDRINUSE unless `strict`.
+ * Retrying on the actual listen (rather than probing first) avoids the
+ * race where another process grabs the port between probe and bind.
+ */
+async function listenWithRetry(
+  server: http.Server,
+  host: string,
+  port: number,
+  strict: boolean,
+): Promise<number> {
+  const attempts = strict ? 1 : MAX_PORT_ATTEMPTS;
+  for (let i = 0; i < attempts; i++) {
+    const candidate = port + i;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(candidate, host, () => {
+          server.removeListener("error", reject);
+          resolve();
+        });
+      });
+      return candidate;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EADDRINUSE") throw err;
+      if (strict) {
+        throw new Error(
+          `Port ${candidate} on ${host} is already in use — is another dev ` +
+            `server running? Pass --port or set dev.port to pick a different one.`,
+        );
+      }
+    }
+  }
+  throw new Error(
+    `Ports ${port}–${port + attempts - 1} on ${host} are all in use.`,
+  );
 }
 
 function appBuildDir(): string {

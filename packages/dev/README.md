@@ -49,12 +49,12 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 The dev server reads `.env`, `.env.local`, `.env.development`, `.env.development.local` from the project root and merges them into `process.env` (existing values take precedence).
 
-| Variable       | Required | Description                                                                     |
-| -------------- | -------- | ------------------------------------------------------------------------------- |
-| `BASE_URL`     | yes      | Public base URL used to construct signed fn URLs. E.g. `http://localhost:3839`. |
-| `SECRET_KEY`   | yes      | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate.     |
-| `FFS_BASE_URL` | no       | URL of an [`@effing/ffs`](../ffs) server. Enables the "Render it FFS" flow.     |
-| `FFS_API_KEY`  | no       | API key for the FFS server.                                                     |
+| Variable       | Required  | Description                                                                                                                                      |
+| -------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BASE_URL`     | prod only | Public base URL used to construct signed fn URLs. In `effing dev` it defaults to the dev server's own address, following whatever port it bound. |
+| `SECRET_KEY`   | yes       | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate.                                                                      |
+| `FFS_BASE_URL` | no        | URL of an [`@effing/ffs`](../ffs) server. Auto-set to the local sidecar's address when one is spawned; set explicitly to use a remote FFS.       |
+| `FFS_API_KEY`  | no        | API key for the FFS server.                                                                                                                      |
 
 ## CLI
 
@@ -66,12 +66,12 @@ Starts the dev server.
 npx effing dev
 ```
 
-| Option              | Description                                          |
-| ------------------- | ---------------------------------------------------- |
-| `-c, --config <p>`  | Path to `effing.config.ts` (default: auto-discover). |
-| `-p, --port <n>`    | Port (default: from config or `3839`).               |
-| `-h, --host <host>` | Host (default: from config or `127.0.0.1`).          |
-| `--no-ffs`          | Don't auto-start the FFS sidecar.                    |
+| Option              | Description                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `-c, --config <p>`  | Path to `effing.config.ts` (default: auto-discover).                                                                          |
+| `-p, --port <n>`    | Port (default: from config or `3839`). Explicit ports are strict; the default auto-walks to a free port when `3839` is taken. |
+| `-h, --host <host>` | Host (default: from config or `127.0.0.1`).                                                                                   |
+| `--no-ffs`          | Don't auto-start the FFS sidecar.                                                                                             |
 
 The dev server gives you:
 
@@ -81,6 +81,25 @@ The dev server gives you:
 - **Signed-segment endpoints** matching what the production server serves, so URLs built via `fnUrl` work identically in dev and prod.
 
 If `@effing/ffs` is installed and `ffs` is enabled, an FFS sidecar is auto-spawned at startup.
+
+### Running multiple projects
+
+Running several dev servers side by side is a normal setup — each just needs its own port. The recommended way is a stable, distinct `dev.port` per project in its `effing.config.ts`:
+
+```typescript
+export default defineConfig({
+  project: "my-app",
+  // ...
+  dev: { port: 4001 },
+});
+```
+
+Without one, `effing dev` still does the right thing: when the default port (`3839`) is taken, it walks up to the next free port and prints the URL it actually bound. Explicitly chosen ports (`--port` or `dev.port`) are strict — a collision there usually means another instance of the same project is already running, so the server fails fast instead of silently moving.
+
+Everything else follows the chosen port automatically:
+
+- `BASE_URL` defaults to the dev server's own address when not set, so signed fn URLs always point at the right instance. If a `.env` pins a localhost `BASE_URL` whose port doesn't match, the server warns about it at startup.
+- Each instance's FFS sidecar gets its own free port (starting at `2000`), and `FFS_BASE_URL` is auto-set to match — two projects never share a sidecar by accident.
 
 ### `effing url`
 
@@ -97,7 +116,7 @@ npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
 | `-w, --width <n>`    | Width in pixels (default: first entry in `dev.resolutions`).  |
 | `--height <n>`       | Height in pixels (default: first entry in `dev.resolutions`). |
 
-Reads `BASE_URL` and `SECRET_KEY` from `.env` files in the project root.
+Reads `SECRET_KEY` (required) and `BASE_URL` from `.env` files in the project root; `BASE_URL` defaults to the dev server address from the config (`http://{dev.host}:{dev.port}`).
 
 ### `effing manual`
 

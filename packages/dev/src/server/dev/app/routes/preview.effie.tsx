@@ -15,6 +15,7 @@ import {
 } from "@effing/effie-preview/react";
 import { fnModule } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
+import { ffsBaseUrl, ffsHeaders } from "../ffs.server";
 import { parseBoundsFromUrl } from "../urls.server";
 import { getResolutions, type Resolution } from "../resolutions.server";
 import { getProjectName } from "../project.server";
@@ -66,14 +67,12 @@ export async function loader({
   });
 
   let warmupUrl: string | null = null;
-  if (process.env.FFS_BASE_URL && process.env.FFS_API_KEY) {
+  const ffsUrl = ffsBaseUrl();
+  if (ffsUrl) {
     try {
-      const warmupResponse = await fetch(`${process.env.FFS_BASE_URL}/warmup`, {
+      const warmupResponse = await fetch(`${ffsUrl}/warmup`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.FFS_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+        headers: ffsHeaders(),
         body: JSON.stringify(effie),
       });
       if (warmupResponse.ok) {

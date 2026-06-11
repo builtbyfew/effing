@@ -3,7 +3,7 @@ import invariant from "tiny-invariant";
 import { signFnSegment } from "@effing/fn/server";
 import type { FnKind } from "@effing/fn";
 import { loadConfig } from "../config/load";
-import { DEFAULT_RESOLUTIONS } from "../config/schema";
+import { DEFAULT_DEV, DEFAULT_RESOLUTIONS } from "../config/schema";
 
 const FN_KINDS: readonly FnKind[] = ["image", "annie", "effie"] as const;
 
@@ -38,9 +38,12 @@ export async function runUrl(
     if (process.env[k] === undefined) process.env[k] = v;
   }
 
-  const baseUrl = process.env.BASE_URL;
+  // Default BASE_URL to the dev server's configured address, mirroring the
+  // default `effing dev` applies when the var is unset.
+  const devHost = config.dev?.host ?? DEFAULT_DEV.host;
+  const devPort = config.dev?.port ?? DEFAULT_DEV.port;
+  const baseUrl = process.env.BASE_URL ?? `http://${devHost}:${devPort}`;
   const secretKey = process.env.SECRET_KEY;
-  invariant(baseUrl, "BASE_URL env var is required");
   invariant(secretKey, "SECRET_KEY env var is required");
 
   const props = parseProps(options.props);

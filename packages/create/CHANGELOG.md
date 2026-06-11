@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.37.1
+
+### Patch Changes
+
+- 106b3df: Run the starter Dockerfile container as the non-root node user
+
 ## 0.37.0
 
 ### Patch Changes

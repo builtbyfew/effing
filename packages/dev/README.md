@@ -49,12 +49,12 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 The dev server reads `.env`, `.env.local`, `.env.development`, `.env.development.local` from the project root and merges them into `process.env` (existing values take precedence).
 
-| Variable       | Required  | Description                                                                                                                                      |
-| -------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `BASE_URL`     | prod only | Public base URL used to construct signed fn URLs. In `effing dev` it defaults to the dev server's own address, following whatever port it bound. |
-| `SECRET_KEY`   | yes       | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate.                                                                      |
-| `FFS_BASE_URL` | no        | URL of an [`@effing/ffs`](../ffs) server. Auto-set to the local sidecar's address when one is spawned; set explicitly to use a remote FFS.       |
-| `FFS_API_KEY`  | no        | API key for the FFS server.                                                                                                                      |
+| Variable       | Required | Description                                                                                                                                                                                 |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BASE_URL`     | no       | Public base URL used to construct signed fn URLs. Defaults to the dev server's own address, following whatever port it bound. The built production server requires it (see `effing build`). |
+| `SECRET_KEY`   | yes      | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate.                                                                                                                 |
+| `FFS_BASE_URL` | no       | URL of an [`@effing/ffs`](../ffs) server. Auto-set to the local sidecar's address when one is spawned; set explicitly to use a remote FFS.                                                  |
+| `FFS_API_KEY`  | no       | API key for the FFS server.                                                                                                                                                                 |
 
 ## CLI
 

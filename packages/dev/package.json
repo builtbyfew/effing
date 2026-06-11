@@ -2,6 +2,11 @@
   "name": "@effing/dev",
   "version": "0.37.0",
   "description": "Dev server and build tooling for Effing projects",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/dev"
+  },
   "type": "module",
   "bin": {
     "effing": "./dist/cli/index.js"

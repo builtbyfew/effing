@@ -2,6 +2,11 @@
   "name": "@effing/ffmpeg",
   "version": "0.37.0",
   "description": "FFmpeg binary downloader for Effing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/ffmpeg"
+  },
   "type": "module",
   "exports": {
     ".": {

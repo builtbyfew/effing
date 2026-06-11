@@ -2,6 +2,11 @@
   "name": "@effing/tween",
   "version": "0.37.0",
   "description": "Tweening and easing functions for animations",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/tween"
+  },
   "type": "module",
   "exports": {
     ".": {

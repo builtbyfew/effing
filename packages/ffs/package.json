@@ -2,6 +2,11 @@
   "name": "@effing/ffs",
   "version": "0.37.0",
   "description": "FFmpeg-based effie rendering service",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/builtbyfew/effing.git",
+    "directory": "packages/ffs"
+  },
   "type": "module",
   "exports": {
     ".": {

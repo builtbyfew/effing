@@ -301,6 +301,17 @@ async function renderReactElement(
 ): Promise<void>;
 ```
 
+> **Image sources are not cached between calls.** Each call creates a fresh
+> internal image cache, so every `<img>` and `background-image: url(...)`
+> source in the tree is fetched and decoded anew. That's fine for one-shot
+> renders, but when calling per frame in a loop (e.g. inside
+> `@effing/tween`'s `tween(...)`), keep image sources out of the element
+> tree: load them once up front with
+> [`loadImage()`](#loadimagesource-options), draw them with
+> `ctx.drawImage(...)`, and pass only text and vectors to the per-frame
+> React tree. The same goes for fonts and anything else fetched — resolve
+> once, outside the loop.
+
 ### `loadImage(source, options?)`
 
 Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@napi-rs/canvas`'s native loader.

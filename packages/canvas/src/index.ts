@@ -11,6 +11,7 @@ export {
 // fetch path as <img> sources — see ./image.ts.
 export {
   loadImage,
+  type ImageCache,
   type LoadImageOptions,
   type LoadImageSource,
 } from "./image.ts";

@@ -172,6 +172,43 @@ describe("cachedLoadImage", () => {
     expect(a).toBe(b);
   });
 
+  it("evicts a failed load so the next call retries", async () => {
+    const responses = [
+      { ok: false, status: 503, statusText: "Service Unavailable" },
+      { ok: true, status: 200, statusText: "OK" },
+    ];
+    const fetchMock = vi.fn(async () => ({
+      ...responses.shift()!,
+      arrayBuffer: async () => new ArrayBuffer(0),
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const url = "https://example.com/flaky.png";
+    await expect(cachedLoadImage(cache, url)).rejects.toThrow(/503/);
+    expect(cache.size).toBe(0);
+
+    await expect(cachedLoadImage(cache, url)).resolves.toBeDefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(cache.size).toBe(1);
+  });
+
+  it("keeps successful loads cached across sequential calls", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      arrayBuffer: async () => new ArrayBuffer(0),
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const url = "https://example.com/stable.png";
+    const a = await cachedLoadImage(cache, url);
+    const b = await cachedLoadImage(cache, url);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(a).toBe(b);
+  });
+
   it("passes non-remote string sources directly to loadImage", async () => {
     const fetchMock = vi.fn();
     globalThis.fetch = fetchMock as unknown as typeof fetch;

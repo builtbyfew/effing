@@ -59,6 +59,11 @@ export type ImageCache = Map<string, Promise<Image>>;
  * set, is forwarded to remote (http/https) fetches. The cache key is the URL
  * alone — the userAgent of the first call for a given URL is the one that hits
  * the wire; a later call with a different userAgent reuses the cached promise.
+ *
+ * Failed loads are evicted, so only successful loads stay cached: callers
+ * sharing one cache across many renders (`options.imageCache`) retry a
+ * transiently-failed source on the next call instead of replaying the
+ * rejection forever.
  */
 export function cachedLoadImage(
   cache: ImageCache,
@@ -68,8 +73,15 @@ export function cachedLoadImage(
   if (Buffer.isBuffer(src)) return loadImage(src);
   let entry = cache.get(src);
   if (!entry) {
-    entry = loadImage(src, userAgent === undefined ? undefined : { userAgent });
-    cache.set(src, entry);
+    const created = loadImage(
+      src,
+      userAgent === undefined ? undefined : { userAgent },
+    );
+    created.catch(() => {
+      if (cache.get(src) === created) cache.delete(src);
+    });
+    cache.set(src, created);
+    entry = created;
   }
   return entry;
 }

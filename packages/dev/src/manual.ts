@@ -438,6 +438,67 @@ Multi-phase animations chain \`yield* tween(...)\` blocks back-to-back — one t
 
 Encode each frame as \`"png"\` for text/alpha-heavy frames, \`"jpeg"\` for photo-heavy frames — JPEG is typically faster to encode and smaller on the wire, which adds up across an animation.
 
+### Load images once, outside the tween
+
+\`renderReactElement\` does not cache image sources between calls by default: every \`<img src={url}>\` or \`background-image: url(...)\` in the element tree is fetched and decoded anew on each call. In a single-shot image fn that's invisible — but inside \`tween(...)\` it happens once per frame. A real measured case (annie with two remote photos in the tree): ~690 ms/frame, ~2.5 minutes for 210 frames; loading each image once instead: ~29 ms/frame, ~6 seconds — ~24× faster, pixel-identical output. Nothing fails or warns in the slow version, so the cost is easy to miss.
+
+The simplest fix keeps the React tree as-is: create one cache outside the tween and pass it to every call —
+
+\`\`\`tsx
+const imageCache = new Map(); // outside the tween
+yield* tween(frameCount, async ({ lower: p }) => {
+  // ...
+  await renderReactElement(ctx, <Frame p={p} />, { fonts, imageCache });
+  // ...
+});
+\`\`\`
+
+Each source is then fetched and decoded once, on first use; sharing the cache across tween's concurrent callbacks is safe (entries are load promises, so concurrent frames share one in-flight fetch), and failed loads are retried on the next frame.
+
+For photo-heavy frames the hybrid pattern is faster still — it also skips re-laying-out the photo every frame: load images once with \`loadImage()\` before the tween, draw them with \`ctx.drawImage(...)\` per frame, and keep the per-frame React tree to text and vectors only:
+
+\`\`\`tsx
+import { createCanvas, loadImage, renderReactElement } from "@effing/canvas";
+
+// propsSchema / previewProps as usual (photoUrl, caption, frameCount) — omitted.
+
+export async function* runner({
+  props: { photoUrl, caption, frameCount = 60 },
+  bounds: { width, height },
+}: RunnerArgs<MyProps>): AnnieRunnerReturn {
+  // Once, before the frame loop: fetch + decode the photo.
+  const photo = await loadImage(photoUrl);
+
+  yield* tween(frameCount, async ({ lower: p }) => {
+    // Per frame: a fresh canvas (cheap — tween runs callbacks concurrently,
+    // so never share one across frames), then raw canvas ops for the photo,
+    // e.g. a slow zoom...
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    const z = 1 + 0.05 * p;
+    ctx.drawImage(photo, 0, 0, width * z, height * z);
+
+    // ...then React for the text/vector overlay only.
+    await renderReactElement(
+      ctx,
+      <div style={{ width, height, display: "flex", alignItems: "flex-end" }}>
+        <div style={{ fontSize: 64, color: "white", opacity: p }}>
+          {caption}
+        </div>
+      </div>,
+      { fonts: [] /* see "Fonts" */ },
+    );
+    return canvas.encode("jpeg");
+  });
+}
+\`\`\`
+
+In either pattern, never hoist the *canvas* out of the tween. \`tween\` runs frame callbacks concurrently (default concurrency: \`os.availableParallelism()\`), so a canvas or \`ctx\` shared across frames is a race: while one callback is suspended awaiting \`renderReactElement\` or \`encode\`, another frame's callback draws into the same canvas and clobbers its pixels. Create the canvas inside the callback — that's cheap; the expensive part is the fetch + decode. What *is* safe to share across concurrent frames: decoded \`Image\`s and \`FontData\` (read-only), and an \`imageCache\` (designed for concurrent use).
+
+Drawing order when mixing \`ctx\` and React: each pass paints on top of what's already on the canvas. \`ctx\` work done *before* \`renderReactElement\` sits underneath the React tree; work done *after* sits on top. Sandwich the React pass between two \`ctx\` passes when you need both.
+
+The same principle covers anything fetchable — fonts included. Fetch \`FontData\` once outside the tween (see "Fonts") and pass the same array to every per-frame call; anything that hits the network belongs outside the frame loop.
+
 Endpoints:
 
 - Preview HTML: \`/preview/annie/my-animation\`

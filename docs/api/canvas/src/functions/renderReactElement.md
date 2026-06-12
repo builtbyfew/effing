@@ -8,7 +8,7 @@
 
 > **renderReactElement**(`ctx`, `element`, `options`): `Promise`\<`void`\>
 
-Defined in: [packages/canvas/src/jsx/index.ts:54](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L54)
+Defined in: [packages/canvas/src/jsx/index.ts:62](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L62)
 
 Render a React element tree to a canvas context.
 
@@ -70,4 +70,11 @@ await renderReactElement(ctx, <MyComponent />, {
 await renderReactElement(ctx, <MyComponent />, {
   userAgent: "my-renderer/1.0",
 });
+```
+
+```tsx
+const imageCache: ImageCache = new Map();
+for (let frame = 0; frame < frameCount; frame++) {
+  await renderReactElement(ctx, <Frame n={frame} />, { fonts, imageCache });
+}
 ```

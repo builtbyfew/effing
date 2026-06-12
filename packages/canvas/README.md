@@ -301,6 +301,28 @@ async function renderReactElement(
 ): Promise<void>;
 ```
 
+> **Image sources are not cached between calls by default.** Each call
+> creates a fresh internal image cache, so every `<img>` and
+> `background-image: url(...)` source in the tree is fetched and decoded
+> anew. That's fine for one-shot renders, but when calling per frame in a
+> loop (e.g. inside `@effing/tween`'s `tween(...)`), pass a persistent
+> `options.imageCache` (`new Map()`, created outside the loop) so each
+> source is loaded once, on first use. Sharing one cache across concurrent
+> calls is safe — entries are load promises, so concurrent renders share a
+> single in-flight fetch — and failed loads are evicted and retried.
+> Alternatively, load images once up front with
+> [`loadImage()`](#loadimagesource-options) and draw them with
+> `ctx.drawImage(...)`, keeping the per-frame React tree to text and
+> vectors — that also skips per-frame layout of the image nodes. Fonts and
+> anything else fetched should likewise be resolved once, outside the loop.
+
+```tsx
+const imageCache: ImageCache = new Map();
+for (let frame = 0; frame < frameCount; frame++) {
+  await renderReactElement(ctx, <Frame n={frame} />, { fonts, imageCache });
+}
+```
+
 ### `loadImage(source, options?)`
 
 Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@napi-rs/canvas`'s native loader.
@@ -375,14 +397,15 @@ const fontSize = findLargestUsableFontSize({
 
 ### Options
 
-| Option      | Type                   | Required | Description                                           |
-| ----------- | ---------------------- | -------- | ----------------------------------------------------- |
-| `fonts`     | `FontData[]`           | Yes      | Font data for text rendering                          |
-| `width`     | `number`               | No       | Layout width override (default: `ctx.canvas.width`)   |
-| `height`    | `number`               | No       | Layout height override (default: `ctx.canvas.height`) |
-| `debug`     | `boolean`              | No       | Draw layout bounding boxes for debugging              |
-| `emoji`     | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)                    |
-| `userAgent` | `string`               | No       | User-Agent header for remote image fetches            |
+| Option       | Type                   | Required | Description                                                          |
+| ------------ | ---------------------- | -------- | -------------------------------------------------------------------- |
+| `fonts`      | `FontData[]`           | Yes      | Font data for text rendering                                         |
+| `width`      | `number`               | No       | Layout width override (default: `ctx.canvas.width`)                  |
+| `height`     | `number`               | No       | Layout height override (default: `ctx.canvas.height`)                |
+| `debug`      | `boolean`              | No       | Draw layout bounding boxes for debugging                             |
+| `emoji`      | `EmojiStyle \| "none"` | No       | Emoji style (default: `"twemoji"`)                                   |
+| `userAgent`  | `string`               | No       | User-Agent header for remote image fetches                           |
+| `imageCache` | `ImageCache`           | No       | Persistent image cache shared across calls (default: fresh per call) |
 
 ### Types
 
@@ -393,6 +416,10 @@ type FontData = {
   weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
   style: "normal" | "italic";
 };
+
+// Keyed by source string; values are load promises, so concurrent
+// renders of the same source share one in-flight fetch.
+type ImageCache = Map<string, Promise<Image>>;
 
 type EmojiStyle =
   | "twemoji"

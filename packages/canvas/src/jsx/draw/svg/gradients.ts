@@ -7,14 +7,36 @@ import type {
 
 import parseCssColor from "parse-css-color";
 
-import type { BBox, SvgChild } from "./types.ts";
+import type { BBox, SvgChild, SvgDefs } from "./types.ts";
 import { normalizeChildren } from "./tree.ts";
+
+type Viewport = SvgDefs["viewport"];
 
 /** Parse a gradient coordinate percentage/fraction to a 0–1 value. */
 function parseFrac(value: unknown, fallback: number): number {
   if (value == null) return fallback;
   const s = String(value);
   if (s.endsWith("%")) return parseFloat(s) / 100;
+  return Number(s);
+}
+
+/** True when the gradient declares `gradientUnits="userSpaceOnUse"`. */
+function isUserSpaceOnUse(props: Record<string, unknown>): boolean {
+  return props.gradientUnits === "userSpaceOnUse";
+}
+
+/**
+ * Parse a user-space gradient coordinate.  Percentages resolve against
+ * `reference` (the relevant viewport dimension, per the SVG spec).
+ */
+function parseUserLength(
+  value: unknown,
+  fallback: number,
+  reference: number,
+): number {
+  if (value == null) return fallback;
+  const s = String(value);
+  if (s.endsWith("%")) return (parseFloat(s) / 100) * reference;
   return Number(s);
 }
 
@@ -61,13 +83,61 @@ function createLinearGradientFromBBox(
 }
 
 /**
+ * Create a linear gradient from `userSpaceOnUse` coordinates with stops
+ * applied.  The coordinates are in the SVG user coordinate system, which is
+ * the context's current coordinate system (the viewBox transform is active),
+ * so they map to canvas gradient coordinates directly.
+ */
+function createLinearGradientUserSpace(
+  ctx: SKRSContext2D,
+  props: Record<string, unknown>,
+  viewport: Viewport,
+  def: SvgChild,
+): CanvasGradient {
+  const x1 = parseUserLength(props.x1, 0, viewport.width);
+  const y1 = parseUserLength(props.y1, 0, viewport.height);
+  const x2 = parseUserLength(props.x2, viewport.width, viewport.width);
+  const y2 = parseUserLength(props.y2, 0, viewport.height);
+  const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+  addGradientStops(gradient, def);
+  return gradient;
+}
+
+/**
+ * Create a radial gradient from `userSpaceOnUse` coordinates with stops
+ * applied.  In user space the gradient is a true circle, so no elliptical
+ * bbox transform is needed.  Percentage radii resolve against the
+ * viewport's normalized diagonal, per the SVG spec.
+ */
+function createRadialGradientUserSpace(
+  ctx: SKRSContext2D,
+  props: Record<string, unknown>,
+  viewport: Viewport,
+  def: SvgChild,
+): CanvasGradient {
+  const diagonal = Math.hypot(viewport.width, viewport.height) / Math.SQRT2;
+  const cx = parseUserLength(props.cx, viewport.width / 2, viewport.width);
+  const cy = parseUserLength(props.cy, viewport.height / 2, viewport.height);
+  const r = parseUserLength(props.r, diagonal / 2, diagonal);
+  const fx = parseUserLength(props.fx, cx, viewport.width);
+  const fy = parseUserLength(props.fy, cy, viewport.height);
+  const gradient = ctx.createRadialGradient(fx, fy, 0, cx, cy, r);
+  addGradientStops(gradient, def);
+  return gradient;
+}
+
+/**
  * Fill `path` with a gradient defined by `def` in the coordinate space of `bbox`.
  *
- * For `<linearGradient>` the bbox-to-canvas mapping is straightforward.
- * For `<radialGradient>` the SVG default `objectBoundingBox` produces an
- * *elliptical* gradient when the bbox is non-square.  Canvas only supports
- * circular radial gradients, so we apply a non-uniform scale transform to
- * the context and fill an inverse-transformed copy of the path.
+ * With `gradientUnits="userSpaceOnUse"` the gradient coordinates are already
+ * in the SVG user coordinate system and are used as-is.
+ *
+ * With the default `objectBoundingBox` units, coordinates are fractions of
+ * `bbox`.  For `<linearGradient>` the bbox-to-canvas mapping is
+ * straightforward.  For `<radialGradient>` a non-square bbox produces an
+ * *elliptical* gradient.  Canvas only supports circular radial gradients, so
+ * we apply a non-uniform scale transform to the context and fill an
+ * inverse-transformed copy of the path.
  */
 export function fillWithSvgGradient(
   ctx: SKRSContext2D,
@@ -75,11 +145,20 @@ export function fillWithSvgGradient(
   bbox: BBox,
   path: Path2D,
   fillRule: CanvasFillRule,
+  viewport: Viewport,
 ): boolean {
   const props = def.props;
 
   if (def.type === "linearGradient") {
-    ctx.fillStyle = createLinearGradientFromBBox(ctx, props, bbox, def);
+    ctx.fillStyle = isUserSpaceOnUse(props)
+      ? createLinearGradientUserSpace(ctx, props, viewport, def)
+      : createLinearGradientFromBBox(ctx, props, bbox, def);
+    ctx.fill(path, fillRule);
+    return true;
+  }
+
+  if (def.type === "radialGradient" && isUserSpaceOnUse(props)) {
+    ctx.fillStyle = createRadialGradientUserSpace(ctx, props, viewport, def);
     ctx.fill(path, fillRule);
     return true;
   }
@@ -131,11 +210,20 @@ export function strokeWithSvgGradient(
   def: SvgChild,
   bbox: BBox,
   path: Path2D,
+  viewport: Viewport,
 ): boolean {
   const props = def.props;
 
   if (def.type === "linearGradient") {
-    ctx.strokeStyle = createLinearGradientFromBBox(ctx, props, bbox, def);
+    ctx.strokeStyle = isUserSpaceOnUse(props)
+      ? createLinearGradientUserSpace(ctx, props, viewport, def)
+      : createLinearGradientFromBBox(ctx, props, bbox, def);
+    ctx.stroke(path);
+    return true;
+  }
+
+  if (def.type === "radialGradient" && isUserSpaceOnUse(props)) {
+    ctx.strokeStyle = createRadialGradientUserSpace(ctx, props, viewport, def);
     ctx.stroke(path);
     return true;
   }

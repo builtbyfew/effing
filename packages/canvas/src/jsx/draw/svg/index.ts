@@ -66,7 +66,7 @@ export function drawSvgContainer(
     );
 
     // First pass: collect definitions from <defs>
-    const defs = collectDefs(svgChildren);
+    const defs = collectDefs(svgChildren, vbW, vbH);
 
     // Second pass: draw children
     for (const child of svgChildren) {

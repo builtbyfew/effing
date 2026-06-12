@@ -21,4 +21,6 @@ export type SvgDefs = {
   gradients: Map<string, SvgChild>;
   masks: Map<string, SvgChild[]>;
   filters: Map<string, SvgChild>;
+  /** Viewport (viewBox) size, for resolving `userSpaceOnUse` percentages. */
+  viewport: { width: number; height: number };
 };

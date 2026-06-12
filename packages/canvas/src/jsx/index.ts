@@ -50,6 +50,14 @@ import type { RenderContext } from "./context.ts";
  *   userAgent: "my-renderer/1.0",
  * });
  * ```
+ *
+ * @example Persistent image cache for repeated calls (e.g. per frame)
+ * ```tsx
+ * const imageCache: ImageCache = new Map();
+ * for (let frame = 0; frame < frameCount; frame++) {
+ *   await renderReactElement(ctx, <Frame n={frame} />, { fonts, imageCache });
+ * }
+ * ```
  */
 export async function renderReactElement(
   ctx: SKRSContext2D,
@@ -66,9 +74,10 @@ export async function renderReactElement(
   const height = options.height ?? ctx.canvas.height;
 
   // Per-render context: shared image cache + cross-cutting fetch/diagnostic
-  // config, threaded through both the layout and draw phases.
+  // config, threaded through both the layout and draw phases. The caller may
+  // supply the cache to persist image loads across calls.
   const renderContext: RenderContext = {
-    imageCache: new Map(),
+    imageCache: options.imageCache ?? new Map(),
     userAgent: options.userAgent,
     debug: options.debug ?? false,
   };

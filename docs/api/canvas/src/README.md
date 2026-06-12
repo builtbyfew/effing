@@ -15,6 +15,7 @@
 - [EmojiStyle](type-aliases/EmojiStyle.md)
 - [FindLargestUsableFontSizeOptions](type-aliases/FindLargestUsableFontSizeOptions.md)
 - [FontData](type-aliases/FontData.md)
+- [ImageCache](type-aliases/ImageCache.md)
 - [LoadImageSource](type-aliases/LoadImageSource.md)
 - [RenderReactElementOptions](type-aliases/RenderReactElementOptions.md)
 

@@ -440,9 +440,22 @@ Encode each frame as \`"png"\` for text/alpha-heavy frames, \`"jpeg"\` for photo
 
 ### Load images once, outside the tween
 
-\`renderReactElement\` does not cache image sources between calls: every \`<img src={url}>\` or \`background-image: url(...)\` in the element tree is fetched and decoded anew on each call. In a single-shot image fn that's invisible — but inside \`tween(...)\` it happens once per frame. Never put image sources in a per-frame tree. A real measured case (annie with two remote photos in the tree): ~690 ms/frame, ~2.5 minutes for 210 frames; after the fix below, ~29 ms/frame, ~6 seconds — ~24× faster, pixel-identical output. Nothing fails or warns in the slow version, so the cost is easy to miss.
+\`renderReactElement\` does not cache image sources between calls by default: every \`<img src={url}>\` or \`background-image: url(...)\` in the element tree is fetched and decoded anew on each call. In a single-shot image fn that's invisible — but inside \`tween(...)\` it happens once per frame. A real measured case (annie with two remote photos in the tree): ~690 ms/frame, ~2.5 minutes for 210 frames; loading each image once instead: ~29 ms/frame, ~6 seconds — ~24× faster, pixel-identical output. Nothing fails or warns in the slow version, so the cost is easy to miss.
 
-The fix: load images once with \`loadImage()\` before the tween, draw them with \`ctx.drawImage(...)\` per frame, and keep the per-frame React tree to text and vectors only:
+The simplest fix keeps the React tree as-is: create one cache outside the tween and pass it to every call —
+
+\`\`\`tsx
+const imageCache = new Map(); // outside the tween
+yield* tween(frameCount, async ({ lower: p }) => {
+  // ...
+  await renderReactElement(ctx, <Frame p={p} />, { fonts, imageCache });
+  // ...
+});
+\`\`\`
+
+Each source is then fetched and decoded once, on first use; sharing the cache across tween's concurrent callbacks is safe (entries are load promises, so concurrent frames share one in-flight fetch), and failed loads are retried on the next frame.
+
+For photo-heavy frames the hybrid pattern is faster still — it also skips re-laying-out the photo every frame: load images once with \`loadImage()\` before the tween, draw them with \`ctx.drawImage(...)\` per frame, and keep the per-frame React tree to text and vectors only:
 
 \`\`\`tsx
 import { createCanvas, loadImage, renderReactElement } from "@effing/canvas";
@@ -480,7 +493,7 @@ export async function* runner({
 }
 \`\`\`
 
-Hoist only *immutable* assets out of the tween. \`tween\` runs frame callbacks concurrently (default concurrency: \`os.availableParallelism()\`), so a canvas or \`ctx\` shared across frames is a race: while one callback is suspended awaiting \`renderReactElement\` or \`encode\`, another frame's callback draws into the same canvas and clobbers its pixels. Create the canvas inside the callback — that's cheap; the expensive part is the fetch + decode, and decoded \`Image\`s (like \`FontData\`) are read-only and safe to share across concurrent frames.
+In either pattern, never hoist the *canvas* out of the tween. \`tween\` runs frame callbacks concurrently (default concurrency: \`os.availableParallelism()\`), so a canvas or \`ctx\` shared across frames is a race: while one callback is suspended awaiting \`renderReactElement\` or \`encode\`, another frame's callback draws into the same canvas and clobbers its pixels. Create the canvas inside the callback — that's cheap; the expensive part is the fetch + decode. What *is* safe to share across concurrent frames: decoded \`Image\`s and \`FontData\` (read-only), and an \`imageCache\` (designed for concurrent use).
 
 Drawing order when mixing \`ctx\` and React: each pass paints on top of what's already on the canvas. \`ctx\` work done *before* \`renderReactElement\` sits underneath the React tree; work done *after* sits on top. Sandwich the React pass between two \`ctx\` passes when you need both.
 

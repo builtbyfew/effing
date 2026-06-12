@@ -191,8 +191,12 @@ export function processMotion(delay: number, motion?: EffieMotion): string {
 
   const motionEndTime = start + components.duration;
 
-  const xArg = `if(lt(t,${start}),${components.initialX},if(lt(t,${motionEndTime}),${components.activeX},${components.finalX}))`;
-  const yArg = `if(lt(t,${start}),${components.initialY},if(lt(t,${motionEndTime}),${components.activeY},${components.finalY}))`;
+  // Round to whole pixels: overlay snaps x/y down to even values for yuv420p
+  // chroma alignment, so epsilon-level float noise in the expression (e.g.
+  // 719.9999999 instead of 720) can flip individual frames 2px across the
+  // snapping boundary, producing visible per-frame jitter on sliding edges.
+  const xArg = `round(if(lt(t,${start}),${components.initialX},if(lt(t,${motionEndTime}),${components.activeX},${components.finalX})))`;
+  const yArg = `round(if(lt(t,${start}),${components.initialY},if(lt(t,${motionEndTime}),${components.activeY},${components.finalY})))`;
 
   return `x='${xArg}':y='${yArg}'`;
 }

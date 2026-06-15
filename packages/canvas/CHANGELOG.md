@@ -1,5 +1,42 @@
 # @effing/canvas
 
+## 0.38.0
+
+### Minor Changes
+
+- d199dbc: Add `options.imageCache` to `renderReactElement` for persistent image caching
+
+  By default each `renderReactElement` call creates a fresh image cache, so
+  every `<img>` / `background-image: url(...)` source is re-fetched and
+  re-decoded per call — a silent performance cliff when rendering per frame.
+  Callers can now pass a persistent cache (`new Map()`, exported type
+  `ImageCache`) so each source is loaded once, on first use. Sharing one cache
+  across concurrent calls is safe: entries are load promises, so concurrent
+  renders share a single in-flight fetch. `cachedLoadImage` now also evicts
+  failed loads instead of caching the rejection, so a transient network error
+  no longer poisons a long-lived cache. The manual's "Creating Annies" section
+  documents the option as the simplest fix for per-frame image fetching.
+
+### Patch Changes
+
+- d199dbc: Document that renderReactElement re-fetches image sources on every call
+
+  `renderReactElement` creates a fresh internal image cache per call, so `<img>`
+  and `background-image: url(...)` sources in a per-frame tree are re-fetched and
+  re-decoded on every frame — a silent ~24× slowdown in a measured case. The
+  manual's "Creating Annies" section now warns about this and shows the
+  load-once pattern (pre-load with `loadImage()`, draw with `ctx.drawImage`,
+  keep the per-frame React tree to text and vectors); the `@effing/canvas`
+  README carries the same warning next to `renderReactElement`.
+
+- 6cd7ae3: Honor gradientUnits="userSpaceOnUse" on SVG gradients
+
+  Gradient coordinates were always interpreted as objectBoundingBox fractions,
+  so gradients with userSpaceOnUse units (as emitted by Figma and Illustrator
+  exports) clamped to the first stop and rendered as a flat color. Linear and
+  radial gradients now use user-space coordinates directly for both fills and
+  strokes, with percentages resolved against the viewport per the SVG spec.
+
 ## 0.37.1
 
 ## 0.37.0

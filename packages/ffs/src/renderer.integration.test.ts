@@ -4,6 +4,7 @@ import {
   effieDataForSegment,
   effieDataForJoin,
   effieFileUrl,
+  effieWebUrl,
 } from "@effing/effie";
 import type { EffieData, EffieSources, EffieFileUrl } from "@effing/effie";
 import { annieBuffer } from "@effing/annie";
@@ -555,6 +556,172 @@ describe("distributed rendering integration", () => {
         parseInt(last[4], 10) / 100;
       // Segment is 1.0s; allow ≤1.01 for rounding. Pre-fix gives 1.03.
       expect(seconds).toBeLessThanOrEqual(1.01);
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("slide motion translates at a constant per-frame rate (no ±2px jitter)", async () => {
+    // Regression test for the slide-motion jitter bug. overlay snaps x down to
+    // even values for yuv420p chroma alignment; unrounded float positions that
+    // sit exactly on that boundary (e.g. 719.9999999 vs 720) flip individual
+    // frames 2px across it, so a hard sliding edge wobbles. motion.ts now wraps
+    // the coordinate expressions in round(); this renders a real slide and
+    // asserts every per-frame step equals the ideal constant within 1px.
+    //
+    // Verified to fail before the fix: rendering this same slide with the
+    // unrounded expression yields steps of 10/14px (±2px) where it should be 12.
+    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const tempDir = await createTestOutputDir("slide-motion-jitter");
+
+    // A wide canvas keeps the ideal step an even integer (1080/(60*1.5) = 12px)
+    // so positions land exactly on the even-snap boundary where the bug appears.
+    // Height is irrelevant to the x-expression, so keep it short for speed.
+    const W = 1080;
+    const H = 64;
+    const FPS = 60;
+    const DUR = 1.5;
+    const idealStep = W / (FPS * DUR); // 12
+
+    try {
+      // Canvas-sized solid-white PNG as a data-URL source. Image layers load at
+      // native size, so this fills the frame; sliding it in over the black
+      // background produces a single hard vertical seam to track.
+      const whitePath = path.join(tempDir, "white.png");
+      await execFileP(ffmpegBin, [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=c=white:s=${W}x${H}:d=0.1`,
+        "-frames:v",
+        "1",
+        whitePath,
+      ]);
+      const whiteDataUrl = effieWebUrl(
+        `data:image/png;base64,${Buffer.from(
+          await fs.readFile(whitePath),
+        ).toString("base64")}`,
+      );
+
+      const sources: EffieSources = { slab: whiteDataUrl };
+      const effieData: EffieData<typeof sources> = {
+        width: W,
+        height: H,
+        fps: FPS,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "black" },
+        sources,
+        segments: [
+          {
+            duration: DUR,
+            layers: [
+              {
+                type: "image",
+                source: "#slab",
+                motion: {
+                  type: "slide",
+                  direction: "left",
+                  start: 0,
+                  duration: DUR,
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const renderer = new EffieRenderer(effieData);
+      const outPath = path.join(tempDir, "slide.mp4");
+      const stream = await renderer.render();
+      const chunks: Buffer[] = [];
+      for await (const c of stream) chunks.push(c);
+      await fs.writeFile(outPath, Buffer.concat(chunks));
+      renderer.close();
+
+      // Per-frame column-mean luma profiles: scale each frame to W x 1 (which
+      // averages every row into one pixel) and read raw gray bytes.
+      const { stdout: rawProfiles } = await execFileP(
+        ffmpegBin,
+        [
+          "-i",
+          outPath,
+          "-vf",
+          `scale=${W}:1,format=gray`,
+          "-f",
+          "rawvideo",
+          "-pix_fmt",
+          "gray",
+          "-",
+        ],
+        { encoding: "buffer", maxBuffer: 1 << 26 },
+      );
+      const profiles: Uint8Array[] = [];
+      for (let i = 0; i + W <= rawProfiles.length; i += W) {
+        profiles.push(rawProfiles.subarray(i, i + W));
+      }
+
+      // The seam is the first bright column. A frame counts toward the
+      // measurement only while the seam sits strictly inside the canvas (black
+      // on the left, white on the right) — this drops the all-black lead-in and
+      // the fully-covered tail, whose flat profiles have no seam to correlate.
+      const margin = idealStep;
+      const seamOf = (p: Uint8Array): number => {
+        let mn = 255;
+        let mx = 0;
+        for (const v of p) {
+          if (v < mn) mn = v;
+          if (v > mx) mx = v;
+        }
+        if (mx - mn < 64) return -1; // flat profile: no seam
+        const mid = (mn + mx) / 2;
+        for (let x = 0; x < p.length; x++) if (p[x] >= mid) return x;
+        return -1;
+      };
+      const moving = profiles.filter((p) => {
+        const s = seamOf(p);
+        return s >= margin && s <= W - margin;
+      });
+
+      // The integer x-shift minimizing SSD between consecutive profiles is the
+      // per-frame step. Restricting the search to ±2 ideal steps keeps it on the
+      // real translation (the content is rigid, so the match is near-exact).
+      const stepBetween = (a: Uint8Array, b: Uint8Array): number => {
+        let best = 0;
+        let bestCost = Infinity;
+        for (let s = -2 * idealStep; s <= 2 * idealStep; s++) {
+          let cost = 0;
+          let n = 0;
+          for (let x = 0; x < W; x++) {
+            const j = x + s;
+            if (j < 0 || j >= W) continue;
+            const d = a[x] - b[j];
+            cost += d * d;
+            n++;
+          }
+          cost /= n;
+          if (cost < bestCost) {
+            bestCost = cost;
+            best = s;
+          }
+        }
+        return Math.abs(best);
+      };
+
+      const steps: number[] = [];
+      for (let i = 1; i < moving.length; i++) {
+        steps.push(stepBetween(moving[i - 1], moving[i]));
+      }
+
+      // Sanity: we measured most of the 90-frame slide, not a degenerate handful.
+      expect(steps.length).toBeGreaterThan(60);
+      // The fix: no frame deviates by the tell-tale 2px. The 1px tolerance
+      // absorbs incidental x264 edge noise while still rejecting the 10/14
+      // (±2px) jitter the bug produced.
+      const maxDeviation = Math.max(
+        ...steps.map((s) => Math.abs(s - idealStep)),
+      );
+      expect(maxDeviation).toBeLessThanOrEqual(1);
     } finally {
       await cleanupTestOutput(tempDir);
     }

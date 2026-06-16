@@ -117,10 +117,10 @@ function annieBuffer(frames: AsyncIterable<Buffer>): Promise<Buffer>;
 
 #### `annieResponse(frames, options?)`
 
-Create a complete `Response` object with proper headers.
+Create a complete `Response` object with proper headers. This helper lives in `@effing/fn` (it builds on `annieStream`):
 
 ```typescript
-import { annieResponse } from "@effing/annie";
+import { annieResponse } from "@effing/fn";
 
 return annieResponse(generateFrames(), {
   signal: request.signal,
@@ -146,7 +146,7 @@ app.get("/animation.tar", async (req, res) => {
 ### With React Router / Remix
 
 ```typescript
-import { annieResponse } from "@effing/annie";
+import { annieResponse } from "@effing/fn";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   return annieResponse(generateFrames(), { signal: request.signal });

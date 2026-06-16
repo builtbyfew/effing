@@ -4,15 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Keep in sync with the platforms install.mjs actually downloads a binary for.
 const SUPPORTED = new Set([
   "darwin-x64",
   "darwin-arm64",
   "linux-x64",
-  "linux-ia32",
   "linux-arm64",
-  "linux-arm",
   "win32-x64",
-  "win32-ia32",
 ]);
 
 const platform = os.platform();

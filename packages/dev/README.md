@@ -37,13 +37,13 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 ### Options
 
-| Option    | Type                               | Description                                                                                                                                                      |
-| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `project` | `string`                           | Project name. Required.                                                                                                                                          |
-| `images`  | `string \| string[]`               | Glob(s) for image function modules.                                                                                                                              |
-| `annies`  | `string \| string[]`               | Glob(s) for annie function modules.                                                                                                                              |
-| `effies`  | `string \| string[]`               | Glob(s) for effie function modules.                                                                                                                              |
-| `dev`     | `{ host, port, ffs, resolutions }` | Dev server settings. Defaults: host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar), `resolutions` 1080×1080 / 1080×1350 / 1080×1920 in the preview picker. |
+| Option    | Type                               | Description                                                                                                                                                                                                                                                      |
+| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project` | `string`                           | Project name. Required.                                                                                                                                                                                                                                          |
+| `images`  | `string \| string[]`               | Glob(s) for image function modules.                                                                                                                                                                                                                              |
+| `annies`  | `string \| string[]`               | Glob(s) for annie function modules.                                                                                                                                                                                                                              |
+| `effies`  | `string \| string[]`               | Glob(s) for effie function modules.                                                                                                                                                                                                                              |
+| `dev`     | `{ host, port, ffs, resolutions }` | Dev server settings. Each `resolutions` entry is `{ width, height, label }` (all required). Defaults: host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar), `resolutions` 1080×1080 `"1:1"` / 1080×1350 `"4:5"` / 1080×1920 `"9:16"` in the preview picker. |
 
 ### Environment
 

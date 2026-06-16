@@ -105,7 +105,10 @@ For S3 storage, the TTL is set as the `Expires` header on objects. Note that thi
 
 ```typescript
 class EffieRenderer {
-  constructor(effieData: EffieData<EffieSources>);
+  constructor(
+    effieData: EffieData<EffieSources>,
+    options?: EffieRendererOptions,
+  );
 
   // Render composition
   render(scaleFactor?: number): Promise<Readable>;
@@ -114,6 +117,14 @@ class EffieRenderer {
   close(): void;
 }
 ```
+
+`EffieRendererOptions` is optional:
+
+| Option            | Type             | Default     | Description                                                                                     |
+| ----------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `allowLocalFiles` | `boolean`        | `false`     | Allow reading from local file paths. Only enable for trusted internal operations.               |
+| `transientStore`  | `TransientStore` | _(network)_ | Transient store for source lookups. If omitted, sources are fetched directly from the network.  |
+| `httpProxy`       | `HttpProxy`      | —           | Routes HTTP(S) video/audio URLs through a proxy so Node.js handles DNS (e.g. Alpine/musl libc). |
 
 ### FFmpegCommand & FFmpegRunner
 
@@ -124,22 +135,10 @@ import { FFmpegCommand, FFmpegRunner } from "@effing/ffs";
 
 const cmd = new FFmpegCommand(globalArgs, inputs, filterComplex, outputArgs);
 const runner = new FFmpegRunner(cmd);
-const output = await runner.run(fetchSource, transformImage);
-```
 
-### Processing Functions
-
-```typescript
-import { processMotion, processEffects, processTransition } from "@effing/ffs";
-
-// Convert motion config to FFmpeg overlay expression
-const overlayExpr = processMotion(delay, motionConfig);
-
-// Build effect filter chain
-const filters = processEffects(effects, fps, width, height);
-
-// Get FFmpeg transition name
-const xfadeName = processTransition(transition);
+// run(sourceFetcher, imageTransformer?, referenceResolver?, urlTransformer?)
+// where sourceFetcher: ({ type, src }) => Promise<Readable>
+const output = await runner.run(sourceFetcher);
 ```
 
 ## Server Endpoints
@@ -220,8 +219,8 @@ events.addEventListener("ready", (e) => {
 ```typescript
 const events = new EventSource(progressUrl);
 events.addEventListener("render:complete", (e) => {
-  const { timings } = JSON.parse(e.data);
-  console.log("Uploaded!", timings);
+  const { renderTime, uploadTime } = JSON.parse(e.data);
+  console.log("Uploaded!", { renderTime, uploadTime });
 });
 events.addEventListener("complete", () => {
   events.close();

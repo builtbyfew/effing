@@ -113,20 +113,7 @@ Collect all frames and return a complete TAR buffer.
 function annieBuffer(frames: AsyncIterable<Buffer>): Promise<Buffer>;
 ```
 
-### Response Helper
-
-#### `annieResponse(frames, options?)`
-
-Create a complete `Response` object with proper headers. This helper lives in `@effing/fn` (it builds on `annieStream`):
-
-```typescript
-import { annieResponse } from "@effing/fn";
-
-return annieResponse(generateFrames(), {
-  signal: request.signal,
-  headers: { "Cache-Control": "public, max-age=3600" },
-});
-```
+> Building an Effing project? `@effing/fn` provides an `annieResponse(frames, options?)` helper that wraps `annieStream` into a ready-made `Response` with the right headers.
 
 ## Examples
 
@@ -146,10 +133,13 @@ app.get("/animation.tar", async (req, res) => {
 ### With React Router / Remix
 
 ```typescript
-import { annieResponse } from "@effing/fn";
+import { annieStream } from "@effing/annie";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return annieResponse(generateFrames(), { signal: request.signal });
+  const stream = annieStream(generateFrames(), { signal: request.signal });
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-tar" },
+  });
 }
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "@effing/canvas",
-  "version": "0.38.0",
+  "version": "0.38.1",
   "description": "Low-level canvas rendering for JSX and Lottie using @napi-rs/canvas (Skia)",
   "repository": {
     "type": "git",

@@ -41,6 +41,7 @@ export function applyFillAndStroke(
           bbox,
           path,
           fillRule ?? "nonzero",
+          defs.viewport,
         );
         ctx.restore();
       } else {
@@ -50,6 +51,7 @@ export function applyFillAndStroke(
           bbox,
           path,
           fillRule ?? "nonzero",
+          defs.viewport,
         );
       }
     }
@@ -102,10 +104,10 @@ export function applyStroke(
       if (strokeOpacity < 1) {
         ctx.save();
         ctx.globalAlpha *= strokeOpacity;
-        strokeWithSvgGradient(ctx, gradientDef, bbox, path);
+        strokeWithSvgGradient(ctx, gradientDef, bbox, path, defs.viewport);
         ctx.restore();
       } else {
-        strokeWithSvgGradient(ctx, gradientDef, bbox, path);
+        strokeWithSvgGradient(ctx, gradientDef, bbox, path, defs.viewport);
       }
       return;
     }

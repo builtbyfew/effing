@@ -6,7 +6,7 @@ import { normalizeChildren } from "./tree.ts";
  * `<defs>` elements as well as direct children of `<svg>` (both are valid per
  * the SVG spec).
  */
-export function collectDefs(children: SvgChild[]): SvgDefs {
+export function collectDefs(children: SvgChild[], vbW = 0, vbH = 0): SvgDefs {
   const clips = new Map<string, SvgChild[]>();
   const gradients = new Map<string, SvgChild>();
   const masks = new Map<string, SvgChild[]>();
@@ -32,7 +32,13 @@ export function collectDefs(children: SvgChild[]): SvgDefs {
       insertDef(child);
     }
   }
-  return { clips, gradients, masks, filters };
+  return {
+    clips,
+    gradients,
+    masks,
+    filters,
+    viewport: { width: vbW, height: vbH },
+  };
 }
 
 export const EMPTY_DEFS: SvgDefs = {
@@ -40,4 +46,5 @@ export const EMPTY_DEFS: SvgDefs = {
   gradients: new Map(),
   masks: new Map(),
   filters: new Map(),
+  viewport: { width: 0, height: 0 },
 };

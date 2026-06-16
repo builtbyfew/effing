@@ -107,6 +107,65 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG paint", () => {
     expect(percentage).toBe(0);
   });
 
+  it("renders SVG gradients with userSpaceOnUse units — Figma-style absolute coordinates", async () => {
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width={300}
+          height={200}
+          viewBox="0 0 300 200"
+          style={{ width: 300, height: 200 }}
+        >
+          <defs>
+            <linearGradient
+              id="us1"
+              gradientUnits="userSpaceOnUse"
+              x1={10}
+              y1={50}
+              x2={290}
+              y2={50}
+            >
+              <stop offset={0} stopColor="#ff0000" />
+              <stop offset={1} stopColor="#0000ff" />
+            </linearGradient>
+            <radialGradient
+              id="us2"
+              gradientUnits="userSpaceOnUse"
+              cx={150}
+              cy={150}
+              r={60}
+            >
+              <stop offset={0} stopColor="#FF6B6B" />
+              <stop offset={1} stopColor="#4ECDC4" />
+            </radialGradient>
+          </defs>
+          <rect x={10} y={10} width={280} height={80} fill="url(#us1)" />
+          <rect x={90} y={110} width={120} height={80} fill="url(#us2)" />
+        </svg>
+      </div>
+    );
+
+    const [canvasPng, satoriPng] = await Promise.all([
+      renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+      renderWithSatori(element, WIDTH, HEIGHT, fonts),
+    ]);
+    const { percentage } = await compareImages(
+      canvasPng,
+      satoriPng,
+      "svg-gradient-userspaceonuse",
+    );
+    expect(percentage).toBe(0);
+  });
+
   it("renders SVG fillOpacity and strokeOpacity — semi-transparent shapes", async () => {
     const element = (
       <div

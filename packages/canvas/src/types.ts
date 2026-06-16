@@ -2,6 +2,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 import type { ReactNode } from "react";
 
 import type { EmojiStyle } from "./jsx/emoji.ts";
+import type { ImageCache } from "./image.ts";
 
 export type { EmojiStyle };
 
@@ -39,6 +40,19 @@ export type RenderReactElementOptions = {
    * this header.)
    */
   userAgent?: string;
+  /**
+   * Cache for image loads — `<img>` and `background-image: url(...)` sources.
+   * By default each call creates a fresh cache, so every source is fetched
+   * and decoded anew per call. Pass a persistent cache (`new Map()`) when
+   * calling repeatedly with the same sources — e.g. once per frame inside
+   * `tween(...)` — so each source is loaded once, on first use. Sharing one
+   * cache across concurrent calls is safe: entries are load promises, so
+   * concurrent renders of the same source share a single in-flight fetch.
+   * Failed loads are evicted and retried on the next call. The cache only
+   * grows (successful loads are never evicted) — scope it to a bounded set
+   * of sources, like one animation's frames, not a whole server's lifetime.
+   */
+  imageCache?: ImageCache;
 };
 
 /**

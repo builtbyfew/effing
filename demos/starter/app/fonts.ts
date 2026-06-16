@@ -101,3 +101,15 @@ export const openSansSemiBold: Font = async () => ({
   weight: 600,
   style: "normal",
 });
+
+/**
+ * Open Sans Bold (700)
+ */
+export const openSansBold: Font = async () => ({
+  name: "Open Sans",
+  data: await fetchFont(
+    `${GOOGLE_FONTS_BASE}/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1y4n.ttf`,
+  ),
+  weight: 700,
+  style: "normal",
+});

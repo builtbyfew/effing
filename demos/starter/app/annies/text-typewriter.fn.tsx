@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { interBold, loadFonts } from "~/fonts";
+import {
+  interBold,
+  loadFonts,
+  openSansBold,
+  robotoBold,
+  type Font,
+} from "~/fonts";
 import { tween } from "@effing/tween";
 import { createCanvas, renderReactElement } from "@effing/canvas";
 import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
@@ -16,6 +22,15 @@ export const propsSchema = z.object({
 });
 
 export type TextTypewriterProps = z.infer<typeof propsSchema>;
+
+const fontsByFamily: Record<
+  NonNullable<TextTypewriterProps["fontFamily"]>,
+  Font
+> = {
+  Inter: interBold,
+  Roboto: robotoBold,
+  "Open Sans": openSansBold,
+};
 
 export const previewProps: TextTypewriterProps = {
   text: "Hello World!",
@@ -39,14 +54,15 @@ export async function* runner({
   },
   bounds: { width, height },
 }: RunnerArgs<TextTypewriterProps>): AnnieRunnerReturn {
-  const fonts = await loadFonts([interBold]);
+  const fonts = await loadFonts([fontsByFamily[fontFamily]]);
 
   if (!typingFrameCount) {
     typingFrameCount = text.length * 3;
   }
 
-  // Typing phase
-  yield* tween(typingFrameCount, async ({ lower: p }) => {
+  // Typing phase — sample at the frame's end so the final frame (upper = 1)
+  // shows the full text even when blinkingFrameCount is 0
+  yield* tween(typingFrameCount, async ({ upper: p }) => {
     const charsShown = Math.floor(p * text.length);
     const textToShow = text.slice(0, charsShown);
     const canvas = createCanvas(width, height);

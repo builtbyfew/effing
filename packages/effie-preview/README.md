@@ -30,16 +30,22 @@ import {
 
 function EffiePreview({ effieJson, renderedVideoUrl }) {
   const resolveSource = createEffieSourceResolver(effieJson.sources);
+  const resolution = { width: effieJson.width, height: effieJson.height };
 
   return (
     <div>
       <h2>Cover</h2>
-      <EffieCoverPreview cover={effieJson.cover} video={renderedVideoUrl} />
+      <EffieCoverPreview
+        cover={effieJson.cover}
+        video={renderedVideoUrl}
+        resolution={resolution}
+      />
 
       <h2>Background</h2>
       <EffieBackgroundPreview
         background={effieJson.background}
         resolveSource={resolveSource}
+        resolution={resolution}
       />
 
       <h2>Segments</h2>
@@ -49,6 +55,7 @@ function EffiePreview({ effieJson, renderedVideoUrl }) {
           segment={segment}
           index={i}
           resolveSource={resolveSource}
+          resolution={resolution}
         />
       ))}
     </div>

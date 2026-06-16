@@ -123,16 +123,18 @@ function HeadlessPlayer() {
 
 #### Available Sub-components
 
-| Component                 | Description                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `AnniePlayer.Root`        | Provider that manages player state. Accepts `src`, `height`, `defaultWidth`, `fps`, `autoLoad`, `autoPlay`. |
-| `AnniePlayer.Wrapper`     | Container with hover detection. Sets `data-hovering` and `data-playing` attributes.                         |
-| `AnniePlayer.Canvas`      | The canvas element where frames are rendered.                                                               |
-| `AnniePlayer.Controls`    | Container for buttons. Auto-hides when playing (unless hovering).                                           |
-| `AnniePlayer.LoadButton`  | Load button with default "Load"/"Loading..." text.                                                          |
-| `AnniePlayer.PlayButton`  | Play button with default "Play" text.                                                                       |
-| `AnniePlayer.PauseButton` | Pause button with default "Pause" text.                                                                     |
-| `AnniePlayer.Status`      | Status overlay showing current state.                                                                       |
+| Component                  | Description                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `AnniePlayer.Root`         | Provider that manages player state. Accepts `src`, `height`, `defaultWidth`, `fps`, `autoLoad`, `autoPlay`. |
+| `AnniePlayer.Wrapper`      | Container with hover detection. Sets `data-hovering` and `data-playing` attributes.                         |
+| `AnniePlayer.Canvas`       | The canvas element where frames are rendered.                                                               |
+| `AnniePlayer.Controls`     | Container for buttons. Auto-hides when playing (unless hovering).                                           |
+| `AnniePlayer.LoadButton`   | Load button with default "Load"/"Loading..." text.                                                          |
+| `AnniePlayer.PlayButton`   | Play button with default "Play" text.                                                                       |
+| `AnniePlayer.PauseButton`  | Pause button with default "Pause" text.                                                                     |
+| `AnniePlayer.Scrubber`     | Range slider that seeks through frames. Accepts `pauseWhileScrubbing`.                                      |
+| `AnniePlayer.FrameCounter` | Shows `current / total` frame. Accepts a render-prop child `({ current, total }) => ReactNode`.             |
+| `AnniePlayer.Status`       | Status overlay showing current state.                                                                       |
 
 ### Vanilla JavaScript
 
@@ -176,6 +178,7 @@ class AnniePlayerCore {
   play(): void;
   pause(): void;
   stop(): void;
+  seek(frameIndex: number): void;
 
   // State
   getState(): AnniePlayerState;
@@ -205,6 +208,7 @@ type AnniePlayerState = {
   isLoading: boolean;
   isPlaying: boolean;
   frameCount: number;
+  currentFrame: number;
   dimensions: { width: number; height: number } | null;
 };
 ```

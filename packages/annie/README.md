@@ -113,21 +113,6 @@ Collect all frames and return a complete TAR buffer.
 function annieBuffer(frames: AsyncIterable<Buffer>): Promise<Buffer>;
 ```
 
-### Response Helper
-
-#### `annieResponse(frames, options?)`
-
-Create a complete `Response` object with proper headers.
-
-```typescript
-import { annieResponse } from "@effing/annie";
-
-return annieResponse(generateFrames(), {
-  signal: request.signal,
-  headers: { "Cache-Control": "public, max-age=3600" },
-});
-```
-
 ## Examples
 
 ### With Express/Node.js
@@ -146,10 +131,13 @@ app.get("/animation.tar", async (req, res) => {
 ### With React Router / Remix
 
 ```typescript
-import { annieResponse } from "@effing/annie";
+import { annieStream } from "@effing/annie";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return annieResponse(generateFrames(), { signal: request.signal });
+  const stream = annieStream(generateFrames(), { signal: request.signal });
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-tar" },
+  });
 }
 ```
 

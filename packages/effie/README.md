@@ -188,13 +188,14 @@ Schemas are also exported per shape (`effieSegmentSchema`, `effieLayerSchema`, `
 
 ### Type Helpers
 
-| Export              | Description                   |
-| ------------------- | ----------------------------- |
-| `effieData()`       | Create typed EffieData        |
-| `effieSegment()`    | Create typed EffieSegment     |
-| `effieLayer()`      | Create typed EffieLayer       |
-| `effieBackground()` | Create typed EffieBackground  |
-| `effieWebUrl()`     | Validate and cast URL strings |
+| Export              | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `effieData()`       | Create typed EffieData                      |
+| `effieSegment()`    | Create typed EffieSegment                   |
+| `effieLayer()`      | Create typed EffieLayer                     |
+| `effieBackground()` | Create typed EffieBackground                |
+| `effieWebUrl()`     | Validate and cast `http`/`data` URL strings |
+| `effieFileUrl()`    | Validate and cast `file:` URL strings       |
 
 ### Partitioning Helpers
 

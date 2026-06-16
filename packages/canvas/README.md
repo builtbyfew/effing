@@ -399,7 +399,7 @@ const fontSize = findLargestUsableFontSize({
 
 | Option       | Type                   | Required | Description                                                          |
 | ------------ | ---------------------- | -------- | -------------------------------------------------------------------- |
-| `fonts`      | `FontData[]`           | Yes      | Font data for text rendering                                         |
+| `fonts`      | `FontData[]`           | No       | Font data for text rendering (default: `[]`, system fonts)           |
 | `width`      | `number`               | No       | Layout width override (default: `ctx.canvas.width`)                  |
 | `height`     | `number`               | No       | Layout height override (default: `ctx.canvas.height`)                |
 | `debug`      | `boolean`              | No       | Draw layout bounding boxes for debugging                             |

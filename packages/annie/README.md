@@ -113,8 +113,6 @@ Collect all frames and return a complete TAR buffer.
 function annieBuffer(frames: AsyncIterable<Buffer>): Promise<Buffer>;
 ```
 
-> Building an Effing project? `@effing/fn` provides an `annieResponse(frames, options?)` helper that wraps `annieStream` into a ready-made `Response` with the right headers.
-
 ## Examples
 
 ### With Express/Node.js

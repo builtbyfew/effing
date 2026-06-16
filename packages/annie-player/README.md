@@ -133,7 +133,7 @@ function HeadlessPlayer() {
 | `AnniePlayer.PlayButton`   | Play button with default "Play" text.                                                                       |
 | `AnniePlayer.PauseButton`  | Pause button with default "Pause" text.                                                                     |
 | `AnniePlayer.Scrubber`     | Range slider that seeks through frames. Accepts `pauseWhileScrubbing`.                                      |
-| `AnniePlayer.FrameCounter` | Shows `current / total` frame. Accepts a render-prop child `(frame) => ReactNode`.                          |
+| `AnniePlayer.FrameCounter` | Shows `current / total` frame. Accepts a render-prop child `({ current, total }) => ReactNode`.             |
 | `AnniePlayer.Status`       | Status overlay showing current state.                                                                       |
 
 ### Vanilla JavaScript

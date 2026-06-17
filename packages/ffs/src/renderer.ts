@@ -194,7 +194,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       "-preset",
       "fast",
       "-crf",
-      "28",
+      "23",
       "-c:a",
       "aac",
       "-movflags",

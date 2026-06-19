@@ -27,6 +27,7 @@ export function createCanvasMock() {
     lineTo: vi.fn(),
     arcTo: vi.fn(),
     rect: vi.fn(),
+    roundRect: vi.fn(),
     clip: vi.fn(),
     fill: vi.fn(),
     stroke: vi.fn(),

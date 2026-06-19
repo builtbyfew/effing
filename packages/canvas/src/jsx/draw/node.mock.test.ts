@@ -285,4 +285,92 @@ describe("drawNode", () => {
     const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
     expect(fillTextCall![1]).toBe(20);
   });
+
+  // drawImage signature: (image, sx, sy, sW, sH, dx, dy, dW, dH).
+  // The composite dest spans the bleed-expanded box, so dW/dH reveal the bleed.
+  const compositeDestWidth = () => {
+    const call = vi.mocked(ctx.drawImage).mock.calls.at(-1)!;
+    return call[7] as number;
+  };
+
+  it("grows the offscreen buffer to fit ink that overflows the scaled box", async () => {
+    // A CSS transform must not clip the element's own content. Glyph ink
+    // overhangs its box, so the offscreen scale buffer must bleed by ~1em
+    // (plus any negative letter-spacing) rather than the old fixed 1px.
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: { transform: "scale(1.1)", fontSize: 80, color: "white" },
+        children: [
+          {
+            type: "text",
+            style: { fontSize: 80, letterSpacing: -10, color: "white" },
+            children: [],
+            textContent: "AVA.",
+            props: {},
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 90,
+          },
+        ],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 90,
+      },
+      0,
+      0,
+    );
+
+    // bleed = fontSize (80) + |letterSpacing| (10) = 90 per side.
+    expect(compositeDestWidth()).toBe(100 + 2 * 90);
+  });
+
+  it("grows the offscreen buffer to fit a scaled element's box-shadow", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          transform: "scale(1.1)",
+          backgroundColor: "red",
+          boxShadow: "0px 0px 20px black",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    // bleed = blur*2 + |offsetX| + |offsetY| = 40 per side.
+    expect(compositeDestWidth()).toBe(100 + 2 * 40);
+  });
+
+  it("keeps the buffer tight (1px bleed) when nothing overflows the box", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { transform: "scale(0.9)", backgroundColor: "red" },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    expect(compositeDestWidth()).toBe(100 + 2 * 1);
+  });
 });

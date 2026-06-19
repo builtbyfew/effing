@@ -131,6 +131,18 @@ export async function startDevServer(
   // has already invalidated the file by the time this fires — we just need
   // to nudge the browser. On add/unlink, the SET of fns changes, so we
   // re-resolve the id→absPath map before broadcasting.
+  //
+  // A content edit reloads when the file is either an fn itself or a module
+  // some rendered fn imports (directly or transitively) — i.e. it lives in
+  // the SSR module graph, so a re-render will reflect the edit. This picks up
+  // shared helpers (fonts, utils) while ignoring files no render depends on
+  // (config, tests, unused modules). The lookup matches reliably because Vite
+  // invalidated this exact `file` string against the same graph moments
+  // earlier, on the same watcher event.
+  const isRenderedDep = (file: string): boolean => {
+    const mods = vite.environments.ssr.moduleGraph.getModulesByFile(file);
+    return mods !== undefined && mods.size > 0;
+  };
   const onAddOrUnlink = (file: string) => {
     if (!file.endsWith(FN_SUFFIX)) return;
     void resolveFns(options.configDir, options.config).then((r) => {
@@ -139,7 +151,7 @@ export async function startDevServer(
     });
   };
   const onChange = (file: string) => {
-    if (!file.endsWith(FN_SUFFIX)) return;
+    if (!file.endsWith(FN_SUFFIX) && !isRenderedDep(file)) return;
     broadcastReload();
   };
   vite.watcher.on("add", onAddOrUnlink);

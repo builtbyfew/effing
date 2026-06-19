@@ -6,6 +6,7 @@ import invariant from "tiny-invariant";
 import {
   createServer as createViteServer,
   createServerModuleRunner,
+  normalizePath,
 } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { createRequestListener } from "@react-router/node";
@@ -127,22 +128,33 @@ export async function startDevServer(
   const faviconFile = faviconPath();
 
   // Reuse Vite's own chokidar watcher (rooted at options.configDir) instead
-  // of standing up a second one. On content edits, Vite's SSR module graph
-  // has already invalidated the file by the time this fires — we just need
-  // to nudge the browser. On add/unlink, the SET of fns changes, so we
-  // re-resolve the id→absPath map before broadcasting.
+  // of standing up a second one.
   //
   // A content edit reloads when the file is either an fn itself or a module
   // some rendered fn imports (directly or transitively) — i.e. it lives in
   // the SSR module graph, so a re-render will reflect the edit. This picks up
   // shared helpers (fonts, utils) while ignoring files no render depends on
-  // (config, tests, unused modules). The lookup matches reliably because Vite
-  // invalidated this exact `file` string against the same graph moments
-  // earlier, on the same watcher event.
+  // (config, tests, unused modules). A module enters the graph's
+  // fileToModulesMap when first transformed during a render and stays there
+  // across edits — Vite's change handler only clears its transform result —
+  // so presence is a stable signal independent of handler ordering. Those map
+  // keys are stored normalized, so we must normalize the raw chokidar path
+  // before the lookup; on macOS/Linux normalizePath is a no-op, but on Windows
+  // chokidar emits backslash paths and an un-normalized lookup would silently
+  // miss, quietly degrading to fn-only reloads.
   const isRenderedDep = (file: string): boolean => {
-    const mods = vite.environments.ssr.moduleGraph.getModulesByFile(file);
+    const mods = vite.environments.ssr.moduleGraph.getModulesByFile(
+      normalizePath(file),
+    );
     return mods !== undefined && mods.size > 0;
   };
+  // add/unlink stays fn-scoped: adding or removing an fn changes the SET of
+  // fns, so we re-resolve the id→absPath map before broadcasting. Helper
+  // add/unlink is deliberately not handled — the module-graph signal is
+  // unreliable at this boundary (a just-added file hasn't been transformed
+  // into the graph yet, and an unlinked one is already evicted by Vite's own
+  // delete handler before this fires), so there's nothing dependable to test
+  // against. Editing a helper still reloads via onChange.
   const onAddOrUnlink = (file: string) => {
     if (!file.endsWith(FN_SUFFIX)) return;
     void resolveFns(options.configDir, options.config).then((r) => {

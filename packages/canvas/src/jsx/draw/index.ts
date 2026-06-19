@@ -10,7 +10,12 @@ import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
-import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
+import {
+  boxShadowExtent,
+  drawBoxShadow,
+  drawRect,
+  getBorderRadiusFromStyle,
+} from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
@@ -58,17 +63,28 @@ export async function drawNode(
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;
 
+    // The offscreen buffer has hard pixel bounds, so anything painted past its
+    // edge is clipped. A CSS transform must never clip the element's own
+    // content, yet ink legitimately overflows the layout box — glyph side
+    // bearings, italic overhang, and negative letter-spacing all push paint
+    // past the content edge (as do box-shadows). Grow the buffer by that much
+    // on every side so transformed content keeps the overflow the untransformed
+    // element would paint.
+    const bleed = Math.max(1, computeOverflowBleed(node));
+
     // Quantize to ceil(|scale|) — buffer resolution only changes at
     // integer boundaries (no jitter), and composite is always ≤1x (sharp).
     const qx = Math.max(1, Math.ceil(Math.abs(sx)));
     const qy = Math.max(1, Math.ceil(Math.abs(sy)));
 
-    const bufW = Math.ceil((width + 2) * qx);
-    const bufH = Math.ceil((height + 2) * qy);
+    const bufW = Math.ceil((width + 2 * bleed) * qx);
+    const bufH = Math.ceil((height + 2 * bleed) * qy);
     if (bufW > 0 && bufH > 0) {
       const [offscreen, offCtx] = acquireOffscreen(bufW, bufH);
 
-      // Render at qx×qy resolution — logical coords produce more pixels
+      // Render at qx×qy resolution — logical coords produce more pixels.
+      // Offset by `bleed` so the box sits inside the buffer with room for
+      // overflow on every side.
       offCtx.save();
       offCtx.scale(qx, qy);
       await drawNodeCore(
@@ -76,8 +92,8 @@ export async function drawNode(
         node,
         parentX,
         parentY,
-        1 - x,
-        1 - y,
+        bleed - x,
+        bleed - y,
         emojiStyle,
         renderContext,
         transformWithoutScale,
@@ -103,17 +119,19 @@ export async function drawNode(
       ctx.scale(sx, sy);
       ctx.translate(-ox, -oy);
 
-      // Draw high-res buffer back at logical size (qx→1x downscale happens here)
+      // Draw high-res buffer back at logical size (qx→1x downscale happens
+      // here). Source and dest both span the bleed-expanded box, so the
+      // overflow region maps back to the same place it would paint untransformed.
       ctx.drawImage(
         offscreen,
         0,
         0,
         bufW,
         bufH,
-        x - 1,
-        y - 1,
-        width + 2,
-        height + 2,
+        x - bleed,
+        y - bleed,
+        width + 2 * bleed,
+        height + 2 * bleed,
       );
       releaseOffscreen(offscreen);
       ctx.restore();
@@ -154,6 +172,43 @@ function extractScale(
 
   const remaining = transform.replace(fullMatch!, "").trim();
   return { sx, sy, remaining };
+}
+
+/**
+ * Estimate how far a subtree's painting can extend beyond its layout box, in
+ * logical (pre-scale) pixels. Used to size the offscreen scale buffer so its
+ * hard pixel bounds don't slice ink that legitimately overflows the box.
+ *
+ * Glyph ink overhangs its advance box by up to roughly one em (side bearings,
+ * italics, accents), and negative letter-spacing trims the box while leaving
+ * the trailing glyph's ink in place — so it overflows by the magnitude of the
+ * spacing. Box-shadows extend the painted area too. The result is a single
+ * symmetric margin (the max needed on any side), which is all the buffer needs.
+ */
+function computeOverflowBleed(node: LayoutNode): number {
+  let bleed = 0;
+
+  const visit = (n: LayoutNode): void => {
+    if (n.style.display === "none") return;
+    if ((n.style.opacity ?? 1) <= 0) return;
+
+    const fontSize =
+      typeof n.style.fontSize === "number" ? n.style.fontSize : 0;
+    if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
+      const letterSpacing =
+        typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
+      bleed = Math.max(bleed, fontSize + Math.max(0, -letterSpacing));
+    }
+
+    if (n.style.boxShadow) {
+      bleed = Math.max(bleed, boxShadowExtent(n.style.boxShadow));
+    }
+
+    for (const child of n.children) visit(child);
+  };
+
+  visit(node);
+  return bleed;
 }
 
 /**

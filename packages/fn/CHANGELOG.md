@@ -1,5 +1,13 @@
 # @effing/fn
 
+## 0.38.3
+
+### Patch Changes
+
+- @effing/annie@0.38.3
+- @effing/effie@0.38.3
+- @effing/serde@0.38.3
+
 ## 0.38.2
 
 ### Patch Changes

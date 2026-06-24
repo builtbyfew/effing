@@ -181,3 +181,105 @@ describe("EffieRenderer general audio fades", () => {
     );
   });
 });
+
+describe("EffieRenderer audio mixing levels", () => {
+  function buildFilterComplex(effie: EffieData<EffieSources>): string {
+    const renderer = new EffieRenderer(effie);
+    const command = (
+      renderer as unknown as {
+        buildFFmpegCommand: (
+          out: string,
+          scale: number,
+        ) => { filterComplex: string };
+      }
+    ).buildFFmpegCommand("out.mp4", 1);
+    return command.filterComplex;
+  }
+
+  function base(): Omit<EffieData<EffieSources>, "segments" | "audio"> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+    };
+  }
+
+  function globalAndSegmentAudioEffie(): EffieData<EffieSources> {
+    return {
+      ...base(),
+      audio: { source: "https://example.com/music.mp3" },
+      segments: [
+        {
+          duration: 5,
+          audio: { source: "https://example.com/voice.mp3" },
+          layers: [{ type: "image", source: "https://example.com/img.png" }],
+        },
+      ],
+    };
+  }
+
+  function globalAudioOnlyEffie(): EffieData<EffieSources> {
+    return {
+      ...base(),
+      audio: { source: "https://example.com/music.mp3" },
+      segments: [
+        {
+          duration: 5,
+          layers: [{ type: "image", source: "https://example.com/img.png" }],
+        },
+      ],
+    };
+  }
+
+  function segmentAudioOnlyEffie(): EffieData<EffieSources> {
+    return {
+      ...base(),
+      segments: [
+        {
+          duration: 5,
+          audio: { source: "https://example.com/voice.mp3" },
+          layers: [{ type: "image", source: "https://example.com/img.png" }],
+        },
+      ],
+    };
+  }
+
+  test("amix uses normalize=0 so sources keep their configured volume instead of being halved", () => {
+    // amix defaults to normalize=1, which scales each input by 1/n (−6 dB for
+    // two inputs). The segment path always feeds amix a full-length stream
+    // (real audio or synthesized anullsrc silence), so both inputs stay
+    // "active" the whole time and the global track is consistently halved.
+    // normalize=0 keeps every source at its configured volume.
+    const filterComplex = buildFilterComplex(globalAndSegmentAudioEffie());
+    expect(filterComplex).toContain(
+      "[general_audio][segments_audio]amix=inputs=2:duration=longest:normalize=0,",
+    );
+    // Guard against regressing to amix's default normalization.
+    expect(filterComplex).not.toContain("amix=inputs=2:duration=longest[outa]");
+  });
+
+  test("global audio over silent segments is no longer halved", () => {
+    // The most common case: a background track over segments with no audio.
+    // The silent segments still produce a continuous anullsrc stream, so under
+    // normalize=1 the global track was halved despite being the only real
+    // source.
+    const filterComplex = buildFilterComplex(globalAudioOnlyEffie());
+    expect(filterComplex).toContain(
+      "amix=inputs=2:duration=longest:normalize=0,",
+    );
+  });
+
+  test("the mixed master is peak-limited to prevent clipping introduced by normalize=0", () => {
+    const filterComplex = buildFilterComplex(globalAndSegmentAudioEffie());
+    expect(filterComplex).toContain("alimiter=limit=1:level=false[outa]");
+  });
+
+  test("the no-global-audio path is also peak-limited on the master bus", () => {
+    const filterComplex = buildFilterComplex(segmentAudioOnlyEffie());
+    expect(filterComplex).toContain(
+      ":v=0:a=1,alimiter=limit=1:level=false[outa]",
+    );
+  });
+});

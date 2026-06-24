@@ -355,6 +355,16 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     totalDuration: number,
     generalAudioInputIndex: number,
   ): void {
+    // Master-bus peak limiter. The amix below uses normalize=0 so every source
+    // plays at exactly its configured volume — amix's default normalize=1
+    // silently scales each input by 1/n, which halves the audio whenever global
+    // and segment tracks coexist, even when a "track" is just synthesized
+    // anullsrc silence. normalize=0 means the summed signal can exceed full
+    // scale, so this look-ahead limiter brick-walls peaks at 0 dBFS to prevent
+    // clipping. level=false disables alimiter's auto-leveling, which would
+    // otherwise normalize quiet audio back up to 0 dB and defeat the configured
+    // volumes; it is transparent for signal already <= 0 dBFS.
+    const masterLimiter = `alimiter=limit=1:level=false`;
     if (this.effieData.audio) {
       const audioSeek = this.effieData.audio.seek ?? 0;
       const generalAudioFilter = this.buildAudioFilter({
@@ -378,13 +388,13 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         }:v=0:a=1,atrim=start=0:duration=${totalDuration}[segments_audio]`,
       );
       filterParts.push(
-        `[general_audio][segments_audio]amix=inputs=2:duration=longest[outa]`,
+        `[general_audio][segments_audio]amix=inputs=2:duration=longest:normalize=0,${masterLimiter}[outa]`,
       );
     } else {
       filterParts.push(
         `${audioSegmentLabels.join("")}concat=n=${
           this.effieData.segments.length
-        }:v=0:a=1[outa]`,
+        }:v=0:a=1,${masterLimiter}[outa]`,
       );
     }
   }

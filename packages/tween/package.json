@@ -1,6 +1,6 @@
 {
   "name": "@effing/tween",
-  "version": "0.38.3",
+  "version": "0.38.4",
   "description": "Tweening and easing functions for animations",
   "repository": {
     "type": "git",

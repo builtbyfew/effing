@@ -1,5 +1,7 @@
 # @effing/canvas
 
+## 0.38.4
+
 ## 0.38.3
 
 ### Patch Changes

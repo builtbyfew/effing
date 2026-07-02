@@ -17,6 +17,11 @@ export type FindLargestUsableFontSizeOptions = {
   maxHeight: number;
   /** Line height — `"normal"` uses font metrics, numeric values are CSS multipliers */
   lineHeight?: number | "normal";
+  /**
+   * Whitespace handling, mirroring CSS. Use `"nowrap"` (or `"pre"`) to fit text
+   * on a single line instead of wrapping to `maxWidth` (default: `"normal"`).
+   */
+  whiteSpace?: ComputedStyle["whiteSpace"];
   /** Minimum font size to consider (default: 1) */
   minFontSize?: number;
   /** Maximum font size to consider (default: 1000) */
@@ -28,6 +33,10 @@ export type FindLargestUsableFontSizeOptions = {
  *
  * Uses binary search over integer font sizes, measuring with {@link layoutText}
  * at each step. Returns `minFontSize` if even the smallest size overflows.
+ *
+ * By default text wraps to `maxWidth` and is fit into the `maxWidth` × `maxHeight`
+ * box. Set `whiteSpace: "nowrap"` to fit the text on a single line instead, in
+ * which case `maxWidth` constrains the full line width.
  */
 export function findLargestUsableFontSize(
   options: FindLargestUsableFontSizeOptions,
@@ -38,6 +47,7 @@ export function findLargestUsableFontSize(
     maxWidth,
     maxHeight,
     lineHeight = "normal",
+    whiteSpace,
     minFontSize = 1,
     maxFontSize = 1000,
   } = options;
@@ -56,6 +66,7 @@ export function findLargestUsableFontSize(
       fontWeight: font.weight,
       fontStyle: font.style,
       lineHeight: lineHeight === "normal" ? undefined : lineHeight,
+      whiteSpace,
     };
 
     const result = layoutText(text, style, maxWidth);

@@ -108,7 +108,19 @@ const fontSize = findLargestUsableFontSize({
 });
 ```
 
-Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `minFontSize` (default 1), and `maxFontSize` (default 1000).
+By default the text wraps to `maxWidth` and is fit into the `maxWidth` × `maxHeight` box. Pass `whiteSpace: "nowrap"` to fit the text on one line (per newline-separated paragraph) instead, where `maxWidth` constrains the full line width:
+
+```typescript
+const fontSize = findLargestUsableFontSize({
+  text: "Hello World",
+  font,
+  maxWidth: 500,
+  maxHeight: 100,
+  whiteSpace: "nowrap",
+});
+```
+
+Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `whiteSpace` (`"normal"` by default; `"nowrap"`/`"pre"` for one line per paragraph), `minFontSize` (default 1), and `maxFontSize` (default 1000).
 
 ## Inline SVG
 

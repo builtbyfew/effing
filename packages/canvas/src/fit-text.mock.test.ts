@@ -119,6 +119,45 @@ describe("findLargestUsableFontSize", () => {
     expect(calls[0]![1].lineHeight).toBeUndefined();
   });
 
+  it("passes whiteSpace through to style for single-line fitting", () => {
+    vi.mocked(layoutText).mockReturnValue({
+      segments: [],
+      width: 10,
+      height: 10,
+    });
+
+    findLargestUsableFontSize({
+      text: "One line",
+      font,
+      maxWidth: 100,
+      maxHeight: 100,
+      whiteSpace: "nowrap",
+    });
+
+    const calls = vi.mocked(layoutText).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls[0]![1].whiteSpace).toBe("nowrap");
+  });
+
+  it("leaves whiteSpace undefined when not provided (defaults to wrapping)", () => {
+    vi.mocked(layoutText).mockReturnValue({
+      segments: [],
+      width: 10,
+      height: 10,
+    });
+
+    findLargestUsableFontSize({
+      text: "Test",
+      font,
+      maxWidth: 100,
+      maxHeight: 100,
+    });
+
+    const calls = vi.mocked(layoutText).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls[0]![1].whiteSpace).toBeUndefined();
+  });
+
   it("passes numeric lineHeight through to style", () => {
     vi.mocked(layoutText).mockReturnValue({
       segments: [],

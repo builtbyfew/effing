@@ -38,7 +38,7 @@ Line height — `"normal"` uses font metrics, numeric values are CSS multipliers
 
 > `optional` **maxFontSize**: `number`
 
-Defined in: [packages/canvas/src/fit-text.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L23)
+Defined in: [packages/canvas/src/fit-text.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L29)
 
 Maximum font size to consider (default: 1000)
 
@@ -68,7 +68,7 @@ Maximum width in pixels
 
 > `optional` **minFontSize**: `number`
 
-Defined in: [packages/canvas/src/fit-text.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L21)
+Defined in: [packages/canvas/src/fit-text.ts:27](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L27)
 
 Minimum font size to consider (default: 1)
 
@@ -81,3 +81,15 @@ Minimum font size to consider (default: 1)
 Defined in: [packages/canvas/src/fit-text.ts:11](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L11)
 
 The text to fit
+
+***
+
+### whiteSpace?
+
+> `optional` **whiteSpace**: `ComputedStyle`\[`"whiteSpace"`\]
+
+Defined in: [packages/canvas/src/fit-text.ts:25](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L25)
+
+Whitespace handling, mirroring CSS. Use `"nowrap"` (or `"pre"`) to fit text
+on one line (per newline-separated paragraph) instead of wrapping to
+`maxWidth` (default: `"normal"`).

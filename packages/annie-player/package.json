@@ -1,6 +1,6 @@
 {
   "name": "@effing/annie-player",
-  "version": "0.38.4",
+  "version": "0.39.0",
   "description": "Annie animation player that runs in the browser",
   "repository": {
     "type": "git",

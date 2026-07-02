@@ -19,7 +19,8 @@ export type FindLargestUsableFontSizeOptions = {
   lineHeight?: number | "normal";
   /**
    * Whitespace handling, mirroring CSS. Use `"nowrap"` (or `"pre"`) to fit text
-   * on a single line instead of wrapping to `maxWidth` (default: `"normal"`).
+   * on one line (per newline-separated paragraph) instead of wrapping to
+   * `maxWidth` (default: `"normal"`).
    */
   whiteSpace?: ComputedStyle["whiteSpace"];
   /** Minimum font size to consider (default: 1) */
@@ -35,8 +36,9 @@ export type FindLargestUsableFontSizeOptions = {
  * at each step. Returns `minFontSize` if even the smallest size overflows.
  *
  * By default text wraps to `maxWidth` and is fit into the `maxWidth` × `maxHeight`
- * box. Set `whiteSpace: "nowrap"` to fit the text on a single line instead, in
- * which case `maxWidth` constrains the full line width.
+ * box. Set `whiteSpace: "nowrap"` to fit the text on one line (per
+ * newline-separated paragraph) instead, in which case `maxWidth` constrains the
+ * full line width.
  */
 export function findLargestUsableFontSize(
   options: FindLargestUsableFontSizeOptions,

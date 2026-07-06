@@ -30,6 +30,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Workspace packages resolve each other's types from dist/, so
+      # typecheck and tests need the packages built first.
+      - name: Build
+        run: pnpm -w build
+
       - name: Typecheck
         run: pnpm -w typecheck
 

@@ -7,7 +7,8 @@ import { validateUrl } from "./url";
 export type FfsFetchOptions = {
   /** HTTP method */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
-  /** Request body */
+  /** Request body. Streams work too: undici's BodyInit accepts any
+   * AsyncIterable<Uint8Array>, which includes Node Readables. */
   body?: BodyInit;
   /** Headers to send (merged with default User-Agent) */
   headers?: Record<string, string>;
@@ -97,6 +98,9 @@ export async function ffsFetch(
   const response = await fetch(url, {
     method,
     body,
+    // Required by undici whenever the body is a stream (e.g. a file being
+    // uploaded); harmless for buffer/string bodies and requests without one.
+    duplex: "half",
     redirect: "manual",
     headers: { "User-Agent": "FFS (+https://effing.dev/ffs)", ...headers },
     dispatcher: agent,

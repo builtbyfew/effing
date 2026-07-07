@@ -280,6 +280,29 @@ describe("ffsFetch", () => {
       );
     });
 
+    test("sets duplex: 'half' so streamed bodies are accepted", async () => {
+      const { Readable } = await import("stream");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      // undici requires duplex: "half" whenever the body is a stream;
+      // without it the request throws before hitting the network.
+      const body = Readable.from([Buffer.from("video data")]);
+      await ffsFetch("https://s3.example.com/video.mp4", {
+        method: "PUT",
+        body,
+      });
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://s3.example.com/video.mp4",
+        expect.objectContaining({
+          body,
+          duplex: "half",
+        }),
+      );
+    });
+
     test("supports PUT requests with body and headers", async () => {
       const { fetch: mockFetch } = await import("undici");
       const mockedFetch = vi.mocked(mockFetch);

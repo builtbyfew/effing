@@ -1,5 +1,11 @@
 import express from "express";
 import { randomUUID } from "crypto";
+import os from "os";
+import path from "path";
+import { createReadStream, createWriteStream } from "fs";
+import { rm, stat } from "fs/promises";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
 import { storeKeys } from "../storage";
 import { ffsFetch } from "../fetch";
 import {
@@ -363,14 +369,29 @@ export async function streamRenderProgress(
           if (!response.ok) {
             throw await backendError(response);
           }
-          const videoBuffer = Buffer.from(await response.arrayBuffer());
 
-          const timings = await uploadRenderedVideo(
-            videoBuffer,
-            job.effie,
-            job.upload,
-            sendEvent,
-          );
+          // Stream the backend's video to a temp file instead of buffering
+          // the whole MP4 in memory; the presigned PUT needs an exact
+          // Content-Length, which comes from the file's size.
+          const videoPath = tempVideoPath();
+          let timings: Record<string, number>;
+          try {
+            const videoStream = response.body
+              ? Readable.fromWeb(response.body)
+              : Readable.from([]);
+            await pipeline(videoStream, createWriteStream(videoPath));
+            const { size: videoSize } = await stat(videoPath);
+
+            timings = await uploadRenderedVideo(
+              videoPath,
+              videoSize,
+              job.effie,
+              job.upload,
+              sendEvent,
+            );
+          } finally {
+            await rm(videoPath, { force: true }).catch(() => {});
+          }
           sendEvent(
             "render:complete",
             timings as RenderEventMap["render:complete"],
@@ -588,11 +609,23 @@ async function streamRenderDirect(
 }
 
 /**
- * Upload a rendered video buffer (and optional cover) to presigned URLs.
- * Shared between local render+upload and backend render+upload flows.
+ * Unique temp-file path for a rendered video awaiting upload. The
+ * `ffs-upload-` prefix is distinct from the renderer's `ffs-` work dirs so
+ * the two kinds of temp files can be told apart.
+ */
+function tempVideoPath(): string {
+  return path.join(os.tmpdir(), `ffs-upload-${randomUUID()}.mp4`);
+}
+
+/**
+ * Upload a rendered video from a temp file (and optional cover) to presigned
+ * URLs. Shared between local render+upload and backend render+upload flows.
+ * The video body is streamed from disk so peak memory stays bounded; presigned
+ * PUTs require an exact Content-Length up front, hence the file's stat size.
  */
 async function uploadRenderedVideo(
-  videoBuffer: Buffer,
+  videoPath: string,
+  videoSize: number,
   effie: EffieData<EffieSources>,
   upload: UploadOptions,
   sendEvent: RenderEventSender,
@@ -651,10 +684,10 @@ async function uploadRenderedVideo(
   const uploadStartTime = Date.now();
   const uploadResponse = await ffsFetch(upload.videoUrl, {
     method: "PUT",
-    body: videoBuffer,
+    body: createReadStream(videoPath),
     headers: {
       "Content-Type": "video/mp4",
-      "Content-Length": videoBuffer.length.toString(),
+      "Content-Length": videoSize.toString(),
     },
   });
   if (!uploadResponse.ok) {
@@ -678,25 +711,26 @@ export async function renderAndUploadInternal(
   sendEvent: RenderEventSender,
   ctx: ServerContext,
 ): Promise<Record<string, number>> {
-  // Render effie data to video buffer
+  // Render effie data to a temp file — streamed, so peak memory stays
+  // bounded regardless of output size (the upload needs a known
+  // Content-Length, which the file provides via stat).
   const renderStartTime = Date.now();
   const { EffieRenderer } = await import("../renderer");
   const renderer = new EffieRenderer(effie, {
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
   });
+  const videoPath = tempVideoPath();
   try {
     const videoStream = await renderer.render(scale);
-    const chunks: Buffer[] = [];
-    for await (const chunk of videoStream) {
-      chunks.push(Buffer.from(chunk));
-    }
-    const videoBuffer = Buffer.concat(chunks);
+    await pipeline(videoStream, createWriteStream(videoPath));
+    const { size: videoSize } = await stat(videoPath);
     const renderTime = Date.now() - renderStartTime;
 
     // Upload video (and cover)
     const timings = await uploadRenderedVideo(
-      videoBuffer,
+      videoPath,
+      videoSize,
       effie,
       upload,
       sendEvent,
@@ -706,5 +740,6 @@ export async function renderAndUploadInternal(
     return timings;
   } finally {
     renderer.close();
+    await rm(videoPath, { force: true }).catch(() => {});
   }
 }

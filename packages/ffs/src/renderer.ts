@@ -165,7 +165,16 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         type: "video",
       };
     }
-    // Color background - use lavfi to generate
+    // Color background - use lavfi to generate. The color is interpolated
+    // into a lavfi filtergraph description, so reject filtergraph
+    // metacharacters here even though the schema already constrains the color
+    // syntax — validation can be skipped (FFS_SKIP_VALIDATION), and this guard
+    // keeps that path from turning into filtergraph injection.
+    if (/[:[\];,'"\\\s=]/.test(background.color)) {
+      throw new Error(
+        `Invalid background color: ${JSON.stringify(background.color)}`,
+      );
+    }
     return {
       index: inputIndex,
       source: "",

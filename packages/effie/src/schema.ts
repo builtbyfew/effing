@@ -51,6 +51,22 @@ const sourceRefSchema = z.custom<`#${string}`>(
   { message: "Source reference must start with #" },
 );
 
+// Color schema for color backgrounds. Accepts the color forms ffmpeg's color
+// source understands — named colors, #RRGGBB[AA], and 0xRRGGBB[AA], each with
+// an optional @alpha suffix — and nothing else. Renderers interpolate this
+// value into an ffmpeg lavfi filtergraph, so filtergraph metacharacters
+// (":", "[", "]", ";", ",", "=", quotes, backslashes, whitespace) must never
+// pass validation.
+const colorPattern =
+  /^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|0x[0-9a-fA-F]{6}([0-9a-fA-F]{2})?|[a-zA-Z]+)(@(0(\.\d+)?|1(\.0+)?))?$/;
+
+const colorSchema = z
+  .string()
+  .regex(
+    colorPattern,
+    "Invalid color: expected a named color, #RRGGBB[AA], or 0xRRGGBB[AA], optionally with an @alpha suffix",
+  );
+
 // Transition schema
 export const effieTransitionSchema = z.union([
   // Fade with easing
@@ -186,7 +202,7 @@ export function createEffieBackgroundSchema<U extends string>(
     }),
     z.strictObject({
       type: z.literal("color"),
-      color: z.string(),
+      color: colorSchema,
     }),
   ]);
 }

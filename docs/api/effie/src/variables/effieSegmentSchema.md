@@ -8,4 +8,4 @@
 
 > `const` **effieSegmentSchema**: `z.ZodType`\<[`EffieSegment`](../type-aliases/EffieSegment.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>\>
 
-Defined in: [packages/effie/src/schema.ts:372](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L372)
+Defined in: [packages/effie/src/schema.ts:388](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L388)

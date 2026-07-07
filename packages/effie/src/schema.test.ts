@@ -309,6 +309,34 @@ describe("effieBackgroundSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  test.each([
+    "red",
+    "#ff0000",
+    "#ff000080",
+    "0xFF0000",
+    "0xFF000080",
+    "white@0.5",
+    "black@1",
+  ])("accepts color background with color %j", (color) => {
+    const result = effieBackgroundSchema.safeParse({ type: "color", color });
+    expect(result.success).toBe(true);
+  });
+
+  test.each([
+    "red:size=1x1",
+    "color=red[x]",
+    "a,b",
+    "' quote",
+    "has space",
+    "red;movie=/etc/passwd",
+    "red@2",
+    "#ff00",
+    "",
+  ])("rejects color background with color %j", (color) => {
+    const result = effieBackgroundSchema.safeParse({ type: "color", color });
+    expect(result.success).toBe(false);
+  });
+
   test("accepts image background with URL", () => {
     const result = effieBackgroundSchema.safeParse({
       type: "image",

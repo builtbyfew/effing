@@ -80,6 +80,55 @@ describe("EffieRenderer overlay enable window", () => {
   });
 });
 
+describe("EffieRenderer background color guard", () => {
+  function colorEffie(color: string): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color },
+      segments: [
+        {
+          duration: 10,
+          layers: [{ type: "image", source: "https://example.com/img.png" }],
+        },
+      ],
+    };
+  }
+
+  function buildCommand(color: string): {
+    inputs: { preArgs: string[]; type: string }[];
+  } {
+    const renderer = new EffieRenderer(colorEffie(color));
+    return (
+      renderer as unknown as {
+        buildFFmpegCommand: (
+          out: string,
+          scale: number,
+        ) => { inputs: { preArgs: string[]; type: string }[] };
+      }
+    ).buildFFmpegCommand("out.mp4", 1);
+  }
+
+  test("a valid hex color is passed through to the lavfi color source", () => {
+    const command = buildCommand("#ff0000");
+    const colorInput = command.inputs.find((input) => input.type === "color");
+    expect(colorInput?.preArgs).toContain("color=#ff0000:size=100x100:rate=30");
+  });
+
+  test("a color containing filtergraph metacharacters is rejected", () => {
+    // The color is interpolated into a lavfi filtergraph description; without
+    // this guard it could smuggle in extra filters (e.g. a file-reading
+    // `movie=` source). The schema already rejects such values, but the
+    // renderer must too, because validation can be skipped
+    // (FFS_SKIP_VALIDATION).
+    expect(() =>
+      buildCommand("red:duration=1[out0];movie=/etc/passwd[out1]"),
+    ).toThrow(/Invalid background color/);
+  });
+});
+
 describe("EffieRenderer segment audio padding", () => {
   function multiSegmentEffie(): EffieData<EffieSources> {
     return {

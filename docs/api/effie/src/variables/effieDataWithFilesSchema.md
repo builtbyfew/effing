@@ -8,4 +8,4 @@
 
 > `const` **effieDataWithFilesSchema**: `z.ZodType`\<[`EffieData`](../type-aliases/EffieData.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<`WebOrFileUrl`\>, `WebOrFileUrl`\>\>
 
-Defined in: [packages/effie/src/schema.ts:392](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L392)
+Defined in: [packages/effie/src/schema.ts:408](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L408)

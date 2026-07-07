@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { ffsFetch } from "./fetch";
+import { ffsFetch, clearAgentCache } from "./fetch";
 import { Agent } from "undici";
 
 // Mock undici
@@ -21,6 +21,7 @@ vi.mock("./url", () => ({
 describe("ffsFetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAgentCache();
   });
 
   describe("User-Agent header", () => {
@@ -172,6 +173,35 @@ describe("ffsFetch", () => {
       await expect(ffsFetch("https://example.com")).rejects.toThrow(
         "https://example.com returned a 301 redirect, which is not allowed",
       );
+    });
+
+    test("reuses one Agent across calls with the same timeouts", async () => {
+      const mockAgent = vi.mocked(Agent);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValue(new Response("ok"));
+
+      await ffsFetch("https://example.com/one");
+      await ffsFetch("https://example.com/two");
+
+      expect(mockAgent).toHaveBeenCalledTimes(1);
+      const [first, second] = mockedFetch.mock.calls;
+      expect(first[1]?.dispatcher).toBe(second[1]?.dispatcher);
+      expect(first[1]?.dispatcher).toBeDefined();
+    });
+
+    test("creates separate Agents for different timeout configs", async () => {
+      const mockAgent = vi.mocked(Agent);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValue(new Response("ok"));
+
+      await ffsFetch("https://example.com/one");
+      await ffsFetch("https://example.com/two", { bodyTimeout: 0 });
+
+      expect(mockAgent).toHaveBeenCalledTimes(2);
+      const [first, second] = mockedFetch.mock.calls;
+      expect(first[1]?.dispatcher).not.toBe(second[1]?.dispatcher);
     });
 
     test("passes Agent as dispatcher to fetch", async () => {

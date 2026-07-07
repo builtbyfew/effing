@@ -23,15 +23,18 @@
   ],
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@andrewbranch/untar.js": "^1.0.3"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
+    "jsdom": "^29.1.1",
     "tsup": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

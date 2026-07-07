@@ -16,9 +16,13 @@ async function runUntilSettled(
     output.resume();
     runner.close();
     await finished(output);
-  } catch {
-    // Expected — these tests only assert on source fetching, which
-    // happens before ffmpeg spawns.
+  } catch (err) {
+    // Only the ffmpeg failure is expected — these tests assert on source
+    // fetching, which happens before ffmpeg spawns. Anything else is a
+    // genuine bug and must fail the test.
+    if (!(err instanceof Error) || !/^ffmpeg exited with/.test(err.message)) {
+      throw err;
+    }
   } finally {
     runner.close();
   }

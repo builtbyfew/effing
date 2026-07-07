@@ -9,7 +9,9 @@ import { steps } from "./steps";
 // in-order yielding retains one completed frame buffer per slot, so peak
 // memory keeps growing with each extra slot. Pass `options.concurrency` to
 // override (e.g. alongside a larger `UV_THREADPOOL_SIZE`).
-const defaultConcurrency = (): number => Math.min(os.availableParallelism(), 8);
+const MAX_DEFAULT_CONCURRENCY = 8;
+const defaultConcurrency = (): number =>
+  Math.min(os.availableParallelism(), MAX_DEFAULT_CONCURRENCY);
 
 /**
  * Tween interval representing a frame's position in the animation

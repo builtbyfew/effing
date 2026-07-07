@@ -1,5 +1,17 @@
 # @effing/fn
 
+## 0.39.0
+
+### Patch Changes
+
+- 4b2b523: Fix `imageResponse` serving the entire backing buffer instead of the view window, which corrupted images backed by offset views (e.g. pooled Buffers) and leaked adjacent buffer bytes
+- Updated dependencies [3d4fb42]
+- Updated dependencies [1b5e0fe]
+- Updated dependencies [d125693]
+  - @effing/effie@0.39.0
+  - @effing/serde@0.39.0
+  - @effing/annie@0.39.0
+
 ## 0.38.4
 
 ### Patch Changes

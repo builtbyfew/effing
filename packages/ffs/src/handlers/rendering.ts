@@ -372,26 +372,24 @@ export async function streamRenderProgress(
 
           // Stream the backend's video to a temp file instead of buffering
           // the whole MP4 in memory; the presigned PUT needs an exact
-          // Content-Length, which comes from the file's size.
-          const videoPath = tempVideoPath();
-          let timings: Record<string, number>;
-          try {
+          // Content-Length, which comes from the file's size. The consts
+          // keep the narrowed types visible inside the callback.
+          const { effie: jobEffie, upload: jobUpload } = job;
+          const timings = await withTempVideoFile(async (videoPath) => {
             const videoStream = response.body
               ? Readable.fromWeb(response.body)
               : Readable.from([]);
             await pipeline(videoStream, createWriteStream(videoPath));
             const { size: videoSize } = await stat(videoPath);
 
-            timings = await uploadRenderedVideo(
+            return uploadRenderedVideo(
               videoPath,
               videoSize,
-              job.effie,
-              job.upload,
+              jobEffie,
+              jobUpload,
               sendEvent,
             );
-          } finally {
-            await rm(videoPath, { force: true }).catch(() => {});
-          }
+          });
           sendEvent(
             "render:complete",
             timings as RenderEventMap["render:complete"],
@@ -609,12 +607,20 @@ async function streamRenderDirect(
 }
 
 /**
- * Unique temp-file path for a rendered video awaiting upload. The
- * `ffs-upload-` prefix is distinct from the renderer's `ffs-` work dirs so
- * the two kinds of temp files can be told apart.
+ * Run `fn` with a unique temp-file path for a rendered video awaiting upload,
+ * removing the file afterwards even when `fn` throws. The `ffs-upload-`
+ * prefix is distinct from the renderer's `ffs-` work dirs so the two kinds
+ * of temp files can be told apart.
  */
-function tempVideoPath(): string {
-  return path.join(os.tmpdir(), `ffs-upload-${randomUUID()}.mp4`);
+async function withTempVideoFile<T>(
+  fn: (videoPath: string) => Promise<T>,
+): Promise<T> {
+  const videoPath = path.join(os.tmpdir(), `ffs-upload-${randomUUID()}.mp4`);
+  try {
+    return await fn(videoPath);
+  } finally {
+    await rm(videoPath, { force: true }).catch(() => {});
+  }
 }
 
 /**
@@ -720,26 +726,26 @@ export async function renderAndUploadInternal(
     transientStore: ctx.transientStore,
     httpProxy: ctx.httpProxy,
   });
-  const videoPath = tempVideoPath();
   try {
-    const videoStream = await renderer.render(scale);
-    await pipeline(videoStream, createWriteStream(videoPath));
-    const { size: videoSize } = await stat(videoPath);
-    const renderTime = Date.now() - renderStartTime;
+    return await withTempVideoFile(async (videoPath) => {
+      const videoStream = await renderer.render(scale);
+      await pipeline(videoStream, createWriteStream(videoPath));
+      const { size: videoSize } = await stat(videoPath);
+      const renderTime = Date.now() - renderStartTime;
 
-    // Upload video (and cover)
-    const timings = await uploadRenderedVideo(
-      videoPath,
-      videoSize,
-      effie,
-      upload,
-      sendEvent,
-    );
-    timings.renderTime = renderTime;
+      // Upload video (and cover)
+      const timings = await uploadRenderedVideo(
+        videoPath,
+        videoSize,
+        effie,
+        upload,
+        sendEvent,
+      );
+      timings.renderTime = renderTime;
 
-    return timings;
+      return timings;
+    });
   } finally {
     renderer.close();
-    await rm(videoPath, { force: true }).catch(() => {});
   }
 }

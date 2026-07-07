@@ -50,3 +50,8 @@ jobs:
 
       - name: Test
         run: pnpm -w test
+
+      - name: Check API docs are up to date
+        run: |
+          pnpm docs:api
+          git diff --exit-code docs/api || (echo "docs/api is stale — run pnpm docs:api and commit" && exit 1)

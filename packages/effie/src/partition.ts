@@ -62,16 +62,25 @@ export function effieDataForSegment(
     }
   }
 
-  // Build background with accumulated seek time for video backgrounds
+  // Build background with accumulated seek time for video backgrounds.
+  // This must mirror the monolithic renderer's timeline accumulation: an
+  // xfade transition overlaps the tail of the previous segment, so each
+  // prior segment advances the background by its duration minus the
+  // duration of the transition into the *next* segment (floored at 0.001s,
+  // like the renderer). Summing full durations instead would seek the
+  // shared background further than the monolithic render at the same
+  // segment boundary, making the background visibly jump on transitions.
   const background =
     effieData.background.type === "video"
       ? {
           ...effieData.background,
           seek:
             (effieData.background.seek ?? 0) +
-            effieData.segments
-              .slice(0, segmentIndex)
-              .reduce((sum, seg) => sum + seg.duration, 0),
+            effieData.segments.slice(0, segmentIndex).reduce((sum, seg, i) => {
+              const transitionDuration =
+                effieData.segments[i + 1]?.transition?.duration ?? 0;
+              return sum + Math.max(0.001, seg.duration - transitionDuration);
+            }, 0),
         }
       : effieData.background;
 

@@ -120,6 +120,40 @@ describe("deserialize", () => {
     );
   });
 
+  test("rejects tampered payload", async () => {
+    const serialized = await serialize({ test: 1 }, "testkey");
+    const [payload, signature] = serialized.split(".");
+    const tamperedChar = payload[0] === "A" ? "B" : "A";
+    const tampered = `${tamperedChar}${payload.slice(1)}.${signature}`;
+    await expect(deserialize(tampered, "testkey")).rejects.toThrow(
+      /invalid url segment signature/,
+    );
+  });
+
+  test("rejects tampered signature", async () => {
+    const serialized = await serialize({ test: 1 }, "testkey");
+    const lastDot = serialized.lastIndexOf(".");
+    const payload = serialized.slice(0, lastDot);
+    const signature = serialized.slice(lastDot + 1);
+    const tamperedChar = signature[0] === "A" ? "B" : "A";
+    const tampered = `${payload}.${tamperedChar}${signature.slice(1)}`;
+    await expect(deserialize(tampered, "testkey")).rejects.toThrow(
+      /invalid url segment signature/,
+    );
+  });
+
+  test("rejects segment without a signature part", async () => {
+    await expect(deserialize("eyJ0ZXN0IjoxfQ", "testkey")).rejects.toThrow(
+      /invalid url segment signature/,
+    );
+  });
+
+  test("rejects segment with an empty signature part", async () => {
+    await expect(deserialize("eyJ0ZXN0IjoxfQ.", "testkey")).rejects.toThrow(
+      /invalid url segment signature/,
+    );
+  });
+
   test("deserializes uncompressed segment from itsdangerous", async () => {
     const segment =
       "eyJwcm9jZXNzb3JfaWQiOiJvZmktcGlsbHMiLCJpbWFnZV91cmxzIjpbImh0dHA6Ly9pbWFnZS5jb20vb25lLnBuZyJdfQ.Je3-o-UbfCSHQ7KN34cmF4TY_fg";

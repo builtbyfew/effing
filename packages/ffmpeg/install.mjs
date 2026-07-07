@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { access, chmod, readFile, rm } from "node:fs/promises";
+import { access, chmod, readFile, rename, rm } from "node:fs/promises";
 import https from "node:https";
 import os from "node:os";
 import path from "node:path";
@@ -94,38 +94,49 @@ function get(url, redirects = 0) {
 
 try {
   const skipChecksum = process.env.FFMPEG_SKIP_CHECKSUM === "1";
-  const checksums = JSON.parse(
-    await readFile(new URL("./checksums.json", import.meta.url), "utf8"),
-  );
-  const expected = checksums[`${platform}-${arch}`];
-
-  if (!expected && !skipChecksum) {
-    throw new Error(
-      `no pinned checksum for ${platform}-${arch} (set FFMPEG_SKIP_CHECKSUM=1 to bypass verification)`,
+  let expected;
+  if (!skipChecksum) {
+    const checksums = JSON.parse(
+      await readFile(new URL("./checksums.json", import.meta.url), "utf8"),
     );
+    expected = checksums[`${platform}-${arch}`];
+    if (!expected) {
+      throw new Error(
+        `no pinned checksum for ${platform}-${arch} (set FFMPEG_SKIP_CHECKSUM=1 to bypass verification)`,
+      );
+    }
   }
 
   const response = await get(url);
   const gunzip = zlib.createGunzip();
   const hash = createHash("sha256");
   gunzip.on("data", (chunk) => hash.update(chunk));
-  const file = createWriteStream(binaryPath);
 
-  await pipeline(response, gunzip, file);
+  // Download to a temp path and rename into place only after verification,
+  // so a failed run never leaves a partial or unverified binary behind
+  // (the installer skips the download when binaryPath already exists).
+  const tmpPath = `${binaryPath}.download`;
+  try {
+    await pipeline(response, gunzip, createWriteStream(tmpPath));
 
-  if (!skipChecksum) {
-    const actual = hash.digest("hex");
-    if (actual !== expected) {
-      await rm(binaryPath, { force: true }); // remove the untrusted file
-      throw new Error(
-        `checksum mismatch for ${platform}-${arch} (expected ${expected}, got ${actual}); ` +
-          `if you intentionally provide a custom build via FFMPEG_BINARIES_URL, set FFMPEG_SKIP_CHECKSUM=1`,
+    if (!skipChecksum) {
+      const actual = hash.digest("hex");
+      if (actual !== expected) {
+        throw new Error(
+          `checksum mismatch for ${platform}-${arch} (expected ${expected}, got ${actual}); ` +
+            `if you intentionally provide a custom build via FFMPEG_BINARIES_URL, set FFMPEG_SKIP_CHECKSUM=1`,
+        );
+      }
+    } else {
+      console.warn(
+        "@effing/ffmpeg: FFMPEG_SKIP_CHECKSUM=1 set, skipping checksum verification",
       );
     }
-  } else {
-    console.warn(
-      "@effing/ffmpeg: FFMPEG_SKIP_CHECKSUM=1 set, skipping checksum verification",
-    );
+
+    await rename(tmpPath, binaryPath);
+  } catch (err) {
+    await rm(tmpPath, { force: true });
+    throw err;
   }
 
   await chmod(binaryPath, 0o755);

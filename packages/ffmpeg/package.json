@@ -17,7 +17,8 @@
   },
   "files": [
     "dist",
-    "install.mjs"
+    "install.mjs",
+    "checksums.json"
   ],
   "scripts": {
     "build": "tsup",

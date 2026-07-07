@@ -1,6 +1,18 @@
 import os from "os";
 import { steps } from "./steps";
 
+// Default concurrency: available cores, capped at 8. Frame callbacks are
+// dominated by synchronous draw work on the JS main thread, which cannot run
+// in parallel — extra concurrency only overlaps the async portions (e.g.
+// native encoding on libuv's threadpool, which defaults to 4 threads).
+// Benchmarks show throughput saturates around 4–8 in-flight frames, while
+// in-order yielding retains one completed frame buffer per slot, so peak
+// memory keeps growing with each extra slot. Pass `options.concurrency` to
+// override (e.g. alongside a larger `UV_THREADPOOL_SIZE`).
+const MAX_DEFAULT_CONCURRENCY = 8;
+const defaultConcurrency = (): number =>
+  Math.min(os.availableParallelism(), MAX_DEFAULT_CONCURRENCY);
+
 /**
  * Tween interval representing a frame's position in the animation
  */
@@ -15,14 +27,16 @@ export type TweenInterval = {
  * Tween frames with concurrency control
  * @param count Number of frames to generate
  * @param fn Function that takes a tween interval and index, returns a promise
- * @param options Configuration options
+ * @param options Configuration options; `concurrency` defaults to the number
+ * of available cores capped at 8 (concurrency overlaps async work such as
+ * encoding, not the synchronous draw)
  * @yields Resulting frames in order
  */
 export async function* tween<T>(
   count: number,
   fn: (interval: TweenInterval, index: number) => Promise<T>,
   options: { concurrency?: number } = {
-    concurrency: os.availableParallelism(),
+    concurrency: defaultConcurrency(),
   },
 ): AsyncGenerator<T> {
   if (count === 0) {
@@ -32,7 +46,7 @@ export async function* tween<T>(
   const range = steps(count);
   const maxConcurrency = Math.max(
     1,
-    options.concurrency ?? os.availableParallelism(),
+    options.concurrency ?? defaultConcurrency(),
   );
   const activeTasks = new Map<number, Promise<T>>();
 
@@ -76,14 +90,16 @@ export async function* tween<T>(
  * Tween frames with concurrency control, returning an array
  * @param count Number of frames to generate
  * @param fn Function that takes a tween interval and index, returns a promise
- * @param options Configuration options
+ * @param options Configuration options; `concurrency` defaults to the number
+ * of available cores capped at 8 (concurrency overlaps async work such as
+ * encoding, not the synchronous draw)
  * @returns Promise resolving to array of resulting frames
  */
 export async function tweenToArray<T>(
   count: number,
   fn: (interval: TweenInterval, index: number) => Promise<T>,
   options: { concurrency?: number } = {
-    concurrency: os.availableParallelism(),
+    concurrency: defaultConcurrency(),
   },
 ): Promise<T[]> {
   return Array.fromAsync(tween(count, fn, options));

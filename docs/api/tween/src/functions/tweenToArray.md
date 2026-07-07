@@ -8,7 +8,7 @@
 
 > **tweenToArray**\<`T`\>(`count`, `fn`, `options`): `Promise`\<`T`[]\>
 
-Defined in: [packages/tween/src/tween.ts:82](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L82)
+Defined in: [packages/tween/src/tween.ts:98](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L98)
 
 Tween frames with concurrency control, returning an array
 
@@ -34,7 +34,9 @@ Function that takes a tween interval and index, returns a promise
 
 ### options
 
-Configuration options
+Configuration options; `concurrency` defaults to the number
+of available cores capped at 8 (concurrency overlaps async work such as
+encoding, not the synchronous draw)
 
 #### concurrency?
 

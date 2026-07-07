@@ -113,6 +113,23 @@ function mockContext(storeData: Record<string, unknown> = {}): ServerContext {
   };
 }
 
+function parseSSEEvents(res: ReturnType<typeof mockResponse>) {
+  const events: Array<{ event: string; data: unknown }> = [];
+  const writeMock = res.write as unknown as ReturnType<typeof vi.fn>;
+  for (const call of writeMock.mock.calls) {
+    const text = call[0] as string;
+    const eventMatch = text.match(/^event: (.+)$/m);
+    const dataMatch = text.match(/^data: (.+)$/m);
+    if (eventMatch && dataMatch) {
+      events.push({
+        event: eventMatch[1],
+        data: JSON.parse(dataMatch[1]),
+      });
+    }
+  }
+  return events;
+}
+
 describe("streamRenderVideo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -558,23 +575,6 @@ describe("streamRenderProgress with deferred jobs", () => {
     vi.resetModules();
   });
 
-  function parseSSEEvents(res: ReturnType<typeof mockResponse>) {
-    const events: Array<{ event: string; data: unknown }> = [];
-    const writeMock = res.write as unknown as ReturnType<typeof vi.fn>;
-    for (const call of writeMock.mock.calls) {
-      const text = call[0] as string;
-      const eventMatch = text.match(/^event: (.+)$/m);
-      const dataMatch = text.match(/^data: (.+)$/m);
-      if (eventMatch && dataMatch) {
-        events.push({
-          event: eventMatch[1],
-          data: JSON.parse(dataMatch[1]),
-        });
-      }
-    }
-    return events;
-  }
-
   test("resolves deferred job, emits effie:fetching/effie:fetched", async () => {
     const { ffsFetch } = await import("../fetch");
 
@@ -744,5 +744,289 @@ describe("streamRenderProgress with deferred jobs", () => {
       message: expect.stringContaining("https://example.com/bad.json"),
       code: "FETCH_FAILED",
     });
+  });
+});
+
+describe("streamRenderProgress with upload", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  const effie = {
+    width: 1080,
+    height: 1080,
+    fps: 30,
+    cover: "https://example.com/cover.png" as const,
+    background: { type: "color" as const, color: "#000000" },
+    segments: [],
+    sources: {},
+  };
+
+  function resolvedUploadJob(jobId: string): Record<string, unknown> {
+    return {
+      [storeKeys.renderJob(jobId)]: {
+        kind: "resolved",
+        effie,
+        sources: [],
+        scale: 1,
+        upload: { videoUrl: "https://s3.example.com/video.mp4" },
+        purge: false,
+        warmupJobId: `${jobId}-warmup`,
+        createdAt: Date.now(),
+      } satisfies ResolvedRenderJob,
+    };
+  }
+
+  /**
+   * Mock ffsFetch so PUT uploads are recorded with their fully drained body
+   * (proving multi-chunk streams arrive intact) and the file path behind the
+   * streamed body. Pass a non-ok `result` to simulate a failing upload while
+   * still capturing the temp-file path.
+   */
+  async function mockPutCapture(
+    result: { ok: boolean; status?: number; statusText?: string } = {
+      ok: true,
+    },
+  ) {
+    const { ffsFetch } = await import("../fetch");
+    const putCalls: Array<{
+      url: string;
+      headers: Record<string, string>;
+      bodyPath: string;
+      content: Buffer;
+    }> = [];
+    vi.mocked(ffsFetch).mockImplementation(async (url, options) => {
+      if (options?.method === "PUT") {
+        const body = options.body as unknown as import("fs").ReadStream;
+        const received: Buffer[] = [];
+        for await (const chunk of body) {
+          received.push(Buffer.from(chunk as Uint8Array));
+        }
+        putCalls.push({
+          url,
+          headers: options.headers ?? {},
+          bodyPath: String(body.path),
+          content: Buffer.concat(received),
+        });
+      }
+      return result as unknown as Awaited<ReturnType<typeof ffsFetch>>;
+    });
+    return putCalls;
+  }
+
+  test("local render streams to a temp file and uploads with exact Content-Length", async () => {
+    const { Readable } = await import("stream");
+    const os = await import("os");
+    const { existsSync } = await import("fs");
+
+    // Multiple chunks: the upload must receive all of them, in order,
+    // without the handler concatenating the whole video in memory.
+    const chunks = [
+      Buffer.from("mp4 "),
+      Buffer.from("video "),
+      Buffer.from("data"),
+    ];
+    const totalBytes = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+
+    const mockRenderer = {
+      render: vi.fn().mockResolvedValue(Readable.from(chunks)),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const putCalls = await mockPutCapture();
+
+    const jobId = "local-upload-id";
+    const storeData = resolvedUploadJob(jobId);
+
+    const { streamRenderProgress } = await import("./rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+    expect(events.find((e) => e.event === "error")).toBeUndefined();
+    expect(events.find((e) => e.event === "render:complete")).toBeDefined();
+    expect(events.find((e) => e.event === "complete")).toBeDefined();
+
+    expect(putCalls).toHaveLength(1);
+    const put = putCalls[0];
+    expect(put.url).toBe("https://s3.example.com/video.mp4");
+    expect(put.headers["Content-Type"]).toBe("video/mp4");
+    expect(put.headers["Content-Length"]).toBe(totalBytes.toString());
+    expect(put.content).toEqual(Buffer.concat(chunks));
+
+    // The video went through a uniquely named temp file that is removed
+    // once the upload finishes.
+    expect(put.bodyPath.startsWith(os.tmpdir())).toBe(true);
+    expect(put.bodyPath).toMatch(/ffs-upload-.+\.mp4$/);
+    expect(existsSync(put.bodyPath)).toBe(false);
+
+    expect(mockRenderer.close).toHaveBeenCalledOnce();
+  });
+
+  test("backend render streams the fetched video to a temp file before uploading", async () => {
+    const { Readable } = await import("stream");
+    const os = await import("os");
+    const { existsSync } = await import("fs");
+
+    const chunks = [
+      Buffer.from("backend "),
+      Buffer.from("video "),
+      Buffer.from("bytes"),
+    ];
+    const totalBytes = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+
+    const { ffsFetch } = await import("../fetch");
+    const putCalls = await mockPutCapture();
+    // First call fetches the video from the render backend; keep the PUT
+    // behavior from mockPutCapture for the upload that follows.
+    vi.mocked(ffsFetch).mockImplementationOnce(
+      async () =>
+        ({
+          ok: true,
+          body: Readable.toWeb(Readable.from(chunks)),
+        }) as unknown as Awaited<ReturnType<typeof ffsFetch>>,
+    );
+
+    const jobId = "backend-upload-id";
+    const storeData = resolvedUploadJob(jobId);
+
+    const { streamRenderProgress } = await import("./rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.renderBackendResolver = () => ({ baseUrl: "http://backend:3000" });
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+    expect(events.find((e) => e.event === "error")).toBeUndefined();
+    expect(events.find((e) => e.event === "render:complete")).toBeDefined();
+    expect(events.find((e) => e.event === "complete")).toBeDefined();
+
+    expect(putCalls).toHaveLength(1);
+    const put = putCalls[0];
+    expect(put.url).toBe("https://s3.example.com/video.mp4");
+    expect(put.headers["Content-Type"]).toBe("video/mp4");
+    expect(put.headers["Content-Length"]).toBe(totalBytes.toString());
+    expect(put.content).toEqual(Buffer.concat(chunks));
+
+    expect(put.bodyPath.startsWith(os.tmpdir())).toBe(true);
+    expect(put.bodyPath).toMatch(/ffs-upload-.+\.mp4$/);
+    expect(existsSync(put.bodyPath)).toBe(false);
+  });
+
+  test("removes the temp file when the video upload fails", async () => {
+    const { Readable } = await import("stream");
+    const { existsSync } = await import("fs");
+
+    const mockRenderer = {
+      render: vi
+        .fn()
+        .mockResolvedValue(Readable.from([Buffer.from("mp4 video data")])),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const putCalls = await mockPutCapture({
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+    });
+
+    const jobId = "failed-upload-id";
+    const storeData = resolvedUploadJob(jobId);
+
+    const { streamRenderProgress } = await import("./rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+    const errorEvent = events.find((e) => e.event === "error");
+    expect(errorEvent).toBeDefined();
+    expect((errorEvent?.data as { message: string }).message).toContain(
+      "Failed to upload rendered video",
+    );
+    expect(events.find((e) => e.event === "complete")).toBeUndefined();
+
+    // The temp file is cleaned up even though the upload failed, and the
+    // renderer is still closed.
+    expect(putCalls).toHaveLength(1);
+    expect(existsSync(putCalls[0].bodyPath)).toBe(false);
+    expect(mockRenderer.close).toHaveBeenCalledOnce();
+  });
+
+  test("removes the temp file when the backend video stream fails mid-transfer", async () => {
+    const { Readable } = await import("stream");
+    const os = await import("os");
+    const { readdirSync } = await import("fs");
+
+    const listTempFiles = () =>
+      new Set(
+        readdirSync(os.tmpdir()).filter((name) =>
+          /^ffs-upload-.+\.mp4$/.test(name),
+        ),
+      );
+    const tempFilesBefore = listTempFiles();
+
+    // The backend response body errors partway through, so the temp path
+    // never reaches the PUT — the upload must not happen and the partially
+    // written file must be removed.
+    async function* failingBody() {
+      yield Buffer.from("partial ");
+      throw new Error("backend stream aborted");
+    }
+
+    const { ffsFetch } = await import("../fetch");
+    const putCalls = await mockPutCapture();
+    vi.mocked(ffsFetch).mockImplementationOnce(
+      async () =>
+        ({
+          ok: true,
+          body: Readable.toWeb(Readable.from(failingBody())),
+        }) as unknown as Awaited<ReturnType<typeof ffsFetch>>,
+    );
+
+    const jobId = "backend-stream-failure-id";
+    const storeData = resolvedUploadJob(jobId);
+
+    const { streamRenderProgress } = await import("./rendering");
+
+    const req = mockRequest({ id: jobId });
+    const res = mockResponse();
+    const ctx = mockContext(storeData);
+    ctx.renderBackendResolver = () => ({ baseUrl: "http://backend:3000" });
+
+    await streamRenderProgress(req, res, ctx);
+
+    const events = parseSSEEvents(res);
+    const errorEvent = events.find((e) => e.event === "error");
+    expect(errorEvent).toBeDefined();
+    expect((errorEvent?.data as { message: string }).message).toContain(
+      "backend stream aborted",
+    );
+
+    expect(putCalls).toHaveLength(0);
+    // No ffs-upload temp file left behind by this test.
+    const leftovers = [...listTempFiles()].filter(
+      (name) => !tempFilesBefore.has(name),
+    );
+    expect(leftovers).toEqual([]);
   });
 });

@@ -171,6 +171,31 @@ describe("ffsFetch", () => {
       );
     });
 
+    test("destroys a stream body when URL validation rejects", async () => {
+      const { Readable } = await import("stream");
+      const { validateUrl } = await import("./url");
+      const { fetch: mockFetch } = await import("undici");
+
+      // Force the SSRF check on (tests default to allowing private
+      // networks since NODE_ENV is not production).
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      vi.mocked(validateUrl).mockRejectedValueOnce(
+        new Error("URL resolves to a private network"),
+      );
+
+      // The read stream holds an open fd; a rejected URL means the
+      // request never starts, so ffsFetch must destroy the body itself.
+      const body = Readable.from([Buffer.from("video data")]);
+      const destroySpy = vi.spyOn(body, "destroy");
+
+      await expect(
+        ffsFetch("http://10.0.0.1/video.mp4", { method: "PUT", body }),
+      ).rejects.toThrow("URL resolves to a private network");
+
+      expect(destroySpy).toHaveBeenCalledOnce();
+      expect(vi.mocked(mockFetch)).not.toHaveBeenCalled();
+    });
+
     test("rejects redirects without location header", async () => {
       const { fetch: mockFetch } = await import("undici");
       const mockedFetch = vi.mocked(mockFetch);
@@ -347,6 +372,29 @@ describe("ffsFetch", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ data: "test" }),
+        }),
+      );
+    });
+
+    test("sets duplex: 'half' so streamed bodies are accepted", async () => {
+      const { Readable } = await import("stream");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      // undici requires duplex: "half" whenever the body is a stream;
+      // without it the request throws before hitting the network.
+      const body = Readable.from([Buffer.from("video data")]);
+      await ffsFetch("https://s3.example.com/video.mp4", {
+        method: "PUT",
+        body,
+      });
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://s3.example.com/video.mp4",
+        expect.objectContaining({
+          body,
+          duplex: "half",
         }),
       );
     });

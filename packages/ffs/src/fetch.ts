@@ -7,7 +7,8 @@ import { validateUrl, validatedLookup } from "./url";
 export type FfsFetchOptions = {
   /** HTTP method */
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
-  /** Request body */
+  /** Request body. Streams work too: undici's BodyInit accepts any
+   * AsyncIterable<Uint8Array>, which includes Node Readables. */
   body?: BodyInit;
   /** Headers to send (merged with default User-Agent) */
   headers?: Record<string, string>;
@@ -102,9 +103,24 @@ export async function ffsFetch(
       : process.env.NODE_ENV !== "production";
 
   if (!allowPrivate) {
-    // Validates the URL and caches the vetted addresses; the pinned Agent's
-    // connect-time lookup reuses them, closing the validate/connect DNS gap.
-    await validateUrl(url);
+    try {
+      // Validates the URL and caches the vetted addresses; the pinned Agent's
+      // connect-time lookup reuses them, closing the validate/connect DNS gap.
+      await validateUrl(url);
+    } catch (error) {
+      // Stream bodies (e.g. file read streams) hold an open fd from the
+      // moment they're created; the request never starts on this path, so
+      // nothing downstream will consume or close them — destroy explicitly.
+      if (
+        body !== null &&
+        typeof body === "object" &&
+        "destroy" in body &&
+        typeof (body as { destroy: unknown }).destroy === "function"
+      ) {
+        (body as { destroy: () => void }).destroy();
+      }
+      throw error;
+    }
   }
 
   const agent = getAgent(headersTimeout, bodyTimeout, !allowPrivate);
@@ -112,6 +128,9 @@ export async function ffsFetch(
   const response = await fetch(url, {
     method,
     body,
+    // Required by undici whenever the body is a stream (e.g. a file being
+    // uploaded); harmless for buffer/string bodies and requests without one.
+    duplex: "half",
     redirect: "manual",
     headers: { "User-Agent": "FFS (+https://effing.dev/ffs)", ...headers },
     dispatcher: agent,

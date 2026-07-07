@@ -80,20 +80,25 @@ curl http://localhost:2000/render/.../video -o output.mp4
 
 #### Environment Variables
 
-| Variable                         | Description                                          |
-| -------------------------------- | ---------------------------------------------------- |
-| `FFS_PORT`                       | Server port (default: 2000, falls back to `PORT`)    |
-| `FFS_BASE_URL`                   | Base URL for returned URLs                           |
-| `FFS_API_KEY`                    | API key for authentication (optional)                |
-| `FFS_TRANSIENT_STORE_BUCKET`     | S3 bucket for transient store (enables S3 mode)      |
-| `FFS_TRANSIENT_STORE_ENDPOINT`   | S3-compatible endpoint (for e.g. R2 or MinIO)        |
-| `FFS_TRANSIENT_STORE_REGION`     | AWS region (default: "auto")                         |
-| `FFS_TRANSIENT_STORE_PREFIX`     | Key prefix for stored objects                        |
-| `FFS_TRANSIENT_STORE_ACCESS_KEY` | S3 access key ID                                     |
-| `FFS_TRANSIENT_STORE_SECRET_KEY` | S3 secret access key                                 |
-| `FFS_TRANSIENT_STORE_LOCAL_DIR`  | Local storage directory (when not using S3)          |
-| `FFS_TRANSIENT_STORE_TTL_MS`     | TTL for all transient data in ms (default: 60 min)   |
-| `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4) |
+| Variable                         | Description                                                                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FFS_PORT`                       | Server port (default: 2000, falls back to `PORT`)                                                                                                                    |
+| `FFS_BASE_URL`                   | Base URL for returned URLs                                                                                                                                           |
+| `FFS_API_KEY`                    | API key for authentication (optional)                                                                                                                                |
+| `FFS_TRANSIENT_STORE_BUCKET`     | S3 bucket for transient store (enables S3 mode)                                                                                                                      |
+| `FFS_TRANSIENT_STORE_ENDPOINT`   | S3-compatible endpoint (for e.g. R2 or MinIO)                                                                                                                        |
+| `FFS_TRANSIENT_STORE_REGION`     | AWS region (default: "auto")                                                                                                                                         |
+| `FFS_TRANSIENT_STORE_PREFIX`     | Key prefix for stored objects                                                                                                                                        |
+| `FFS_TRANSIENT_STORE_ACCESS_KEY` | S3 access key ID                                                                                                                                                     |
+| `FFS_TRANSIENT_STORE_SECRET_KEY` | S3 secret access key                                                                                                                                                 |
+| `FFS_TRANSIENT_STORE_LOCAL_DIR`  | Local storage directory (when not using S3)                                                                                                                          |
+| `FFS_TRANSIENT_STORE_TTL_MS`     | TTL for all transient data in ms (default: 60 min)                                                                                                                   |
+| `FFS_WARMUP_CONCURRENCY`         | Concurrent source fetches during warmup (default: 4)                                                                                                                 |
+| `FFS_ALLOW_PRIVATE_NETWORKS`     | Allow fetches to private/internal IPs. Default: `true` outside production, `false` when `NODE_ENV=production`. Set to `false` to enforce SSRF protection everywhere. |
+| `FFS_SKIP_VALIDATION`            | Skip Effie schema validation of request bodies (trusts input). Default: off.                                                                                         |
+| `FFMPEG`                         | Path to an FFmpeg binary, overriding the bundled `@effing/ffmpeg`.                                                                                                   |
+
+When `FFS_API_KEY` is set, the POST endpoints require an `Authorization: Bearer <key>` header. The GET progress/video endpoints are deliberately left open: they are capability URLs whose unguessable job IDs are only revealed in responses from the authenticated POSTs, which allows browser players to consume them directly.
 
 When `FFS_TRANSIENT_STORE_BUCKET` is not set, FFS uses the local filesystem for storage (default: system temp directory). Local files are automatically cleaned up after the TTL expires.
 

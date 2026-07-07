@@ -20,9 +20,9 @@ export type FfsFetchOptions = {
 /**
  * Shared undici Agents keyed by timeout config. Each Agent owns a keep-alive
  * connection pool, so reusing them across requests enables connection reuse
- * instead of a fresh TCP+TLS handshake per fetch. Only a handful of timeout
- * combinations are ever used, so the cache stays tiny and lives for the
- * process lifetime.
+ * instead of a fresh TCP+TLS handshake per fetch. The cache is unbounded, so
+ * callers must pass timeouts from a small fixed set of constants (as all
+ * current callers do) — never per-request computed values.
  */
 const agentCache = new Map<string, Agent>();
 
@@ -37,9 +37,12 @@ function getAgent(headersTimeout: number, bodyTimeout: number): Agent {
 }
 
 /**
- * Clear the shared Agent cache. Intended for tests.
+ * Close all cached Agents and clear the cache. Intended for tests.
  */
 export function clearAgentCache(): void {
+  for (const agent of agentCache.values()) {
+    void agent.close();
+  }
   agentCache.clear();
 }
 

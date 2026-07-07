@@ -30,7 +30,15 @@ export function imageResponse(
     throw new TypeError("SharedArrayBuffer is not supported");
   }
 
-  return new Response(bytes.buffer, { status: 200, headers });
+  // Serve only the window `bytes` describes, not its whole backing buffer:
+  // `bytes` may be a view (offset/length) into a larger pooled buffer, and
+  // serving the backing buffer would corrupt the body and leak adjacent bytes.
+  const body = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  );
+
+  return new Response(body, { status: 200, headers });
 }
 
 export type AnnieResponseOptions = AnnieStreamOptions & {

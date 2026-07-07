@@ -31,6 +31,18 @@ describe("imageResponse", () => {
     const res = imageResponse(jpeg, { cacheControl: "no-store" });
     expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
+
+  test("serves only the view window for an offset-backed buffer", async () => {
+    const backing = new Uint8Array(64).fill(0xaa); // garbage
+    // PNG magic 0x89 0x50 at offset 8, a 4-byte "image"
+    backing.set([0x89, 0x50, 0x4e, 0x47], 8);
+    const view = backing.subarray(8, 12); // byteOffset 8, length 4
+    const res = imageResponse(view);
+    const body = new Uint8Array(await res.arrayBuffer());
+    expect(body.length).toBe(4);
+    expect(Array.from(body)).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+  });
 });
 
 describe("effieResponse", () => {

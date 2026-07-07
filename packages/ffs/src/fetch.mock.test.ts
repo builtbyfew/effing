@@ -165,6 +165,35 @@ describe("ffsFetch", () => {
       );
     });
 
+    test("destroys a stream body when URL validation rejects", async () => {
+      const { Readable } = await import("stream");
+      const { validateUrl } = await import("./url");
+      const { fetch: mockFetch } = await import("undici");
+
+      // Force the SSRF check on (tests default to allowing private
+      // networks since NODE_ENV is not production).
+      process.env.FFS_ALLOW_PRIVATE_NETWORKS = "false";
+      try {
+        vi.mocked(validateUrl).mockRejectedValueOnce(
+          new Error("URL resolves to a private network"),
+        );
+
+        // The read stream holds an open fd; a rejected URL means the
+        // request never starts, so ffsFetch must destroy the body itself.
+        const body = Readable.from([Buffer.from("video data")]);
+        const destroySpy = vi.spyOn(body, "destroy");
+
+        await expect(
+          ffsFetch("http://10.0.0.1/video.mp4", { method: "PUT", body }),
+        ).rejects.toThrow("URL resolves to a private network");
+
+        expect(destroySpy).toHaveBeenCalledOnce();
+        expect(vi.mocked(mockFetch)).not.toHaveBeenCalled();
+      } finally {
+        delete process.env.FFS_ALLOW_PRIVATE_NETWORKS;
+      }
+    });
+
     test("rejects redirects without location header", async () => {
       const { fetch: mockFetch } = await import("undici");
       const mockedFetch = vi.mocked(mockFetch);

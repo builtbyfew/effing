@@ -90,7 +90,22 @@ export async function ffsFetch(
       : process.env.NODE_ENV !== "production";
 
   if (!allowPrivate) {
-    await validateUrl(url);
+    try {
+      await validateUrl(url);
+    } catch (error) {
+      // Stream bodies (e.g. file read streams) hold an open fd from the
+      // moment they're created; the request never starts on this path, so
+      // nothing downstream will consume or close them — destroy explicitly.
+      if (
+        body !== null &&
+        typeof body === "object" &&
+        "destroy" in body &&
+        typeof (body as { destroy: unknown }).destroy === "function"
+      ) {
+        (body as { destroy: () => void }).destroy();
+      }
+      throw error;
+    }
   }
 
   const agent = getAgent(headersTimeout, bodyTimeout);

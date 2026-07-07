@@ -5,7 +5,7 @@
 
 import zlib from "node:zlib";
 import { promisify } from "node:util";
-import { createHash, createHmac } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 const zip = promisify(zlib.gzip);
 const unzip = promisify(zlib.unzip);
@@ -135,7 +135,8 @@ export async function deserialize<T = Record<string, unknown>>(
 
   const derivedKey = deriveSigningKey(secretKey, salt, algorithm);
   const hmac = createHmac(algorithm, derivedKey).update(payload).digest();
-  if (Buffer.compare(urlsafeBase64Decode(signature!), hmac) !== 0) {
+  const provided = signature ? urlsafeBase64Decode(signature) : Buffer.alloc(0);
+  if (provided.length !== hmac.length || !timingSafeEqual(provided, hmac)) {
     throw new Error("invalid url segment signature");
   }
 

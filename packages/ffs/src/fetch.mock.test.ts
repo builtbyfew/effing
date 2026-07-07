@@ -1,5 +1,6 @@
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { ffsFetch, clearAgentCache } from "./fetch";
+import { validateUrl, validatedLookup } from "./url";
 import { Agent } from "undici";
 
 // Mock undici
@@ -15,6 +16,7 @@ vi.mock("undici", async () => {
 // Mock URL validation (tested separately in url.test.ts)
 vi.mock("./url", () => ({
   validateUrl: vi.fn(),
+  validatedLookup: vi.fn(),
   SsrfError: class SsrfError extends Error {},
 }));
 
@@ -22,6 +24,10 @@ describe("ffsFetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAgentCache();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe("User-Agent header", () => {
@@ -242,6 +248,71 @@ describe("ffsFetch", () => {
           dispatcher: mockAgentInstance,
         }),
       );
+    });
+  });
+
+  describe("SSRF protection", () => {
+    test("validates the URL and pins DNS when private networks are disallowed", async () => {
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      const mockAgent = vi.mocked(Agent);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      await ffsFetch("https://example.com");
+
+      expect(validateUrl).toHaveBeenCalledWith("https://example.com");
+      expect(mockAgent).toHaveBeenCalledWith({
+        headersTimeout: 300000,
+        bodyTimeout: 300000,
+        connect: { lookup: validatedLookup },
+      });
+    });
+
+    test("skips validation and DNS pinning when private networks are allowed", async () => {
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "true");
+      const mockAgent = vi.mocked(Agent);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      await ffsFetch("https://example.com");
+
+      expect(validateUrl).not.toHaveBeenCalled();
+      expect(mockAgent).toHaveBeenCalledWith({
+        headersTimeout: 300000,
+        bodyTimeout: 300000,
+      });
+    });
+
+    test("uses separate Agents for pinned and unpinned fetches with the same timeouts", async () => {
+      const mockAgent = vi.mocked(Agent);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValue(new Response("ok"));
+
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "true");
+      await ffsFetch("https://example.com/one");
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      await ffsFetch("https://example.com/two");
+
+      expect(mockAgent).toHaveBeenCalledTimes(2);
+      const [first, second] = mockedFetch.mock.calls;
+      expect(first[1]?.dispatcher).not.toBe(second[1]?.dispatcher);
+    });
+
+    test("does not fetch when URL validation fails", async () => {
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      vi.mocked(validateUrl).mockRejectedValueOnce(
+        new Error("URL blocked by SSRF protection: blocked IP address"),
+      );
+
+      await expect(ffsFetch("http://169.254.169.254/")).rejects.toThrow(
+        "URL blocked by SSRF protection",
+      );
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
   });
 

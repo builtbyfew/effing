@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { lookup } from "dns/promises";
-import { isBlockedIp, validateUrl, SsrfError } from "./url";
+import type { LookupAddress, LookupOptions } from "dns";
+import { isBlockedIp, validateUrl, validatedLookup, SsrfError } from "./url";
 
 vi.mock("dns/promises", () => ({
   lookup: vi.fn(),
@@ -94,20 +95,26 @@ describe("validateUrl", () => {
     await expect(validateUrl("http://localhost/")).rejects.toThrow(SsrfError);
   });
 
-  it("allows public URLs", async () => {
+  it("allows public URLs and returns the validated addresses", async () => {
     vi.mocked(lookup).mockResolvedValue([
       { address: "93.184.216.34", family: 4 },
     ] as never);
 
     await expect(
       validateUrl("https://cdn.example.com/video.mp4"),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual([{ address: "93.184.216.34", family: 4 }]);
   });
 
-  it("allows data URLs", async () => {
+  it("allows data URLs and returns null", async () => {
     await expect(
       validateUrl("data:text/plain;base64,aGVsbG8="),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  it("allows public IP literals without a DNS lookup and returns null", async () => {
+    await expect(validateUrl("http://8.8.8.8/video.mp4")).resolves.toBeNull();
+    expect(lookup).not.toHaveBeenCalled();
   });
 
   it("rejects when any DNS result is a private IP", async () => {
@@ -119,5 +126,108 @@ describe("validateUrl", () => {
     await expect(
       validateUrl("https://evil.com/steal-metadata"),
     ).rejects.toThrow("hostname resolves to blocked IP");
+  });
+});
+
+describe("validatedLookup", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /** Promisified wrapper around the callback-style net.LookupFunction. */
+  function callLookup(
+    hostname: string,
+    options: LookupOptions,
+  ): Promise<{ address: string | LookupAddress[]; family?: number }> {
+    return new Promise((resolve, reject) => {
+      validatedLookup(hostname, options, (err, address, family) => {
+        if (err) reject(err);
+        else resolve({ address, family });
+      });
+    });
+  }
+
+  it("returns all validated addresses when options.all is set", async () => {
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+      { address: "2001:db8::1", family: 6 },
+    ] as never);
+
+    await expect(callLookup("all.example.com", { all: true })).resolves.toEqual(
+      {
+        address: [
+          { address: "93.184.216.34", family: 4 },
+          { address: "2001:db8::1", family: 6 },
+        ],
+      },
+    );
+  });
+
+  it("returns a single address when options.all is not set", async () => {
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ] as never);
+
+    await expect(callLookup("single.example.com", {})).resolves.toEqual({
+      address: "93.184.216.34",
+      family: 4,
+    });
+  });
+
+  it("filters by the requested address family", async () => {
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+      { address: "2001:db8::1", family: 6 },
+    ] as never);
+
+    await expect(
+      callLookup("family.example.com", { family: 6, all: true }),
+    ).resolves.toEqual({ address: [{ address: "2001:db8::1", family: 6 }] });
+  });
+
+  it("fails with ENOTFOUND when no address matches the requested family", async () => {
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ] as never);
+
+    await expect(
+      callLookup("v4only.example.com", { family: 6 }),
+    ).rejects.toMatchObject({ code: "ENOTFOUND" });
+  });
+
+  it("rejects a hostname that resolves to a blocked IP at connect time", async () => {
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "169.254.169.254", family: 4 },
+    ] as never);
+
+    await expect(
+      callLookup("metadata.example.com", { all: true }),
+    ).rejects.toBeInstanceOf(SsrfError);
+  });
+
+  it("rejects blocked IP literals", async () => {
+    await expect(callLookup("127.0.0.1", { all: true })).rejects.toBeInstanceOf(
+      SsrfError,
+    );
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
+  it("connects to the addresses validated by validateUrl even if DNS changes (rebinding)", async () => {
+    // Public at validation time...
+    vi.mocked(lookup).mockResolvedValueOnce([
+      { address: "203.0.113.7", family: 4 },
+    ] as never);
+    await validateUrl("https://rebind.example.com/video.mp4");
+
+    // ...internal at connect time.
+    vi.mocked(lookup).mockResolvedValue([
+      { address: "10.0.0.1", family: 4 },
+    ] as never);
+
+    await expect(
+      callLookup("rebind.example.com", { all: true }),
+    ).resolves.toEqual({
+      address: [{ address: "203.0.113.7", family: 4 }],
+    });
   });
 });

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import express from "express";
 import bodyParser from "body-parser";
 import {
@@ -24,10 +25,15 @@ export async function startServer(): Promise<void> {
 
   function validateAuth(req: express.Request, res: express.Response): boolean {
     const apiKey = process.env.FFS_API_KEY;
-    if (!apiKey) return true;
+    if (!apiKey) return true; // intentional: keyless sidecar deployments
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${apiKey}`) {
+    // Constant-time comparison so response timing doesn't leak key prefixes.
+    const provided = Buffer.from(req.headers.authorization ?? "");
+    const expected = Buffer.from(`Bearer ${apiKey}`);
+    const ok =
+      provided.length === expected.length &&
+      timingSafeEqual(provided, expected);
+    if (!ok) {
       sendError(res, 401, ErrorCode.UNAUTHORIZED, "Unauthorized");
       return false;
     }

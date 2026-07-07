@@ -1,5 +1,5 @@
 import { fetch, Agent, type Response, type BodyInit } from "undici";
-import { validateUrl } from "./url";
+import { validateUrl, validatedLookup } from "./url";
 
 /**
  * Options for ffsFetch function
@@ -18,19 +18,32 @@ export type FfsFetchOptions = {
 };
 
 /**
- * Shared undici Agents keyed by timeout config. Each Agent owns a keep-alive
- * connection pool, so reusing them across requests enables connection reuse
- * instead of a fresh TCP+TLS handshake per fetch. The cache is unbounded, so
- * callers must pass timeouts from a small fixed set of constants (as all
- * current callers do) — never per-request computed values.
+ * Shared undici Agents keyed by timeout config and DNS mode. Each Agent owns
+ * a keep-alive connection pool, so reusing them across requests enables
+ * connection reuse instead of a fresh TCP+TLS handshake per fetch. The cache
+ * is unbounded, so callers must pass timeouts from a small fixed set of
+ * constants (as all current callers do) — never per-request computed values.
+ *
+ * When SSRF protection is active, the Agent connects through
+ * `validatedLookup`, which only ever yields addresses that passed
+ * `isBlockedIp` — including at connect time, so a hostname cannot re-resolve
+ * to an internal address after validation (DNS rebinding).
  */
 const agentCache = new Map<string, Agent>();
 
-function getAgent(headersTimeout: number, bodyTimeout: number): Agent {
-  const key = `${headersTimeout}:${bodyTimeout}`;
+function getAgent(
+  headersTimeout: number,
+  bodyTimeout: number,
+  pinDns: boolean,
+): Agent {
+  const key = `${headersTimeout}:${bodyTimeout}:${pinDns ? "pinned" : "system"}`;
   let agent = agentCache.get(key);
   if (!agent) {
-    agent = new Agent({ headersTimeout, bodyTimeout });
+    agent = new Agent({
+      headersTimeout,
+      bodyTimeout,
+      ...(pinDns ? { connect: { lookup: validatedLookup } } : {}),
+    });
     agentCache.set(key, agent);
   }
   return agent;
@@ -89,10 +102,12 @@ export async function ffsFetch(
       : process.env.NODE_ENV !== "production";
 
   if (!allowPrivate) {
+    // Validates the URL and caches the vetted addresses; the pinned Agent's
+    // connect-time lookup reuses them, closing the validate/connect DNS gap.
     await validateUrl(url);
   }
 
-  const agent = getAgent(headersTimeout, bodyTimeout);
+  const agent = getAgent(headersTimeout, bodyTimeout, !allowPrivate);
 
   const response = await fetch(url, {
     method,

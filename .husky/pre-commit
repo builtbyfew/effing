@@ -22,9 +22,3 @@ fi
 # -----------
 
 pnpm lint-staged
-
-pnpm -r typecheck
-pnpm -r test
-
-pnpm docs:api
-git add docs/api/

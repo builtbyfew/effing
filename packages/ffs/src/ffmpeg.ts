@@ -130,18 +130,25 @@ export class FFmpegRunner {
         const extract = tar.extract();
         const extractPromise = new Promise<void>((resolve, reject) => {
           extract.on("entry", async (header, stream, next) => {
-            if (header.name.startsWith("frame_")) {
-              const transformedStream = imageTransformer
-                ? await imageTransformer(stream)
-                : stream;
-              const outputPath = path.join(extractionDir, header.name);
-              const writeStream = createWriteStream(outputPath);
-              transformedStream.pipe(writeStream);
-              writeStream.on("finish", next);
-              writeStream.on("error", reject);
-            } else {
+            try {
+              if (header.name.startsWith("frame_")) {
+                const transformedStream = imageTransformer
+                  ? await imageTransformer(stream)
+                  : stream;
+                const outputPath = path.join(extractionDir, header.name);
+                const writeStream = createWriteStream(outputPath);
+                transformedStream.on("error", (e) => writeStream.destroy(e));
+                await pump(transformedStream, writeStream);
+                next();
+              } else {
+                stream.resume();
+                next();
+              }
+            } catch (err) {
+              // Drain the current entry so the tar parser isn't wedged, then
+              // surface the error instead of stalling extraction forever.
               stream.resume();
-              next();
+              reject(err as Error);
             }
           });
           extract.on("finish", resolve);
@@ -166,92 +173,102 @@ export class FFmpegRunner {
       }
     };
 
-    await Promise.all(
-      this.command.inputs.map(async (input) => {
-        if (input.type === "color") return;
+    try {
+      await Promise.all(
+        this.command.inputs.map(async (input) => {
+          if (input.type === "color") return;
 
-        const inputName = `ffmpeg_input_${input.index
-          .toString()
-          .padStart(3, "0")}`;
+          const inputName = `ffmpeg_input_${input.index
+            .toString()
+            .padStart(3, "0")}`;
 
-        // Resolve #references to get the actual URL
-        const sourceUrl = referenceResolver
-          ? referenceResolver(input.source)
-          : input.source;
+          // Resolve #references to get the actual URL
+          const sourceUrl = referenceResolver
+            ? referenceResolver(input.source)
+            : input.source;
 
-        // Pass HTTP(S) video/audio URLs directly to FFmpeg without downloading
-        // If urlTransformer is provided, transform the URL (e.g., for proxy)
-        if (
-          (input.type === "video" || input.type === "audio") &&
-          (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://"))
-        ) {
-          const finalUrl = urlTransformer
-            ? urlTransformer(sourceUrl)
-            : sourceUrl;
-          fileMapping.set(input.index, finalUrl);
-          return;
-        }
-
-        // Deduplicate fetches when the same #ref appears multiple times.
-        // Only for #refs since they're short strings; data URLs would bloat the map.
-        const shouldCache = input.source.startsWith("#");
-        if (shouldCache) {
-          let fetchPromise = fetchCache.get(input.source);
-          if (!fetchPromise) {
-            fetchPromise = fetchAndSaveSource(input, sourceUrl, inputName);
-            fetchCache.set(input.source, fetchPromise);
+          // Pass HTTP(S) video/audio URLs directly to FFmpeg without downloading
+          // If urlTransformer is provided, transform the URL (e.g., for proxy)
+          if (
+            (input.type === "video" || input.type === "audio") &&
+            (sourceUrl.startsWith("http://") ||
+              sourceUrl.startsWith("https://"))
+          ) {
+            const finalUrl = urlTransformer
+              ? urlTransformer(sourceUrl)
+              : sourceUrl;
+            fileMapping.set(input.index, finalUrl);
+            return;
           }
-          const filePath = await fetchPromise;
-          fileMapping.set(input.index, filePath);
-        } else {
-          const filePath = await fetchAndSaveSource(
-            input,
-            sourceUrl,
-            inputName,
-          );
-          fileMapping.set(input.index, filePath);
+
+          // Deduplicate fetches when the same #ref appears multiple times.
+          // Only for #refs since they're short strings; data URLs would bloat the map.
+          const shouldCache = input.source.startsWith("#");
+          if (shouldCache) {
+            let fetchPromise = fetchCache.get(input.source);
+            if (!fetchPromise) {
+              fetchPromise = fetchAndSaveSource(input, sourceUrl, inputName);
+              fetchCache.set(input.source, fetchPromise);
+            }
+            const filePath = await fetchPromise;
+            fileMapping.set(input.index, filePath);
+          } else {
+            const filePath = await fetchAndSaveSource(
+              input,
+              sourceUrl,
+              inputName,
+            );
+            fileMapping.set(input.index, filePath);
+          }
+        }),
+      );
+
+      const finalArgs = this.command.buildArgs((input) => {
+        const filePath = fileMapping.get(input.index);
+        if (!filePath)
+          throw new Error(`File for input index ${input.index} not found`);
+        return filePath;
+      });
+      const ffmpegProc = spawn(await getFFmpegBin(), finalArgs);
+      ffmpegProc.stderr!.on("data", (data) => {
+        console.error(data.toString());
+      });
+
+      // Forward ffmpeg's stdout through a PassThrough so we can hold back
+      // the end-of-stream signal until ffmpeg has actually exited. That way
+      // consumers piping the returned stream see an `error` event on non-zero
+      // exits instead of a silently-truncated "successful" render.
+      const output = new PassThrough();
+      ffmpegProc.stdout.pipe(output, { end: false });
+      ffmpegProc.stdout.on("error", (err) => output.destroy(err));
+
+      ffmpegProc.on("close", async (code, signal) => {
+        try {
+          await fs.rm(tempDir, { recursive: true, force: true });
+        } catch (err) {
+          console.error("Error removing temp directory:", err);
         }
-      }),
-    );
+        if (code === 0 || signal === "SIGTERM") {
+          output.end();
+        } else {
+          output.destroy(
+            new Error(
+              `ffmpeg exited with ${signal ? `signal ${signal}` : `code ${code}`}`,
+            ),
+          );
+        }
+      });
 
-    const finalArgs = this.command.buildArgs((input) => {
-      const filePath = fileMapping.get(input.index);
-      if (!filePath)
-        throw new Error(`File for input index ${input.index} not found`);
-      return filePath;
-    });
-    const ffmpegProc = spawn(await getFFmpegBin(), finalArgs);
-    ffmpegProc.stderr!.on("data", (data) => {
-      console.error(data.toString());
-    });
-
-    // Forward ffmpeg's stdout through a PassThrough so we can hold back
-    // the end-of-stream signal until ffmpeg has actually exited. That way
-    // consumers piping the returned stream see an `error` event on non-zero
-    // exits instead of a silently-truncated "successful" render.
-    const output = new PassThrough();
-    ffmpegProc.stdout.pipe(output, { end: false });
-    ffmpegProc.stdout.on("error", (err) => output.destroy(err));
-
-    ffmpegProc.on("close", async (code, signal) => {
-      try {
-        await fs.rm(tempDir, { recursive: true, force: true });
-      } catch (err) {
-        console.error("Error removing temp directory:", err);
-      }
-      if (code === 0 || signal === "SIGTERM") {
-        output.end();
-      } else {
-        output.destroy(
-          new Error(
-            `ffmpeg exited with ${signal ? `signal ${signal}` : `code ${code}`}`,
-          ),
-        );
-      }
-    });
-
-    this.ffmpegProc = ffmpegProc;
-    return output;
+      this.ffmpegProc = ffmpegProc;
+      return output;
+    } catch (err) {
+      // If anything fails before ffmpeg is spawned (e.g. an input fetch
+      // rejects), the process `close` handler that normally removes the temp
+      // dir never runs — clean it up here instead. The happy path returns
+      // inside the try, so this never races with that handler.
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      throw err;
+    }
   }
 
   close(): void {

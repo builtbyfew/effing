@@ -2,6 +2,8 @@ import { describe, test, expect, vi } from "vitest";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
+import fsp from "fs/promises";
+import tar from "tar-stream";
 
 // The runner reports ffmpeg's exit through its output stream, which can
 // happen after a test body returns. Consume the stream and wait for it to
@@ -243,5 +245,83 @@ describe("FFmpegRunner", () => {
         src: "https://example.com/segment0.mp4",
       });
     });
+  });
+
+  describe("failure handling", () => {
+    test("removes the temp dir when an input fetch fails", async () => {
+      const mkdtempSpy = vi.spyOn(fsp, "mkdtemp");
+      try {
+        const sourceFetcher = vi
+          .fn()
+          .mockRejectedValue(new Error("fetch failed"));
+
+        const command = new FFmpegCommand(
+          ["-y"],
+          [
+            {
+              index: 0,
+              source: "https://example.com/image.png",
+              preArgs: [],
+              type: "image",
+            },
+          ],
+          "[0:v]copy[outv]",
+          ["-map", "[outv]", "-f", "null", "-"],
+        );
+
+        const runner = new FFmpegRunner(command);
+
+        await expect(runner.run(sourceFetcher)).rejects.toThrow("fetch failed");
+
+        // The ffs-* temp dir created for this run must not be left behind:
+        // the fetch failed before ffmpeg spawned, so the process `close`
+        // handler (which owns happy-path cleanup) never runs.
+        expect(mkdtempSpy).toHaveBeenCalledTimes(1);
+        const tempDir = await mkdtempSpy.mock.results[0].value;
+        await expect(fsp.access(tempDir)).rejects.toThrow();
+      } finally {
+        mkdtempSpy.mockRestore();
+      }
+    });
+
+    test(
+      "rejects when an animation frame transform fails",
+      { timeout: 5000 },
+      async () => {
+        // Build a minimal annie (TAR of frames) in memory; the pack stream
+        // is a Readable, so it can be returned from the sourceFetcher as-is.
+        const pack = tar.pack();
+        pack.entry({ name: "frame_00001" }, Buffer.from("frame-data"));
+        pack.entry({ name: "frame_00002" }, Buffer.from("frame-data"));
+        pack.finalize();
+
+        const sourceFetcher = vi.fn().mockResolvedValue(pack);
+        const imageTransformer = vi
+          .fn()
+          .mockRejectedValue(new Error("cannot decode frame"));
+
+        const command = new FFmpegCommand(
+          ["-y"],
+          [
+            {
+              index: 0,
+              source: "https://example.com/animation.annie",
+              preArgs: [],
+              type: "animation",
+            },
+          ],
+          "[0:v]copy[outv]",
+          ["-map", "[outv]", "-f", "null", "-"],
+        );
+
+        const runner = new FFmpegRunner(command);
+
+        // Must reject (not hang) when a frame can't be transformed.
+        await expect(
+          runner.run(sourceFetcher, imageTransformer),
+        ).rejects.toThrow("cannot decode frame");
+        expect(imageTransformer).toHaveBeenCalled();
+      },
+    );
   });
 });

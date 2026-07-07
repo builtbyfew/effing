@@ -550,17 +550,25 @@ async function streamRenderDirect(
   try {
     const videoStream = await renderer.render(job.scale);
 
-    res.on("close", () => {
-      videoStream.destroy();
-    });
-
     res.set("Content-Type", "video/mp4");
     res.set("Cache-Control", "public, immutable, max-age=86400");
 
     await new Promise<void>((resolve, reject) => {
-      videoStream.pipe(res);
-      res.on("finish", resolve);
+      const onClose = () => {
+        // Client aborted mid-download: destroy the piped stream and settle
+        // so the `finally` below closes the renderer (SIGTERMs ffmpeg).
+        videoStream.destroy();
+        resolve();
+      };
+      res.on("close", onClose);
+      res.on("finish", () => {
+        // Normal completion also emits "close" afterwards; drop the abort
+        // handler so the stream isn't destroyed on the happy path.
+        res.off("close", onClose);
+        resolve();
+      });
       res.on("error", reject);
+      videoStream.pipe(res);
     });
   } finally {
     renderer.close();

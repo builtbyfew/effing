@@ -26,12 +26,15 @@ function mockRequest(params: Record<string, string> = {}): Request {
   return { params } as unknown as Request;
 }
 
-function mockResponse(): Response & {
+function mockResponse(options: { autoFinish?: boolean } = {}): Response & {
   statusCode: number;
   body: unknown;
   headers: Record<string, string>;
   ended: boolean;
+  emitEvent: (event: string) => void;
 } {
+  const { autoFinish = true } = options;
+  const handlers = new Map<string, Array<() => void>>();
   const res = {
     statusCode: 200,
     body: null as unknown,
@@ -60,8 +63,20 @@ function mockResponse(): Response & {
     flushHeaders: vi.fn(),
     pipe: vi.fn(),
     on: vi.fn((event: string, cb: () => void) => {
-      if (event === "finish") process.nextTick(cb);
+      handlers.set(event, [...(handlers.get(event) ?? []), cb]);
+      if (event === "finish" && autoFinish) process.nextTick(cb);
+      return res;
     }),
+    off: vi.fn((event: string, cb: () => void) => {
+      handlers.set(
+        event,
+        (handlers.get(event) ?? []).filter((handler) => handler !== cb),
+      );
+      return res;
+    }),
+    emitEvent(event: string) {
+      for (const cb of handlers.get(event) ?? []) cb();
+    },
     destroyed: false,
   };
   return res as unknown as Response & {
@@ -69,6 +84,7 @@ function mockResponse(): Response & {
     body: unknown;
     headers: Record<string, string>;
     ended: boolean;
+    emitEvent: (event: string) => void;
   };
 }
 
@@ -167,6 +183,60 @@ describe("streamRenderVideo", () => {
     expect(ctx.transientStore.delete).toHaveBeenCalledWith(
       storeKeys.videoJob(jobId),
     );
+  });
+
+  test("closes the renderer when the client aborts mid-stream", async () => {
+    const { Readable } = await import("stream");
+
+    const videoJob: VideoJob = {
+      effie: {
+        width: 1080,
+        height: 1080,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "#000000" },
+        segments: [],
+        sources: {},
+      },
+      scale: 1,
+    };
+
+    const jobId = "aborted-video-id";
+    const storeData: Record<string, unknown> = {
+      [storeKeys.videoJob(jobId)]: videoJob,
+    };
+
+    const mockVideoStream = new Readable({ read() {} });
+    mockVideoStream.pipe = vi.fn();
+
+    const mockRenderer = {
+      render: vi.fn().mockResolvedValue(mockVideoStream),
+      close: vi.fn(),
+    };
+
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const { streamRenderVideo } = await import("./rendering");
+
+    const req = mockRequest({ id: jobId });
+    // "finish" never fires: the client disconnects before the download ends.
+    const res = mockResponse({ autoFinish: false });
+    const ctx = mockContext(storeData);
+
+    const handled = streamRenderVideo(req, res, ctx);
+
+    // Wait for the handler to start piping, then simulate the client abort.
+    await vi.waitFor(() => {
+      expect(mockVideoStream.pipe).toHaveBeenCalledWith(res);
+    });
+    res.emitEvent("close");
+    await handled;
+
+    expect(mockVideoStream.destroyed).toBe(true);
+    expect(mockRenderer.close).toHaveBeenCalledOnce();
   });
 
   test("local direct-stream fires onRenderComplete", async () => {

@@ -1,6 +1,32 @@
 import { describe, test, expect, vi } from "vitest";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import { Readable } from "stream";
+import { finished } from "stream/promises";
+
+// The runner reports ffmpeg's exit through its output stream, which can
+// happen after a test body returns. Consume the stream and wait for it to
+// settle so the expected failure (ffmpeg choking on the garbage test
+// inputs) lands here instead of failing the run as an unhandled error.
+async function runUntilSettled(
+  runner: FFmpegRunner,
+  ...args: Parameters<FFmpegRunner["run"]>
+) {
+  try {
+    const output = await runner.run(...args);
+    output.resume();
+    runner.close();
+    await finished(output);
+  } catch (err) {
+    // Only the ffmpeg failure is expected — these tests assert on source
+    // fetching, which happens before ffmpeg spawns. Anything else is a
+    // genuine bug and must fail the test.
+    if (!(err instanceof Error) || !/^ffmpeg exited with/.test(err.message)) {
+      throw err;
+    }
+  } finally {
+    runner.close();
+  }
+}
 
 describe("FFmpegRunner", () => {
   describe("source caching", () => {
@@ -34,13 +60,12 @@ describe("FFmpegRunner", () => {
       const runner = new FFmpegRunner(command);
 
       // The run will fail when FFmpeg tries to spawn, but source resolution happens first
-      try {
-        await runner.run(sourceFetcher, undefined, referenceResolver);
-      } catch {
-        // Expected - FFmpeg process will fail, but we've already tested the caching
-      } finally {
-        runner.close();
-      }
+      await runUntilSettled(
+        runner,
+        sourceFetcher,
+        undefined,
+        referenceResolver,
+      );
 
       // Should only be called twice (once per unique #reference), not 4 times
       expect(sourceFetcher).toHaveBeenCalledTimes(2);
@@ -79,13 +104,7 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      try {
-        await runner.run(sourceFetcher);
-      } catch {
-        // Expected - FFmpeg process will fail
-      } finally {
-        runner.close();
-      }
+      await runUntilSettled(runner, sourceFetcher);
 
       // HTTP video/audio URLs are passed directly to FFmpeg, no sourceFetcher calls
       expect(sourceFetcher).toHaveBeenCalledTimes(0);
@@ -122,13 +141,12 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      try {
-        await runner.run(sourceFetcher, undefined, referenceResolver);
-      } catch {
-        // Expected
-      } finally {
-        runner.close();
-      }
+      await runUntilSettled(
+        runner,
+        sourceFetcher,
+        undefined,
+        referenceResolver,
+      );
 
       // #__segment_0 once (cached), HTTP audio URL passed directly (no call)
       expect(sourceFetcher).toHaveBeenCalledTimes(1);
@@ -168,13 +186,7 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      try {
-        await runner.run(sourceFetcher);
-      } catch {
-        // Expected
-      } finally {
-        runner.close();
-      }
+      await runUntilSettled(runner, sourceFetcher);
 
       // Image URL should be fetched, video URL should not
       expect(sourceFetcher).toHaveBeenCalledTimes(1);
@@ -217,13 +229,12 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      try {
-        await runner.run(sourceFetcher, undefined, referenceResolver);
-      } catch {
-        // Expected
-      } finally {
-        runner.close();
-      }
+      await runUntilSettled(
+        runner,
+        sourceFetcher,
+        undefined,
+        referenceResolver,
+      );
 
       // Only the #reference should be fetched (as resolved URL), not the color input
       expect(sourceFetcher).toHaveBeenCalledTimes(1);

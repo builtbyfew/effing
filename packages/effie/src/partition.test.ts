@@ -207,6 +207,123 @@ describe("effieDataForSegment", () => {
       });
     });
 
+    test("subtracts transition overlap from accumulated seek", () => {
+      // A transition overlaps the tail of the previous segment, so the
+      // monolithic renderer advances the shared background by
+      // duration - transitionDuration per segment. The partitioned seek
+      // must match, or the background jumps at segment boundaries.
+      const effieData = createBaseEffieData({
+        background: {
+          type: "video",
+          source: "https://example.com/bg.mp4",
+          seek: 10,
+        },
+        segments: [
+          { duration: 5, layers: [] },
+          {
+            duration: 3,
+            layers: [],
+            transition: { type: "fade", duration: 0.5 },
+          },
+          { duration: 4, layers: [] },
+        ],
+      });
+
+      const result = effieDataForSegment(effieData, 1);
+
+      expect(result.background).toEqual({
+        type: "video",
+        source: "https://example.com/bg.mp4",
+        seek: 14.5, // 10 + (5 - 0.5 transition overlap)
+      });
+    });
+
+    test("accumulates transition-adjusted seek across multiple segments", () => {
+      const effieData = createBaseEffieData({
+        background: {
+          type: "video",
+          source: "https://example.com/bg.mp4",
+          seek: 10,
+        },
+        segments: [
+          { duration: 5, layers: [] },
+          {
+            duration: 3,
+            layers: [],
+            transition: { type: "fade", duration: 0.5 },
+          },
+          {
+            duration: 4,
+            layers: [],
+            transition: { type: "wipe", duration: 1, direction: "left" },
+          },
+        ],
+      });
+
+      const result = effieDataForSegment(effieData, 2);
+
+      expect(result.background).toEqual({
+        type: "video",
+        source: "https://example.com/bg.mp4",
+        seek: 16.5, // 10 + (5 - 0.5) + (3 - 1)
+      });
+    });
+
+    test("ignores the target segment's own outgoing transition", () => {
+      // Only transitions *into* prior boundaries shorten the timeline; a
+      // transition on the segment after the target does not affect its seek.
+      const effieData = createBaseEffieData({
+        background: {
+          type: "video",
+          source: "https://example.com/bg.mp4",
+        },
+        segments: [
+          { duration: 5, layers: [] },
+          { duration: 3, layers: [] },
+          {
+            duration: 4,
+            layers: [],
+            transition: { type: "fade", duration: 0.5 },
+          },
+        ],
+      });
+
+      const result = effieDataForSegment(effieData, 1);
+
+      expect(result.background).toEqual({
+        type: "video",
+        source: "https://example.com/bg.mp4",
+        seek: 5, // 0 + 5; segment 2's transition is irrelevant here
+      });
+    });
+
+    test("floors each prior segment's contribution at 0.001", () => {
+      // Mirrors the renderer's Math.max(0.001, ...) guard so both paths
+      // compute the same timestamp even in degenerate cases.
+      const effieData = createBaseEffieData({
+        background: {
+          type: "video",
+          source: "https://example.com/bg.mp4",
+        },
+        segments: [
+          { duration: 1, layers: [] },
+          {
+            duration: 3,
+            layers: [],
+            transition: { type: "fade", duration: 1 },
+          },
+        ],
+      });
+
+      const result = effieDataForSegment(effieData, 1);
+
+      expect(result.background).toEqual({
+        type: "video",
+        source: "https://example.com/bg.mp4",
+        seek: 0.001,
+      });
+    });
+
     test("defaults seek to 0 for video background without seek", () => {
       const effieData = createBaseEffieData({
         background: {

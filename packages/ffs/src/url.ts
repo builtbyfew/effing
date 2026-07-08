@@ -80,6 +80,13 @@ const dnsCache = new Map<
 >();
 
 /**
+ * Clear the DNS validation cache. Intended for tests.
+ */
+export function clearDnsCache(): void {
+  dnsCache.clear();
+}
+
+/**
  * Resolve a hostname and check every returned address. Results (including
  * blocked verdicts) are cached for a short TTL. Because `validatedLookup`
  * reads the same cache, a connection made right after validation reuses the

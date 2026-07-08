@@ -1,7 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { lookup } from "dns/promises";
 import type { LookupAddress, LookupOptions } from "dns";
-import { isBlockedIp, validateUrl, validatedLookup, SsrfError } from "./url";
+import {
+  isBlockedIp,
+  validateUrl,
+  validatedLookup,
+  clearDnsCache,
+  SsrfError,
+} from "./url";
 
 vi.mock("dns/promises", () => ({
   lookup: vi.fn(),
@@ -51,6 +57,7 @@ describe("isBlockedIp", () => {
 describe("validateUrl", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearDnsCache();
   });
 
   it("rejects invalid URLs", async () => {
@@ -132,6 +139,7 @@ describe("validateUrl", () => {
 describe("validatedLookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearDnsCache();
   });
 
   /** Promisified wrapper around the callback-style net.LookupFunction. */

@@ -1,5 +1,19 @@
 # @effing/dev
 
+## 0.39.0
+
+### Patch Changes
+
+- Updated dependencies [4b2b523]
+- Updated dependencies [3d4fb42]
+- Updated dependencies [1b5e0fe]
+- Updated dependencies [d125693]
+  - @effing/fn@0.39.0
+  - @effing/effie@0.39.0
+  - @effing/serde@0.39.0
+  - @effing/effie-preview@0.39.0
+  - @effing/annie-player@0.39.0
+
 ## 0.38.4
 
 ### Patch Changes

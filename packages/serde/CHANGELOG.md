@@ -1,5 +1,11 @@
 # @effing/serde
 
+## 0.39.0
+
+### Patch Changes
+
+- 1b5e0fe: Use a constant-time comparison for signature verification in `deserialize` and fail closed on segments with a missing signature
+
 ## 0.38.4
 
 ## 0.38.3

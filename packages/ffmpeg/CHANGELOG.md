@@ -1,5 +1,11 @@
 # @effing/ffmpeg
 
+## 0.39.0
+
+### Patch Changes
+
+- dfb481a: Verify the SHA-256 checksum of the downloaded FFmpeg binary against pinned per-platform digests; set `FFMPEG_SKIP_CHECKSUM=1` to opt out for custom builds served via `FFMPEG_BINARIES_URL`.
+
 ## 0.38.4
 
 ## 0.38.3

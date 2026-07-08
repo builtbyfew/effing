@@ -1,5 +1,37 @@
 # @effing/ffs
 
+## 0.39.0
+
+### Patch Changes
+
+- 7058ab0: Bump @aws-sdk/client-s3 and @aws-sdk/lib-storage to drop the vulnerable fast-xml-parser transitive dependency (GHSA-m7jm-9gc2-mpf2 and related advisories)
+- ecb06f4: Reuse undici connection pools across fetches and kill ffmpeg when a client aborts a direct-stream download
+
+  `ffsFetch` now caches undici Agents per timeout config instead of creating a
+  new connection pool on every call, enabling keep-alive connection reuse and
+  avoiding orphaned sockets. Direct video streaming now settles its response
+  promise when the client disconnects mid-download, so the renderer is always
+  closed and the spawned ffmpeg process (and its temp dir) no longer leaks on
+  aborted downloads.
+
+- 3581919: Fail fast instead of hanging when an animation frame can't be transformed, and remove the temp directory when a render fails before ffmpeg spawns
+- 74cca68: Pin outbound fetches to the DNS results that passed SSRF validation (closing a DNS-rebinding window), use a timing-safe API key comparison, and document the security-related environment variables.
+- 4136049: Stream rendered videos to a temp file and upload from disk instead of buffering the whole MP4 in memory, keeping peak memory bounded during render-and-upload.
+- d125693: Validate background colors instead of accepting arbitrary strings
+
+  The `color` background's `color` field previously accepted any string, and
+  the FFS renderer interpolated it directly into an ffmpeg lavfi filtergraph
+  (`color=<value>:size=...`), so a crafted value could smuggle extra lavfi
+  filters into the render. The Effie schema now constrains `color` to the
+  forms ffmpeg's `color` source accepts — named colors, `#RRGGBB[AA]`, and
+  `0xRRGGBB[AA]`, each with an optional `@alpha` suffix — and the FFS renderer
+  independently rejects colors containing filtergraph metacharacters, which
+  also covers renders that skip schema validation (`FFS_SKIP_VALIDATION`).
+
+- Updated dependencies [3d4fb42]
+- Updated dependencies [d125693]
+  - @effing/effie@0.39.0
+
 ## 0.38.4
 
 ### Patch Changes

@@ -6,7 +6,7 @@
 
 # Class: FFmpegRunner
 
-Defined in: [packages/ffs/src/ffmpeg.ts:89](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L89)
+Defined in: [packages/ffs/src/ffmpeg.ts:105](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L105)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:89](https://github.com/builtbyfew/effing
 
 > **new FFmpegRunner**(`command`): `FFmpegRunner`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:94](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L94)
+Defined in: [packages/ffs/src/ffmpeg.ts:110](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L110)
 
 #### Parameters
 
@@ -32,7 +32,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:94](https://github.com/builtbyfew/effing
 
 > **close**(): `void`
 
-Defined in: [packages/ffs/src/ffmpeg.ts:267](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L267)
+Defined in: [packages/ffs/src/ffmpeg.ts:275](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L275)
 
 #### Returns
 
@@ -44,7 +44,7 @@ Defined in: [packages/ffs/src/ffmpeg.ts:267](https://github.com/builtbyfew/effin
 
 > **run**(`sourceFetcher`, `imageTransformer?`, `referenceResolver?`, `urlTransformer?`): `Promise`\<`Readable`\>
 
-Defined in: [packages/ffs/src/ffmpeg.ts:98](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L98)
+Defined in: [packages/ffs/src/ffmpeg.ts:114](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L114)
 
 #### Parameters
 

@@ -8,7 +8,7 @@
 
 > **AnnieSource** = `Uint8Array` \| `ArrayBuffer` \| `Iterable`\<`Uint8Array`\> \| `AsyncIterable`\<`Uint8Array`\> \| `ReadableStream`\<`Uint8Array`\>
 
-Defined in: [packages/annie/src/read.ts:51](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L51)
+Defined in: [packages/annie/src/read.ts:59](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L59)
 
 Byte source an annie can be read from.
 

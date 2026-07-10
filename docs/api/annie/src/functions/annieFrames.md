@@ -8,7 +8,7 @@
 
 > **annieFrames**(`source`): `AsyncGenerator`\<[`AnnieFrame`](../type-aliases/AnnieFrame.md), `void`, `undefined`\>
 
-Defined in: [packages/annie/src/read.ts:226](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L226)
+Defined in: [packages/annie/src/read.ts:234](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L234)
 
 Async-iterate the frames of an annie (a TAR archive of image frames).
 
@@ -17,8 +17,8 @@ archive order — which the annie writers guarantee to be ascending index
 order. Other entries are skipped. The frame's image format is detected
 from its magic bytes (the archive does not record it).
 
-Throws if the archive is truncated, has a corrupt header, or contains no
-frames at all.
+Throws if the archive is truncated, has a corrupt header, declares an
+entry larger than 64 MiB, or contains no frames at all.
 
 ## Parameters
 

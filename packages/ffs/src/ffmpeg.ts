@@ -1,12 +1,11 @@
 import type { ChildProcess } from "child_process";
 import { spawn } from "child_process";
-import type { Readable } from "stream";
-import { PassThrough, pipeline } from "stream";
+import { PassThrough, Readable, pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
-import tar from "tar-stream";
+import { annieFrames } from "@effing/annie";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
@@ -127,35 +126,29 @@ export class FFmpegRunner {
         // which are a TAR that needs to be extracted
         const extractionDir = path.join(tempDir, inputName);
         await fs.mkdir(extractionDir, { recursive: true });
-        const extract = tar.extract();
-        const extractPromise = new Promise<void>((resolve, reject) => {
-          extract.on("entry", async (header, stream, next) => {
-            try {
-              if (header.name.startsWith("frame_")) {
-                const transformedStream = imageTransformer
-                  ? await imageTransformer(stream)
-                  : stream;
-                const outputPath = path.join(extractionDir, header.name);
-                const writeStream = createWriteStream(outputPath);
-                transformedStream.on("error", (e) => writeStream.destroy(e));
-                await pump(transformedStream, writeStream);
-                next();
-              } else {
-                stream.resume();
-                next();
-              }
-            } catch (err) {
-              // Drain the current entry so the tar parser isn't wedged, then
-              // surface the error instead of stalling extraction forever.
-              stream.resume();
-              reject(err as Error);
-            }
-          });
-          extract.on("finish", resolve);
-          extract.on("error", reject);
-        });
-        stream.pipe(extract);
-        await extractPromise;
+        // Any error below (a malformed archive, a failing frame transform)
+        // propagates out of the loop, destroys the source stream via the
+        // reader's cleanup, and rejects this fetch instead of stalling.
+        for await (const frame of annieFrames(stream)) {
+          // Keep the on-disk names identical to the archive entry names so
+          // the ffmpeg `frame_%05d` input pattern keeps matching.
+          const outputPath = path.join(extractionDir, frame.name);
+          if (imageTransformer) {
+            const frameStream = Readable.from(
+              Buffer.from(
+                frame.data.buffer,
+                frame.data.byteOffset,
+                frame.data.byteLength,
+              ),
+            );
+            const transformedStream = await imageTransformer(frameStream);
+            const writeStream = createWriteStream(outputPath);
+            transformedStream.on("error", (e) => writeStream.destroy(e));
+            await pump(transformedStream, writeStream);
+          } else {
+            await fs.writeFile(outputPath, frame.data);
+          }
+        }
         return extractionDir;
       } else if (input.type === "image" && imageTransformer) {
         const tempFile = path.join(tempDir, inputName);

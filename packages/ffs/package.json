@@ -39,10 +39,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1080.0",
     "@aws-sdk/lib-storage": "^3.1080.0",
+    "@effing/annie": "workspace:*",
     "@effing/effie": "workspace:*",
     "body-parser": "^1.20.3",
     "express": "^4.21.2",
-    "tar-stream": "^3.1.7",
     "undici": "^7.3.0",
     "zod": "catalog:"
   },
@@ -51,10 +51,10 @@
     "sharp": "^0.33.5"
   },
   "devDependencies": {
-    "@effing/annie": "workspace:*",
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.0",
     "@types/tar-stream": "^3.1.3",
+    "tar-stream": "^3.1.7",
     "tsup": "catalog:",
     "tsx": "^4.19.3",
     "typescript": "catalog:",

@@ -11,6 +11,22 @@ import { promisify } from "util";
 
 const pump = promisify(pipeline);
 
+/**
+ * Save a stream to a file, optionally routing it through a transformer
+ * first. Errors on the (transformed) stream destroy the file write so the
+ * failure propagates instead of leaving a truncated file behind.
+ */
+async function saveStreamToFile(
+  stream: Readable,
+  outputPath: string,
+  transformer?: (stream: Readable) => Promise<Readable>,
+): Promise<void> {
+  const source = transformer ? await transformer(stream) : stream;
+  const writeStream = createWriteStream(outputPath);
+  source.on("error", (e) => writeStream.destroy(e));
+  await pump(source, writeStream);
+}
+
 let resolvedBin: string | undefined;
 async function getFFmpegBin(): Promise<string> {
   if (resolvedBin) return resolvedBin;
@@ -141,27 +157,19 @@ export class FFmpegRunner {
                 frame.data.byteLength,
               ),
             );
-            const transformedStream = await imageTransformer(frameStream);
-            const writeStream = createWriteStream(outputPath);
-            transformedStream.on("error", (e) => writeStream.destroy(e));
-            await pump(transformedStream, writeStream);
+            await saveStreamToFile(frameStream, outputPath, imageTransformer);
           } else {
             await fs.writeFile(outputPath, frame.data);
           }
         }
         return extractionDir;
-      } else if (input.type === "image" && imageTransformer) {
-        const tempFile = path.join(tempDir, inputName);
-        const transformedStream = await imageTransformer(stream);
-        const writeStream = createWriteStream(tempFile);
-        transformedStream.on("error", (e) => writeStream.destroy(e));
-        await pump(transformedStream, writeStream);
-        return tempFile;
       } else {
         const tempFile = path.join(tempDir, inputName);
-        const writeStream = createWriteStream(tempFile);
-        stream.on("error", (e) => writeStream.destroy(e));
-        await pump(stream, writeStream);
+        await saveStreamToFile(
+          stream,
+          tempFile,
+          input.type === "image" ? imageTransformer : undefined,
+        );
         return tempFile;
       }
     };

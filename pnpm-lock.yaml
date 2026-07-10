@@ -398,6 +398,9 @@ importers:
       '@aws-sdk/lib-storage':
         specifier: ^3.1080.0
         version: 3.1080.0(@aws-sdk/client-s3@3.1080.0)
+      '@effing/annie':
+        specifier: workspace:*
+        version: link:../annie
       '@effing/effie':
         specifier: workspace:*
         version: link:../effie
@@ -407,9 +410,6 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.22.1
-      tar-stream:
-        specifier: ^3.1.7
-        version: 3.1.7
       undici:
         specifier: ^7.3.0
         version: 7.16.0
@@ -417,9 +417,6 @@ importers:
         specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
-      '@effing/annie':
-        specifier: workspace:*
-        version: link:../annie
       '@types/body-parser':
         specifier: ^1.19.5
         version: 1.19.6
@@ -429,6 +426,9 @@ importers:
       '@types/tar-stream':
         specifier: ^3.1.3
         version: 3.1.4
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
       tsup:
         specifier: 'catalog:'
         version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)

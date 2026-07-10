@@ -168,6 +168,16 @@ describe("annieFrames", () => {
     expect(frames[0].name).toBe("frame_00000");
   });
 
+  test("rejects an entry that claims an oversized frame", async () => {
+    // A header claiming ~8 GiB must be rejected before the reader tries
+    // to buffer anything close to that much.
+    const bogus = tarEntry("frame_00000", Buffer.alloc(0), 8 * 1024 ** 3 - 1);
+
+    await expect(collect(new Uint8Array(bogus))).rejects.toThrow(
+      "exceeding the 67108864-byte limit",
+    );
+  });
+
   test("rejects a truncated annie", async () => {
     const written = [fakeFrame(PNG_MAGIC, 11, 5000)];
     const annie = await annieBuffer(toAsyncIterable(written));
@@ -230,15 +240,20 @@ describe("annieFrames", () => {
 
 /**
  * Build a single valid TAR entry (header + padded data) for a regular file,
- * mirroring the layout the annie writer produces.
+ * mirroring the layout the annie writer produces. The header's size field
+ * can be overridden (with a valid checksum) to fabricate malformed input.
  */
-function tarEntry(name: string, data: Buffer): Buffer {
+function tarEntry(
+  name: string,
+  data: Buffer,
+  claimedSize = data.length,
+): Buffer {
   const header = Buffer.alloc(512);
   header.write(name, 0, "utf8");
   header.write("0000664 ", 100, "utf8");
   header.write("0001750 ", 108, "utf8");
   header.write("0001750 ", 116, "utf8");
-  header.write(data.length.toString(8).padStart(11, "0") + " ", 124, "utf8");
+  header.write(claimedSize.toString(8).padStart(11, "0") + " ", 124, "utf8");
   header.write("00000000000 ", 136, "utf8");
   header.write("        ", 148, "utf8");
   header.write("0", 156, "utf8");

@@ -17,6 +17,14 @@ const TAR_BLOCK_SIZE = 512;
 const FRAME_NAME_PATTERN = /^frame_(\d+)$/;
 
 /**
+ * Upper bound on a single entry's claimed size. A malformed or malicious
+ * header could otherwise make the reader buffer an absurd amount of memory
+ * before hitting the end of the input; real annie frames are single
+ * PNG/JPEG images, orders of magnitude smaller than this.
+ */
+const MAX_FRAME_SIZE = 64 * 1024 * 1024;
+
+/**
  * Content type of a frame, sniffed from its magic bytes.
  *
  * Annie frames are expected to be PNG or JPEG; anything else is reported
@@ -209,8 +217,8 @@ function verifyChecksum(block: Uint8Array): void {
  * order. Other entries are skipped. The frame's image format is detected
  * from its magic bytes (the archive does not record it).
  *
- * Throws if the archive is truncated, has a corrupt header, or contains no
- * frames at all.
+ * Throws if the archive is truncated, has a corrupt header, declares an
+ * entry larger than 64 MiB, or contains no frames at all.
  *
  * @param source Annie bytes: a `Uint8Array`/`ArrayBuffer`, an (async)
  *   iterable of byte chunks (e.g. a Node `Readable`), or a Web
@@ -238,6 +246,12 @@ export async function* annieFrames(
 
       const name = parseName(header);
       const size = parseOctal(header, 124, 12);
+      if (size > MAX_FRAME_SIZE) {
+        throw new Error(
+          `Invalid annie archive: entry "${name}" claims ${size} bytes, ` +
+            `exceeding the ${MAX_FRAME_SIZE}-byte limit`,
+        );
+      }
       const typeflag = header[156];
       const paddedSize = Math.ceil(size / TAR_BLOCK_SIZE) * TAR_BLOCK_SIZE;
       const block = paddedSize > 0 ? await reader.read(paddedSize) : null;

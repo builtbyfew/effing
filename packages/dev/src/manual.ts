@@ -286,6 +286,7 @@ FFS_API_KEY=your-ffs-api-key
 | \`${pm.effing("dev")}\` | Start the dev server (and a local FFS sidecar if installed). |
 | \`${pm.effing("build")}\` | Bundle a production server to \`dist/server.js\`. Run with \`node dist/server.js\`. |
 | \`${pm.effing("url <kind> <id>")}\` | Mint a signed fn URL for given props. |
+| \`${pm.effing("render <kind> <id>")}\` | Render a fn to a file (image → PNG/JPEG, annie → TAR, effie → MP4) with no dev server running — spins up an ephemeral one internally. Effies additionally need \`@effing/ffs\` installed. Run with \`--help\` for options. |
 | \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` | Render an effie to an MP4, no HTTP API needed (the \`@effing/ffs\` bin; present when the FFS sidecar is installed). Run with \`--help\` for options. |
 | \`${pm.effing("manual")}\` | Print this manual. |
 

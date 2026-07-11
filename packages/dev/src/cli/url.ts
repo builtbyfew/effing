@@ -1,9 +1,10 @@
-import { loadEnv } from "vite";
 import invariant from "tiny-invariant";
 import { signFnSegment } from "@effing/fn/server";
 import type { FnKind } from "@effing/fn";
 import { loadConfig } from "../config/load";
 import { DEFAULT_DEV, DEFAULT_RESOLUTIONS } from "../config/schema";
+import { applyDotenv } from "./env";
+import { parseProps } from "./props";
 
 const FN_KINDS: readonly FnKind[] = ["image", "annie", "effie"] as const;
 
@@ -33,10 +34,7 @@ export async function runUrl(
 
   // Merge .env files into process.env so BASE_URL / SECRET_KEY resolve the
   // same way they do under `effing dev`.
-  const env = loadEnv("development", configDir, "");
-  for (const [k, v] of Object.entries(env)) {
-    if (process.env[k] === undefined) process.env[k] = v;
-  }
+  applyDotenv(configDir);
 
   // Default BASE_URL to the dev server's configured address, mirroring the
   // default `effing dev` applies when the var is unset.
@@ -57,19 +55,4 @@ export async function runUrl(
   );
   const url = `${baseUrl.replace(/\/$/, "")}/${kind}/${segment}`;
   console.log(url);
-}
-
-function parseProps(raw: string | undefined): Record<string, unknown> {
-  if (raw === undefined || raw === "") return {};
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`--props is not valid JSON: ${msg}`);
-  }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("--props must be a JSON object.");
-  }
-  return parsed as Record<string, unknown>;
 }

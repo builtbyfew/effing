@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { runDev } from "./dev";
 import { runBuild } from "./build";
 import { runUrl } from "./url";
+import { runRender, type RenderOptions } from "./render";
 import { runManual } from "./manual";
 
 const require_ = createRequire(import.meta.url);
@@ -87,6 +88,34 @@ program
         await runUrl(kind, id, options);
       },
     ) as never,
+  );
+
+program
+  .command("render <kind> <id>")
+  .description(
+    "Render a fn to a file without a running dev server (kind: image|annie|effie)",
+  )
+  .option("-c, --config <path>", "path to the effing.config.ts file")
+  .option(
+    "-o, --output <path>",
+    "output file (default: <id> plus a kind-based extension)",
+  )
+  .option(
+    "-p, --props <json>",
+    "props as a JSON object (default: the fn's previewProps)",
+    (v) => v,
+  )
+  .option("-w, --width <number>", "width in pixels", (v) => parseInt(v, 10))
+  .option("--height <number>", "height in pixels", (v) => parseInt(v, 10))
+  .option(
+    "--scale <number>",
+    "output scale factor, effie only (default: 1)",
+    (v) => parseFloat(v),
+  )
+  .action(
+    wrap(async (kind: string, id: string, options: RenderOptions) => {
+      await runRender(kind, id, options);
+    }) as never,
   );
 
 program

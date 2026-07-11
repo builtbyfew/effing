@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
-import { loadEnv } from "vite";
 import { loadConfig } from "../config/load";
 import { DEFAULT_DEV } from "../config/schema";
 import { startDevServer } from "../server/dev/host";
 import { resolveBaseUrl } from "./base-url";
+import { applyDotenv } from "./env";
 import { findFreePort } from "./ports";
 
 const DEFAULT_FFS_PORT = 2000;
@@ -83,20 +83,6 @@ export async function runDev(options: DevOptions = {}): Promise<void> {
   };
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-}
-
-/**
- * Load `.env`, `.env.local`, `.env.development`, `.env.development.local` from
- * the project root and merge them into `process.env`. Existing `process.env`
- * values take precedence (so explicit `FOO=bar pnpm dev` keeps working).
- */
-function applyDotenv(projectRoot: string): void {
-  const env = loadEnv("development", projectRoot, "");
-  for (const [key, value] of Object.entries(env)) {
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
 }
 
 async function startFfsSidecar(

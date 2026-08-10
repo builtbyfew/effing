@@ -1,6 +1,6 @@
 {
   "name": "@effing/serde",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "description": "URL-safe serialization with compression and HMAC signing",
   "repository": {
     "type": "git",

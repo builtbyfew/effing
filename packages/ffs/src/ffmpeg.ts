@@ -1,16 +1,31 @@
 import type { ChildProcess } from "child_process";
 import { spawn } from "child_process";
-import type { Readable } from "stream";
-import { PassThrough, pipeline } from "stream";
+import { PassThrough, Readable, pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
-import tar from "tar-stream";
+import { annieFrames } from "@effing/annie";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
 const pump = promisify(pipeline);
+
+/**
+ * Save a stream to a file, optionally routing it through a transformer
+ * first. Errors on the (transformed) stream destroy the file write so the
+ * failure propagates instead of leaving a truncated file behind.
+ */
+async function saveStreamToFile(
+  stream: Readable,
+  outputPath: string,
+  transformer?: (stream: Readable) => Promise<Readable>,
+): Promise<void> {
+  const source = transformer ? await transformer(stream) : stream;
+  const writeStream = createWriteStream(outputPath);
+  source.on("error", (e) => writeStream.destroy(e));
+  await pump(source, writeStream);
+}
 
 let resolvedBin: string | undefined;
 async function getFFmpegBin(): Promise<string> {
@@ -127,48 +142,34 @@ export class FFmpegRunner {
         // which are a TAR that needs to be extracted
         const extractionDir = path.join(tempDir, inputName);
         await fs.mkdir(extractionDir, { recursive: true });
-        const extract = tar.extract();
-        const extractPromise = new Promise<void>((resolve, reject) => {
-          extract.on("entry", async (header, stream, next) => {
-            try {
-              if (header.name.startsWith("frame_")) {
-                const transformedStream = imageTransformer
-                  ? await imageTransformer(stream)
-                  : stream;
-                const outputPath = path.join(extractionDir, header.name);
-                const writeStream = createWriteStream(outputPath);
-                transformedStream.on("error", (e) => writeStream.destroy(e));
-                await pump(transformedStream, writeStream);
-                next();
-              } else {
-                stream.resume();
-                next();
-              }
-            } catch (err) {
-              // Drain the current entry so the tar parser isn't wedged, then
-              // surface the error instead of stalling extraction forever.
-              stream.resume();
-              reject(err as Error);
-            }
-          });
-          extract.on("finish", resolve);
-          extract.on("error", reject);
-        });
-        stream.pipe(extract);
-        await extractPromise;
+        // Any error below (a malformed archive, a failing frame transform)
+        // propagates out of the loop, destroys the source stream via the
+        // reader's cleanup, and rejects this fetch instead of stalling.
+        for await (const frame of annieFrames(stream)) {
+          // Keep the on-disk names identical to the archive entry names so
+          // the ffmpeg `frame_%05d` input pattern keeps matching.
+          const outputPath = path.join(extractionDir, frame.name);
+          if (imageTransformer) {
+            const frameStream = Readable.from(
+              Buffer.from(
+                frame.data.buffer,
+                frame.data.byteOffset,
+                frame.data.byteLength,
+              ),
+            );
+            await saveStreamToFile(frameStream, outputPath, imageTransformer);
+          } else {
+            await fs.writeFile(outputPath, frame.data);
+          }
+        }
         return extractionDir;
-      } else if (input.type === "image" && imageTransformer) {
-        const tempFile = path.join(tempDir, inputName);
-        const transformedStream = await imageTransformer(stream);
-        const writeStream = createWriteStream(tempFile);
-        transformedStream.on("error", (e) => writeStream.destroy(e));
-        await pump(transformedStream, writeStream);
-        return tempFile;
       } else {
         const tempFile = path.join(tempDir, inputName);
-        const writeStream = createWriteStream(tempFile);
-        stream.on("error", (e) => writeStream.destroy(e));
-        await pump(stream, writeStream);
+        await saveStreamToFile(
+          stream,
+          tempFile,
+          input.type === "image" ? imageTransformer : undefined,
+        );
         return tempFile;
       }
     };

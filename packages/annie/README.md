@@ -1,10 +1,10 @@
 # @effing/annie
 
-**Generate TAR archives of PNG or JPEG frames for animated layers.**
+**Generate and read TAR archives of PNG or JPEG frames for animated layers.**
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Annie is a simple animation format: a TAR archive containing sequentially-named PNG or JPEG frames. Generate frames server-side, stream them to the browser or FFmpeg.
+Annie is a simple animation format: a TAR archive containing sequentially-named PNG or JPEG frames. Generate frames server-side, stream them to the browser or FFmpeg, and read them back with the same package.
 
 ## Installation
 
@@ -113,6 +113,16 @@ Collect all frames and return a complete TAR buffer.
 function annieBuffer(frames: AsyncIterable<Buffer>): Promise<Buffer>;
 ```
 
+#### `annieFrames(source)`
+
+Async-iterate the frames of an existing Annie, in ascending index order.
+
+```typescript
+function annieFrames(source: AnnieSource): AsyncGenerator<AnnieFrame>;
+```
+
+The source can be a `Uint8Array`/`ArrayBuffer`, an (async) iterable of byte chunks (such as a Node.js `Readable`), or a Web `ReadableStream`. Each frame carries its `index`, entry `name`, raw `data` bytes, and a `contentType` sniffed from the frame's magic bytes (the archive itself does not record the image format).
+
 ## Examples
 
 ### With Express/Node.js
@@ -149,6 +159,17 @@ import { annieBuffer } from "@effing/annie";
 
 const buffer = await annieBuffer(generateFrames());
 await writeFile("animation.tar", buffer);
+```
+
+### Reading an Annie
+
+```typescript
+import { readFile } from "fs/promises";
+import { annieFrames } from "@effing/annie";
+
+for await (const frame of annieFrames(await readFile("animation.tar"))) {
+  console.log(frame.name, frame.contentType, frame.data.length);
+}
 ```
 
 ### FFmpeg Integration

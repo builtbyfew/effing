@@ -8,9 +8,13 @@
 
 ## Type Aliases
 
+- [AnnieFrame](type-aliases/AnnieFrame.md)
+- [AnnieFrameContentType](type-aliases/AnnieFrameContentType.md)
+- [AnnieSource](type-aliases/AnnieSource.md)
 - [AnnieStreamOptions](type-aliases/AnnieStreamOptions.md)
 
 ## Functions
 
 - [annieBuffer](functions/annieBuffer.md)
+- [annieFrames](functions/annieFrames.md)
 - [annieStream](functions/annieStream.md)

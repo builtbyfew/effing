@@ -1,4 +1,4 @@
-import { untar } from "@andrewbranch/untar.js";
+import { annieFrames } from "@effing/annie";
 
 export type AnniePlayerState = {
   status: string;
@@ -153,8 +153,9 @@ export class AnniePlayerCore {
     this.setStatus("Loading Annie file...");
     this.cleanup();
 
-    const imageFiles: { name: string; image: HTMLImageElement }[] = [];
+    const imageFiles: { index: number; image: HTMLImageElement }[] = [];
     const imageLoadPromises: Promise<void>[] = [];
+    const objectUrls: string[] = [];
 
     try {
       const response = await fetch(this.src);
@@ -167,40 +168,35 @@ export class AnniePlayerCore {
 
       this.setStatus("Extracting frames...");
 
-      untar(await response.arrayBuffer()).forEach((file) => {
-        if (!file.name || file.typeflag !== "0") return;
-        if (!file.fileData) return;
-
-        const blob = new Blob([new Uint8Array(file.fileData)]);
+      for await (const frame of annieFrames(response.body)) {
+        const blob = new Blob([frame.data as BlobPart], {
+          type: frame.contentType,
+        });
 
         const promise = new Promise<void>((resolve, reject) => {
           const img = new Image();
           img.onload = () => {
-            imageFiles.push({ name: file.name!, image: img });
-            if (imageFiles.length === 1) {
-              this._dimensions = {
-                width: img.naturalWidth,
-                height: img.naturalHeight,
-              };
-            }
+            imageFiles.push({ index: frame.index, image: img });
             resolve();
           };
           img.onerror = (err) => {
-            reject(new Error(`Could not load image: ${file.name} (${err})`));
+            reject(new Error(`Could not load image: ${frame.name} (${err})`));
           };
-          img.src = URL.createObjectURL(blob);
+          const objectUrl = URL.createObjectURL(blob);
+          objectUrls.push(objectUrl);
+          img.src = objectUrl;
         });
         imageLoadPromises.push(promise);
-      });
+      }
 
       await Promise.all(imageLoadPromises);
 
-      if (imageFiles.length === 0) {
-        throw new Error("No frames found in the TAR file.");
-      }
-
-      imageFiles.sort((a, b) => a.name.localeCompare(b.name));
+      imageFiles.sort((a, b) => a.index - b.index);
       this.frames = imageFiles.map((f) => f.image);
+      this._dimensions = {
+        width: this.frames[0].naturalWidth,
+        height: this.frames[0].naturalHeight,
+      };
       this._isLoading = false;
       this.setStatus(`Loaded ${this.frames.length} frames. Ready to play.`);
 
@@ -213,6 +209,8 @@ export class AnniePlayerCore {
         this.play();
       }
     } catch (err) {
+      // this.frames is still empty, so cleanup() can't reach these URLs
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this._isLoading = false;
       this.setError(errorMessage);

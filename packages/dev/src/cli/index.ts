@@ -73,6 +73,10 @@ program
   )
   .option("-w, --width <number>", "width in pixels", (v) => parseInt(v, 10))
   .option("--height <number>", "height in pixels", (v) => parseInt(v, 10))
+  .option(
+    "-r, --resolution <label>",
+    'pick bounds from a dev.resolutions preset by label (e.g. "9:16")',
+  )
   .action(
     wrap(
       async (
@@ -83,6 +87,7 @@ program
           props?: string;
           width?: number;
           height?: number;
+          resolution?: string;
         },
       ) => {
         await runUrl(kind, id, options);
@@ -107,6 +112,10 @@ program
   )
   .option("-w, --width <number>", "width in pixels", (v) => parseInt(v, 10))
   .option("--height <number>", "height in pixels", (v) => parseInt(v, 10))
+  .option(
+    "-r, --resolution <label>",
+    'pick bounds from a dev.resolutions preset by label (e.g. "9:16")',
+  )
   .option(
     "--scale <number>",
     "output scale factor, effie only (default: 1)",

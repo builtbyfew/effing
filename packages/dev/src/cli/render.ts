@@ -7,8 +7,9 @@ import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import { signFnSegment } from "@effing/fn/server";
 import type { FnKind } from "@effing/fn";
 import { loadConfig } from "../config/load";
-import { DEFAULT_DEV, DEFAULT_RESOLUTIONS } from "../config/schema";
+import { DEFAULT_DEV } from "../config/schema";
 import { startDevServer } from "../server/dev/host";
+import { resolveBounds } from "./bounds";
 import { applyDotenv, ensureSecretKey } from "./env";
 import { parseProps } from "./props";
 
@@ -20,6 +21,7 @@ export type RenderOptions = {
   props?: string;
   width?: number;
   height?: number;
+  resolution?: string;
   scale?: number;
 };
 
@@ -98,11 +100,7 @@ export async function runRender(
 
   const { secretKey } = ensureSecretKey();
 
-  const fallback = config.dev?.resolutions?.[0] ?? DEFAULT_RESOLUTIONS[0];
-  const bounds: Bounds = {
-    width: options.width ?? fallback.width,
-    height: options.height ?? fallback.height,
-  };
+  const bounds: Bounds = resolveBounds(config.dev?.resolutions, options);
 
   // Never strict: we don't care which port we get, and walking up keeps us
   // clear of a dev server already running on the configured port.

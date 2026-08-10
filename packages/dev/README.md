@@ -103,6 +103,26 @@ Either way, everything else follows the chosen port automatically:
 - `BASE_URL` defaults to the dev server's own address when not set, so signed fn URLs always point at the right instance. If a `.env` pins a localhost `BASE_URL` whose port doesn't match, the server warns about it at startup.
 - Each instance's FFS sidecar gets its own free port (starting at `2000`), and `FFS_BASE_URL` is auto-set to match — two projects never share a sidecar by accident.
 
+### `effing render`
+
+Renders a fn straight to a file — no running dev server and no env setup required (a throwaway `SECRET_KEY` is generated when the var is unset). Internally it spins up an ephemeral dev server on a free loopback port for the duration of the render.
+
+```bash
+npx effing render effie my-video -o out.mp4
+```
+
+Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of frames, and effies an MP4 — the latter requires `@effing/ffs` to be installed, since the render delegates to the project-local `ffs` bin.
+
+| Option                     | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `-c, --config <p>`         | Path to `effing.config.ts`.                                           |
+| `-o, --output <p>`         | Output file (default: `<id>` plus a kind-based extension).            |
+| `-p, --props <json>`       | Props as a JSON object (default: the fn's `previewProps`).            |
+| `-w, --width <n>`          | Width in pixels (default: first entry in `dev.resolutions`).          |
+| `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
+| `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
+| `--scale <n>`              | Output scale factor, effie only (default: 1).                         |
+
 ### `effing url`
 
 Prints a signed fn URL for the given props — handy for agents or `curl` fetching a specific propped variant without going through the HTML preview pages.
@@ -111,12 +131,13 @@ Prints a signed fn URL for the given props — handy for agents or `curl` fetchi
 npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
 ```
 
-| Option               | Description                                                   |
-| -------------------- | ------------------------------------------------------------- |
-| `-c, --config <p>`   | Path to `effing.config.ts`.                                   |
-| `-p, --props <json>` | Props as a JSON object (default: `{}`).                       |
-| `-w, --width <n>`    | Width in pixels (default: first entry in `dev.resolutions`).  |
-| `--height <n>`       | Height in pixels (default: first entry in `dev.resolutions`). |
+| Option                     | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `-c, --config <p>`         | Path to `effing.config.ts`.                                           |
+| `-p, --props <json>`       | Props as a JSON object (default: `{}`).                               |
+| `-w, --width <n>`          | Width in pixels (default: first entry in `dev.resolutions`).          |
+| `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
+| `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
 
 Reads `SECRET_KEY` (required) and `BASE_URL` from `.env` files in the project root; `BASE_URL` defaults to the dev server address from the config (`http://{dev.host}:{dev.port}`).
 

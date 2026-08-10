@@ -237,6 +237,39 @@ describe("AnniePlayerCore", () => {
     expect(player.getState().frameCount).toBe(0);
   });
 
+  it("revokes created object URLs when an image fails to decode", async () => {
+    class FailingImage {
+      onload: (() => void) | null = null;
+      onerror: ((err: unknown) => void) | null = null;
+      private _src = "";
+
+      get src(): string {
+        return this._src;
+      }
+
+      set src(value: string) {
+        this._src = value;
+        queueMicrotask(() => this.onerror?.("decode failed"));
+      }
+    }
+    vi.stubGlobal("Image", FailingImage);
+    stubFetchWith(buildTar(["frame_00000", "frame_00001"]));
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    const onError = vi.fn();
+    player.on("error", onError);
+
+    await player.load();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(player.getState().error).toMatch(
+      /Could not load image: frame_0000\d/,
+    );
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    const created = createObjectURL.mock.results.map((r) => r.value as string);
+    const revoked = revokeObjectURL.mock.calls.map((call) => call[0] as string);
+    expect(revoked.sort()).toEqual(created.sort());
+  });
+
   it("emits statechange events during loading", async () => {
     stubFetchWith(buildTar(["frame_00000"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });

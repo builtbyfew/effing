@@ -155,6 +155,7 @@ export class AnniePlayerCore {
 
     const imageFiles: { index: number; image: HTMLImageElement }[] = [];
     const imageLoadPromises: Promise<void>[] = [];
+    const objectUrls: string[] = [];
 
     try {
       const response = await fetch(this.src);
@@ -181,7 +182,9 @@ export class AnniePlayerCore {
           img.onerror = (err) => {
             reject(new Error(`Could not load image: ${frame.name} (${err})`));
           };
-          img.src = URL.createObjectURL(blob);
+          const objectUrl = URL.createObjectURL(blob);
+          objectUrls.push(objectUrl);
+          img.src = objectUrl;
         });
         imageLoadPromises.push(promise);
       }
@@ -206,6 +209,8 @@ export class AnniePlayerCore {
         this.play();
       }
     } catch (err) {
+      // this.frames is still empty, so cleanup() can't reach these URLs
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this._isLoading = false;
       this.setError(errorMessage);

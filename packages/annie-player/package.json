@@ -27,7 +27,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@andrewbranch/untar.js": "^1.0.3"
+    "@effing/annie": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

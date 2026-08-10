@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnniePlayerCore, type AnniePlayerState } from "./core";
 
 // --- Minimal TAR builder -----------------------------------------------------
-// Produces archives in the subset of the format that untar.js reads: a
-// 512-byte header per entry (name, octal size, typeflag "0") followed by the
-// file data padded to 512-byte blocks, terminated by two zero blocks.
+// Produces archives in the canonical annie shape that annieFrames reads: a
+// 512-byte header per entry (name, octal size, typeflag "0", valid checksum)
+// followed by the file data padded to 512-byte blocks, terminated by two zero
+// blocks.
 
 const encoder = new TextEncoder();
 
@@ -15,6 +16,11 @@ function tarEntry(name: string, data: Uint8Array): Uint8Array {
   entry.set(encoder.encode(name), 0);
   entry.set(encoder.encode(data.length.toString(8).padStart(11, "0")), 124);
   entry[156] = "0".charCodeAt(0); // typeflag: regular file
+  let checksum = 0;
+  for (let i = 0; i < 512; i++) {
+    checksum += i >= 148 && i < 156 ? 0x20 : entry[i];
+  }
+  entry.set(encoder.encode(checksum.toString(8).padStart(6, "0") + "\0 "), 148);
   entry.set(data, 512);
   return entry;
 }
@@ -68,8 +74,9 @@ function stubFetchWith(tar: ArrayBuffer): void {
     vi.fn(async () => ({
       ok: true,
       statusText: "OK",
-      body: {},
-      arrayBuffer: async () => tar,
+      // annieFrames accepts plain bytes, so the stubbed body can be the
+      // archive itself rather than a ReadableStream.
+      body: new Uint8Array(tar),
     })),
   );
 }
@@ -126,7 +133,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("loads frames from a TAR and emits a load event", async () => {
-    stubFetchWith(buildTar(["frame_1.png", "frame_2.png", "frame_3.png"]));
+    stubFetchWith(buildTar(["frame_00000", "frame_00001", "frame_00002"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     const onLoad = vi.fn();
     player.on("load", onLoad);
@@ -145,10 +152,11 @@ describe("AnniePlayerCore", () => {
     expect(state.isPlaying).toBe(false); // autoPlay defaults to false
   });
 
-  it("sorts frames by entry name regardless of archive order", async () => {
-    // Archive order: b, a, c — so blob:mock-0 is b, blob:mock-1 is a, and
-    // blob:mock-2 is c. After sorting, frame 0 must be a and frame 1 must be b.
-    stubFetchWith(buildTar(["frame_b.png", "frame_a.png", "frame_c.png"]));
+  it("sorts frames by index regardless of archive order", async () => {
+    // Archive order: 1, 0, 2 — so blob:mock-0 is frame 1, blob:mock-1 is
+    // frame 0, and blob:mock-2 is frame 2. After sorting by index, frame 0
+    // must be blob:mock-1 and frame 1 must be blob:mock-0.
+    stubFetchWith(buildTar(["frame_00001", "frame_00000", "frame_00002"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     await player.load();
 
@@ -165,7 +173,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("clamps seek to the valid frame range", async () => {
-    stubFetchWith(buildTar(["frame_1.png", "frame_2.png"]));
+    stubFetchWith(buildTar(["frame_00000", "frame_00001"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     await player.load();
 
@@ -186,11 +194,11 @@ describe("AnniePlayerCore", () => {
 
     expect(onError).toHaveBeenCalledOnce();
     expect((onError.mock.calls[0][0] as Error).message).toBe(
-      "No frames found in the TAR file.",
+      "No frames found in the annie archive",
     );
     const state = player.getState();
-    expect(state.error).toBe("No frames found in the TAR file.");
-    expect(state.status).toBe("Error: No frames found in the TAR file.");
+    expect(state.error).toBe("No frames found in the annie archive");
+    expect(state.status).toBe("Error: No frames found in the annie archive");
     expect(state.isLoading).toBe(false);
     expect(state.frameCount).toBe(0);
   });
@@ -213,7 +221,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("revokes every created object URL on destroy", async () => {
-    stubFetchWith(buildTar(["frame_1.png", "frame_2.png", "frame_3.png"]));
+    stubFetchWith(buildTar(["frame_00000", "frame_00001", "frame_00002"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     await player.load();
 
@@ -230,7 +238,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("emits statechange events during loading", async () => {
-    stubFetchWith(buildTar(["frame_1.png"]));
+    stubFetchWith(buildTar(["frame_00000"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     const statuses: string[] = [];
     player.on("statechange", (state: AnniePlayerState) => {
@@ -247,7 +255,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("starts playback after load when autoPlay is enabled", async () => {
-    stubFetchWith(buildTar(["frame_1.png", "frame_2.png"]));
+    stubFetchWith(buildTar(["frame_00000", "frame_00001"]));
     const player = new AnniePlayerCore({
       src: "animation.annie",
       autoPlay: true,
@@ -264,7 +272,7 @@ describe("AnniePlayerCore", () => {
   });
 
   it("unsubscribes listeners via the function returned by on()", async () => {
-    stubFetchWith(buildTar(["frame_1.png"]));
+    stubFetchWith(buildTar(["frame_00000"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
     const onLoad = vi.fn();
     const unsubscribe = player.on("load", onLoad);

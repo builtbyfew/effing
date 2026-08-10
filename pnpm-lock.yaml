@@ -155,9 +155,9 @@ importers:
 
   packages/annie-player:
     dependencies:
-      '@andrewbranch/untar.js':
-        specifier: ^1.0.3
-        version: 1.0.3
+      '@effing/annie':
+        specifier: workspace:*
+        version: link:../annie
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.3
@@ -499,9 +499,6 @@ importers:
         version: 3.2.4(@types/node@25.0.3)(jsdom@29.1.1)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
-
-  '@andrewbranch/untar.js@1.0.3':
-    resolution: {integrity: sha512-Jh15/qVmrLGhkKJBdXlK1+9tY4lZruYjsgkDFj08ZmDiWVBLJcqkok7Z0/R0In+i1rScBpJlSvrTS2Lm41Pbnw==}
 
   '@asamuzakjp/css-color@5.1.11':
     resolution: {integrity: sha512-KVw6qIiCTUQhByfTd78h2yD1/00waTmm9uy/R7Ck/ctUyAPj+AEDLkQIdJW0T8+qGgj3j5bpNKK7Q3G+LedJWg==}
@@ -3967,8 +3964,6 @@ packages:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
-
-  '@andrewbranch/untar.js@1.0.3': {}
 
   '@asamuzakjp/css-color@5.1.11':
     dependencies:

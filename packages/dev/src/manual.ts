@@ -232,7 +232,11 @@ Each page renders the fn with its \`previewProps\` and lets you tweak bounds via
 
   sections.push(`## Inspecting from an agent
 
-HTML previews are for humans clicking through. Each kind also has a machine-readable endpoint that delivers the artifact directly — no HTML scraping, no URL signing required:
+HTML previews are for humans clicking through. As an agent, pick your path by whether a dev server is already running:
+
+**No dev server? Render to a file — the zero-setup default.** \`${pm.effing("render <kind> <id>")}\` writes the artifact directly (image → PNG/JPEG, annie → TAR of frames, effie → MP4; effies need \`@effing/ffs\` installed) by spinning up an ephemeral server internally. No env vars needed — a missing \`SECRET_KEY\` is replaced by a throwaway key. It renders \`previewProps\` by default; pass \`--props '{...}'\` for custom props, \`-o <path>\` for the output file, and \`--width\`/\`--height\` — or \`--resolution "<label>"\` to pick a \`dev.resolutions\` preset — for bounds.
+
+**Dev server already running? Fetch instead of re-rendering.** Each kind has a machine-readable endpoint that delivers the artifact directly — no HTML scraping, no URL signing required:
 
 \`\`\`
 /preview/image/:imageId.bytes
@@ -246,7 +250,7 @@ When something looks wrong in a composition, it's usually quickest to work down 
 
 - **Start with the effie JSON.** Many composition issues — a missing or misordered layer, a wrong duration or delay, a malformed source, a \`#ref\` with no matching entry in \`sources\` — are visible directly in \`effieData\` without rendering anything. The JSON is also your index into the layers and the sources they point at.
 - **Then drill into a single layer.** Follow a layer's \`source\` from the JSON and fetch it — an annie source returns its TAR of frames, an image source returns its bytes. A \`source\` is usually a URL you can request directly: a signed fn URL (the extensionless \`/annie/:segment\` / \`/image/:segment\` form, not the props-pinned \`.tar\`/\`.bytes\` preview endpoints above), but equally any other URL — a CDN that hosts the TAR or still outright, say. If a \`source\` is instead a \`#ref\` like \`#logo\`, resolve it against the effie's top-level \`sources\` map first. Pulling a single source — one annie's frames, for instance — is far cheaper than rendering the whole composition, and isolates most "this element is off" problems to the layer that owns them.
-- **Render the full MP4 when the question needs it.** Things that only emerge once everything plays together — cross-segment timing, transitions, motion and effects interacting, audio sync — genuinely need a render. \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` is the straightforward way to get one: hand it an effie — the same \`/preview/effie/:effieId.json\` URL from the first step, a signed \`/effie/:segment\` URL, or a saved \`.json\` file — plus an output path, and it writes the MP4 directly, no driving the FFS HTTP API by hand. It's still the heaviest path (FFS renders the MP4, then you pull frames back out with ffmpeg), so confirm the layers look right first; for those whole-timeline questions it's the right tool.`);
+- **Render the full MP4 when the question needs it.** Things that only emerge once everything plays together — cross-segment timing, transitions, motion and effects interacting, audio sync — genuinely need a render. \`${pm.effing("render effie <id> -o out.mp4")}\` is the straightforward way to get one from a fn id, dev server or not. When you already hold an effie — a \`/preview/effie/:effieId.json\` URL, a signed \`/effie/:segment\` URL, or a saved \`.json\` file — \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` renders that exact description instead. Either way it's the heaviest path (FFS renders the MP4, then you pull frames back out with ffmpeg), so confirm the layers look right first; for those whole-timeline questions it's the right tool.`);
 
   sections.push(`## Signed URLs
 
@@ -260,15 +264,19 @@ ${pm.effing("url")} annie my-animation \\
   --width ${defaultWidth} --height ${defaultHeight}
 \`\`\`
 
-Reads \`SECRET_KEY\` from \`.env\`; \`BASE_URL\` defaults to the dev server address from the config. Width/height default to the first entry in \`dev.resolutions\`. Kind is one of \`image\`, \`annie\`, or \`effie\`; the id matches the fn's filename without the \`.fn.tsx\` suffix.
+Reads \`SECRET_KEY\` from \`.env\` (\`effing url\` is the one dev command that requires it configured — a throwaway key would mint URLs that stop working when the server restarts); \`BASE_URL\` defaults to the dev server address from the config. Width/height default to the first entry in \`dev.resolutions\`; \`--resolution "<label>"\` picks one of those presets by label instead. Kind is one of \`image\`, \`annie\`, or \`effie\`; the id matches the fn's filename without the \`.fn.tsx\` suffix.
+
+Reach for a signed URL only when a *URL* is what you need — as a layer \`source\`, or to fetch custom-props output from a running server. If you just want the rendered artifact, \`${pm.effing("render")}\` with \`--props\` signs internally and needs no configured key.
 
 From inside an effie runner, use \`fnUrl(kind, id, props, bounds)\` from \`@effing/fn\` instead — it signs against the same \`SECRET_KEY\` and returns the same URL shape.`);
 
   sections.push(`## Environment variables
 
 \`\`\`bash
-# Required: secret for signing URL segments
-SECRET_KEY=your-secret-key
+# Secret for signing URL segments. Optional in dev (a throwaway key is
+# generated per run); required for \`effing url\` and in production,
+# where it should be a unique random value
+# SECRET_KEY=
 # Optional in dev (defaults to the dev server's own address); required in production
 BASE_URL=http://${host}:${port}
 
@@ -284,8 +292,9 @@ FFS_API_KEY=your-ffs-api-key
 | Command | What it does |
 | --- | --- |
 | \`${pm.effing("dev")}\` | Start the dev server (and a local FFS sidecar if installed). |
+| \`${pm.effing("render <kind> <id>")}\` | Render a fn to a file (image → PNG/JPEG, annie → TAR, effie → MP4) with no dev server running — spins up an ephemeral one internally. Effies additionally need \`@effing/ffs\` installed. Run with \`--help\` for options. |
 | \`${pm.effing("build")}\` | Bundle a production server to \`dist/server.js\`. Run with \`node dist/server.js\`. |
-| \`${pm.effing("url <kind> <id>")}\` | Mint a signed fn URL for given props. |
+| \`${pm.effing("url <kind> <id>")}\` | Mint a signed fn URL for given props (requires a configured \`SECRET_KEY\`). |
 | \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` | Render an effie to an MP4, no HTTP API needed (the \`@effing/ffs\` bin; present when the FFS sidecar is installed). Run with \`--help\` for options. |
 | \`${pm.effing("manual")}\` | Print this manual. |
 

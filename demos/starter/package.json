@@ -5,6 +5,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "effing dev",
+    "render": "effing render",
     "url": "effing url",
     "build": "effing build",
     "start": "node dist/server.js",

@@ -49,12 +49,12 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 The dev server reads `.env`, `.env.local`, `.env.development`, `.env.development.local` from the project root and merges them into `process.env` (existing values take precedence).
 
-| Variable       | Required | Description                                                                                                                                                                                 |
-| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BASE_URL`     | no       | Public base URL used to construct signed fn URLs. Defaults to the dev server's own address, following whatever port it bound. The built production server requires it (see `effing build`). |
-| `SECRET_KEY`   | yes      | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate.                                                                                                                 |
-| `FFS_BASE_URL` | no       | URL of an [`@effing/ffs`](../ffs) server. Auto-set to the local sidecar's address when one is spawned; set explicitly to use a remote FFS.                                                  |
-| `FFS_API_KEY`  | no       | API key for the FFS server.                                                                                                                                                                 |
+| Variable       | Required | Description                                                                                                                                                                                                                 |
+| -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BASE_URL`     | no       | Public base URL used to construct signed fn URLs. Defaults to the dev server's own address, following whatever port it bound. The built production server requires it (see `effing build`).                                 |
+| `SECRET_KEY`   | no       | Secret used to sign fn segment URLs. Keep it private; rotate to invalidate. When unset, `effing dev` and `effing render` generate a throwaway key per run; `effing url` and the built production server require a real one. |
+| `FFS_BASE_URL` | no       | URL of an [`@effing/ffs`](../ffs) server. Auto-set to the local sidecar's address when one is spawned; set explicitly to use a remote FFS.                                                                                  |
+| `FFS_API_KEY`  | no       | API key for the FFS server.                                                                                                                                                                                                 |
 
 ## CLI
 
@@ -63,7 +63,7 @@ The dev server reads `.env`, `.env.local`, `.env.development`, `.env.development
 Starts the dev server.
 
 ```bash
-npx effing dev
+npx --no effing dev
 ```
 
 | Option              | Description                                                                                                                   |
@@ -103,20 +103,41 @@ Either way, everything else follows the chosen port automatically:
 - `BASE_URL` defaults to the dev server's own address when not set, so signed fn URLs always point at the right instance. If a `.env` pins a localhost `BASE_URL` whose port doesn't match, the server warns about it at startup.
 - Each instance's FFS sidecar gets its own free port (starting at `2000`), and `FFS_BASE_URL` is auto-set to match — two projects never share a sidecar by accident.
 
+### `effing render`
+
+Renders a fn straight to a file — no running dev server and no env setup required (a throwaway `SECRET_KEY` is generated when the var is unset). Internally it spins up an ephemeral dev server on a free loopback port for the duration of the render.
+
+```bash
+npx --no effing render effie my-video -o out.mp4
+```
+
+Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of frames, and effies an MP4 — the latter requires `@effing/ffs` to be installed, since the render delegates to the project-local `ffs` bin.
+
+| Option                     | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `-c, --config <p>`         | Path to `effing.config.ts`.                                           |
+| `-o, --output <p>`         | Output file (default: `<id>` plus a kind-based extension).            |
+| `-p, --props <json>`       | Props as a JSON object (default: the fn's `previewProps`).            |
+| `-w, --width <n>`          | Width in pixels (default: first entry in `dev.resolutions`).          |
+| `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
+| `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
+| `--scale <n>`              | Output scale factor, effie only (default: 1).                         |
+
 ### `effing url`
 
 Prints a signed fn URL for the given props — handy for agents or `curl` fetching a specific propped variant without going through the HTML preview pages.
 
 ```bash
-npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
+npx --no effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
 ```
 
-| Option               | Description                                                   |
-| -------------------- | ------------------------------------------------------------- |
-| `-c, --config <p>`   | Path to `effing.config.ts`.                                   |
-| `-p, --props <json>` | Props as a JSON object (default: `{}`).                       |
-| `-w, --width <n>`    | Width in pixels (default: first entry in `dev.resolutions`).  |
-| `--height <n>`       | Height in pixels (default: first entry in `dev.resolutions`). |
+| Option                     | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `-c, --config <p>`         | Path to `effing.config.ts`.                                           |
+| `-p, --props <json>`       | Props as a JSON object (default: `{}`).                               |
+| `-w, --width <n>`          | Width in pixels (default: first entry in `dev.resolutions`).          |
+| `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
+| `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
 
 Reads `SECRET_KEY` (required) and `BASE_URL` from `.env` files in the project root; `BASE_URL` defaults to the dev server address from the config (`http://{dev.host}:{dev.port}`).
 
@@ -125,7 +146,7 @@ Reads `SECRET_KEY` (required) and `BASE_URL` from `.env` files in the project ro
 Prints a tool-level reference for the CLI and fn module shape — designed to be piped into an agent's context so it knows how to drive the project.
 
 ```bash
-npx effing manual
+npx --no effing manual
 ```
 
 | Option             | Description                 |
@@ -139,7 +160,7 @@ The output is resolved against your config: it picks up your project's glob dire
 Bundles a production HTTP server to `dist/server.js`.
 
 ```bash
-npx effing build
+npx --no effing build
 ```
 
 | Option             | Description                              |

@@ -44,7 +44,7 @@ Each `*.fn.tsx` is a **function module** — the unit of generation in an Effing
 Two environment variables matter from day one:
 
 - `BASE_URL` — the URL the dev/prod server is reachable at (default: `http://localhost:3839`).
-- `SECRET_KEY` — used to sign function URLs so the server can verify props haven't been tampered with. Anything random is fine for dev; treat it like a password in production.
+- `SECRET_KEY` — used to sign function URLs so the server can verify props haven't been tampered with. Optional in dev (`npm run dev` generates a throwaway key per run when it's unset), but `npm run url` (section 5) and production need a configured one; treat it like a password in production.
 
 Start the dev server:
 

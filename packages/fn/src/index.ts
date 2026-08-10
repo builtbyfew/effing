@@ -15,7 +15,9 @@ export type {
 } from "./types";
 
 // Runtime
+export type { FnRuntime } from "./runtime";
 export {
+  createFnRuntime,
   initFnRuntime,
   fnModule,
   fnUrl,

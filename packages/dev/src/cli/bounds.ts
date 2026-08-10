@@ -18,6 +18,15 @@ export function resolveBounds(
   resolutions: Resolution[] | undefined,
   options: BoundsOptions,
 ): { width: number; height: number } {
+  // parseInt turns a malformed flag into NaN, which `??` would happily keep.
+  for (const [flag, value] of [
+    ["--width", options.width],
+    ["--height", options.height],
+  ] as const) {
+    if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
+      throw new Error(`${flag} must be a positive number.`);
+    }
+  }
   const presets = resolutions?.length ? resolutions : DEFAULT_RESOLUTIONS;
   if (options.resolution !== undefined) {
     if (options.width !== undefined || options.height !== undefined) {

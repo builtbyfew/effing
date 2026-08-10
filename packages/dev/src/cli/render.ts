@@ -39,11 +39,10 @@ export function defaultOutputPath(
 ): string {
   if (kind === "effie") return `${id}.mp4`;
   if (kind === "annie") return `${id}.tar`;
+  // PNG and JPEG are the only types imageResponse will serve (it sniffs the
+  // runner's bytes and rejects everything else) — extend both together.
   const type = (contentType ?? "").split(";", 1)[0].trim().toLowerCase();
-  const ext =
-    { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" }[
-      type
-    ] ?? ".png";
+  const ext = { "image/png": ".png", "image/jpeg": ".jpg" }[type] ?? ".png";
   return `${id}${ext}`;
 }
 

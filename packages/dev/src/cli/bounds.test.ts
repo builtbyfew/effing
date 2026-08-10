@@ -46,4 +46,16 @@ describe("resolveBounds", () => {
       resolveBounds(RESOLUTIONS, { resolution: "9:16", width: 500 }),
     ).toThrow("--resolution cannot be combined with --width/--height.");
   });
+
+  it.each([NaN, 0, -100, Infinity])(
+    "rejects %s as an explicit dimension",
+    (value) => {
+      expect(() => resolveBounds(RESOLUTIONS, { width: value })).toThrow(
+        "--width must be a positive number.",
+      );
+      expect(() => resolveBounds(RESOLUTIONS, { height: value })).toThrow(
+        "--height must be a positive number.",
+      );
+    },
+  );
 });

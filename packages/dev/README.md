@@ -63,7 +63,7 @@ The dev server reads `.env`, `.env.local`, `.env.development`, `.env.development
 Starts the dev server.
 
 ```bash
-npx effing dev
+npx --no effing dev
 ```
 
 | Option              | Description                                                                                                                   |
@@ -108,7 +108,7 @@ Either way, everything else follows the chosen port automatically:
 Renders a fn straight to a file — no running dev server and no env setup required (a throwaway `SECRET_KEY` is generated when the var is unset). Internally it spins up an ephemeral dev server on a free loopback port for the duration of the render.
 
 ```bash
-npx effing render effie my-video -o out.mp4
+npx --no effing render effie my-video -o out.mp4
 ```
 
 Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of frames, and effies an MP4 — the latter requires `@effing/ffs` to be installed, since the render delegates to the project-local `ffs` bin.
@@ -128,7 +128,7 @@ Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of
 Prints a signed fn URL for the given props — handy for agents or `curl` fetching a specific propped variant without going through the HTML preview pages.
 
 ```bash
-npx effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
+npx --no effing url <kind> <id> --props '{"text":"Hello"}' --width 1080 --height 1080
 ```
 
 | Option                     | Description                                                           |
@@ -146,7 +146,7 @@ Reads `SECRET_KEY` (required) and `BASE_URL` from `.env` files in the project ro
 Prints a tool-level reference for the CLI and fn module shape — designed to be piped into an agent's context so it knows how to drive the project.
 
 ```bash
-npx effing manual
+npx --no effing manual
 ```
 
 | Option             | Description                 |
@@ -160,7 +160,7 @@ The output is resolved against your config: it picks up your project's glob dire
 Bundles a production HTTP server to `dist/server.js`.
 
 ```bash
-npx effing build
+npx --no effing build
 ```
 
 | Option             | Description                              |

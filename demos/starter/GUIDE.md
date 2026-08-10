@@ -56,6 +56,7 @@ FFS_API_KEY=your-ffs-api-key
 | Script                     | What it does                                                            |
 | -------------------------- | ----------------------------------------------------------------------- |
 | `npm run dev`              | Runs the Effing dev server and a local FFS rendering service.           |
+| `npm run render`           | Renders a fn to a file, no dev server needed (see `effing manual`).     |
 | `npm run url`              | Mints a signed fn URL for given props (see `effing manual`).            |
 | `npm run build`            | Bundles a production server to `dist/server.js`.                        |
 | `npm start`                | Runs the production server (`node dist/server.js`).                     |

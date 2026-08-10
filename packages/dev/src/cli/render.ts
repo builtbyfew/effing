@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -10,7 +9,7 @@ import type { FnKind } from "@effing/fn";
 import { loadConfig } from "../config/load";
 import { DEFAULT_DEV, DEFAULT_RESOLUTIONS } from "../config/schema";
 import { startDevServer } from "../server/dev/host";
-import { applyDotenv } from "./env";
+import { applyDotenv, ensureSecretKey } from "./env";
 import { parseProps } from "./props";
 
 const FN_KINDS: readonly FnKind[] = ["image", "annie", "effie"] as const;
@@ -97,12 +96,7 @@ export async function runRender(
   const { config, configDir } = await loadConfig(cwd, options.config);
   applyDotenv(configDir);
 
-  // The signed URLs minted here never outlive the ephemeral loopback server,
-  // so unlike `effing url` a missing SECRET_KEY isn't fatal — a throwaway
-  // key keeps zero-setup renders working.
-  if (!process.env.SECRET_KEY) {
-    process.env.SECRET_KEY = crypto.randomBytes(32).toString("hex");
-  }
+  const { secretKey } = ensureSecretKey();
 
   const fallback = config.dev?.resolutions?.[0] ?? DEFAULT_RESOLUTIONS[0];
   const bounds: Bounds = {
@@ -133,7 +127,7 @@ export async function runRender(
       id,
       props,
       bounds,
-      process.env.SECRET_KEY,
+      secretKey,
     );
 
     process.stderr.write(

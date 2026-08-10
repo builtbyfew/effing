@@ -5,7 +5,7 @@ import { loadConfig } from "../config/load";
 import { DEFAULT_DEV } from "../config/schema";
 import { startDevServer } from "../server/dev/host";
 import { resolveBaseUrl } from "./base-url";
-import { applyDotenv } from "./env";
+import { applyDotenv, ensureSecretKey } from "./env";
 import { findFreePort } from "./ports";
 
 const DEFAULT_FFS_PORT = 2000;
@@ -26,6 +26,13 @@ export async function runDev(options: DevOptions = {}): Promise<void> {
   console.log(`Loaded config from ${configPath}`);
 
   applyDotenv(configDir);
+
+  if (ensureSecretKey().generated) {
+    console.log(
+      "SECRET_KEY not set, using a throwaway key for this session " +
+        "(signed URLs won't survive a restart)",
+    );
+  }
 
   const host = options.host ?? config.dev?.host ?? DEFAULT_DEV.host;
   // An explicitly chosen port (flag or config) is strict: a collision there

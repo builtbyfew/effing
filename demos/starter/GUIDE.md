@@ -39,7 +39,8 @@ To add another font, copy one of the existing exports in `app/fonts.ts` and poin
 ## Environment variables
 
 ```bash
-# Required: secret for signing URL segments
+# Secret for signing URL segments. Optional in dev (a throwaway key is
+# generated per run); required for `npm run url` and in production
 SECRET_KEY=your-secret-key
 # Optional in dev (defaults to the dev server's own address); required in production
 BASE_URL=http://localhost:3839

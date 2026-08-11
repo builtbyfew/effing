@@ -6,9 +6,9 @@
 
 # Function: deserialize()
 
-> **deserialize**\<`T`\>(`segment`, `secretKey`, `options`): `Promise`\<`T`\>
+> **deserialize**\<`T`\>(`segment`, `secretKey`, `options?`): `Promise`\<`T`\>
 
-Defined in: [packages/serde/src/itsdangerous.ts:121](https://github.com/builtbyfew/effing/blob/main/packages/serde/src/itsdangerous.ts#L121)
+Defined in: [serde/src/itsdangerous.ts:121](https://github.com/builtbyfew/effing/blob/main/packages/serde/src/itsdangerous.ts#L121)
 
 Deserialize a URL segment, verify its signature, and decompress if needed.
 
@@ -30,7 +30,7 @@ Throws an error if the signature is invalid.
 
 `string`
 
-### options
+### options?
 
 [`DeserializeOptions`](../interfaces/DeserializeOptions.md) = `{}`
 

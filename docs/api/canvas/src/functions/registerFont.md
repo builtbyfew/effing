@@ -8,7 +8,7 @@
 
 > **registerFont**(`font`): `void`
 
-Defined in: [packages/canvas/src/jsx/font.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L24)
+Defined in: [canvas/src/jsx/font.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L24)
 
 Register a font from a FontData buffer.
 Registration is idempotent — re-registering the same font name is a no-op.

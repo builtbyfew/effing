@@ -8,7 +8,7 @@
 
 > **effieSegment**\<`S`\>(`segment`): [`EffieSegment`](../type-aliases/EffieSegment.md)\<`S`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [packages/effie/src/types.ts:187](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L187)
+Defined in: [effie/src/types.ts:187](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L187)
 
 Identity helper that returns its argument with sharper TypeScript inference
 for an `EffieSegment` — handy when building segments separately from the

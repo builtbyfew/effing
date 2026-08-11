@@ -6,9 +6,9 @@
 
 # Function: tween()
 
-> **tween**\<`T`\>(`count`, `fn`, `options`): `AsyncGenerator`\<`T`\>
+> **tween**\<`T`\>(`count`, `fn`, `options?`): `AsyncGenerator`\<`T`\>
 
-Defined in: [packages/tween/src/tween.ts:35](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L35)
+Defined in: [tween/src/tween.ts:35](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/tween.ts#L35)
 
 Tween frames with concurrency control
 
@@ -32,7 +32,7 @@ Number of frames to generate
 
 Function that takes a tween interval and index, returns a promise
 
-### options
+### options?
 
 Configuration options; `concurrency` defaults to the number
 of available cores capped at 8 (concurrency overlaps async work such as

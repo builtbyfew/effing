@@ -8,7 +8,7 @@
 
 > **registerFontFromPath**(`path`, `nameAlias?`): `void`
 
-Defined in: [packages/canvas/src/jsx/font.ts:74](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L74)
+Defined in: [canvas/src/jsx/font.ts:74](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L74)
 
 Register a font from a file path.
 

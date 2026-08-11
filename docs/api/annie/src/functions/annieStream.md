@@ -6,9 +6,9 @@
 
 # Function: annieStream()
 
-> **annieStream**(`frames`, `options`): `ReadableStream`\<`Buffer`\<`ArrayBufferLike`\>\>
+> **annieStream**(`frames`, `options?`): `ReadableStream`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Defined in: [packages/annie/src/generate.ts:158](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/generate.ts#L158)
+Defined in: [annie/src/generate.ts:158](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/generate.ts#L158)
 
 Create a ReadableStream that produces an annie (TAR archive of frames)
 
@@ -22,7 +22,7 @@ Use this when you need the stream but want to customize the Response yourself.
 
 Async iterator yielding PNG or JPEG frame buffers
 
-### options
+### options?
 
 [`AnnieStreamOptions`](../type-aliases/AnnieStreamOptions.md) = `{}`
 

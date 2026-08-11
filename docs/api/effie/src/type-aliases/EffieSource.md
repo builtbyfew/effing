@@ -8,7 +8,7 @@
 
 > **EffieSource**\<`S`, `U`\> = `U` \| `` `#${Extract<keyof S, string>}` ``
 
-Defined in: [packages/effie/src/types.ts:11](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L11)
+Defined in: [effie/src/types.ts:11](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L11)
 
 ## Type Parameters
 

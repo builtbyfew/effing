@@ -8,7 +8,7 @@
 
 > **annieBuffer**(`frames`): `Promise`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Defined in: [packages/annie/src/generate.ts:130](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/generate.ts#L130)
+Defined in: [annie/src/generate.ts:130](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/generate.ts#L130)
 
 Collect all frames into a single annie Buffer (TAR archive)
 

@@ -8,7 +8,7 @@
 
 > **EffieAudio**\<`S`, `U`\> = `object`
 
-Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L48)
+Defined in: [effie/src/types.ts:48](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L48)
 
 ## Type Parameters
 
@@ -24,25 +24,25 @@ Defined in: [packages/effie/src/types.ts:48](https://github.com/builtbyfew/effin
 
 ### fadeIn?
 
-> `optional` **fadeIn**: `number`
+> `optional` **fadeIn?**: `number`
 
-Defined in: [packages/effie/src/types.ts:54](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L54)
+Defined in: [effie/src/types.ts:54](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L54)
 
 ***
 
 ### fadeOut?
 
-> `optional` **fadeOut**: `number`
+> `optional` **fadeOut?**: `number`
 
-Defined in: [packages/effie/src/types.ts:55](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L55)
+Defined in: [effie/src/types.ts:55](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L55)
 
 ***
 
 ### seek?
 
-> `optional` **seek**: `number`
+> `optional` **seek?**: `number`
 
-Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L56)
+Defined in: [effie/src/types.ts:56](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L56)
 
 ***
 
@@ -50,12 +50,12 @@ Defined in: [packages/effie/src/types.ts:56](https://github.com/builtbyfew/effin
 
 > **source**: [`EffieSource`](EffieSource.md)\<`S`, `U`\>
 
-Defined in: [packages/effie/src/types.ts:52](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L52)
+Defined in: [effie/src/types.ts:52](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L52)
 
 ***
 
 ### volume?
 
-> `optional` **volume**: `number`
+> `optional` **volume?**: `number`
 
-Defined in: [packages/effie/src/types.ts:53](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L53)
+Defined in: [effie/src/types.ts:53](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L53)

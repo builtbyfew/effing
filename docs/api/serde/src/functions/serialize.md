@@ -6,9 +6,9 @@
 
 # Function: serialize()
 
-> **serialize**(`obj`, `secretKey`, `options`): `Promise`\<`string`\>
+> **serialize**(`obj`, `secretKey`, `options?`): `Promise`\<`string`\>
 
-Defined in: [packages/serde/src/itsdangerous.ts:85](https://github.com/builtbyfew/effing/blob/main/packages/serde/src/itsdangerous.ts#L85)
+Defined in: [serde/src/itsdangerous.ts:85](https://github.com/builtbyfew/effing/blob/main/packages/serde/src/itsdangerous.ts#L85)
 
 Serialize an object to a URL-safe segment with optional compression and HMAC signature.
 
@@ -26,7 +26,7 @@ The format is compatible with Python's itsdangerous library.
 
 `string`
 
-### options
+### options?
 
 [`SerializeOptions`](../interfaces/SerializeOptions.md) = `{}`
 

@@ -6,9 +6,9 @@
 
 # Function: renderReactElement()
 
-> **renderReactElement**(`ctx`, `element`, `options`): `Promise`\<`void`\>
+> **renderReactElement**(`ctx`, `element`, `options?`): `Promise`\<`void`\>
 
-Defined in: [packages/canvas/src/jsx/index.ts:62](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L62)
+Defined in: [canvas/src/jsx/index.ts:62](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L62)
 
 Render a React element tree to a canvas context.
 
@@ -30,7 +30,7 @@ Canvas 2D rendering context to draw into
 
 React element tree to render
 
-### options
+### options?
 
 [`RenderReactElementOptions`](../type-aliases/RenderReactElementOptions.md) = `{}`
 
@@ -53,6 +53,8 @@ await renderReactElement(ctx, <MyComponent />, { fonts: [myFont] });
 const png = await canvas.encode("png");
 ```
 
+**HiDPI rendering (2x)**
+
 ```tsx
 const dpr = 2;
 const canvas = createCanvas(1080 * dpr, 1080 * dpr);
@@ -66,11 +68,15 @@ await renderReactElement(ctx, <MyComponent />, {
 });
 ```
 
+**Custom User-Agent for remote image fetches**
+
 ```tsx
 await renderReactElement(ctx, <MyComponent />, {
   userAgent: "my-renderer/1.0",
 });
 ```
+
+**Persistent image cache for repeated calls (e.g. per frame)**
 
 ```tsx
 const imageCache: ImageCache = new Map();

@@ -8,7 +8,7 @@
 
 > **createEffieSourceResolver**(`sources?`): (`src`) => `string`
 
-Defined in: [packages/effie-preview/src/core.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/core.ts#L16)
+Defined in: [effie-preview/src/core.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/core.ts#L16)
 
 Create a source resolver function that handles #reference lookups
 in effie source fields.
@@ -25,17 +25,7 @@ The sources map from an EffieData object
 
 A function that resolves source references to URLs
 
-> (`src`): `string`
-
-### Parameters
-
-#### src
-
-`string`
-
-### Returns
-
-`string`
+(`src`) => `string`
 
 ## Example
 

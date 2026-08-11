@@ -8,7 +8,7 @@
 
 > **loadImage**(`source`, `options?`): `Promise`\<`Image`\>
 
-Defined in: [packages/canvas/src/image.ts:34](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L34)
+Defined in: [canvas/src/image.ts:34](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L34)
 
 Load an image from a path, Buffer, data URI, or remote URL.
 
@@ -28,7 +28,7 @@ which this wrapper bypasses. Control remote fetches via fetch/undici instead.
 
 ### source
 
-`string` | `ArrayBufferLike` | `Buffer`\<`ArrayBufferLike`\> | `Uint8Array`\<`ArrayBufferLike`\> | `URL` | `Image` | `Readable`
+`string` \| `ArrayBufferLike` \| `Buffer`\<`ArrayBufferLike`\> \| `Uint8Array`\<`ArrayBufferLike`\> \| `URL` \| `Image` \| `Readable`
 
 ### options?
 

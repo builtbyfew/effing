@@ -8,7 +8,7 @@
 
 > **effieWebUrl**(`url`): [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)
 
-Defined in: [packages/effie/src/types.ts:139](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L139)
+Defined in: [effie/src/types.ts:139](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L139)
 
 ## Parameters
 

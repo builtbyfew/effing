@@ -8,4 +8,4 @@
 
 > `const` **effieHttpUrlSchema**: `ZodType`\<`` `http${string}` ``, `ZodTypeDef`, `` `http${string}` ``\>
 
-Defined in: [packages/effie/src/schema.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L20)
+Defined in: [effie/src/schema.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L20)

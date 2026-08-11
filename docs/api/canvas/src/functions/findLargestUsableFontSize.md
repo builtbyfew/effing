@@ -8,7 +8,7 @@
 
 > **findLargestUsableFontSize**(`options`): `number`
 
-Defined in: [packages/canvas/src/fit-text.ts:43](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L43)
+Defined in: [canvas/src/fit-text.ts:43](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L43)
 
 Find the largest integer font size that keeps text within the given bounds.
 

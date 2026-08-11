@@ -95,7 +95,7 @@ export async function createWarmupJob(
  * Fetches and caches sources, emitting progress events
  */
 export async function streamWarmupProgress(
-  req: express.Request<{ id: string }>,
+  req: express.Request,
   res: express.Response,
   ctx: ServerContext,
 ): Promise<void> {

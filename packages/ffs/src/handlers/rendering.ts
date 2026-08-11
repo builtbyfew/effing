@@ -250,7 +250,7 @@ async function resolveEffieUrl(
  * Orchestrates warmup (local or remote) followed by render (local or remote)
  */
 export async function streamRenderProgress(
-  req: express.Request<{ id: string }>,
+  req: express.Request,
   res: express.Response,
   ctx: ServerContext,
 ): Promise<void> {
@@ -472,7 +472,7 @@ export async function streamRenderProgress(
  * Reads the video sub-job from the store, deletes it (one-time use), and streams the MP4.
  */
 export async function streamRenderVideo(
-  req: express.Request<{ id: string }>,
+  req: express.Request,
   res: express.Response,
   ctx: ServerContext,
 ): Promise<void> {

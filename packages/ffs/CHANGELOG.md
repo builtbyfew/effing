@@ -1,5 +1,26 @@
 # @effing/ffs
 
+## 0.40.1
+
+### Patch Changes
+
+- 62ae527: Upgrade dependencies to address security advisories
+
+  Bumps undici to ^7.29.0 (HTTP smuggling, CRLF injection, cache-poisoning and
+  WebSocket DoS advisories), body-parser to ^1.20.6 and express to ^4.22.2
+  (pulling in qs 6.15.3 to fix DoS advisories), and sharp to ^0.35.0 (inherited
+  libvips CVEs). No advisories remain in the package's dependency tree.
+
+- 69d0b14: Security dependency refresh: regenerate the lockfile so all transitive
+  dev-tooling dependencies resolve to their newest in-range patched versions,
+  resolving 40 of the 41 remaining audit advisories (minimatch, brace-expansion,
+  flatted, ajv, js-yaml, yaml, markdown-it, linkify-it, rollup, postcss, nanoid,
+  and undici). Also align `@types/express` with the express 4 runtime (`^4.17.25`
+  instead of `^5.0.0`), which keeps `req.params` values typed as plain strings —
+  the v5 types model express 5 behavior where params can be `string | string[]`.
+  - @effing/annie@0.40.1
+  - @effing/effie@0.40.1
+
 ## 0.40.0
 
 ### Patch Changes

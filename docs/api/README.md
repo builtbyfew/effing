@@ -4,7 +4,7 @@
 
 # API Reference
 
-API documentation for [**Effing**](../../README.md) — programmatic video creation with TypeScript.
+API documentation for [**Effing**](_media/README.md) — programmatic video creation with TypeScript.
 
 ## Modules
 

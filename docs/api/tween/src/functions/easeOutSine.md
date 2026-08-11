@@ -8,7 +8,7 @@
 
 > **easeOutSine**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:19](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L19)
+Defined in: [tween/src/easing.ts:19](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L19)
 
 Ease out using sine curve
 

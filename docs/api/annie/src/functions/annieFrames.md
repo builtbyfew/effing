@@ -8,7 +8,7 @@
 
 > **annieFrames**(`source`): `AsyncGenerator`\<[`AnnieFrame`](../type-aliases/AnnieFrame.md), `void`, `undefined`\>
 
-Defined in: [packages/annie/src/read.ts:234](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L234)
+Defined in: [annie/src/read.ts:234](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L234)
 
 Async-iterate the frames of an annie (a TAR archive of image frames).
 

@@ -8,4 +8,4 @@
 
 > **EffieHttpUrl** = `` `http${string}` ``
 
-Defined in: [packages/effie/src/types.ts:2](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L2)
+Defined in: [effie/src/types.ts:2](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L2)

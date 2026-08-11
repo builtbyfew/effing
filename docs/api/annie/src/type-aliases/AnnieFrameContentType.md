@@ -8,7 +8,7 @@
 
 > **AnnieFrameContentType** = `"image/png"` \| `"image/jpeg"` \| `"application/octet-stream"`
 
-Defined in: [packages/annie/src/read.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L33)
+Defined in: [annie/src/read.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/annie/src/read.ts#L33)
 
 Content type of a frame, sniffed from its magic bytes.
 

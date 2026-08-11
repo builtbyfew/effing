@@ -8,4 +8,4 @@
 
 > `const` **effieFileUrlSchema**: `ZodType`\<`` `file${string}` ``, `ZodTypeDef`, `` `file${string}` ``\>
 
-Defined in: [packages/effie/src/schema.ts:42](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L42)
+Defined in: [effie/src/schema.ts:42](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L42)

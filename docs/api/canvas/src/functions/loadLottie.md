@@ -8,7 +8,7 @@
 
 > **loadLottie**(`data`, `options?`): `LottieAnimation`
 
-Defined in: [packages/canvas/src/lottie.ts:18](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/lottie.ts#L18)
+Defined in: [canvas/src/lottie.ts:18](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/lottie.ts#L18)
 
 Load a Lottie animation from a JSON string or Buffer.
 
@@ -16,9 +16,9 @@ Load a Lottie animation from a JSON string or Buffer.
 
 ### data
 
-Lottie JSON string or Buffer
+`string` \| `Buffer`\<`ArrayBufferLike`\>
 
-`string` | `Buffer`\<`ArrayBufferLike`\>
+Lottie JSON string or Buffer
 
 ### options?
 

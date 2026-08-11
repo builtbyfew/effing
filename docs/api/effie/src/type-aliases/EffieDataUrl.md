@@ -8,4 +8,4 @@
 
 > **EffieDataUrl** = `` `data${string}` ``
 
-Defined in: [packages/effie/src/types.ts:3](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L3)
+Defined in: [effie/src/types.ts:3](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L3)

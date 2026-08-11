@@ -8,7 +8,7 @@
 
 > **easeOutElastic**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:177](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L177)
+Defined in: [tween/src/easing.ts:177](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L177)
 
 Ease out with elastic bounce
 

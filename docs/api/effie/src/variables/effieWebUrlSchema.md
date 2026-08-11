@@ -8,4 +8,4 @@
 
 > `const` **effieWebUrlSchema**: `ZodType`\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md), `ZodTypeDef`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [packages/effie/src/schema.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L33)
+Defined in: [effie/src/schema.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L33)

@@ -8,23 +8,23 @@
 
 > **AnniePlayerOptions** = `object`
 
-Defined in: [packages/annie-player/src/core.ts:19](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L19)
+Defined in: [annie-player/src/core.ts:19](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L19)
 
 ## Properties
 
 ### autoPlay?
 
-> `optional` **autoPlay**: `boolean`
+> `optional` **autoPlay?**: `boolean`
 
-Defined in: [packages/annie-player/src/core.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L22)
+Defined in: [annie-player/src/core.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L22)
 
 ***
 
 ### fps?
 
-> `optional` **fps**: `number`
+> `optional` **fps?**: `number`
 
-Defined in: [packages/annie-player/src/core.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L21)
+Defined in: [annie-player/src/core.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L21)
 
 ***
 
@@ -32,4 +32,4 @@ Defined in: [packages/annie-player/src/core.ts:21](https://github.com/builtbyfew
 
 > **src**: `string`
 
-Defined in: [packages/annie-player/src/core.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L20)
+Defined in: [annie-player/src/core.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L20)

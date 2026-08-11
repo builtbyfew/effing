@@ -8,7 +8,7 @@
 
 > **renderLottieFrame**(`ctx`, `animation`, `frame`): `void`
 
-Defined in: [packages/canvas/src/lottie.ts:50](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/lottie.ts#L50)
+Defined in: [canvas/src/lottie.ts:50](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/lottie.ts#L50)
 
 Render a specific frame of a Lottie animation to a canvas context.
 

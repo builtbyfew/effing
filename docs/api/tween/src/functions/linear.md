@@ -8,7 +8,7 @@
 
 > **linear**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:7](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L7)
+Defined in: [tween/src/easing.ts:7](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L7)
 
 Linear interpolation (no easing)
 

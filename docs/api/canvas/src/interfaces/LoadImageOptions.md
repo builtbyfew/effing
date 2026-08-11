@@ -6,7 +6,7 @@
 
 # Interface: LoadImageOptions
 
-Defined in: [packages/canvas/src/image.ts:8](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L8)
+Defined in: [canvas/src/image.ts:8](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L8)
 
 Options for [loadImage](../functions/loadImage.md).
 
@@ -14,9 +14,9 @@ Options for [loadImage](../functions/loadImage.md).
 
 ### userAgent?
 
-> `optional` **userAgent**: `string`
+> `optional` **userAgent?**: `string`
 
-Defined in: [packages/canvas/src/image.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L16)
+Defined in: [canvas/src/image.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/image.ts#L16)
 
 User-Agent header sent on remote (http/https) fetches. Matches the
 `userAgent` option of `renderReactElement`, so `loadImage(url)` and an

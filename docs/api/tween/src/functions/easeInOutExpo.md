@@ -8,7 +8,7 @@
 
 > **easeInOutExpo**(`x`): `number`
 
-Defined in: [packages/tween/src/easing.ts:109](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L109)
+Defined in: [tween/src/easing.ts:109](https://github.com/builtbyfew/effing/blob/main/packages/tween/src/easing.ts#L109)
 
 Ease in-out using exponential curve
 

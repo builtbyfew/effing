@@ -8,7 +8,7 @@
 
 > **EffieWarmupEvent** = `{ [K in keyof WarmupEventMap & string]: { data: WarmupEventMap[K]; type: K } }`\[keyof `WarmupEventMap` & `string`\]
 
-Defined in: [packages/effie-preview/src/warmup.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L10)
+Defined in: [effie-preview/src/warmup.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/effie-preview/src/warmup.ts#L10)
 
 Union of all warmup SSE event types, derived from the server-side
 `WarmupEventMap` so the client stays in sync automatically.

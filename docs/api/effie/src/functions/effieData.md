@@ -8,7 +8,7 @@
 
 > **effieData**\<`S`\>(`data`): [`EffieData`](../type-aliases/EffieData.md)\<`S`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [packages/effie/src/types.ts:166](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L166)
+Defined in: [effie/src/types.ts:166](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L166)
 
 Identity helper that returns its argument with sharper TypeScript inference
 for `EffieData` — especially the `#ref` literal types derived from `sources`.

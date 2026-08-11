@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { ffsFetch, clearAgentCache } from "./fetch";
 import { validateUrl, validatedLookup } from "./url";
-import { Agent } from "undici";
+import { Agent, Response } from "undici";
 
 // Mock undici
 vi.mock("undici", async () => {

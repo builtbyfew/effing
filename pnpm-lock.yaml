@@ -181,7 +181,7 @@ importers:
   packages/canvas:
     dependencies:
       '@napi-rs/canvas':
-        specifier: '>=1.0.0'
+        specifier: ^1.0.0
         version: 1.0.0
       css-background-parser:
         specifier: ^0.1.0

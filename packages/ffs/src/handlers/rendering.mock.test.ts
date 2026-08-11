@@ -22,8 +22,10 @@ vi.mock("./caching", () => ({
   purgeCachedSources: vi.fn(async () => ({ purged: 0, total: 0 })),
 }));
 
-function mockRequest(params: Record<string, string> = {}): Request {
-  return { params } as unknown as Request;
+function mockRequest(
+  params: Record<string, string> = {},
+): Request<{ id: string }> {
+  return { params } as unknown as Request<{ id: string }>;
 }
 
 function mockResponse(options: { autoFinish?: boolean } = {}): Response & {

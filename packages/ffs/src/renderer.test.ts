@@ -157,22 +157,14 @@ describe("EffieRenderer segment audio padding", () => {
   }
 
   test("segment audio is padded with silence so short audio doesn't cause the next segment's audio to start early", () => {
-    const renderer = new EffieRenderer(multiSegmentEffie());
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
+    const filterComplex = buildFilterComplex(multiSegmentEffie());
 
     // Without `apad` before `atrim`, audio shorter than the segment
     // would end early and concat would start the next segment's audio
     // before the current segment's video finished playing.
-    expect(command.filterComplex).toContain("apad,atrim=start=0:duration=5");
-    expect(command.filterComplex).toContain("[aud_seg0]");
-    expect(command.filterComplex).toContain("[aud_seg1]");
+    expect(filterComplex).toContain("apad,atrim=start=0:duration=5");
+    expect(filterComplex).toContain("[aud_seg0]");
+    expect(filterComplex).toContain("[aud_seg1]");
   });
 });
 
@@ -203,16 +195,7 @@ describe("EffieRenderer general audio fades", () => {
     fadeIn?: number;
     fadeOut?: number;
   }): string {
-    const renderer = new EffieRenderer(audioEffie(audio));
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
-    return command.filterComplex;
+    return buildFilterComplex(audioEffie(audio));
   }
 
   test("fades are applied after PTS is reset, so a seek doesn't shift the fade anchors", () => {

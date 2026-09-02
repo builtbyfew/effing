@@ -1,10 +1,23 @@
-// Re-export canvas primitives from @napi-rs/canvas
+// Re-export canvas primitives from @napi-rs/canvas so consumers never need a
+// direct dependency on it (it's a peer dependency, which pnpm does not expose
+// to the consuming project). Re-exporting also guarantees a single native copy:
+// a Path2D from one copy of @napi-rs/canvas cannot be used with a context from
+// another.
 import { createCanvas as _createCanvas } from "@napi-rs/canvas";
 export {
   Canvas,
   type SKRSContext2D,
   GlobalFonts,
   Image,
+  ImageData,
+  Path2D,
+  DOMMatrix,
+  DOMPoint,
+  DOMRect,
+  PathOp,
+  FillType,
+  StrokeJoin,
+  StrokeCap,
 } from "@napi-rs/canvas";
 
 // loadImage is wrapped (not re-exported) so remote URLs go through the same

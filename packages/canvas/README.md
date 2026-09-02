@@ -434,15 +434,25 @@ type FontData = {
 type ImageCache = Map<string, Promise<Image>>;
 
 type EmojiStyle =
-  | "twemoji"
-  | "openmoji"
-  | "blobmoji"
-  | "noto"
-  | "fluent"
-  | "fluentFlat";
+  "twemoji" | "openmoji" | "blobmoji" | "noto" | "fluent" | "fluentFlat";
 ```
 
-Also re-exports from `@napi-rs/canvas`: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
+### Canvas Primitives
+
+The building blocks you need alongside a context are re-exported from `@napi-rs/canvas`, so you never need to import (or declare a dependency on) `@napi-rs/canvas` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
+
+```typescript
+import { createCanvas, Path2D } from "@effing/canvas";
+
+const canvas = createCanvas(200, 200);
+const ctx = canvas.getContext("2d");
+
+const star = new Path2D(
+  "M100 10 L123 80 L195 80 L137 125 L160 195 L100 150 L40 195 L63 125 L5 80 L77 80 Z",
+);
+ctx.fillStyle = "gold";
+ctx.fill(star);
+```
 
 ## Examples
 

@@ -1,5 +1,5 @@
 ---
-"@effing/canvas": minor
+"@effing/canvas": patch
 ---
 
 Re-export `Path2D`, `ImageData`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`,

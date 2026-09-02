@@ -332,3 +332,58 @@ describe("EffieRenderer audio mixing levels", () => {
     );
   });
 });
+
+describe("EffieRenderer background cover-scale", () => {
+  // Cover-scaling a background whose aspect doesn't divide evenly into the
+  // frame (1920x1080 into 1080x1920 scales to 3413.33x1920 -> 3413x1920)
+  // makes ffmpeg's `scale` filter compensate with a non-square SAR
+  // (10240:10239), which `crop` preserves. Segments that use a different
+  // source (a colour, a 9:16 clip) keep SAR 1:1, and `concat` refuses to
+  // join streams whose SAR differs, so the render fails with "Nothing was
+  // written into output file". Both background chains must reset the SAR
+  // to 1:1 right after the crop.
+  function backgroundFilterComplex(): string {
+    const effie: EffieData<EffieSources> = {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "video", source: "https://example.com/bg.mp4" },
+      segments: [
+        { duration: 1, layers: [] },
+        {
+          duration: 1,
+          background: {
+            type: "video",
+            source: "https://example.com/seg.mp4",
+            seek: 2,
+          },
+          layers: [],
+        },
+        { duration: 1, layers: [] },
+      ],
+    };
+    const renderer = new EffieRenderer(effie);
+    const command = (
+      renderer as unknown as {
+        buildFFmpegCommand: (
+          out: string,
+          scale: number,
+        ) => { filterComplex: string };
+      }
+    ).buildFFmpegCommand("out.mp4", 1);
+    return command.filterComplex;
+  }
+
+  test("global background resets SAR to 1:1 after the cover crop", () => {
+    expect(backgroundFilterComplex()).toContain(
+      "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=2",
+    );
+  });
+
+  test("segment background resets SAR to 1:1 after the cover crop", () => {
+    expect(backgroundFilterComplex()).toContain(
+      "[1:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,trim=start=2:duration=1",
+    );
+  });
+});

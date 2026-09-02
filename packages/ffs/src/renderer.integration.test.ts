@@ -726,4 +726,83 @@ describe("distributed rendering integration", () => {
       await cleanupTestOutput(tempDir);
     }
   }, 30000);
+
+  test("a landscape clip covers a portrait frame without skewing the SAR", async () => {
+    // A 16:9 clip cover-scaled into a 9:16 frame doesn't land on integer
+    // dimensions (1920x1080 -> 3413.33x1920), so ffmpeg's scale filter
+    // compensates by giving the frames a non-square sample aspect ratio
+    // (10240:10239 at 1080x1920), which crop keeps. Every other segment
+    // (here a colour background) has SAR 1:1, and concat refuses to join
+    // streams whose SAR differs:
+    //
+    //   Input link in0:v0 parameters (size 108x192, SAR 1:1) do not match
+    //   the corresponding output link in0:v0 parameters (108x192, SAR 1024:1023)
+    //   Nothing was written into output file, because at least one of its
+    //   streams received no packets.
+    //
+    // The background chains now end in setsar=1, so the render succeeds and
+    // the MP4 is tagged square-pixel 9:16 rather than 1920:3413.
+    //
+    // Verified to fail before the fix with the concat error above.
+    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const tempDir = await createTestOutputDir("landscape-in-portrait");
+
+    try {
+      // 192x108 into 108x192 rounds just like 1920x1080 into 1080x1920
+      // (341.33 and 3413.33 wide respectively), only cheaper to encode.
+      const clipPath = path.join(tempDir, "landscape.mp4");
+      await execFileP(ffmpegBin, [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=192x108:rate=30:duration=1",
+        "-pix_fmt",
+        "yuv420p",
+        clipPath,
+      ]);
+
+      const sources: EffieSources<EffieFileUrl> = {
+        clip: effieFileUrl(pathToFileURL(clipPath).toString()),
+      };
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width: 108,
+        height: 192,
+        fps: 30,
+        cover: "https://example.com/cover.png",
+        background: { type: "video", source: "#clip" },
+        sources,
+        segments: [
+          { duration: 0.5, layers: [] },
+          {
+            duration: 0.5,
+            background: { type: "color", color: "blue" },
+            layers: [],
+          },
+        ],
+      };
+
+      const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
+      const outPath = path.join(tempDir, "out.mp4");
+      const stream = await renderer.render();
+      const chunks: Buffer[] = [];
+      for await (const c of stream) chunks.push(c);
+      await fs.writeFile(outPath, Buffer.concat(chunks));
+      renderer.close();
+
+      const probe = await execFileP(ffmpegBin, [
+        "-i",
+        outPath,
+        "-map",
+        "0:v:0",
+        "-an",
+        "-f",
+        "null",
+        "-",
+      ]);
+      expect(probe.stderr).toMatch(/108x192 \[SAR 1:1 DAR 9:16\]/);
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
 });

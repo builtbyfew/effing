@@ -28,13 +28,9 @@ function makeEffie(layer: {
   };
 }
 
-function filterComplex(layer: {
-  delay?: number;
-  from?: number;
-  until?: number;
-}): string {
-  const renderer = new EffieRenderer(makeEffie(layer));
-  // Access private method for filter-graph assertions.
+// Access the private command builder for filter-graph assertions.
+function buildFilterComplex(effie: EffieData<EffieSources>): string {
+  const renderer = new EffieRenderer(effie);
   const command = (
     renderer as unknown as {
       buildFFmpegCommand: (
@@ -44,6 +40,14 @@ function filterComplex(layer: {
     }
   ).buildFFmpegCommand("out.mp4", 1);
   return command.filterComplex;
+}
+
+function filterComplex(layer: {
+  delay?: number;
+  from?: number;
+  until?: number;
+}): string {
+  return buildFilterComplex(makeEffie(layer));
 }
 
 describe("EffieRenderer overlay enable window", () => {
@@ -153,22 +157,14 @@ describe("EffieRenderer segment audio padding", () => {
   }
 
   test("segment audio is padded with silence so short audio doesn't cause the next segment's audio to start early", () => {
-    const renderer = new EffieRenderer(multiSegmentEffie());
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
+    const filterComplex = buildFilterComplex(multiSegmentEffie());
 
     // Without `apad` before `atrim`, audio shorter than the segment
     // would end early and concat would start the next segment's audio
     // before the current segment's video finished playing.
-    expect(command.filterComplex).toContain("apad,atrim=start=0:duration=5");
-    expect(command.filterComplex).toContain("[aud_seg0]");
-    expect(command.filterComplex).toContain("[aud_seg1]");
+    expect(filterComplex).toContain("apad,atrim=start=0:duration=5");
+    expect(filterComplex).toContain("[aud_seg0]");
+    expect(filterComplex).toContain("[aud_seg1]");
   });
 });
 
@@ -199,16 +195,7 @@ describe("EffieRenderer general audio fades", () => {
     fadeIn?: number;
     fadeOut?: number;
   }): string {
-    const renderer = new EffieRenderer(audioEffie(audio));
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
-    return command.filterComplex;
+    return buildFilterComplex(audioEffie(audio));
   }
 
   test("fades are applied after PTS is reset, so a seek doesn't shift the fade anchors", () => {
@@ -232,19 +219,6 @@ describe("EffieRenderer general audio fades", () => {
 });
 
 describe("EffieRenderer audio mixing levels", () => {
-  function buildFilterComplex(effie: EffieData<EffieSources>): string {
-    const renderer = new EffieRenderer(effie);
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
-    return command.filterComplex;
-  }
-
   function base(): Omit<EffieData<EffieSources>, "segments" | "audio"> {
     return {
       width: 100,
@@ -329,6 +303,51 @@ describe("EffieRenderer audio mixing levels", () => {
     const filterComplex = buildFilterComplex(segmentAudioOnlyEffie());
     expect(filterComplex).toContain(
       ":v=0:a=1,alimiter=limit=1:level=false[outa]",
+    );
+  });
+});
+
+describe("EffieRenderer background cover-scale", () => {
+  // Cover-scaling a background whose aspect doesn't divide evenly into the
+  // frame (1920x1080 into 1080x1920 scales to 3413.33x1920 -> 3413x1920)
+  // makes ffmpeg's `scale` filter compensate with a non-square SAR
+  // (10240:10239), which `crop` preserves. Segments that use a different
+  // source (a colour, a 9:16 clip) keep SAR 1:1, and `concat` refuses to
+  // join streams whose SAR differs, so the render fails with "Nothing was
+  // written into output file". Both background chains must reset the SAR
+  // to 1:1 right after the crop.
+  function backgroundEffie(): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "video", source: "https://example.com/bg.mp4" },
+      segments: [
+        { duration: 1, layers: [] },
+        {
+          duration: 1,
+          background: {
+            type: "video",
+            source: "https://example.com/seg.mp4",
+            seek: 2,
+          },
+          layers: [],
+        },
+        { duration: 1, layers: [] },
+      ],
+    };
+  }
+
+  test("global background resets SAR to 1:1 after the cover crop", () => {
+    expect(buildFilterComplex(backgroundEffie())).toContain(
+      "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=2",
+    );
+  });
+
+  test("segment background resets SAR to 1:1 after the cover crop", () => {
+    expect(buildFilterComplex(backgroundEffie())).toContain(
+      "[1:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,trim=start=2:duration=1",
     );
   });
 });

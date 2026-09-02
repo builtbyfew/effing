@@ -510,9 +510,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     const videoSegmentLabels: string[] = [];
     const audioSegmentLabels: string[] = [];
 
+    // Shared background chain, used for both the global background and every
+    // per-segment background: cover-scale + crop the source to the frame size.
+    // The scale filter preserves the source's display aspect ratio by
+    // adjusting the SAR whenever the scaled size rounds (e.g. 1920x1080 ->
+    // 3413x1920 for a 1080x1920 frame gives SAR 10240:10239), and crop keeps
+    // that SAR. Reset it to 1:1 so every segment carries the same SAR (concat
+    // rejects mismatches) and the output isn't tagged with a bogus DAR.
+    const bgFilter = `fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
+
     // Build split/fifo chain for global background
     const globalBgFifoLabels: Map<number, string> = new Map();
-    const bgFilter = `fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight}`;
     if (globalBgSegmentIndices.length === 1) {
       // Single segment - no split needed, just fifo
       const fifoLabel = `bg_fifo_0`;
@@ -549,13 +557,13 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
             ? (segment.background.seek ?? 0)
             : 0;
         filterParts.push(
-          `[${segBgInputIdx}:v]fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          `[${segBgInputIdx}:v]${bgFilter},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
         );
       } else {
         // Use global background (via split/fifo chain)
         const fifoLabel = globalBgFifoLabels.get(segIdx);
         if (fifoLabel) {
-          // fps/scale already applied in split/fifo chain
+          // bgFilter (fps/scale/crop/setsar) already applied in the split/fifo chain
           filterParts.push(
             `[${fifoLabel}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
           );

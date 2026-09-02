@@ -1,6 +1,6 @@
 {
   "name": "@effing/ffs",
-  "version": "0.40.1",
+  "version": "0.40.2",
   "description": "FFmpeg-based effie rendering service",
   "repository": {
     "type": "git",

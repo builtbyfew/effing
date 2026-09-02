@@ -1,6 +1,6 @@
 {
   "name": "@effing/dev",
-  "version": "0.40.1",
+  "version": "0.40.2",
   "description": "Dev server and build tooling for Effing projects",
   "repository": {
     "type": "git",

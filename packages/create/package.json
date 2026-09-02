@@ -1,6 +1,6 @@
 {
   "name": "@effing/create",
-  "version": "0.40.1",
+  "version": "0.40.2",
   "description": "Create a new Effing project",
   "repository": {
     "type": "git",

@@ -28,13 +28,9 @@ function makeEffie(layer: {
   };
 }
 
-function filterComplex(layer: {
-  delay?: number;
-  from?: number;
-  until?: number;
-}): string {
-  const renderer = new EffieRenderer(makeEffie(layer));
-  // Access private method for filter-graph assertions.
+// Access the private command builder for filter-graph assertions.
+function buildFilterComplex(effie: EffieData<EffieSources>): string {
+  const renderer = new EffieRenderer(effie);
   const command = (
     renderer as unknown as {
       buildFFmpegCommand: (
@@ -44,6 +40,14 @@ function filterComplex(layer: {
     }
   ).buildFFmpegCommand("out.mp4", 1);
   return command.filterComplex;
+}
+
+function filterComplex(layer: {
+  delay?: number;
+  from?: number;
+  until?: number;
+}): string {
+  return buildFilterComplex(makeEffie(layer));
 }
 
 describe("EffieRenderer overlay enable window", () => {
@@ -232,19 +236,6 @@ describe("EffieRenderer general audio fades", () => {
 });
 
 describe("EffieRenderer audio mixing levels", () => {
-  function buildFilterComplex(effie: EffieData<EffieSources>): string {
-    const renderer = new EffieRenderer(effie);
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
-    return command.filterComplex;
-  }
-
   function base(): Omit<EffieData<EffieSources>, "segments" | "audio"> {
     return {
       width: 100,
@@ -342,8 +333,8 @@ describe("EffieRenderer background cover-scale", () => {
   // join streams whose SAR differs, so the render fails with "Nothing was
   // written into output file". Both background chains must reset the SAR
   // to 1:1 right after the crop.
-  function backgroundFilterComplex(): string {
-    const effie: EffieData<EffieSources> = {
+  function backgroundEffie(): EffieData<EffieSources> {
+    return {
       width: 100,
       height: 100,
       fps: 30,
@@ -363,26 +354,16 @@ describe("EffieRenderer background cover-scale", () => {
         { duration: 1, layers: [] },
       ],
     };
-    const renderer = new EffieRenderer(effie);
-    const command = (
-      renderer as unknown as {
-        buildFFmpegCommand: (
-          out: string,
-          scale: number,
-        ) => { filterComplex: string };
-      }
-    ).buildFFmpegCommand("out.mp4", 1);
-    return command.filterComplex;
   }
 
   test("global background resets SAR to 1:1 after the cover crop", () => {
-    expect(backgroundFilterComplex()).toContain(
+    expect(buildFilterComplex(backgroundEffie())).toContain(
       "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=2",
     );
   });
 
   test("segment background resets SAR to 1:1 after the cover crop", () => {
-    expect(backgroundFilterComplex()).toContain(
+    expect(buildFilterComplex(backgroundEffie())).toContain(
       "[1:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,trim=start=2:duration=1",
     );
   });

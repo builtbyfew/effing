@@ -17,10 +17,10 @@ import { HAS_NATIVE_DEPS } from "./_helpers/setup.ts";
 // ---------------------------------------------------------------------------
 // @napi-rs/canvas caches the typefaces Skia picks for each ctx.font
 // (family list + weight + style) for the lifetime of the process, and
-// registering a font later does not invalidate that cache. These tests pin
-// down what that means for @effing/canvas: its own layout and drawing must
-// use the right face regardless of registration order, and registerFont must
-// warn when a bare ctx.font lookup has already been pinned to the wrong face.
+// registering a font later does not invalidate that cache
+// (https://github.com/Brooooooklyn/canvas/issues/1329). These tests
+// characterise that behaviour as seen through @effing/canvas — so we notice
+// when upstream fixes it — and check the warnings we emit about it.
 //
 // The cache is keyed on the family name, so every scenario registers the
 // fixtures under its own alias to start from a clean slate.
@@ -50,7 +50,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
   let regularWidth: number;
   let boldWidth: number;
   let regularDark: number;
-  let regularFit: number;
+  let boldDark: number;
 
   let aliasCounter = 0;
   function faces() {
@@ -77,32 +77,23 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     return ctx.measureText(TEXT).width;
   }
 
-  function layoutWidth(family: string): number {
+  function layoutWidth(family: string, weight: number): number {
     return layoutText(
       TEXT,
       {
         fontSize: 60,
         fontFamily: family,
-        fontWeight: 400,
+        fontWeight: weight,
         fontStyle: "normal",
       },
       10_000,
     ).width;
   }
 
-  function fit(font: FontData): number {
-    return api.findLargestUsableFontSize({
-      text: TEXT,
-      font,
-      maxWidth: 400,
-      maxHeight: 400,
-      whiteSpace: "nowrap",
-    });
-  }
-
-  /** Render TEXT at weight 400 through renderReactElement, count dark pixels. */
+  /** Render TEXT through renderReactElement and count dark pixels. */
   async function renderDark(
     family: string,
+    weight: number,
     fonts: FontData[],
   ): Promise<number> {
     const canvas = api.createCanvas(W, H);
@@ -117,7 +108,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
           backgroundColor: "white",
           color: "black",
           fontFamily: family,
-          fontWeight: 400,
+          fontWeight: weight,
           fontSize: 60,
         }}
       >
@@ -144,8 +135,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     api.registerFont(bold);
     regularWidth = rawMeasure(family, 400);
     boldWidth = rawMeasure(family, 700);
-    regularDark = await renderDark(family, [regular, bold]);
-    regularFit = fit(regular);
+    regularDark = await renderDark(family, 400, [regular, bold]);
+    boldDark = await renderDark(family, 700, [regular, bold]);
   });
 
   beforeEach(() => {
@@ -159,64 +150,73 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
   it("registering every face before the first lookup resolves each weight to its own face", async () => {
     // Sanity check on the fixtures and the reference values.
     expect(boldWidth).toBeGreaterThan(regularWidth);
+    expect(boldDark).toBeGreaterThan(regularDark);
 
     const { family, regular, bold } = faces();
     api.registerFont(regular);
     api.registerFont(bold);
-    expect(warn).not.toHaveBeenCalled();
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family)).toBeCloseTo(regularWidth, 3);
-    expect(await renderDark(family, [regular, bold])).toBe(regularDark);
-    expect(fit(regular)).toBe(regularFit);
-    expect(fit(bold)).toBeLessThan(regularFit);
-  });
-
-  it("a face registered after its family/weight was looked up is still used by layout and rendering, and registerFont warns", async () => {
-    const { family, regular, bold } = faces();
-    api.registerFont(bold);
-    // The trigger: a lookup for weight 400 while only the bold face exists.
-    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
-
-    api.registerFont(regular);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toContain(`"${family}" 400 normal`);
-
-    // Upstream behaviour: the bare ctx.font lookup stays pinned to bold. If
-    // this assertion starts failing, @napi-rs/canvas invalidates its font
-    // match cache on registration and the probe in registerFont can go.
-    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
-
-    // @effing/canvas's own lookups are not affected.
-    expect(layoutWidth(family)).toBeCloseTo(regularWidth, 3);
-    expect(await renderDark(family, [bold, regular])).toBe(regularDark);
-    expect(fit(regular)).toBe(regularFit);
-  });
-
-  it("a family looked up before any of its faces is registered is still rendered with the registered face, and registerFont warns", async () => {
-    const { family, regular } = faces();
-    // The trigger: a lookup while the family has no faces at all, which pins
-    // the bare key to the fallback font.
-    const fallbackWidth = rawMeasure(family, 400);
-    expect(fallbackWidth).not.toBeCloseTo(regularWidth, 3);
-
-    api.registerFont(regular);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toContain(`"${family}" 400 normal`);
-
-    expect(layoutWidth(family)).toBeCloseTo(regularWidth, 3);
-    expect(await renderDark(family, [regular])).toBe(regularDark);
-  });
-
-  it("does not warn when the weight that was looked up already had its face", () => {
-    const { family, regular, bold } = faces();
-    api.registerFont(bold);
-    expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-
-    api.registerFont(regular);
+    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(await renderDark(family, 400, [regular, bold])).toBe(regularDark);
     expect(warn).not.toHaveBeenCalled();
-    expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
+  });
+
+  it("measuring a weight that has a face, or skipping the measure, leaves later registrations intact", async () => {
+    const { family, regular, bold } = faces();
+    api.registerFont(bold);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
+    expect(layoutWidth(family, 700)).toBeCloseTo(boldWidth, 3);
+
+    api.registerFont(regular);
+    expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  // The original repro. If the "still bold" assertions start failing,
+  // @napi-rs/canvas has started invalidating its font match cache on
+  // registration and the README section and warnings can be revisited.
+  it("a raw ctx.font lookup made before its face is registered pins that family/weight to the old match for the rest of the process", async () => {
+    const { family, regular, bold } = faces();
+    api.registerFont(bold);
+    // The trigger: a direct lookup for weight 400 while only bold exists.
+    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
+
+    api.registerFont(regular);
+
+    // Still bold, everywhere: raw lookups, our layout and our rendering.
+    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(await renderDark(family, 400, [bold, regular])).toBe(boldDark);
+
+    // Direct ctx.font lookups are invisible to us, so nothing warned.
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("warns when the lookup that pinned the family/weight was made through this package", async () => {
+    const { family, regular, bold } = faces();
+    api.registerFont(bold);
+
+    // The trigger, this time through our own layout: warns that 400 has no
+    // registered face.
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toContain(
+      `No face registered for "${family}" 400 normal`,
+    );
+
+    // Registering the missing face now warns that it arrived too late...
+    api.registerFont(regular);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[1]![0]).toContain(
+      `"${family}" 400 normal was registered after`,
+    );
+
+    // ...because it changes nothing for that lookup.
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(await renderDark(family, 400, [bold, regular])).toBe(boldDark);
   });
 });

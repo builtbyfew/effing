@@ -80,19 +80,23 @@ console.log(registeredFamilies()); // ["Inter", ...]
 
 ### Register every face before measuring
 
-`@napi-rs/canvas` resolves each `ctx.font` (family list + weight + style) once and caches the typefaces it picked for the rest of the process; registering a font later does not invalidate that cache. Measuring or drawing text through `ctx.font` for a family or weight that has no registered face yet therefore pins that lookup to the closest face available at the time — the fallback font if the family had no faces yet, or the bold face for weight 400 if only bold had been registered — and later registrations, including the ones `renderReactElement` does for `options.fonts`, don't fix it:
+`@napi-rs/canvas` resolves each `ctx.font` (family list + weight + style) once and caches the typefaces it picked for the rest of the process; registering a font later does not invalidate that cache ([Brooooooklyn/canvas#1329](https://github.com/Brooooooklyn/canvas/issues/1329)). Measuring or drawing text for a family or weight that has no registered face yet therefore pins that lookup to the closest face available at the time — the fallback font if the family had no faces yet, or the bold face for weight 400 if only bold had been registered — and later registrations don't fix it, including the ones `renderReactElement` does for `options.fonts`:
 
-```typescript
+```tsx
 registerFont(bold); // Lato 700
 
 ctx.font = '400 60px "Lato"';
 ctx.measureText("Hello"); // no 400 face yet: this lookup is pinned to bold
 
 registerFont(regular); // Lato 400
-ctx.measureText("Hello"); // still bold, for the rest of the process
+await renderReactElement(
+  ctx,
+  <div style={{ fontFamily: "Lato", fontWeight: 400 }}>Hello</div>,
+  { fonts: [bold, regular] },
+); // still renders bold, for the rest of the process
 ```
 
-Text laid out and drawn by `@effing/canvas` itself (`renderReactElement`, `findLargestUsableFontSize`) is not affected: it uses a fresh lookup key after every registration. Anything that sets `ctx.font` directly — your own `measureText()`/`fillText()` calls — is. Register every face of a family before the first measurement, and pass the same complete `fonts` list to every call. `registerFont` logs a warning when it detects that the family/weight/style it just registered had already been looked up.
+Register every face of a family before the first measurement or render, and pass the same complete `fonts` list to every call. `@effing/canvas` warns (once per family/weight/style) when text it lays out requests a weight or style the family has no registered face for, and when `registerFont` registers a face whose family/weight/style it had already looked up. Lookups made directly through `ctx.font` — your own `measureText()`/`fillText()` calls — can't be observed and don't trigger these warnings, but the rule applies to them just the same.
 
 ## Emoji Support
 
@@ -419,7 +423,7 @@ const fontSize = findLargestUsableFontSize({
 
 ### Font Helpers
 
-- `registerFont(font)` — Register a font from a `FontData` buffer (idempotent; warns when the family/weight/style was already looked up through `ctx.font`, see [Register every face before measuring](#register-every-face-before-measuring))
+- `registerFont(font)` — Register a font from a `FontData` buffer (idempotent; see [Register every face before measuring](#register-every-face-before-measuring))
 - `registerFontFromPath(path, nameAlias?)` — Register a font from a file path
 - `registeredFamilies()` — Get registered font family names
 

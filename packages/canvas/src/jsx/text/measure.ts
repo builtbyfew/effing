@@ -3,6 +3,7 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
+import { fontGenerationFamily } from "../font-lookup.ts";
 
 export type TextMetrics = {
   width: number;
@@ -14,7 +15,7 @@ export type TextMetrics = {
 // Scratch canvas for text measurement when no ctx is available
 let scratchCtx: SKRSContext2D | null = null;
 
-function getScratchCtx(): SKRSContext2D {
+export function getScratchCtx(): SKRSContext2D {
   if (!scratchCtx) {
     scratchCtx = createCanvas(1, 1).getContext("2d");
   }
@@ -43,7 +44,30 @@ function quoteFontFamily(family: string): string {
 }
 
 /**
- * Set font properties on a canvas context for measurement.
+ * Build a CSS `font` shorthand for `ctx.font`. `extraFamilies` (already
+ * quoted) are appended to the family list.
+ */
+export function fontString(
+  fontSize: number,
+  fontFamily: string,
+  fontWeight: number | string = 400,
+  fontStyle: string = "normal",
+  extraFamilies: string[] = [],
+): string {
+  const families = fontFamily
+    .split(",")
+    .map((f) => quoteFontFamily(f.trim()))
+    .filter((f) => f.length > 0)
+    .concat(extraFamilies)
+    .join(", ");
+  return `${fontStyle} ${fontWeight} ${fontSize}px ${families}`;
+}
+
+/**
+ * Set font properties on a canvas context for measurement and drawing.
+ *
+ * The family list gets a generation-tagged pseudo family appended so the
+ * lookup key changes after every font registration — see ../font-lookup.ts.
  */
 export function setFont(
   ctx: SKRSContext2D,
@@ -52,11 +76,9 @@ export function setFont(
   fontWeight: number | string = 400,
   fontStyle: string = "normal",
 ): void {
-  const quoted = fontFamily
-    .split(",")
-    .map((f) => quoteFontFamily(f.trim()))
-    .join(", ");
-  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${quoted}`;
+  ctx.font = fontString(fontSize, fontFamily, fontWeight, fontStyle, [
+    `"${fontGenerationFamily()}"`,
+  ]);
 }
 
 /**

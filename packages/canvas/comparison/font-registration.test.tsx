@@ -161,6 +161,18 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
+  it("uses a face that renderReactElement registers from options.fonts after a raw ctx.font lookup", async () => {
+    const { family, regular, bold } = faces();
+    api.registerFont(bold);
+    // A lookup for weight 400 while only the bold face exists.
+    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
+
+    // The regular face is only ever registered by the render path.
+    expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
+    expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+  });
+
   it("uses a face registered after this package laid out text with its family/weight", async () => {
     const { family, regular, bold } = faces();
     api.registerFont(bold);

@@ -3,7 +3,6 @@ import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
-import { noteFontLookup } from "../font.ts";
 
 export type TextMetrics = {
   width: number;
@@ -44,7 +43,7 @@ function quoteFontFamily(family: string): string {
 }
 
 /**
- * Set font properties on a canvas context for measurement and drawing.
+ * Set font properties on a canvas context for measurement.
  */
 export function setFont(
   ctx: SKRSContext2D,
@@ -53,7 +52,6 @@ export function setFont(
   fontWeight: number | string = 400,
   fontStyle: string = "normal",
 ): void {
-  noteFontLookup(fontFamily, fontWeight, fontStyle);
   const quoted = fontFamily
     .split(",")
     .map((f) => quoteFontFamily(f.trim()))

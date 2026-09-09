@@ -1,12 +1,4 @@
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import React from "react";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -15,12 +7,14 @@ import type { FontData } from "../src/types.ts";
 import { HAS_NATIVE_DEPS } from "./_helpers/setup.ts";
 
 // ---------------------------------------------------------------------------
-// @napi-rs/canvas caches the typefaces Skia picks for each ctx.font
-// (family list + weight + style) for the lifetime of the process, and
-// registering a font later does not invalidate that cache
-// (https://github.com/Brooooooklyn/canvas/issues/1329). These tests
-// characterise that behaviour as seen through @effing/canvas — so we notice
-// when upstream fixes it — and check the warnings we emit about it.
+// Fonts registered after a lookup must still be picked up. Before
+// @napi-rs/canvas 1.0.9, Skia's FontCollection cached the typefaces it picked
+// for each ctx.font (family list + weight + style) for the lifetime of the
+// process and registration never invalidated that cache, so a family or
+// weight looked up before its face existed stayed pinned to the old match
+// (https://github.com/Brooooooklyn/canvas/issues/1329, fixed in
+// https://github.com/Brooooooklyn/canvas/pull/1334). These tests guard the
+// peer range against that.
 //
 // The cache is keyed on the family name, so every scenario registers the
 // fixtures under its own alias to start from a clean slate.
@@ -43,7 +37,6 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
   let layoutText: LayoutText;
   let regularData: Buffer;
   let boldData: Buffer;
-  let warn: ReturnType<typeof vi.spyOn>;
 
   // Reference values from a family whose faces were all registered before
   // any lookup.
@@ -139,15 +132,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     boldDark = await renderDark(family, 700, [regular, bold]);
   });
 
-  beforeEach(() => {
-    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    warn.mockRestore();
-  });
-
-  it("registering every face before the first lookup resolves each weight to its own face", async () => {
+  it("resolves each weight to its own face when every face is registered before the first lookup", async () => {
     // Sanity check on the fixtures and the reference values.
     expect(boldWidth).toBeGreaterThan(regularWidth);
     expect(boldDark).toBeGreaterThan(regularDark);
@@ -160,63 +145,42 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
     expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(await renderDark(family, 400, [regular, bold])).toBe(regularDark);
-    expect(warn).not.toHaveBeenCalled();
   });
 
-  it("measuring a weight that has a face, or skipping the measure, leaves later registrations intact", async () => {
+  it("uses a face registered after a raw ctx.font lookup for its family/weight", async () => {
     const { family, regular, bold } = faces();
     api.registerFont(bold);
-    expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 700)).toBeCloseTo(boldWidth, 3);
+    // A lookup for weight 400 while only the bold face exists.
+    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
 
     api.registerFont(regular);
+
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
     expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
-    expect(warn).not.toHaveBeenCalled();
   });
 
-  // The original repro. If the "still bold" assertions start failing,
-  // @napi-rs/canvas has started invalidating its font match cache on
-  // registration and the README section and warnings can be revisited.
-  it("a raw ctx.font lookup made before its face is registered pins that family/weight to the old match for the rest of the process", async () => {
+  it("uses a face registered after this package laid out text with its family/weight", async () => {
     const { family, regular, bold } = faces();
     api.registerFont(bold);
-    // The trigger: a direct lookup for weight 400 while only bold exists.
-    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
 
     api.registerFont(regular);
 
-    // Still bold, everywhere: raw lookups, our layout and our rendering.
-    expect(rawMeasure(family, 400)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
-    expect(await renderDark(family, 400, [bold, regular])).toBe(boldDark);
-
-    // Direct ctx.font lookups are invisible to us, so nothing warned.
-    expect(warn).not.toHaveBeenCalled();
+    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
-  it("warns when the lookup that pinned the family/weight was made through this package", async () => {
-    const { family, regular, bold } = faces();
-    api.registerFont(bold);
+  it("uses a family registered after it was looked up with no face at all", async () => {
+    const { family, regular } = faces();
+    // Resolves to the fallback font.
+    expect(rawMeasure(family, 400)).not.toBeCloseTo(regularWidth, 3);
 
-    // The trigger, this time through our own layout: warns that 400 has no
-    // registered face.
-    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toContain(
-      `No face registered for "${family}" 400 normal`,
-    );
-
-    // Registering the missing face now warns that it arrived too late...
     api.registerFont(regular);
-    expect(warn).toHaveBeenCalledTimes(2);
-    expect(warn.mock.calls[1]![0]).toContain(
-      `"${family}" 400 normal was registered after`,
-    );
 
-    // ...because it changes nothing for that lookup.
-    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
-    expect(await renderDark(family, 400, [bold, regular])).toBe(boldDark);
+    expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(await renderDark(family, 400, [regular])).toBe(regularDark);
   });
 });

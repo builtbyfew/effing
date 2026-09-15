@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import { pipeline } from "stream/promises";
 import { pathToFileURL } from "url";
 import { EffieRenderer } from "../renderer";
+import { HttpProxy } from "../proxy";
 import { ffsFetch } from "../fetch";
 import { parseEffieData } from "../handlers/shared";
 import { FetchError } from "../handlers/errors";
@@ -115,8 +116,16 @@ export async function runRender(args: RenderArgs): Promise<void> {
   }
 
   process.stderr.write(`rendering to ${args.output}\n`);
+  // Route HTTP(S) video/audio URLs through the local proxy, like the server
+  // does: Node.js then handles DNS (musl/Alpine) and TLS. Since FFmpeg 9.0
+  // the bundled binary verifies TLS peers by default but its mbedTLS backend
+  // has no system CA store, so https inputs opened by FFmpeg directly would
+  // fail certificate verification.
+  const httpProxy = new HttpProxy();
+  await httpProxy.start();
   const renderer = new EffieRenderer(parsed.effie, {
     allowLocalFiles: args.allowLocalFiles,
+    httpProxy,
   });
 
   const start = Date.now();
@@ -125,6 +134,7 @@ export async function runRender(args: RenderArgs): Promise<void> {
     await pipeline(videoStream, createWriteStream(args.output));
   } finally {
     renderer.close();
+    httpProxy.close();
   }
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(2);

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { access, chmod, readFile, rename, rm } from "node:fs/promises";
@@ -44,18 +45,41 @@ if (!platform || !arch || !SUPPORTED.has(`${platform}-${arch}`)) {
 const binaryName = platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 const binaryPath = path.join(__dirname, binaryName);
 
-// Skip if binary already exists
+// FFmpeg version to download. Keep checksums.json in sync when bumping.
+const FFMPEG_VERSION = "9.0.1";
+
+const customBaseUrl = process.env.FFMPEG_BINARIES_URL;
+const baseUrl =
+  customBaseUrl ||
+  `https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v${FFMPEG_VERSION}`;
+
+// Skip if a binary already exists, unless it reports a different version than
+// the one pinned above (a stale binary would otherwise silently survive every
+// version bump). Custom builds served via FFMPEG_BINARIES_URL are trusted as-is.
 try {
   await access(binaryPath);
-  console.log(`@effing/ffmpeg: binary already exists at ${binaryPath}`);
-  process.exit(0);
+  let existingVersion = "unknown";
+  try {
+    existingVersion =
+      execFileSync(binaryPath, ["-version"], { encoding: "utf8" })
+        .split("\n")[0]
+        .match(/^ffmpeg version (\S+)/)?.[1] ?? "unknown";
+  } catch {
+    // Not executable or broken; treat as stale and re-download below.
+  }
+  if (customBaseUrl || existingVersion === FFMPEG_VERSION) {
+    console.log(
+      `@effing/ffmpeg: binary already exists at ${binaryPath} (version ${existingVersion})`,
+    );
+    process.exit(0);
+  }
+  console.log(
+    `@effing/ffmpeg: existing binary is version ${existingVersion}, expected ${FFMPEG_VERSION}; re-downloading`,
+  );
+  await rm(binaryPath, { force: true });
 } catch {
   // Binary doesn't exist, proceed with download
 }
-
-const baseUrl =
-  process.env.FFMPEG_BINARIES_URL ||
-  "https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v6.1.6";
 
 const url = `${baseUrl}/ffmpeg-${platform}-${arch}.gz`;
 

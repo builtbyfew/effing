@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v6.1.5**, FFmpeg 6.1.5).
+Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v9.0.1**, FFmpeg 9.0.1).
 
 ## Usage
 
@@ -19,14 +19,14 @@ import { pathToFFmpeg } from "@effing/ffmpeg";
 The `install` lifecycle script (`node install.mjs`) runs during `pnpm install` and:
 
 1. Detects the current platform and architecture
-2. Skips the download if the binary already exists
+2. Skips the download if a binary already exists and `ffmpeg -version` reports the pinned version (a stale binary from an older release is replaced)
 3. Downloads the gzipped binary from GitHub releases
 4. Decompresses it and verifies its SHA-256 against the pinned digest in `checksums.json`
 5. Sets executable permissions (only if verification passed)
 
 On a checksum mismatch the partially downloaded file is removed and the install fails.
 
-> **Maintenance:** every FFmpeg version bump (the release tag in `install.mjs`) must regenerate `checksums.json`. For each supported target: `curl -sL "<base-url>/ffmpeg-<platform>-<arch>.gz" | gunzip | shasum -a 256`
+> **Maintenance:** every FFmpeg version bump (`FFMPEG_VERSION` in `install.mjs`) must regenerate `checksums.json`. For each supported target: `curl -sL "<base-url>/ffmpeg-<platform>-<arch>.gz" | gunzip | shasum -a 256`
 
 The binary is placed in the package root (`packages/ffmpeg/ffmpeg`). In the monorepo, pnpm symlinks mean all workspace consumers share the same binary.
 

@@ -541,21 +541,16 @@ describe("distributed rendering integration", () => {
       expect(postDelay.r).toBeGreaterThan(150);
       expect(postDelay.g).toBeLessThan(60);
 
-      // 6. Verify the decoded stream ends at exactly 1.00s. The pre-fix
-      //    nullsrc's 25fps default introduced a frame-rate boundary at the
-      //    concat point that pushed the final PTS to 1.03s.
-      const timeMatches = [
-        ...probe.stderr.matchAll(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/g),
-      ];
-      expect(timeMatches.length).toBeGreaterThan(0);
-      const last = timeMatches[timeMatches.length - 1];
-      const seconds =
-        parseInt(last[1], 10) * 3600 +
-        parseInt(last[2], 10) * 60 +
-        parseInt(last[3], 10) +
-        parseInt(last[4], 10) / 100;
-      // Segment is 1.0s; allow ≤1.01 for rounding. Pre-fix gives 1.03.
-      expect(seconds).toBeLessThanOrEqual(1.01);
+      // 6. Verify the decoded stream has exactly fps * duration frames. The
+      //    pre-fix nullsrc's 25fps default introduced a frame-rate boundary
+      //    at the concat point that produced extra frames, and with FFmpeg
+      //    >= 8.0 an un-normalised padding chain makes the trailing fps=
+      //    filter run away for ~1e6 frames (see the delay padding comment in
+      //    renderer.ts). Count frames from ffmpeg's final progress line.
+      const frameMatches = [...probe.stderr.matchAll(/frame=\s*(\d+)/g)];
+      expect(frameMatches.length).toBeGreaterThan(0);
+      const frames = parseInt(frameMatches[frameMatches.length - 1][1], 10);
+      expect(frames).toBe(fps * 1.0);
     } finally {
       await cleanupTestOutput(tempDir);
     }

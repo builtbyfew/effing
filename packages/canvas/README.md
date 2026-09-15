@@ -342,7 +342,15 @@ the usual frosted-glass look:
 The backdrop is everything drawn on the canvas before the element — ancestors
 and earlier siblings, but also anything you drew on the context before calling
 `renderReactElement`. Elements painted later are not affected. Any filter
-function the `filter` property accepts works here too.
+function the `filter` property accepts works here too. Filter lengths are CSS
+pixels of the element and follow its `transform`, including non-uniform
+scales and skews. At the canvas edge the backdrop is extended outward, like a
+browser clamps it at the viewport edge, so a blur stays uniform there.
+
+One difference from browsers: `opacity` is applied per drawing operation, not
+to the element's subtree as a group. Under an ancestor with `opacity` below 1
+the filtered backdrop is painted back with that opacity, so it blends with the
+unfiltered backdrop instead of the ancestor forming its own backdrop root.
 
 ### Units
 

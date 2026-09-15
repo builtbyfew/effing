@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseClipPath, type ClipShape } from "./clip-path.ts";
+import { clipShapeToPath, parseClipPath, type ClipShape } from "./clip-path.ts";
 
 const box = { x: 10, y: 20, width: 200, height: 100 };
 
@@ -91,6 +91,55 @@ describe("parseClipPath – keywords", () => {
       ],
     });
   });
+
+  it("clamps the radius the way the element's corners are painted", () => {
+    // The box is 200×100, so a 80px radius is painted as 50px; the clip must
+    // trace that painted corner rather than a larger arc.
+    expect(parse("border-box", { borderTopLeftRadius: 80 })).toMatchObject({
+      radii: [
+        [50, 50],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+      ],
+    });
+  });
+
+  it("grows only rounded corners for the margin box", () => {
+    // Square corners stay square (CSS Shapes 1 §5.1); a radius larger than
+    // the margin grows by the margin.
+    const margin = {
+      marginTop: 10,
+      marginRight: 10,
+      marginBottom: 10,
+      marginLeft: 10,
+    };
+    expect(
+      parse("margin-box", { borderTopLeftRadius: 20, ...margin }),
+    ).toMatchObject({
+      x: 0,
+      y: 10,
+      width: 220,
+      height: 120,
+      radii: [
+        [30, 30],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+      ],
+    });
+    // A radius smaller than the margin is eased: r + m(1 + (r/m - 1)^3).
+    expect(
+      parse("margin-box", { borderTopLeftRadius: 5, ...margin }),
+    ).toMatchObject({
+      radii: [
+        [13.75, 13.75],
+        [0, 0],
+        [0, 0],
+        [0, 0],
+      ],
+    });
+  });
 });
 
 describe("parseClipPath – inset / rect / xywh", () => {
@@ -139,15 +188,16 @@ describe("parseClipPath – inset / rect / xywh", () => {
         [20, 5],
       ],
     });
-    // Percentages in `round` resolve against the inset rectangle.
+    // Percentages in `round` resolve against the reference box (200×100), not
+    // the inset rectangle, so 10% is 20px horizontally and 10px vertically.
     expect(parse("inset(0 50px round 10%)")).toMatchObject({
       width: 100,
       height: 100,
       radii: [
-        [10, 10],
-        [10, 10],
-        [10, 10],
-        [10, 10],
+        [20, 10],
+        [20, 10],
+        [20, 10],
+        [20, 10],
       ],
     });
   });
@@ -234,6 +284,14 @@ describe("parseClipPath – circle / ellipse", () => {
     expect(parse("circle(10px at 30px)")).toMatchObject({ cx: 40, cy: 70 });
   });
 
+  it("only reorders keyword pairs, so a keyword-length pair is fixed", () => {
+    expect(parse("circle(10px at top left)")).toMatchObject({ cx: 10, cy: 20 });
+    // `top 30px` is not a valid <position>: the vertical keyword can't be
+    // followed by a horizontal length.
+    expect(parse("circle(10px at top 30px)")).toBeNull();
+    expect(parse("circle(10px at 30px left)")).toBeNull();
+  });
+
   it("uses closest/farthest side per axis for ellipses", () => {
     expect(parse("ellipse()")).toEqual({
       kind: "ellipse",
@@ -295,6 +353,15 @@ describe("parseClipPath – polygon / path", () => {
       d: "M0 0 H10 V10 Z",
       fillRule: "evenodd",
     });
+  });
+
+  it("yields no clip for path data Skia cannot parse instead of throwing", () => {
+    for (const d of ["M", "M0 0 L10", "garbage"]) {
+      const shape = parse(`path("${d}")`);
+      expect(shape).toMatchObject({ kind: "path", d });
+      expect(clipShapeToPath(shape!)).toBeNull();
+    }
+    expect(clipShapeToPath(parse('path("M0 0 L10 10 Z")')!)).not.toBeNull();
   });
 
   it("rejects malformed values", () => {

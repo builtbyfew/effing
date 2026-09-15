@@ -2,6 +2,8 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
+import { formatCSSNumber } from "../draw/utils.ts";
+
 /**
  * Style after shorthand expansion but before unit resolution.
  * Properties like fontSize may still contain CSS unit strings (e.g. "4em").
@@ -445,6 +447,7 @@ const LENGTH_STRING_PROPS: [keyof ComputedStyle, string][] = [
   ["transform", ""],
   ["transformOrigin", ""],
   ["clipPath", "px"],
+  ["filter", "px"],
   ["backdropFilter", "px"],
 ];
 
@@ -463,7 +466,8 @@ function resolveLengthUnits(
   suffix = "",
 ): string {
   return transform.replace(
-    /(-?\d*\.?\d+)(vw|vh|vmin|vmax|em|rem|px|pt|pc|in|cm|mm)\b/g,
+    // The lookbehind keeps a number from being matched mid-token (`1e1em`).
+    /(?<![\w.])(-?\d*\.?\d+)(vw|vh|vmin|vmax|em|rem|px|pt|pc|in|cm|mm)\b/g,
     (match) => {
       const resolved = resolveUnit(
         match,
@@ -472,7 +476,9 @@ function resolveLengthUnits(
         fontSize,
         rootFontSize,
       );
-      return typeof resolved === "number" ? `${resolved}${suffix}` : match;
+      return typeof resolved === "number"
+        ? `${formatCSSNumber(resolved)}${suffix}`
+        : match;
     },
   );
 }

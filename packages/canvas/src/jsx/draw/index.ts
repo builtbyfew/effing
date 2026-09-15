@@ -59,12 +59,13 @@ export async function drawNode(
   // A backdrop-filter anywhere in the subtree also bypasses it: the filter
   // samples the canvas it draws on, and an offscreen buffer holds none of the
   // content behind the element.
-  if (
+  const subtree =
     scaleInfo &&
     (scaleInfo.sx !== 1 || scaleInfo.sy !== 1) &&
-    !hasOtherTransforms &&
-    !subtreeHasBackdropFilter(node)
-  ) {
+    !hasOtherTransforms
+      ? scanSubtree(node)
+      : null;
+  if (scaleInfo && subtree && !subtree.hasBackdropFilter) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;
@@ -76,7 +77,7 @@ export async function drawNode(
     // past the content edge (as do box-shadows). Grow the buffer by that much
     // on every side so transformed content keeps the overflow the untransformed
     // element would paint.
-    const bleed = Math.max(1, computeOverflowBleed(node));
+    const bleed = Math.max(1, subtree.overflowBleed);
 
     // Quantize to ceil(|scale|) — buffer resolution only changes at
     // integer boundaries (no jitter), and composite is always ≤1x (sharp).
@@ -181,18 +182,27 @@ function extractScale(
 }
 
 /**
- * Estimate how far a subtree's painting can extend beyond its layout box, in
- * logical (pre-scale) pixels. Used to size the offscreen scale buffer so its
- * hard pixel bounds don't slice ink that legitimately overflows the box.
+ * One walk over the visible part of a subtree (nodes that are `display: none`
+ * or fully transparent are skipped, as they are when drawing) collecting what
+ * the offscreen scale path needs to know:
  *
- * Glyph ink overhangs its advance box by up to roughly one em (side bearings,
- * italics, accents), and negative letter-spacing trims the box while leaving
- * the trailing glyph's ink in place — so it overflows by the magnitude of the
- * spacing. Box-shadows extend the painted area too. The result is a single
- * symmetric margin (the max needed on any side), which is all the buffer needs.
+ * - `overflowBleed`: how far the subtree's painting can extend beyond its
+ *   layout box, in logical (pre-scale) pixels, to size the offscreen buffer so
+ *   its hard pixel bounds don't slice ink that legitimately overflows the box.
+ *   Glyph ink overhangs its advance box by up to roughly one em (side
+ *   bearings, italics, accents), and negative letter-spacing trims the box
+ *   while leaving the trailing glyph's ink in place — so it overflows by the
+ *   magnitude of the spacing. Box-shadows extend the painted area too. The
+ *   result is a single symmetric margin (the max needed on any side).
+ * - `hasBackdropFilter`: whether any node applies a backdrop-filter, which
+ *   needs the real canvas behind it and so rules out the offscreen path.
  */
-function computeOverflowBleed(node: LayoutNode): number {
-  let bleed = 0;
+function scanSubtree(node: LayoutNode): {
+  overflowBleed: number;
+  hasBackdropFilter: boolean;
+} {
+  let overflowBleed = 0;
+  let hasBackdropFilter = false;
 
   const visit = (n: LayoutNode): void => {
     if (n.style.display === "none") return;
@@ -203,25 +213,27 @@ function computeOverflowBleed(node: LayoutNode): number {
     if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
       const letterSpacing =
         typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
-      bleed = Math.max(bleed, fontSize + Math.max(0, -letterSpacing));
+      overflowBleed = Math.max(
+        overflowBleed,
+        fontSize + Math.max(0, -letterSpacing),
+      );
     }
 
     if (n.style.boxShadow) {
-      bleed = Math.max(bleed, boxShadowExtent(n.style.boxShadow));
+      overflowBleed = Math.max(
+        overflowBleed,
+        boxShadowExtent(n.style.boxShadow),
+      );
     }
+
+    const filter = n.style.backdropFilter;
+    if (filter && filter.trim() !== "none") hasBackdropFilter = true;
 
     for (const child of n.children) visit(child);
   };
 
   visit(node);
-  return bleed;
-}
-
-function subtreeHasBackdropFilter(node: LayoutNode): boolean {
-  if (node.style.display === "none") return false;
-  const filter = node.style.backdropFilter;
-  if (filter && filter.trim() !== "none") return true;
-  return node.children.some(subtreeHasBackdropFilter);
+  return { overflowBleed, hasBackdropFilter };
 }
 
 /**
@@ -285,14 +297,9 @@ async function drawNodeCore(
 
   const borderRadius = getBorderRadiusFromStyle(style, width, height);
 
-  // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
-  // not the element's own box-shadow.
-  if (style.boxShadow) {
-    drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
-  }
-
-  // Filter the backdrop behind the border box before painting the element's
-  // own background on top of it.
+  // Filter the backdrop behind the border box before anything of the element
+  // itself is painted: its box-shadow must not end up in the snapshot, and its
+  // background composites on top of the filtered result.
   if (style.backdropFilter) {
     drawBackdropFilter(
       ctx,
@@ -303,6 +310,12 @@ async function drawNodeCore(
       height,
       borderRadius,
     );
+  }
+
+  // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
+  // not the element's own box-shadow.
+  if (style.boxShadow) {
+    drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
   }
 
   // Apply clipping for overflow: hidden

@@ -149,12 +149,27 @@ describe("resolveUnits – clipPath and backdropFilter", () => {
     expect(style.clipPath).toBe("inset(20px 10% round 32px)");
   });
 
-  it("resolves lengths inside backdropFilter", () => {
+  it("resolves lengths inside backdropFilter and filter", () => {
     const style: ExpandedStyle = {
       fontSize: 10,
+      filter: "drop-shadow(0.5em 1em 2px red)",
       backdropFilter: "blur(1em) brightness(0.5)",
     };
     resolveUnits(style as Parameters<typeof resolveUnits>[0], 1000, 500);
+    expect(style.filter).toBe("drop-shadow(5px 10px 2px red)");
     expect(style.backdropFilter).toBe("blur(10px) brightness(0.5)");
+  });
+
+  it("never writes exponent notation, which CSS parsers reject", () => {
+    const style: ExpandedStyle = {
+      fontSize: 10,
+      backdropFilter: "blur(0.00000001em)",
+      clipPath: "inset(1e1em)",
+    };
+    resolveUnits(style as Parameters<typeof resolveUnits>[0], 1000, 500);
+    expect(style.backdropFilter).toBe("blur(0px)");
+    // Exponent notation is not valid CSS; leave it alone rather than
+    // rewriting the trailing `1em` into `10px`.
+    expect(style.clipPath).toBe("inset(1e1em)");
   });
 });

@@ -29,4 +29,9 @@ describe("scaleFilterLengths", () => {
   it("leaves unitless values alone", () => {
     expect(scaleFilterLengths("brightness(0.5)", 3)).toBe("brightness(0.5)");
   });
+
+  it("never writes exponent notation, which Skia rejects", () => {
+    expect(scaleFilterLengths("blur(0.0001px)", 0.001)).toBe("blur(0px)");
+    expect(scaleFilterLengths("blur(3px)", 1 / 3)).toBe("blur(1px)");
+  });
 });

@@ -2,6 +2,7 @@ import { Path2D } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
 
 import type { ComputedStyle } from "../style/compute.ts";
+import { maxCornerRadius } from "./clip.ts";
 import { getBorderRadiusFromStyle } from "./rect.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
 
@@ -95,7 +96,7 @@ export function applyClipPath(
   const shape = parseClipPath(clipPath, style, { x, y, width, height });
   if (!shape || shape.kind === "none") return;
   const path = clipShapeToPath(shape);
-  ctx.clip(path, shapeFillRule(shape));
+  if (path) ctx.clip(path, shapeFillRule(shape));
 }
 
 function shapeFillRule(shape: ClipShape): FillRule {
@@ -178,9 +179,11 @@ export function parseClipPath(
 }
 
 /**
- * Build a `Path2D` for a resolved clip shape.
+ * Build a `Path2D` for a resolved clip shape. Returns `null` when the shape
+ * is a `path()` whose data Skia cannot parse — treated like an invalid
+ * declaration (the element is left unclipped) rather than a render failure.
  */
-export function clipShapeToPath(shape: ClipShape): Path2D {
+export function clipShapeToPath(shape: ClipShape): Path2D | null {
   const p = new Path2D();
   switch (shape.kind) {
     case "none":
@@ -221,7 +224,12 @@ export function clipShapeToPath(shape: ClipShape): Path2D {
       }
       break;
     case "path": {
-      const inner = new Path2D(shape.d);
+      let inner: Path2D;
+      try {
+        inner = new Path2D(shape.d);
+      } catch {
+        return null;
+      }
       if (shape.dx === 0 && shape.dy === 0) return inner;
       p.addPath(inner, { a: 1, b: 0, c: 0, d: 1, e: shape.dx, f: shape.dy });
       break;
@@ -299,6 +307,10 @@ function marginValue(v: unknown, referenceWidth: number): number {
  * Border radii of a geometry box: the element's border-radius for the border
  * box (and margin box, grown by the margin), reduced by the border and padding
  * widths for the inner boxes. Returns `null` when every corner is square.
+ *
+ * The base radii are clamped the way the element's own corners are painted
+ * (see `maxCornerRadius`) so a bare `border-box` clip traces exactly the
+ * painted rounded corner instead of a different arc.
  */
 function referenceBoxRadii(
   geometryBox: string,
@@ -307,12 +319,10 @@ function referenceBoxRadii(
   ref: ReferenceBox,
 ): CornerRadii | null {
   const br = getBorderRadiusFromStyle(style, box.width, box.height);
-  const base: [number, number, number, number] = [
-    br.topLeft,
-    br.topRight,
-    br.bottomRight,
-    br.bottomLeft,
-  ];
+  const maxR = maxCornerRadius(box.width, box.height);
+  const base = [br.topLeft, br.topRight, br.bottomRight, br.bottomLeft].map(
+    (r) => Math.min(Math.max(0, r), maxR),
+  ) as [number, number, number, number];
   if (base.every((r) => r <= 0)) return null;
 
   // Horizontal / vertical insets from the border box to the reference box, per
@@ -330,10 +340,26 @@ function referenceBoxRadii(
 
   const radii = base.map((r, i) => {
     const [ix, iy] = insets[i]!;
-    return [Math.max(0, r - ix), Math.max(0, r - iy)] as Point;
+    return [adjustRadius(r, ix), adjustRadius(r, iy)] as Point;
   }) as CornerRadii;
   if (radii.every(([rx, ry]) => rx <= 0 || ry <= 0)) return null;
   return normalizeRadii(radii, ref.width, ref.height);
+}
+
+/**
+ * Move a border radius inward by `inset` (CSS Backgrounds: the inner radius
+ * is the outer one minus the border, floored at zero) or, for a negative
+ * inset, outward (CSS Shapes `margin-box`: a square corner stays square, a
+ * radius `r >= m` grows to `r + m`, and a smaller one is eased between the
+ * two so the corner keeps its shape).
+ */
+function adjustRadius(r: number, inset: number): number {
+  if (inset >= 0) return Math.max(0, r - inset);
+  if (r <= 0) return 0;
+  const m = -inset;
+  if (r >= m) return r + m;
+  const ratio = r / m - 1;
+  return r + m * (1 + ratio * ratio * ratio);
 }
 
 // ---------------------------------------------------------------------------
@@ -356,6 +382,7 @@ function parseInset(args: string, ref: ReferenceBox): ClipShape | null {
     ref.width - left - right,
     ref.height - top - bottom,
     roundPart,
+    ref,
   );
 }
 
@@ -372,7 +399,14 @@ function parseRect(args: string, ref: ReferenceBox): ClipShape | null {
   // Per spec, right/bottom are clamped so they never precede left/top.
   const x2 = Math.max(left, right);
   const y2 = Math.max(top, bottom);
-  return makeRect(ref.x + left, ref.y + top, x2 - left, y2 - top, roundPart);
+  return makeRect(
+    ref.x + left,
+    ref.y + top,
+    x2 - left,
+    y2 - top,
+    roundPart,
+    ref,
+  );
 }
 
 function parseXywh(args: string, ref: ReferenceBox): ClipShape | null {
@@ -391,21 +425,27 @@ function parseXywh(args: string, ref: ReferenceBox): ClipShape | null {
     Math.max(0, w),
     Math.max(0, h),
     roundPart,
+    ref,
   );
 }
 
+/**
+ * Build a rect shape with optional `round` radii. Percentage radii resolve
+ * against the reference box (CSS Shapes 1 §3), not the rectangle itself.
+ */
 function makeRect(
   x: number,
   y: number,
   width: number,
   height: number,
   roundPart: string | undefined,
+  ref: ReferenceBox,
 ): ClipShape | null {
   const w = Math.max(0, width);
   const h = Math.max(0, height);
   let radii: CornerRadii | null = null;
   if (roundPart !== undefined) {
-    const parsed = parseRadii(roundPart, w, h);
+    const parsed = parseRadii(roundPart, ref.width, ref.height, w, h);
     if (parsed === undefined) return null;
     radii = parsed;
   }
@@ -729,10 +769,16 @@ function resolvePosition(tokens: string[], w: number, h: number): Point | null {
 
   if (tokens.length === 2) {
     let [a, b] = tokens as [string, string];
-    // Keywords may come in either order ("top left" == "left top").
+    // Two keywords may come in either order ("top left" == "left top"); with
+    // a length in the pair the order is fixed, so "top 30px" is invalid and
+    // falls through to the NaN check below.
+    const bothKeywords =
+      (H_KEYWORDS.has(a) || V_KEYWORDS.has(a)) &&
+      (H_KEYWORDS.has(b) || V_KEYWORDS.has(b));
     if (
-      (V_KEYWORDS.has(a) && !H_KEYWORDS.has(a)) ||
-      (H_KEYWORDS.has(b) && !V_KEYWORDS.has(b))
+      bothKeywords &&
+      ((V_KEYWORDS.has(a) && !H_KEYWORDS.has(a)) ||
+        (H_KEYWORDS.has(b) && !V_KEYWORDS.has(b)))
     ) {
       [a, b] = [b, a];
     }
@@ -789,11 +835,15 @@ function resolveRadius(
 
 /**
  * Parse `border-radius`-style radii (`r1 r2 r3 r4 / v1 v2 v3 v4`) into
- * per-corner elliptical radii, scaled down per the CSS overlap rule. Returns
- * `undefined` for unparsable input and `null` when all corners are square.
+ * per-corner elliptical radii. Percentages resolve against `refW` × `refH`;
+ * the result is scaled down per the CSS overlap rule for a `w` × `h` box.
+ * Returns `undefined` for unparsable input and `null` when all corners are
+ * square.
  */
 function parseRadii(
   value: string,
+  refW: number,
+  refH: number,
   w: number,
   h: number,
 ): CornerRadii | null | undefined {
@@ -808,8 +858,8 @@ function parseRadii(
   ) {
     return undefined;
   }
-  const hs = expandSides(hTokens).map((t) => parseCSSLength(t, w));
-  const vs = expandSides(vTokens).map((t) => parseCSSLength(t, h));
+  const hs = expandSides(hTokens).map((t) => parseCSSLength(t, refW));
+  const vs = expandSides(vTokens).map((t) => parseCSSLength(t, refH));
   if ([...hs, ...vs].some(isNaN)) return undefined;
   const radii = hs.map((rx, i) => [
     Math.max(0, rx),

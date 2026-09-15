@@ -495,33 +495,37 @@ describe("drawNode – backdrop-filter", () => {
     );
 
     const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage).toHaveBeenCalledTimes(2);
-    // Snapshot: the padded device-space region (bleed = 3σ + 1 = 13px).
+    expect(drawImage).toHaveBeenCalledTimes(3);
+    // Snapshot: the padded device-space region (bleed = 3σ + 1 = 13px), drawn
+    // at its device position into a buffer translated by (-37, -47).
+    expect(ctx.translate).toHaveBeenCalledWith(-37, -47);
     expect(drawImage.mock.calls[0]).toEqual([
       ctx.canvas,
       37,
       47,
       126,
       66,
-      0,
-      0,
+      37,
+      47,
       126,
       66,
     ]);
+    // The filter pass copies the snapshot into a second buffer.
+    expect(drawImage.mock.calls[1]!.slice(1)).toEqual([0, 0]);
     // Paint back at the same device position, under an identity transform.
-    expect(drawImage.mock.calls[1]!.slice(1)).toEqual([
+    expect(drawImage.mock.calls[2]!.slice(1)).toEqual([
       0, 0, 126, 66, 37, 47, 126, 66,
     ]);
     expect(ctx.setTransform).toHaveBeenCalledWith(1, 0, 0, 1, 0, 0);
     // Clipped to the border box, and painted before the background fill.
     expect(ctx.rect).toHaveBeenCalledWith(50, 60, 100, 40);
     expect(ctx.clip).toHaveBeenCalled();
-    expect(drawImage.mock.invocationCallOrder[1]!).toBeLessThan(
+    expect(drawImage.mock.invocationCallOrder[2]!).toBeLessThan(
       vi.mocked(ctx.fillRect).mock.invocationCallOrder[0]!,
     );
   });
 
-  it("clamps the snapshot to the canvas", async () => {
+  it("extends the canvas edge under a snapshot that reaches past it", async () => {
     await drawNode(
       ctx,
       {
@@ -537,8 +541,47 @@ describe("drawNode – backdrop-filter", () => {
       0,
       0,
     );
+    // Padded region: x -51..111, y 149..251 on a 200×200 canvas. The part
+    // inside the canvas is copied as is; the strips past the left and bottom
+    // edges (and their corner) stretch the boundary pixels outward.
+    const calls = vi.mocked(ctx.drawImage).mock.calls.map((c) => c.slice(1));
+    expect(calls).toEqual([
+      [0, 149, 111, 51, 0, 149, 111, 51],
+      [0, 149, 1, 51, -51, 149, 51, 51],
+      [0, 199, 111, 1, 0, 200, 111, 51],
+      [0, 199, 1, 1, -51, 200, 51, 51],
+      [0, 0],
+      [0, 0, 162, 102, -51, 149, 162, 102],
+    ]);
+  });
+
+  it("runs before the element's own box-shadow", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { backdropFilter: "blur(4px)", boxShadow: "0 0 10px black" },
+        children: [],
+        props: {},
+        x: 50,
+        y: 60,
+        width: 100,
+        height: 40,
+      },
+      0,
+      0,
+    );
+    // The shadow must not be part of the snapshot: the backdrop paint-back
+    // (last drawImage) precedes drawBoxShadow's evenodd clip.
     const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage.mock.calls[0]!.slice(1, 5)).toEqual([0, 149, 111, 51]);
+    const clip = vi.mocked(ctx.clip);
+    const shadowClip = clip.mock.calls.findIndex(
+      (c) => (c as unknown[])[0] === "evenodd",
+    );
+    expect(shadowClip).toBeGreaterThanOrEqual(0);
+    expect(drawImage.mock.invocationCallOrder.at(-1)!).toBeLessThan(
+      clip.mock.invocationCallOrder[shadowClip]!,
+    );
   });
 
   it("skips backdrop-filter: none", async () => {
@@ -588,9 +631,46 @@ describe("drawNode – backdrop-filter", () => {
       0,
     );
     // The scale is applied directly to the context (ctx.scale) rather than via
-    // an offscreen buffer composited with drawImage: only the two backdrop
-    // drawImage calls happen.
+    // an offscreen buffer composited with drawImage: no drawImage maps a
+    // buffer onto the bleed-expanded box (-1, -1, 102, 102).
     expect(ctx.scale).toHaveBeenCalledWith(2, 2);
-    expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+    const composite = vi
+      .mocked(ctx.drawImage)
+      .mock.calls.find((c) => c[5] === -1 && c[6] === -1 && c[7] === 102);
+    expect(composite).toBeUndefined();
+  });
+
+  it("ignores invisible backdrop-filter descendants when picking the offscreen path", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { transform: "scale(2)" },
+        children: [
+          {
+            type: "div",
+            style: { backdropFilter: "blur(2px)", opacity: 0 },
+            children: [],
+            props: {},
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+          },
+        ],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      },
+      0,
+      0,
+    );
+    // A fully transparent child is never drawn, so it must not force the
+    // direct path: the subtree renders offscreen and is composited once.
+    const drawImage = vi.mocked(ctx.drawImage);
+    expect(drawImage).toHaveBeenCalledTimes(1);
+    expect(drawImage.mock.calls[0]!.slice(5)).toEqual([-1, -1, 102, 102]);
   });
 });

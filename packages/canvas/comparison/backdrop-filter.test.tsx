@@ -226,4 +226,146 @@ describe.skipIf(!HAS_NATIVE_DEPS)("backdrop-filter rendering", () => {
     expect(isBlurred(pixel(png, 200, 100))).toBe(true);
     expect(isCrisp(pixel(png, 154, 54))).toBe(true);
   });
+
+  it("keeps the blur uniform up to the canvas edge", async () => {
+    // A full-width bar flush with the bottom edge: the blur must not fade out
+    // along the left, right and bottom edges where the snapshot leaves the
+    // canvas.
+    const png = await render(
+      stripes(
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 140,
+            width: WIDTH,
+            height: 60,
+            backdropFilter: "blur(10px)",
+          }}
+        />,
+      ),
+      fonts,
+    );
+    const value = (x: number, y: number) => {
+      const [r, g, b] = pixel(png, x, y);
+      return (r + g + b) / 3;
+    };
+    // Largest pixel-to-pixel step along a row segment: a lost blur brings the
+    // 4px stripes back as steps of 25+ per pixel, a uniform blur leaves at
+    // most the gentle drift toward the clamped boundary colour.
+    const maxStep = (x0: number, x1: number, y: number) => {
+      let step = 0;
+      for (let x = x0; x < x1; x++) {
+        step = Math.max(step, Math.abs(value(x + 1, y) - value(x, y)));
+      }
+      return step;
+    };
+    expect(isBlurred(pixel(png, 200, 170))).toBe(true);
+    expect(isBlurred(pixel(png, 200, 198))).toBe(true);
+    expect(maxStep(0, 12, 170)).toBeLessThan(8);
+    expect(maxStep(387, 399, 170)).toBeLessThan(8);
+    expect(maxStep(190, 210, 198)).toBeLessThan(8);
+    expect(maxStep(0, 12, 198)).toBeLessThan(8);
+    expect(isCrisp(pixel(png, 2, 170))).toBe(false);
+    expect(isCrisp(pixel(png, 2, 198))).toBe(false);
+  });
+
+  it("keeps the filter isotropic in element space under a non-uniform scale", async () => {
+    // Horizontal 4px stripes behind an element scaled 4× horizontally and
+    // 0.25× vertically (device box x 0..400, y 75..125). blur(4px) is 4 CSS
+    // px of the element, so only 1 device px vertically: the stripes stay
+    // clearly visible. A filter applied at the transform's average scale (1)
+    // would smear them to flat grey.
+    const png = await render(
+      <div
+        style={{
+          display: "flex",
+          position: "relative",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+        }}
+      >
+        {Array.from({ length: HEIGHT / 8 }, (_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: i * 8,
+              width: WIDTH,
+              height: 4,
+              background: "black",
+            }}
+          />
+        ))}
+        <div
+          style={{
+            position: "absolute",
+            left: 150,
+            top: 0,
+            width: 100,
+            height: 200,
+            transform: "scale(4, 0.25)",
+            backdropFilter: "blur(4px)",
+          }}
+        />
+      </div>,
+      fonts,
+    );
+    const value = (x: number, y: number) => {
+      const [r, g, b] = pixel(png, x, y);
+      return (r + g + b) / 3;
+    };
+    // Rows 96..100 are a black stripe, 100..104 a white one.
+    expect(value(200, 98)).toBeLessThan(90);
+    expect(value(200, 102)).toBeGreaterThan(165);
+    expect(value(50, 98)).toBeLessThan(90);
+    expect(value(350, 102)).toBeGreaterThan(165);
+    // Outside the element the stripes are untouched.
+    expect(isCrisp(pixel(png, 200, 30))).toBe(true);
+  });
+
+  it("leaves the element's own box-shadow out of the backdrop", async () => {
+    // On a white page the only dark pixels come from the element's shadow. It
+    // must not be blurred inward: the interior stays white right up to the
+    // edge, as in a browser.
+    const png = await render(
+      <div
+        style={{
+          display: "flex",
+          position: "relative",
+          width: WIDTH,
+          height: HEIGHT,
+          background: "white",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 100,
+            top: 50,
+            width: 200,
+            height: 100,
+            boxShadow: "0 0 20px black",
+            backdropFilter: "blur(10px)",
+            backgroundColor: "rgba(255, 255, 255, 0.25)",
+          }}
+        />
+      </div>,
+      fonts,
+    );
+    for (const [x, y] of [
+      [102, 100],
+      [200, 52],
+      [298, 100],
+      [200, 148],
+    ] as const) {
+      const [r, g, b] = pixel(png, x, y);
+      expect(Math.min(r, g, b), `pixel ${x},${y}`).toBeGreaterThanOrEqual(250);
+    }
+    // The shadow itself is still painted outside the box.
+    const [outside] = pixel(png, 96, 100);
+    expect(outside).toBeLessThan(240);
+  });
 });

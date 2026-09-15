@@ -18,6 +18,23 @@ import { pathToFileURL, fileURLToPath } from "url";
 
 const execFileP = promisify(execFile);
 
+// The binary EffieRenderer will use (FFMPEG env first, then the bundled one).
+const renderFFmpegBin = process.env.FFMPEG ?? pathToFFmpeg ?? "ffmpeg";
+
+/**
+ * Frames a rendered segment of `duration` seconds with layers is expected to
+ * have. That is fps * duration on the supported FFmpeg (>= 8.0), but FFmpeg
+ * 6.1 drops the final frame of every layered segment (see the README).
+ */
+async function expectedLayeredFrames(
+  fps: number,
+  duration: number,
+): Promise<number> {
+  const { stdout } = await execFileP(renderFFmpegBin, ["-version"]);
+  const major = parseInt(/^ffmpeg version (\d+)/.exec(stdout)?.[1] ?? "", 10);
+  return fps * duration - (major < 7 ? 1 : 0);
+}
+
 /**
  * Integration tests for distributed rendering.
  * These tests require FFmpeg and will actually render video.
@@ -424,9 +441,10 @@ describe("distributed rendering integration", () => {
     //      opaque #008700 when the overlaid layer has no alpha channel
     //      (JPEG-encoded annie frames).
     //
-    // The fix replaces nullsrc with color=c=black@0:rate=${fps},format=yuva420p
-    // — explicit framerate eliminates the boundary and explicit transparent
-    // alpha makes the padding composite over the background instead of leaking.
+    // The layer is now padded with tpad after fps=/format=yuva420p (see the
+    // delay padding comment in renderer.ts): the explicit frame rate
+    // eliminates the boundary and the explicit alpha plane makes the padding
+    // transparent, so it composites over the background instead of leaking.
     const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
     const tempDir = await createTestOutputDir("delay-jpeg-annie");
 
@@ -463,6 +481,7 @@ describe("distributed rendering integration", () => {
       //    repro-jpeg-annie-delay for the canonical reproduction.)
       const fps = 30;
       const delay = 0.5;
+      const segmentDuration = 1.0;
       const sources: EffieSources<EffieFileUrl> = {
         anim: effieFileUrl(pathToFileURL(anniePath).toString()),
       };
@@ -475,7 +494,7 @@ describe("distributed rendering integration", () => {
         sources,
         segments: [
           {
-            duration: 1.0,
+            duration: segmentDuration,
             layers: [{ type: "animation", source: "#anim", from: 0, delay }],
           },
         ],
@@ -550,11 +569,128 @@ describe("distributed rendering integration", () => {
       const frameMatches = [...probe.stderr.matchAll(/frame=\s*(\d+)/g)];
       expect(frameMatches.length).toBeGreaterThan(0);
       const frames = parseInt(frameMatches[frameMatches.length - 1][1], 10);
-      expect(frames).toBe(fps * 1.0);
+      expect(frames).toBe(await expectedLayeredFrames(fps, segmentDuration));
     } finally {
       await cleanupTestOutput(tempDir);
     }
   }, 30000);
+
+  test("delay padding handles fractional delays and layers smaller than the frame", async () => {
+    // Regression test for two more bugs in the layer.delay > 0 path:
+    //
+    //   1. A delay whose delay*fps is not an integer (0.25 s at 30 fps)
+    //      produced one extra frame per segment on FFmpeg >= 8: the padding
+    //      rounds up to whole frames, which pushed the layer's last frame to
+    //      exactly segment.duration, and overlay forwarded it to the output.
+    //      Audio is trimmed to the segment, so video drifted one frame per
+    //      such segment. Two segments here make the off-by-one show twice.
+    //   2. The padding was generated at frame size, so a layer of any other
+    //      size (a logo, say) failed the render with a concat size mismatch.
+    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const tempDir = await createTestOutputDir("delay-fractional-small-layer");
+
+    try {
+      const fps = 30;
+      const segmentDuration = 1.0;
+      const frameSize = 64;
+      const expectedFrames =
+        2 * (await expectedLayeredFrames(fps, segmentDuration));
+      const cases = [
+        { delay: 0.25, size: frameSize },
+        { delay: 0.35, size: frameSize },
+        { delay: 0.25, size: frameSize / 2 },
+      ];
+
+      for (const { delay, size } of cases) {
+        const pngPath = path.join(tempDir, `red-${size}.png`);
+        await execFileP(ffmpegBin, [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          `color=c=red:s=${size}x${size}:d=0.04`,
+          "-frames:v",
+          "1",
+          pngPath,
+        ]);
+        const sources: EffieSources<EffieFileUrl> = {
+          img: effieFileUrl(pathToFileURL(pngPath).toString()),
+        };
+        const effieData: EffieData<typeof sources, EffieFileUrl> = {
+          width: frameSize,
+          height: frameSize,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "blue" },
+          sources,
+          segments: [0, 1].map(() => ({
+            duration: segmentDuration,
+            layers: [{ type: "image" as const, source: "#img", delay }],
+          })),
+        };
+
+        const renderer = new EffieRenderer(effieData, {
+          allowLocalFiles: true,
+        });
+        const outPath = path.join(tempDir, `out-${delay}-${size}.mp4`);
+        const stream = await renderer.render();
+        const outChunks: Buffer[] = [];
+        for await (const c of stream) outChunks.push(c);
+        await fs.writeFile(outPath, Buffer.concat(outChunks));
+        renderer.close();
+
+        const label = `delay=${delay} size=${size}`;
+
+        // Frame count across both segments.
+        const probe = await execFileP(ffmpegBin, [
+          "-i",
+          outPath,
+          "-map",
+          "0:v:0",
+          "-an",
+          "-f",
+          "null",
+          "-",
+        ]);
+        const frameMatches = [...probe.stderr.matchAll(/frame=\s*(\d+)/g)];
+        const frames = parseInt(frameMatches[frameMatches.length - 1][1], 10);
+        expect(frames, label).toBe(expectedFrames);
+
+        // The layer sits at the top-left corner: blue during the delay, red
+        // once it starts.
+        async function topLeftRGB(
+          t: number,
+        ): Promise<[number, number, number]> {
+          const rawPath = path.join(tempDir, `pixel-${delay}-${size}-${t}.bin`);
+          await execFileP(ffmpegBin, [
+            "-y",
+            "-ss",
+            t.toString(),
+            "-i",
+            outPath,
+            "-frames:v",
+            "1",
+            "-vf",
+            "crop=2:2:0:0,scale=1:1",
+            "-pix_fmt",
+            "rgb24",
+            "-f",
+            "rawvideo",
+            rawPath,
+          ]);
+          const bytes = await fs.readFile(rawPath);
+          return [bytes[0], bytes[1], bytes[2]];
+        }
+        const [, , bMid] = await topLeftRGB(delay / 2);
+        expect(bMid, label).toBeGreaterThan(150);
+        const [rPost, gPost] = await topLeftRGB(segmentDuration - 0.1);
+        expect(rPost, label).toBeGreaterThan(150);
+        expect(gPost, label).toBeLessThan(60);
+      }
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 60000);
 
   test("slide motion translates at a constant per-frame rate (no ±2px jitter)", async () => {
     // Regression test for the slide-motion jitter bug. overlay snaps x down to

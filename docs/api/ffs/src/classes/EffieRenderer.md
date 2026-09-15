@@ -42,7 +42,7 @@ Defined in: [ffs/src/renderer.ts:46](https://github.com/builtbyfew/effing/blob/m
 
 > **close**(): `void`
 
-Defined in: [ffs/src/renderer.ts:736](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L736)
+Defined in: [ffs/src/renderer.ts:726](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L726)
 
 #### Returns
 
@@ -54,7 +54,7 @@ Defined in: [ffs/src/renderer.ts:736](https://github.com/builtbyfew/effing/blob/
 
 > **render**(`scaleFactor?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/renderer.ts:719](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L719)
+Defined in: [ffs/src/renderer.ts:709](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L709)
 
 Renders the effie data to a video stream.
 

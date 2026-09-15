@@ -1,4 +1,6 @@
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import http from "http";
+import type { AddressInfo } from "net";
 import { HttpProxy } from "./proxy";
 
 describe("HttpProxy", () => {
@@ -123,6 +125,46 @@ describe("HttpProxy", () => {
         `http://127.0.0.1:${proxy.port}/ftp://example.com`,
       );
       expect(response.status).toBe(400);
+    });
+
+    test("cancels the upstream request when the client disconnects", async () => {
+      // Upstream that streams forever; FFmpeg abandons responses like this
+      // whenever it re-requests a byte range, so the proxy must release the
+      // upstream connection rather than keep draining it.
+      let upstreamClosed = false;
+      let timer: NodeJS.Timeout | undefined;
+      const upstream = http.createServer((_req, res) => {
+        res.writeHead(200, { "Content-Type": "application/octet-stream" });
+        timer = setInterval(() => res.write(Buffer.alloc(1024)), 5);
+        res.on("close", () => {
+          clearInterval(timer);
+          upstreamClosed = true;
+        });
+      });
+      await new Promise<void>((resolve) =>
+        upstream.listen(0, "127.0.0.1", resolve),
+      );
+      const upstreamPort = (upstream.address() as AddressInfo).port;
+
+      try {
+        await proxy.start();
+        const controller = new AbortController();
+        const response = await fetch(
+          proxy.transformUrl(`http://127.0.0.1:${upstreamPort}/stream`),
+          { signal: controller.signal },
+        );
+        expect(response.status).toBe(200);
+        const reader = response.body!.getReader();
+        await reader.read();
+        controller.abort();
+
+        await vi.waitFor(() => expect(upstreamClosed).toBe(true), {
+          timeout: 2000,
+        });
+      } finally {
+        clearInterval(timer);
+        await new Promise<void>((resolve) => upstream.close(() => resolve()));
+      }
     });
   });
 });

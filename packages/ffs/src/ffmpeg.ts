@@ -1,5 +1,5 @@
 import type { ChildProcess } from "child_process";
-import { spawn } from "child_process";
+import { execFile, spawn } from "child_process";
 import { PassThrough, Readable, pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
@@ -27,24 +27,53 @@ async function saveStreamToFile(
   await pump(source, writeStream);
 }
 
-let resolvedBin: string | undefined;
-async function getFFmpegBin(): Promise<string> {
-  if (resolvedBin) return resolvedBin;
-  if (process.env.FFMPEG) {
-    resolvedBin = process.env.FFMPEG;
-    return resolvedBin;
-  }
-  try {
-    const { pathToFFmpeg } = await import("@effing/ffmpeg");
-    if (pathToFFmpeg) {
-      resolvedBin = pathToFFmpeg;
-      return resolvedBin;
-    }
-  } catch {
-    // @effing/ffmpeg not installed
-  }
-  resolvedBin = "ffmpeg";
+/**
+ * Oldest FFmpeg major the filter graphs are built for (see the README): 6.1
+ * still renders but drops the final frame of layered segments, and 7.x
+ * rejects segment transitions.
+ */
+const MIN_FFMPEG_MAJOR = 8;
+
+let resolvedBin: Promise<string> | undefined;
+function getFFmpegBin(): Promise<string> {
+  resolvedBin ??= resolveFFmpegBin();
   return resolvedBin;
+}
+
+async function resolveFFmpegBin(): Promise<string> {
+  let bin = process.env.FFMPEG;
+  if (!bin) {
+    try {
+      bin = (await import("@effing/ffmpeg")).pathToFFmpeg ?? undefined;
+    } catch {
+      // @effing/ffmpeg not installed
+    }
+  }
+  bin ??= "ffmpeg";
+  await warnIfUnsupportedVersion(bin);
+  return bin;
+}
+
+/**
+ * Warn once when the resolved binary predates MIN_FFMPEG_MAJOR, so a stale
+ * or distro FFmpeg shows up here rather than as a cryptic filter error.
+ */
+async function warnIfUnsupportedVersion(bin: string): Promise<void> {
+  let stdout: string;
+  try {
+    ({ stdout } = await promisify(execFile)(bin, ["-version"], {
+      timeout: 5000,
+    }));
+  } catch {
+    return; // Missing or broken binary: the spawn in run() reports that.
+  }
+  const version = /^ffmpeg version (\S+)/.exec(stdout)?.[1];
+  const major = version ? parseInt(version, 10) : NaN;
+  if (Number.isNaN(major) || major >= MIN_FFMPEG_MAJOR) return;
+  console.warn(
+    `@effing/ffs: FFmpeg ${version} (${bin}) is older than the supported ${MIN_FFMPEG_MAJOR}.0; ` +
+      "6.1 drops the final frame of layered segments and 7.x rejects transitions",
+  );
 }
 
 /**

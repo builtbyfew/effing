@@ -1,6 +1,5 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createWriteStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { access, chmod, readFile, rename, rm } from "node:fs/promises";
 import https from "node:https";
 import os from "node:os";
@@ -48,42 +47,12 @@ const binaryPath = path.join(__dirname, binaryName);
 // FFmpeg version to download. Keep checksums.json in sync when bumping.
 const FFMPEG_VERSION = "9.0.1";
 
-const customBaseUrl = process.env.FFMPEG_BINARIES_URL;
 const baseUrl =
-  customBaseUrl ||
+  process.env.FFMPEG_BINARIES_URL ||
   `https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v${FFMPEG_VERSION}`;
-
-// Skip if a binary already exists, unless it reports a different version than
-// the one pinned above (a stale binary would otherwise silently survive every
-// version bump). Custom builds served via FFMPEG_BINARIES_URL are trusted as-is.
-try {
-  await access(binaryPath);
-  let existingVersion = "unknown";
-  try {
-    existingVersion =
-      execFileSync(binaryPath, ["-version"], { encoding: "utf8" })
-        .split("\n")[0]
-        .match(/^ffmpeg version (\S+)/)?.[1] ?? "unknown";
-  } catch {
-    // Not executable or broken; treat as stale and re-download below.
-  }
-  if (customBaseUrl || existingVersion === FFMPEG_VERSION) {
-    console.log(
-      `@effing/ffmpeg: binary already exists at ${binaryPath} (version ${existingVersion})`,
-    );
-    process.exit(0);
-  }
-  console.log(
-    `@effing/ffmpeg: existing binary is version ${existingVersion}, expected ${FFMPEG_VERSION}; re-downloading`,
-  );
-  await rm(binaryPath, { force: true });
-} catch {
-  // Binary doesn't exist, proceed with download
-}
-
 const url = `${baseUrl}/ffmpeg-${platform}-${arch}.gz`;
 
-console.log(`@effing/ffmpeg: downloading ffmpeg from ${url}`);
+const skipChecksum = process.env.FFMPEG_SKIP_CHECKSUM === "1";
 
 /**
  * Follow redirects (GitHub releases redirect to S3/CDN).
@@ -116,8 +85,22 @@ function get(url, redirects = 0) {
   });
 }
 
-try {
-  const skipChecksum = process.env.FFMPEG_SKIP_CHECKSUM === "1";
+async function exists(file) {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function sha256(stream) {
+  const hash = createHash("sha256");
+  for await (const chunk of stream) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+async function main() {
   let expected;
   if (!skipChecksum) {
     const checksums = JSON.parse(
@@ -131,14 +114,42 @@ try {
     }
   }
 
+  // Skip the download when the binary on disk already matches the pinned
+  // digest. Comparing digests (rather than running `ffmpeg -version`) needs
+  // no child process, catches truncated or wrong-arch binaries, and
+  // re-downloads after every version bump since the digest changes with it —
+  // also for custom FFMPEG_BINARIES_URL mirrors, which must serve the pinned
+  // build unless FFMPEG_SKIP_CHECKSUM=1 is set. With checksums skipped there
+  // is nothing to compare against, so an existing binary is trusted as-is.
+  if (await exists(binaryPath)) {
+    if (skipChecksum) {
+      console.log(
+        `@effing/ffmpeg: binary already exists at ${binaryPath} (FFMPEG_SKIP_CHECKSUM=1, not verified)`,
+      );
+      return;
+    }
+    if ((await sha256(createReadStream(binaryPath))) === expected) {
+      console.log(
+        `@effing/ffmpeg: binary already exists at ${binaryPath} (matches v${FFMPEG_VERSION} checksum)`,
+      );
+      return;
+    }
+    console.log(
+      `@effing/ffmpeg: existing binary at ${binaryPath} does not match the v${FFMPEG_VERSION} checksum; re-downloading`,
+    );
+  }
+
+  console.log(`@effing/ffmpeg: downloading ffmpeg from ${url}`);
+
   const response = await get(url);
   const gunzip = zlib.createGunzip();
   const hash = createHash("sha256");
   gunzip.on("data", (chunk) => hash.update(chunk));
 
   // Download to a temp path and rename into place only after verification,
-  // so a failed run never leaves a partial or unverified binary behind
-  // (the installer skips the download when binaryPath already exists).
+  // so a failed run never leaves a partial or unverified binary behind, and
+  // a stale binary keeps working until its replacement has been verified
+  // (rename replaces the existing file atomically).
   const tmpPath = `${binaryPath}.download`;
   try {
     await pipeline(response, gunzip, createWriteStream(tmpPath));
@@ -166,7 +177,11 @@ try {
   await chmod(binaryPath, 0o755);
 
   console.log(`@effing/ffmpeg: binary installed to ${binaryPath}`);
+}
+
+try {
+  await main();
 } catch (err) {
-  console.error(`@effing/ffmpeg: failed to download binary: ${err.message}`);
+  console.error(`@effing/ffmpeg: failed to install binary: ${err.message}`);
   process.exit(1);
 }

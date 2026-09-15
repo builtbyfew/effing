@@ -77,6 +77,12 @@ export class HttpProxy {
             console.error("Proxy stream error:", err);
             res.destroy();
           });
+          // FFmpeg routinely abandons responses part-way (e.g. a full-range
+          // request dropped once it has read the mp4 moov atom, followed by
+          // a fresh range request). pipe() only unpipes on close; destroying
+          // the source cancels the upstream fetch as well, so the socket is
+          // released instead of lingering (bodyTimeout is 0 here).
+          res.on("close", () => nodeStream.destroy());
         } else {
           res.end();
         }

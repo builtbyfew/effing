@@ -25,5 +25,7 @@
   "categorizeByGroup": true,
   "githubPages": false,
   "logLevel": "Error",
-  "gitRevision": "main"
+  "disableGit": true,
+  "basePath": "packages",
+  "sourceLinkTemplate": "https://github.com/builtbyfew/effing/blob/main/packages/{path}#L{line}"
 }

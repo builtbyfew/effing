@@ -200,6 +200,13 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       this.effieData.fps.toString(),
       "-pix_fmt",
       "yuv420p",
+      // Pin the output to limited (tv) range. Since FFmpeg 7.1 colour range is
+      // negotiated separately from the pixel format: a full-range JPEG source
+      // (yuvj420p) anywhere in the graph would otherwise make the whole output
+      // full range, encoded as yuvj420p/pc — FFmpeg <= 6.1 always emitted
+      // limited range here.
+      "-color_range",
+      "tv",
       "-preset",
       "fast",
       "-crf",
@@ -246,8 +253,8 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
    * @param bgLabel - Label for the background input (e.g., "bg_seg0" or "bg_seg")
    * @param labelPrefix - Prefix for generated labels (e.g., "seg0_" or "")
    * @param layerInputOffset - Starting input index for layers
-   * @param frameWidth - Frame width for the delay padding source
-   * @param frameHeight - Frame height for the delay padding source
+   * @param frameWidth - Frame width, used by frame-relative effects
+   * @param frameHeight - Frame height, used by frame-relative effects
    * @param outputLabel - Label for the final video output
    * @returns Array of filter parts to add to the filter chain
    */
@@ -283,16 +290,27 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       );
       let overlayInputLabel = layerLabel;
       if (delay > 0) {
-        // Pad the layer with transparent frames at the effie's fps. nullsrc
-        // leaves Y/U/V planes uninitialised (which decode to opaque #008700
-        // on JPEG-encoded layers that lack alpha) and defaults to rate=25
-        // (which causes a 1-frame off-by-one when concat'd with a 30fps
-        // layer). color=c=black@0 with explicit rate and yuva420p avoids both.
+        // Prepend `delay` seconds of transparent frames with tpad, which pads
+        // the layer at its own size (a layer need not be frame-sized).
+        //
+        // - fps= before tpad: tpad derives the number of padding frames and
+        //   their timestamps from the input frame rate, which not every
+        //   source sets.
+        // - format=yuva420p: tpad fills with an opaque colour unless the
+        //   stream has an alpha plane.
+        // - fps= after tpad: re-anchors the stream to a 1/fps timebase and a
+        //   consistent EOF timestamp. From FFmpeg 8.0 overlay forwards the
+        //   secondary input's EOF timestamp downstream as-is, and the fps=
+        //   after the overlay pads or drops frames to meet it: tpad's own EOF
+        //   lands one frame early (the last frame is dropped), and a
+        //   1/1000000 timebase (e.g. from concat) would be read as 1/fps and
+        //   duplicate frames for ~33333 s.
+        // - trim last: tpad rounds delay*fps to whole frames, so a fractional
+        //   product (e.g. 0.25 s at 30 fps) would otherwise push the last
+        //   frame to exactly segment.duration, which the overlay forwards to
+        //   the output as an extra frame.
         filterParts.push(
-          `color=c=black@0:size=${frameWidth}x${frameHeight}:duration=${delay}:rate=${this.effieData.fps},format=yuva420p,setpts=PTS-STARTPTS[null_${layerLabel}]`,
-        );
-        filterParts.push(
-          `[null_${layerLabel}][${layerLabel}]concat=n=2:v=1:a=0[delayed_${layerLabel}]`,
+          `[${layerLabel}]fps=${this.effieData.fps},format=yuva420p,tpad=start_duration=${delay}:color=black@0,fps=${this.effieData.fps},trim=duration=${segment.duration}[delayed_${layerLabel}]`,
         );
         overlayInputLabel = `delayed_${layerLabel}`;
       }
@@ -519,29 +537,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     // rejects mismatches) and the output isn't tagged with a bogus DAR.
     const bgFilter = `fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
 
-    // Build split/fifo chain for global background
-    const globalBgFifoLabels: Map<number, string> = new Map();
-    if (globalBgSegmentIndices.length === 1) {
-      // Single segment - no split needed, just fifo
-      const fifoLabel = `bg_fifo_0`;
-      filterParts.push(`[${globalBgInputIdx}:v]${bgFilter},fifo[${fifoLabel}]`);
-      globalBgFifoLabels.set(globalBgSegmentIndices[0], fifoLabel);
-    } else if (globalBgSegmentIndices.length > 1) {
-      // Multiple segments - use split + fifo
-      const splitCount = globalBgSegmentIndices.length;
-      const splitOutputLabels = globalBgSegmentIndices.map(
-        (_, i) => `bg_split_${i}`,
-      );
-
+    // Split the global background into one output per segment that uses it
+    // (no explicit fifo: libavfilter buffers on links itself, and the fifo
+    // filter was removed in FFmpeg 7.0). split=1 is valid, so a single
+    // consumer needs no special case.
+    const globalBgLabels = new Map(
+      globalBgSegmentIndices.map((segIdx, i) => [segIdx, `bg_split_${i}`]),
+    );
+    if (globalBgLabels.size > 0) {
       filterParts.push(
-        `[${globalBgInputIdx}:v]${bgFilter},split=${splitCount}${splitOutputLabels.map((l) => `[${l}]`).join("")}`,
+        `[${globalBgInputIdx}:v]${bgFilter},split=${globalBgLabels.size}${[...globalBgLabels.values()].map((l) => `[${l}]`).join("")}`,
       );
-
-      for (let i = 0; i < splitCount; i++) {
-        const fifoLabel = `bg_fifo_${i}`;
-        filterParts.push(`[${splitOutputLabels[i]}]fifo[${fifoLabel}]`);
-        globalBgFifoLabels.set(globalBgSegmentIndices[i], fifoLabel);
-      }
     }
 
     for (let segIdx = 0; segIdx < this.effieData.segments.length; segIdx++) {
@@ -560,14 +566,11 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
           `[${segBgInputIdx}:v]${bgFilter},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
         );
       } else {
-        // Use global background (via split/fifo chain)
-        const fifoLabel = globalBgFifoLabels.get(segIdx);
-        if (fifoLabel) {
-          // bgFilter (fps/scale/crop/setsar) already applied in the split/fifo chain
-          filterParts.push(
-            `[${fifoLabel}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
-          );
-        }
+        // Use the global background's split output for this segment; bgFilter
+        // (fps/scale/crop/setsar) is already applied in the split chain.
+        filterParts.push(
+          `[${globalBgLabels.get(segIdx)!}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+        );
       }
 
       // Process layers

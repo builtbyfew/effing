@@ -79,8 +79,13 @@ describe("EffieRenderer overlay enable window", () => {
     // extends the rendered output past the segment.
     expect(filterComplex({ delay: 2 })).toContain("trim=start=0:duration=8");
     expect(filterComplex({ delay: 2 })).toContain(
-      "color=c=black@0:size=100x100:duration=2:rate=30,format=yuva420p",
+      "[seg0_layer0]fps=30,format=yuva420p,tpad=start_duration=2:color=black@0,fps=30,trim=duration=10[delayed_seg0_layer0]",
     );
+  });
+
+  test("without delay, the layer feeds the overlay directly", () => {
+    expect(filterComplex({})).not.toContain("tpad");
+    expect(filterComplex({})).toContain("[bg_seg0][seg0_layer0]overlay=");
   });
 });
 
@@ -341,7 +346,22 @@ describe("EffieRenderer background cover-scale", () => {
 
   test("global background resets SAR to 1:1 after the cover crop", () => {
     expect(buildFilterComplex(backgroundEffie())).toContain(
-      "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=2",
+      "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=2[bg_split_0][bg_split_1]",
+    );
+  });
+
+  test("global background is split once per segment that uses it", () => {
+    // Segments 0 and 2 use the global background; segment 1 has its own.
+    const graph = buildFilterComplex(backgroundEffie());
+    expect(graph).toContain("[bg_split_0]trim=start=0:duration=1");
+    expect(graph).toContain("[bg_split_1]trim=start=2:duration=1");
+  });
+
+  test("a single global background consumer still goes through split", () => {
+    const effie = backgroundEffie();
+    effie.segments = [effie.segments[0]];
+    expect(buildFilterComplex(effie)).toContain(
+      "setsar=1,split=1[bg_split_0];[bg_split_0]trim=start=0:duration=1",
     );
   });
 

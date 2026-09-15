@@ -6,7 +6,7 @@
 
 # Class: FFmpegCommand
 
-Defined in: [ffs/src/ffmpeg.ts:61](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L61)
+Defined in: [ffs/src/ffmpeg.ts:99](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L99)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [ffs/src/ffmpeg.ts:61](https://github.com/builtbyfew/effing/blob/mai
 
 > **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`): `FFmpegCommand`
 
-Defined in: [ffs/src/ffmpeg.ts:67](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L67)
+Defined in: [ffs/src/ffmpeg.ts:105](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L105)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Defined in: [ffs/src/ffmpeg.ts:67](https://github.com/builtbyfew/effing/blob/mai
 
 > **filterComplex**: `string`
 
-Defined in: [ffs/src/ffmpeg.ts:64](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L64)
+Defined in: [ffs/src/ffmpeg.ts:102](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L102)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [ffs/src/ffmpeg.ts:64](https://github.com/builtbyfew/effing/blob/mai
 
 > **globalArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:62](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L62)
+Defined in: [ffs/src/ffmpeg.ts:100](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L100)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [ffs/src/ffmpeg.ts:62](https://github.com/builtbyfew/effing/blob/mai
 
 > **inputs**: [`FFmpegInput`](../type-aliases/FFmpegInput.md)[]
 
-Defined in: [ffs/src/ffmpeg.ts:63](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L63)
+Defined in: [ffs/src/ffmpeg.ts:101](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L101)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [ffs/src/ffmpeg.ts:63](https://github.com/builtbyfew/effing/blob/mai
 
 > **outputArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:65](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L65)
+Defined in: [ffs/src/ffmpeg.ts:103](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L103)
 
 ## Methods
 
@@ -76,7 +76,7 @@ Defined in: [ffs/src/ffmpeg.ts:65](https://github.com/builtbyfew/effing/blob/mai
 
 > **buildArgs**(`inputResolver`): `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:79](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L79)
+Defined in: [ffs/src/ffmpeg.ts:117](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L117)
 
 #### Parameters
 

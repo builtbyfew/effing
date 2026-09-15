@@ -85,6 +85,7 @@ function get(url, redirects = 0) {
   });
 }
 
+/** Whether `file` exists (any kind of entry, regardless of permissions). */
 async function exists(file) {
   try {
     await access(file);
@@ -94,12 +95,17 @@ async function exists(file) {
   }
 }
 
+/** Hex SHA-256 of everything read from `stream`. */
 async function sha256(stream) {
   const hash = createHash("sha256");
   for await (const chunk of stream) hash.update(chunk);
   return hash.digest("hex");
 }
 
+/**
+ * Install the pinned binary: skip when the one on disk already matches the
+ * pinned checksum, otherwise download, verify and atomically replace it.
+ */
 async function main() {
   let expected;
   if (!skipChecksum) {

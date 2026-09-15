@@ -445,7 +445,7 @@ describe("distributed rendering integration", () => {
     // delay padding comment in renderer.ts): the explicit frame rate
     // eliminates the boundary and the explicit alpha plane makes the padding
     // transparent, so it composites over the background instead of leaking.
-    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const ffmpegBin = renderFFmpegBin;
     const tempDir = await createTestOutputDir("delay-jpeg-annie");
 
     try {
@@ -586,7 +586,7 @@ describe("distributed rendering integration", () => {
     //      such segment. Two segments here make the off-by-one show twice.
     //   2. The padding was generated at frame size, so a layer of any other
     //      size (a logo, say) failed the render with a concat size mismatch.
-    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const ffmpegBin = renderFFmpegBin;
     const tempDir = await createTestOutputDir("delay-fractional-small-layer");
 
     try {
@@ -702,7 +702,7 @@ describe("distributed rendering integration", () => {
     //
     // Verified to fail before the fix: rendering this same slide with the
     // unrounded expression yields steps of 10/14px (±2px) where it should be 12.
-    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const ffmpegBin = renderFFmpegBin;
     const tempDir = await createTestOutputDir("slide-motion-jitter");
 
     // A wide canvas keeps the ideal step an even integer (1080/(60*1.5) = 12px)
@@ -875,7 +875,7 @@ describe("distributed rendering integration", () => {
     // the MP4 is tagged square-pixel 9:16 rather than 1920:3413.
     //
     // Verified to fail before the fix with the concat error above.
-    const ffmpegBin = pathToFFmpeg ?? "ffmpeg";
+    const ffmpegBin = renderFFmpegBin;
     const tempDir = await createTestOutputDir("landscape-in-portrait");
 
     try {

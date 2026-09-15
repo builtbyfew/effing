@@ -35,11 +35,20 @@ async function saveStreamToFile(
 const MIN_FFMPEG_MAJOR = 8;
 
 let resolvedBin: Promise<string> | undefined;
+
+/**
+ * Path of the FFmpeg binary to spawn, resolved once per process (see
+ * resolveFFmpegBin) and cached, including the one-time version warning.
+ */
 function getFFmpegBin(): Promise<string> {
   resolvedBin ??= resolveFFmpegBin();
   return resolvedBin;
 }
 
+/**
+ * Pick the binary: the FFMPEG env var, else the bundled `@effing/ffmpeg`
+ * binary when that package is installed, else `ffmpeg` on PATH.
+ */
 async function resolveFFmpegBin(): Promise<string> {
   let bin = process.env.FFMPEG;
   if (!bin) {
@@ -271,6 +280,15 @@ export class FFmpegRunner {
       const output = new PassThrough();
       ffmpegProc.stdout.pipe(output, { end: false });
       ffmpegProc.stdout.on("error", (err) => output.destroy(err));
+
+      // A missing or non-executable binary does not make spawn() throw; it
+      // surfaces as an asynchronous `error` event on the child, which would
+      // crash the process without a listener. Fail the output stream and
+      // clean up here, since `close` need not follow a spawn failure.
+      ffmpegProc.on("error", async (err) => {
+        if (!output.destroyed) output.destroy(err);
+        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      });
 
       ffmpegProc.on("close", async (code, signal) => {
         try {

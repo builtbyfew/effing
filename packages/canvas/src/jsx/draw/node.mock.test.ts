@@ -374,3 +374,223 @@ describe("drawNode", () => {
     expect(compositeDestWidth()).toBe(100 + 2 * 1);
   });
 });
+
+describe("drawNode – clip-path", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    vi.clearAllMocks();
+  });
+
+  it("clips to the clip-path before painting the background", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { clipPath: "circle(50%)", backgroundColor: "red" },
+        children: [],
+        props: {},
+        x: 10,
+        y: 10,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    const clip = vi.mocked(ctx.clip);
+    expect(clip).toHaveBeenCalledTimes(1);
+    expect(clip.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ arc: expect.any(Function) }),
+    );
+    expect(clip.mock.calls[0]![1]).toBe("nonzero");
+    expect(clip.mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(ctx.fillRect).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("clips box-shadow too", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          clipPath: "polygon(evenodd, 0 0, 100% 0, 50% 100%)",
+          boxShadow: "0 0 10px black",
+          backgroundColor: "red",
+        },
+        children: [],
+        props: {},
+        x: 10,
+        y: 10,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    const clip = vi.mocked(ctx.clip);
+    // The clip-path clip comes first; drawBoxShadow adds its own evenodd clip.
+    expect(clip.mock.calls[0]![1]).toBe("evenodd");
+    expect(clip.mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(ctx.fill).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("ignores clip-path: none and invalid values", async () => {
+    for (const clipPath of ["none", "url(#foo)"]) {
+      vi.clearAllMocks();
+      await drawNode(
+        ctx,
+        {
+          type: "div",
+          style: { clipPath, backgroundColor: "red" },
+          children: [],
+          props: {},
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 50,
+        },
+        0,
+        0,
+      );
+      expect(ctx.clip).not.toHaveBeenCalled();
+      expect(ctx.fillRect).toHaveBeenCalled();
+    }
+  });
+});
+
+describe("drawNode – backdrop-filter", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    vi.clearAllMocks();
+  });
+
+  it("snapshots the backdrop, filters it and paints it back before the background", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backdropFilter: "blur(4px)",
+          backgroundColor: "rgba(255,255,255,0.2)",
+        },
+        children: [],
+        props: {},
+        x: 50,
+        y: 60,
+        width: 100,
+        height: 40,
+      },
+      0,
+      0,
+    );
+
+    const drawImage = vi.mocked(ctx.drawImage);
+    expect(drawImage).toHaveBeenCalledTimes(2);
+    // Snapshot: the padded device-space region (bleed = 3σ + 1 = 13px).
+    expect(drawImage.mock.calls[0]).toEqual([
+      ctx.canvas,
+      37,
+      47,
+      126,
+      66,
+      0,
+      0,
+      126,
+      66,
+    ]);
+    // Paint back at the same device position, under an identity transform.
+    expect(drawImage.mock.calls[1]!.slice(1)).toEqual([
+      0, 0, 126, 66, 37, 47, 126, 66,
+    ]);
+    expect(ctx.setTransform).toHaveBeenCalledWith(1, 0, 0, 1, 0, 0);
+    // Clipped to the border box, and painted before the background fill.
+    expect(ctx.rect).toHaveBeenCalledWith(50, 60, 100, 40);
+    expect(ctx.clip).toHaveBeenCalled();
+    expect(drawImage.mock.invocationCallOrder[1]!).toBeLessThan(
+      vi.mocked(ctx.fillRect).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("clamps the snapshot to the canvas", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { backdropFilter: "blur(10px)" },
+        children: [],
+        props: {},
+        x: -20,
+        y: 180,
+        width: 100,
+        height: 40,
+      },
+      0,
+      0,
+    );
+    const drawImage = vi.mocked(ctx.drawImage);
+    expect(drawImage.mock.calls[0]!.slice(1, 5)).toEqual([0, 149, 111, 51]);
+  });
+
+  it("skips backdrop-filter: none", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { backdropFilter: "none", backgroundColor: "red" },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+  });
+
+  it("bypasses the offscreen scale path when the subtree has a backdrop-filter", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { transform: "scale(2)" },
+        children: [
+          {
+            type: "div",
+            style: { backdropFilter: "blur(2px)" },
+            children: [],
+            props: {},
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+          },
+        ],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      },
+      0,
+      0,
+    );
+    // The scale is applied directly to the context (ctx.scale) rather than via
+    // an offscreen buffer composited with drawImage: only the two backdrop
+    // drawImage calls happen.
+    expect(ctx.scale).toHaveBeenCalledWith(2, 2);
+    expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+  });
+});

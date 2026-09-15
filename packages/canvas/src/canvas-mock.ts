@@ -40,6 +40,7 @@ export function createCanvasMock() {
     clearRect: vi.fn(),
     reset: vi.fn(),
     setTransform: vi.fn(),
+    getTransform: vi.fn(() => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })),
     getImageData: vi.fn((_x: number, _y: number, w: number, h: number) => ({
       data: new Uint8ClampedArray(w * h * 4),
       width: w,

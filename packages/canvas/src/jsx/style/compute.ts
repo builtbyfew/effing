@@ -27,12 +27,7 @@ export type ComputedStyle = {
     | "space-evenly";
   alignItems?: "flex-start" | "flex-end" | "center" | "stretch" | "baseline";
   alignSelf?:
-    | "auto"
-    | "flex-start"
-    | "flex-end"
-    | "center"
-    | "stretch"
-    | "baseline";
+    "auto" | "flex-start" | "flex-end" | "center" | "stretch" | "baseline";
   alignContent?:
     | "flex-start"
     | "flex-end"
@@ -106,12 +101,7 @@ export type ComputedStyle = {
   backgroundImage?: string;
   backgroundSize?: string;
   backgroundRepeat?:
-    | "repeat"
-    | "no-repeat"
-    | "repeat-x"
-    | "repeat-y"
-    | "space"
-    | "round";
+    "repeat" | "no-repeat" | "repeat-x" | "repeat-y" | "space" | "round";
 
   // Typography
   fontSize?: number;
@@ -141,6 +131,10 @@ export type ComputedStyle = {
 
   // Filter
   filter?: string;
+  backdropFilter?: string;
+
+  // Clipping
+  clipPath?: string;
 
   // Text box trim
   textBoxTrim?: "none" | "trim-start" | "trim-end" | "trim-both";
@@ -421,24 +415,19 @@ export function resolveUnits(
     }
   }
 
-  // Resolve CSS length units inside transform strings so that by draw time
-  // values are either bare numbers or `%` (which need element dimensions).
-  if (style.transform) {
-    style.transform = resolveTransformUnits(
-      style.transform,
+  // Resolve CSS length units inside transform, clip-path and backdrop-filter
+  // strings so that by draw time values are either bare numbers or `%` (which
+  // need element dimensions).
+  for (const [prop, suffix] of LENGTH_STRING_PROPS) {
+    const value = style[prop];
+    if (typeof value !== "string") continue;
+    (style as Record<string, unknown>)[prop] = resolveLengthUnits(
+      value,
       viewportWidth,
       viewportHeight,
       fontSize,
       rootFontSize,
-    );
-  }
-  if (style.transformOrigin) {
-    style.transformOrigin = resolveTransformUnits(
-      style.transformOrigin,
-      viewportWidth,
-      viewportHeight,
-      fontSize,
-      rootFontSize,
+      suffix,
     );
   }
 
@@ -446,17 +435,32 @@ export function resolveUnits(
 }
 
 /**
- * Resolve CSS length units (vw, vh, em, rem, px, etc.) inside a transform or
- * transformOrigin string. Percentages and angle units (deg, rad, turn) are
- * left untouched — percentages need element dimensions (available at draw time)
- * and angle units are not lengths.
+ * String-valued properties whose embedded CSS lengths are resolved to pixels,
+ * with the suffix the resolved numbers are written with. The transform parser
+ * takes bare numbers; clip-path and filter strings keep an explicit `px` so
+ * they stay valid CSS for the parsers downstream (Skia's filter parser
+ * rejects a unitless `blur(6)`).
  */
-function resolveTransformUnits(
+const LENGTH_STRING_PROPS: [keyof ComputedStyle, string][] = [
+  ["transform", ""],
+  ["transformOrigin", ""],
+  ["clipPath", "px"],
+  ["backdropFilter", "px"],
+];
+
+/**
+ * Resolve CSS length units (vw, vh, em, rem, px, etc.) inside a string value
+ * such as a transform, clip-path or filter. Percentages and angle units (deg,
+ * rad, turn) are left untouched — percentages need element dimensions
+ * (available at draw time) and angle units are not lengths.
+ */
+function resolveLengthUnits(
   transform: string,
   viewportWidth: number,
   viewportHeight: number,
   fontSize: number,
   rootFontSize: number,
+  suffix = "",
 ): string {
   return transform.replace(
     /(-?\d*\.?\d+)(vw|vh|vmin|vmax|em|rem|px|pt|pc|in|cm|mm)\b/g,
@@ -468,7 +472,7 @@ function resolveTransformUnits(
         fontSize,
         rootFontSize,
       );
-      return typeof resolved === "number" ? String(resolved) : match;
+      return typeof resolved === "number" ? `${resolved}${suffix}` : match;
     },
   );
 }

@@ -237,6 +237,17 @@ export function expandStyle(
     delete style.WebkitTextStroke;
   }
 
+  // Vendor-prefixed aliases
+  if (style.WebkitBackdropFilter !== undefined) {
+    if (style.backdropFilter === undefined)
+      style.backdropFilter = style.WebkitBackdropFilter;
+    delete style.WebkitBackdropFilter;
+  }
+  if (style.WebkitClipPath !== undefined) {
+    if (style.clipPath === undefined) style.clipPath = style.WebkitClipPath;
+    delete style.WebkitClipPath;
+  }
+
   // fontFamily normalization
   if (typeof style.fontFamily === "string") {
     const families = style.fontFamily

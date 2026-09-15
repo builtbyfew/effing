@@ -138,3 +138,23 @@ describe("resolveUnits", () => {
     expect(style.paddingLeft).toBe(20);
   });
 });
+
+describe("resolveUnits – clipPath and backdropFilter", () => {
+  it("resolves lengths inside clipPath, leaving percentages alone", () => {
+    const style: ExpandedStyle = {
+      fontSize: 20,
+      clipPath: "inset(1em 10% round 2rem)",
+    };
+    resolveUnits(style as Parameters<typeof resolveUnits>[0], 1000, 500);
+    expect(style.clipPath).toBe("inset(20px 10% round 32px)");
+  });
+
+  it("resolves lengths inside backdropFilter", () => {
+    const style: ExpandedStyle = {
+      fontSize: 10,
+      backdropFilter: "blur(1em) brightness(0.5)",
+    };
+    resolveUnits(style as Parameters<typeof resolveUnits>[0], 1000, 500);
+    expect(style.backdropFilter).toBe("blur(10px) brightness(0.5)");
+  });
+});

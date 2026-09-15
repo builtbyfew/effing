@@ -5,7 +5,9 @@ import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
+import { drawBackdropFilter } from "./backdrop-filter.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
+import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
@@ -54,10 +56,14 @@ export async function drawNode(
   const scaleInfo = style.transform ? extractScale(style.transform) : null;
   const hasOtherTransforms =
     scaleInfo !== null && scaleInfo.remaining.length > 0;
+  // A backdrop-filter anywhere in the subtree also bypasses it: the filter
+  // samples the canvas it draws on, and an offscreen buffer holds none of the
+  // content behind the element.
   if (
     scaleInfo &&
     (scaleInfo.sx !== 1 || scaleInfo.sy !== 1) &&
-    !hasOtherTransforms
+    !hasOtherTransforms &&
+    !subtreeHasBackdropFilter(node)
   ) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
@@ -211,6 +217,13 @@ function computeOverflowBleed(node: LayoutNode): number {
   return bleed;
 }
 
+function subtreeHasBackdropFilter(node: LayoutNode): boolean {
+  if (node.style.display === "none") return false;
+  const filter = node.style.backdropFilter;
+  if (filter && filter.trim() !== "none") return true;
+  return node.children.some(subtreeHasBackdropFilter);
+}
+
 /**
  * Core draw logic shared by both the normal path and the offscreen-buffer path.
  * offsetX/offsetY shift all coordinates so the node renders at a buffer-local position.
@@ -263,12 +276,33 @@ async function drawNodeCore(
     );
   }
 
+  // Apply clip-path — in the element's own (transformed) coordinate space, and
+  // before anything is painted, since it clips the element's entire rendering
+  // including its box-shadow.
+  if (style.clipPath) {
+    applyClipPath(ctx, style.clipPath, style, x, y, width, height);
+  }
+
   const borderRadius = getBorderRadiusFromStyle(style, width, height);
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
   if (style.boxShadow) {
     drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
+  }
+
+  // Filter the backdrop behind the border box before painting the element's
+  // own background on top of it.
+  if (style.backdropFilter) {
+    drawBackdropFilter(
+      ctx,
+      style.backdropFilter,
+      x,
+      y,
+      width,
+      height,
+      borderRadius,
+    );
   }
 
   // Apply clipping for overflow: hidden

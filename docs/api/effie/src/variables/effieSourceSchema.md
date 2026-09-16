@@ -6,6 +6,6 @@
 
 # Variable: effieSourceSchema
 
-> `const` **effieSourceSchema**: `ZodUnion`\<\[`ZodType`\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md), `ZodTypeDef`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>, `ZodType`\<`` `#${string}` ``, `ZodTypeDef`, `` `#${string}` ``\>\]\>
+> `const` **effieSourceSchema**: `z.ZodType`\<[`EffieSource`](../type-aliases/EffieSource.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>\>
 
-Defined in: [effie/src/schema.ts:374](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L374)
+Defined in: [effie/src/schema.ts:397](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L397)

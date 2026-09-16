@@ -5,6 +5,7 @@ import type {
   EffieWebUrl,
   EffieFileUrl,
   EffieSources,
+  EffieSource,
   EffieData,
   EffieBackground,
   EffieAudio,
@@ -169,25 +170,43 @@ export const effieMotionSchema = z.union([
 ]) satisfies z.ZodType<EffieMotion>;
 
 // Schema factories for generic types.
-// Note: These return inferred Zod types. Type checking happens on the concrete
-// exported schemas below via explicit type annotations (which use `satisfies`
-// semantics - assignment to a typed variable fails if types don't match).
+//
+// Each factory has a generic overload (the public signature callers see, and
+// the one emitted to .d.ts and API docs) plus an implementation signature.
+// Without the overload, typedoc would print the huge inferred Zod type instead
+// of the named `Effie*` type, and its output depended on unrelated type ids.
+//
+// TypeScript checks overloads against the implementation with type parameters
+// erased, so a generic implementation signature would leave the factory bodies
+// effectively unchecked. The implementation signatures are therefore pinned to
+// the concrete `EffieWebUrl` instantiation: the body is the same for every `U`,
+// so checking it once against `EffieWebUrl` verifies the schema matches the
+// type for all `U`. This does not restrict callers - they only see the overload.
 
 export function createEffieSourcesSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSources<U>>;
+export function createEffieSourcesSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieSources<EffieWebUrl>> {
   return z.record(z.string(), urlSchema);
 }
 
 export function createEffieSourceSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSource<EffieSources<U>, U>>;
+export function createEffieSourceSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieSource<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   return z.union([urlSchema, sourceRefSchema]);
 }
 
 export function createEffieBackgroundSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieBackground<EffieSources<U>, U>>;
+export function createEffieBackgroundSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieBackground<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.union([
@@ -209,7 +228,10 @@ export function createEffieBackgroundSchema<U extends string>(
 
 export function createEffieAudioSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieAudio<EffieSources<U>, U>>;
+export function createEffieAudioSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieAudio<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.strictObject({
@@ -223,7 +245,10 @@ export function createEffieAudioSchema<U extends string>(
 
 export function createEffieLayerSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieLayer<EffieSources<U>, U>>;
+export function createEffieLayerSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieLayer<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.strictObject({
@@ -239,7 +264,10 @@ export function createEffieLayerSchema<U extends string>(
 
 export function createEffieSegmentSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSegment<EffieSources<U>, U>>;
+export function createEffieSegmentSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieSegment<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   const layerSchema = createEffieLayerSchema(urlSchema);
   const backgroundSchema = createEffieBackgroundSchema(urlSchema);
   const audioSchema = createEffieAudioSchema(urlSchema);
@@ -253,19 +281,10 @@ export function createEffieSegmentSchema<U extends string>(
   });
 }
 
-// Type for parsed data shape (matches Zod output, used for source ref collection)
-type ParsedEffieData = {
-  background: { source?: string } | { type: "color" };
-  audio?: { source: string };
-  segments: Array<{
-    background?: { source?: string } | { type: "color" };
-    audio?: { source: string };
-    layers: Array<{ source: string }>;
-  }>;
-};
-
 // Helper to collect all source references from parsed data
-function collectSourceRefs(data: ParsedEffieData): string[] {
+function collectSourceRefs(
+  data: EffieData<EffieSources<string>, string>,
+): string[] {
   const refs: string[] = [];
 
   const addIfRef = (source: string) => {
@@ -304,7 +323,10 @@ function collectSourceRefs(data: ParsedEffieData): string[] {
 
 export function createEffieDataSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieData<EffieSources<U>, U>>;
+export function createEffieDataSchema(
+  urlSchema: z.ZodType<EffieWebUrl>,
+): z.ZodType<EffieData<EffieSources<EffieWebUrl>, EffieWebUrl>> {
   const sourcesSchema = createEffieSourcesSchema(urlSchema);
   const segmentSchema = createEffieSegmentSchema(urlSchema);
   const backgroundSchema = createEffieBackgroundSchema(urlSchema);
@@ -324,9 +346,7 @@ export function createEffieDataSchema<U extends string>(
     .superRefine((data, ctx) => {
       // Validate source references exist
       const definedSources = new Set(Object.keys(data.sources ?? {}));
-      // Type assertion: Zod has validated the structure, but its inferred types
-      // add spurious `| undefined` to required fields
-      const referencedSources = collectSourceRefs(data as ParsedEffieData);
+      const referencedSources = collectSourceRefs(data);
 
       for (const ref of referencedSources) {
         if (!definedSources.has(ref)) {
@@ -366,12 +386,17 @@ export function createEffieDataSchema<U extends string>(
     });
 }
 
-// Default schemas for web URLs (most common use case):
+// Default schemas for web URLs (most common use case).
+// The annotations below repeat the factories' return types. They exist only so
+// the emitted .d.ts and API docs print the short `z.ZodType<Effie*<...>>` form;
+// schema/type agreement is checked in the factory implementations above.
 
 export const effieSourcesSchema: z.ZodType<EffieSources<EffieWebUrl>> =
   createEffieSourcesSchema(effieWebUrlSchema);
 
-export const effieSourceSchema = createEffieSourceSchema(effieWebUrlSchema);
+export const effieSourceSchema: z.ZodType<
+  EffieSource<EffieSources<EffieWebUrl>, EffieWebUrl>
+> = createEffieSourceSchema(effieWebUrlSchema);
 
 export const effieBackgroundSchema: z.ZodType<
   EffieBackground<EffieSources<EffieWebUrl>, EffieWebUrl>

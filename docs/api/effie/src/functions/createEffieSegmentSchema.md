@@ -8,7 +8,7 @@
 
 > **createEffieSegmentSchema**\<`U`\>(`urlSchema`): `ZodType`\<[`EffieSegment`](../type-aliases/EffieSegment.md)\<[`EffieSources`](../type-aliases/EffieSources.md)\<`U`\>, `U`\>\>
 
-Defined in: [effie/src/schema.ts:246](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L246)
+Defined in: [effie/src/schema.ts:265](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L265)
 
 ## Type Parameters
 

@@ -300,3 +300,24 @@ describe("parseBackgroundShorthand", () => {
     expect(style.backgroundRepeat).toBe("repeat-x");
   });
 });
+
+describe("expandStyle – vendor-prefixed clipPath / backdropFilter", () => {
+  it("maps WebkitBackdropFilter and WebkitClipPath to the unprefixed names", () => {
+    const style = expandStyle({
+      WebkitBackdropFilter: "blur(4px)",
+      WebkitClipPath: "circle(50%)",
+    });
+    expect(style.backdropFilter).toBe("blur(4px)");
+    expect(style.clipPath).toBe("circle(50%)");
+    expect("WebkitBackdropFilter" in style).toBe(false);
+    expect("WebkitClipPath" in style).toBe(false);
+  });
+
+  it("does not override the unprefixed value", () => {
+    const style = expandStyle({
+      backdropFilter: "blur(1px)",
+      WebkitBackdropFilter: "blur(9px)",
+    });
+    expect(style.backdropFilter).toBe("blur(1px)");
+  });
+});

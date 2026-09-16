@@ -27,3 +27,13 @@ export function resolveBoxValue(v: unknown, referenceWidth: number): number {
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
+
+/**
+ * Format a number for embedding in a CSS string. `String(n)` switches to
+ * exponent notation for very small or large magnitudes (`1e-7`), which CSS
+ * parsers reject, so round to six decimals and print positionally.
+ */
+export function formatCSSNumber(n: number): string {
+  const fixed = n.toFixed(6).replace(/\.?0+$/, "");
+  return fixed === "-0" || fixed === "" ? "0" : fixed;
+}

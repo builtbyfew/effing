@@ -280,12 +280,77 @@ const png = canvas.encodeSync("png");
 | `transform`       | `translate`, `scale`, `rotate`, `skewX`, `skewY` |
 | `transformOrigin` | CSS transform-origin string                      |
 | `filter`          | CSS filter string                                |
+| `backdropFilter`  | CSS filter string applied to the backdrop        |
+| `clipPath`        | Basic shapes, `shape()`, geometry boxes, `none`  |
 
 ### Image
 
 | Property    | Values / Notes                                   |
 | ----------- | ------------------------------------------------ |
 | `objectFit` | `contain`, `cover`, `fill`, `none`, `scale-down` |
+
+### Clip paths
+
+`clipPath` clips the element's entire rendering — background, borders,
+box-shadow and children — to a shape in the element's own coordinate space
+(so it follows `transform`). Supported values:
+
+- Basic shapes: `inset()` (with `round`), `circle()`, `ellipse()` (with
+  `at <position>`, `closest-side` / `farthest-side`), `polygon()`, `path()`,
+  `rect()` and `xywh()`.
+- `shape()` with `from`, `move`, `line`, `hline`, `vline`, `curve`, `smooth`,
+  `arc` and `close` commands (`to` and `by` forms, `with` control points).
+- A geometry box — `border-box` (default), `padding-box`, `content-box`,
+  `margin-box` — on its own or combined with a shape as its reference box.
+- `none`.
+
+Percentages resolve against the reference box; other lengths accept the usual
+units. `url(#id)` references and `calc()` are not supported; an unrecognised
+value leaves the element unclipped.
+
+```tsx
+<div
+  style={{
+    width: 200,
+    height: 200,
+    background: "#3B82F6",
+    clipPath: "shape(from 50% 0, line to 100% 100%, line to 0 100%, close)",
+  }}
+/>
+```
+
+### Backdrop filters
+
+`backdropFilter` filters whatever has already been painted behind the
+element's border box (following `borderRadius`) and paints the result back
+before the element's own background, so a translucent background on top gives
+the usual frosted-glass look:
+
+```tsx
+<div
+  style={{
+    padding: 24,
+    borderRadius: 16,
+    backdropFilter: "blur(12px) saturate(1.4)",
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  }}
+>
+  Frosted glass
+</div>
+```
+
+The backdrop is everything drawn on the canvas before the element — ancestors
+and earlier siblings, but also anything you drew on the context before calling
+`renderReactElement`. Elements painted later are not affected. Any filter
+function the `filter` property accepts works here too. Filter lengths are CSS
+pixels of the element and follow its `transform`, including non-uniform
+scales and skews. At the canvas edge the backdrop is extended outward, like a
+browser clamps it at the viewport edge, so a blur stays uniform there.
+
+One difference from browsers: `opacity` is applied per drawing operation, not
+to the element's subtree as a group. Under an ancestor with `opacity` below 1
+the filtered backdrop is painted back with that opacity, so it blends with the
+unfiltered backdrop instead of the ancestor forming its own backdrop root.
 
 ### Units
 

@@ -1,5 +1,13 @@
 # @effing/effie-preview
 
+## 0.41.0
+
+### Patch Changes
+
+- Updated dependencies [ce15abd]
+  - @effing/effie@0.41.0
+  - @effing/annie-player@0.41.0
+
 ## 0.40.2
 
 ### Patch Changes

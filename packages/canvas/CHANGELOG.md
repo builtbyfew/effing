@@ -1,5 +1,51 @@
 # @effing/canvas
 
+## 0.41.0
+
+### Minor Changes
+
+- 381fdc2: Add `clipPath` and `backdropFilter` support to `renderReactElement`.
+
+  `clipPath` clips an element's entire rendering — background, borders,
+  box-shadow and children — in the element's own (transformed) coordinate space.
+  It supports the basic shapes (`inset()` with `round`, `circle()`, `ellipse()`,
+  `polygon()`, `path()`, `rect()`, `xywh()`), the `shape()` function with its
+  `move`/`line`/`hline`/`vline`/`curve`/`smooth`/`arc`/`close` commands, the
+  geometry-box keywords (`border-box`, `padding-box`, `content-box`,
+  `margin-box`) alone or as a shape's reference box, and `none`. `url(#id)`
+  references and `calc()` are not supported; an unrecognised value leaves the
+  element unclipped, as a browser would drop an invalid declaration.
+
+  `backdropFilter` filters whatever is already painted behind the element's
+  border box (following `borderRadius`) and paints it back before the element's
+  own background, giving the usual frosted-glass effect with a translucent
+  background on top. It takes the same filter functions as `filter`, snapshots
+  the backdrop in device space so it works under any transform, and scales
+  `blur()` lengths with the transform so a `blur(10px)` stays 10 CSS pixels wide.
+  A subtree containing a backdrop-filter bypasses the offscreen scale
+  optimisation, since the filter needs the real canvas content behind it.
+
+  Both properties resolve `em`, `rem`, viewport and absolute units like the
+  other string-valued properties, and the `WebkitClipPath` /
+  `WebkitBackdropFilter` vendor aliases map to the unprefixed names.
+
+### Patch Changes
+
+- 2722e50: Require `@napi-rs/canvas` 1.0.9 or later.
+
+  Earlier versions cached the typefaces Skia picked for each `ctx.font` (family
+  list + weight + style) for the lifetime of the process and did not invalidate
+  that cache when a font was registered
+  ([Brooooooklyn/canvas#1329](https://github.com/Brooooooklyn/canvas/issues/1329)).
+  Measuring or drawing text for a family or weight before its face was registered
+  therefore pinned that lookup to the closest face available at the time — the
+  fallback font, or e.g. the bold face for weight 400 — and later registrations,
+  including the ones `renderReactElement` does for `options.fonts`, could not fix
+  it. `@napi-rs/canvas` 1.0.9 invalidates the cache on registration
+  ([Brooooooklyn/canvas#1334](https://github.com/Brooooooklyn/canvas/pull/1334));
+  the peer range now requires it, and a regression test covers the
+  registration-order scenarios.
+
 ## 0.40.2
 
 ### Patch Changes

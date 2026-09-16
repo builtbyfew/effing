@@ -5,6 +5,7 @@ import type {
   EffieWebUrl,
   EffieFileUrl,
   EffieSources,
+  EffieSource,
   EffieData,
   EffieBackground,
   EffieAudio,
@@ -175,19 +176,22 @@ export const effieMotionSchema = z.union([
 
 export function createEffieSourcesSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSources<U>>;
+export function createEffieSourcesSchema(urlSchema: z.ZodType<string>) {
   return z.record(z.string(), urlSchema);
 }
 
 export function createEffieSourceSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSource<EffieSources<U>, U>>;
+export function createEffieSourceSchema(urlSchema: z.ZodType<string>) {
   return z.union([urlSchema, sourceRefSchema]);
 }
 
 export function createEffieBackgroundSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieBackground<EffieSources<U>, U>>;
+export function createEffieBackgroundSchema(urlSchema: z.ZodType<string>) {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.union([
@@ -209,7 +213,8 @@ export function createEffieBackgroundSchema<U extends string>(
 
 export function createEffieAudioSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieAudio<EffieSources<U>, U>>;
+export function createEffieAudioSchema(urlSchema: z.ZodType<string>) {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.strictObject({
@@ -223,7 +228,8 @@ export function createEffieAudioSchema<U extends string>(
 
 export function createEffieLayerSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieLayer<EffieSources<U>, U>>;
+export function createEffieLayerSchema(urlSchema: z.ZodType<string>) {
   const sourceSchema = createEffieSourceSchema(urlSchema);
 
   return z.strictObject({
@@ -239,7 +245,8 @@ export function createEffieLayerSchema<U extends string>(
 
 export function createEffieSegmentSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieSegment<EffieSources<U>, U>>;
+export function createEffieSegmentSchema(urlSchema: z.ZodType<string>) {
   const layerSchema = createEffieLayerSchema(urlSchema);
   const backgroundSchema = createEffieBackgroundSchema(urlSchema);
   const audioSchema = createEffieAudioSchema(urlSchema);
@@ -304,7 +311,8 @@ function collectSourceRefs(data: ParsedEffieData): string[] {
 
 export function createEffieDataSchema<U extends string>(
   urlSchema: z.ZodType<U>,
-) {
+): z.ZodType<EffieData<EffieSources<U>, U>>;
+export function createEffieDataSchema(urlSchema: z.ZodType<string>) {
   const sourcesSchema = createEffieSourcesSchema(urlSchema);
   const segmentSchema = createEffieSegmentSchema(urlSchema);
   const backgroundSchema = createEffieBackgroundSchema(urlSchema);

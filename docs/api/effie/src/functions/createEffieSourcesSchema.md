@@ -6,9 +6,9 @@
 
 # Function: createEffieSourcesSchema()
 
-> **createEffieSourcesSchema**\<`U`\>(`urlSchema`): `ZodRecord`\<`ZodString`, `ZodType`\<`U`, `ZodTypeDef`, `U`\>\>
+> **createEffieSourcesSchema**\<`U`\>(`urlSchema`): `ZodType`\<[`EffieSources`](../type-aliases/EffieSources.md)\<`U`\>\>
 
-Defined in: [effie/src/schema.ts:176](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L176)
+Defined in: [effie/src/schema.ts:177](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L177)
 
 ## Type Parameters
 
@@ -24,4 +24,4 @@ Defined in: [effie/src/schema.ts:176](https://github.com/builtbyfew/effing/blob/
 
 ## Returns
 
-`ZodRecord`\<`ZodString`, `ZodType`\<`U`, `ZodTypeDef`, `U`\>\>
+`ZodType`\<[`EffieSources`](../type-aliases/EffieSources.md)\<`U`\>\>

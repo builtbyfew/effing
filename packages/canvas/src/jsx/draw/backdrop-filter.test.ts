@@ -16,6 +16,14 @@ describe("filterBleed", () => {
     expect(filterBleed("drop-shadow(4px -6px 2px red)")).toBe(16);
     expect(filterBleed("drop-shadow(3px 3px black)")).toBe(6);
   });
+
+  it("ignores the components of nested color functions in drop-shadow", () => {
+    expect(filterBleed("drop-shadow(rgb(255 0 0) 2px 2px)")).toBe(4);
+    expect(filterBleed("drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5))")).toBe(16);
+    expect(filterBleed("drop-shadow(hsl(120 50% 50%) 1px -1px 3px)")).toBe(11);
+    // Still parsed when followed by another function.
+    expect(filterBleed("drop-shadow(rgb(0 0 255) 5px 0) blur(1px)")).toBe(8);
+  });
 });
 
 describe("scaleFilterLengths", () => {

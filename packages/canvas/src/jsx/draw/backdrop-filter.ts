@@ -247,8 +247,12 @@ export function filterBleed(filter: string): number {
   for (const m of filter.matchAll(/blur\(\s*(-?\d*\.?\d+)(?:px)?\s*\)/g)) {
     bleed += Math.abs(parseFloat(m[1]!)) * 3;
   }
-  for (const m of filter.matchAll(/drop-shadow\(([^)]*)\)/g)) {
-    const nums = m[1]!.match(/-?\d*\.?\d+(?=px|\s|$)/g) ?? [];
+  // The argument list may contain one level of nested parentheses (a color
+  // function such as `rgb(255 0 0)`); those are dropped before reading the
+  // lengths so their components are not mistaken for offsets.
+  for (const m of filter.matchAll(/drop-shadow\(((?:[^()]|\([^()]*\))*)\)/g)) {
+    const args = m[1]!.replace(/[\w-]+\([^()]*\)/g, " ");
+    const nums = args.match(/-?\d*\.?\d+(?=px|\s|$)/g) ?? [];
     const [ox = "0", oy = "0", blur = "0"] = nums;
     bleed +=
       Math.abs(parseFloat(ox)) +

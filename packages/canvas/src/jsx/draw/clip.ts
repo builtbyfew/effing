@@ -53,8 +53,7 @@ export function roundedRect(
   br: number,
   bl: number,
 ): void {
-  // Clamp radii to half the smallest dimension
-  const maxR = Math.min(w, h) / 2;
+  const maxR = maxCornerRadius(w, h);
   tl = Math.min(tl, maxR);
   tr = Math.min(tr, maxR);
   br = Math.min(br, maxR);
@@ -70,6 +69,16 @@ export function roundedRect(
   ctx.lineTo(x, y + tl);
   if (tl > 0) ctx.arcTo(x, y, x + tl, y, tl);
   ctx.closePath();
+}
+
+/**
+ * The largest corner radius a `w` × `h` box is drawn with: every radius is
+ * clamped to half the shorter side. Anything that needs to line up with the
+ * element's painted corners (`clip-path` geometry boxes, overflow clips) must
+ * apply the same clamp.
+ */
+export function maxCornerRadius(w: number, h: number): number {
+  return Math.min(w, h) / 2;
 }
 
 export function hasRadius(r: {

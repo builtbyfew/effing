@@ -5,7 +5,7 @@ import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
-import { drawBackdropFilter } from "./backdrop-filter.ts";
+import { drawBackdropFilter, filterBleed } from "./backdrop-filter.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
@@ -245,10 +245,23 @@ async function drawBlended(
 ): Promise<void> {
   const m = ctx.getTransform();
   const bounds = deviceBounds(m);
-  const rx = Math.max(0, Math.floor(bounds.x0));
-  const ry = Math.max(0, Math.floor(bounds.y0));
-  const rw = Math.min(ctx.canvas.width, Math.ceil(bounds.x1)) - rx;
-  const rh = Math.min(ctx.canvas.height, Math.ceil(bounds.y1)) - ry;
+  // An ancestor's filter (still set on the context) can paint past the
+  // element's bounds — a blur's halo, a drop-shadow's offset copy — and
+  // anything outside the blended region would be lost. Grow the region by the
+  // filter's reach, scaled generously in case its lengths follow the
+  // transform.
+  const filter = ctx.filter;
+  const pad =
+    filter && filter !== "none"
+      ? Math.ceil(
+          filterBleed(filter) *
+            Math.max(1, Math.hypot(m.a, m.b), Math.hypot(m.c, m.d)),
+        )
+      : 0;
+  const rx = Math.max(0, Math.floor(bounds.x0) - pad);
+  const ry = Math.max(0, Math.floor(bounds.y0) - pad);
+  const rw = Math.min(ctx.canvas.width, Math.ceil(bounds.x1) + pad) - rx;
+  const rh = Math.min(ctx.canvas.height, Math.ceil(bounds.y1) + pad) - ry;
   if (rw <= 0 || rh <= 0) return;
 
   const layers: Canvas[] = [];

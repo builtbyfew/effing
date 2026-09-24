@@ -10,6 +10,7 @@ import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import { drawImage } from "./image.ts";
+import { drawBackdropLayer, layersEnabled } from "./layer.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 import {
@@ -65,8 +66,11 @@ export async function drawNode(
     !hasOtherTransforms
       ? scanSubtree(node)
       : null;
+  // With native layers (and unsnapped text), a scaled subtree is simply drawn
+  // through its transform.
   if (
     process.env.EFFING_DIRECT_SCALE !== "1" &&
+    !layersEnabled(ctx) &&
     scaleInfo &&
     subtree &&
     !subtree.hasBackdropFilter
@@ -271,14 +275,16 @@ async function drawNodeCore(
 
   ctx.save();
 
-  // Apply opacity
-  if (opacity < 1) {
-    ctx.globalAlpha *= opacity;
-  }
-
-  // Apply CSS filter
-  if (style.filter) {
-    ctx.filter = style.filter;
+  // With native layers, opacity and filter apply to the element as one group
+  // (below); otherwise to each of its draws.
+  const layers = layersEnabled(ctx) ? ctx : null;
+  if (!layers) {
+    if (opacity < 1) {
+      ctx.globalAlpha *= opacity;
+    }
+    if (style.filter) {
+      ctx.filter = style.filter;
+    }
   }
 
   // Apply transform (use override when provided, e.g. scale stripped)
@@ -309,15 +315,41 @@ async function drawNodeCore(
   // itself is painted: its box-shadow must not end up in the snapshot, and its
   // background composites on top of the filtered result.
   if (style.backdropFilter) {
-    drawBackdropFilter(
-      ctx,
-      style.backdropFilter,
-      x,
-      y,
-      width,
-      height,
-      borderRadius,
-    );
+    if (layers) {
+      drawBackdropLayer(
+        layers,
+        style.backdropFilter,
+        x,
+        y,
+        width,
+        height,
+        borderRadius,
+        opacity,
+      );
+    } else {
+      drawBackdropFilter(
+        ctx,
+        style.backdropFilter,
+        x,
+        y,
+        width,
+        height,
+        borderRadius,
+      );
+    }
+  }
+
+  // The element's own painting and its children form one group, composited
+  // with its opacity and filter (CSS applies clip-path after the filter, so
+  // the clip above also clips the filtered result). The backdrop above stays
+  // outside it: a layer's backdrop is read from the enclosing layer.
+  const hasFilter = !!style.filter && style.filter.trim() !== "none";
+  const groupLayer = layers && (opacity < 1 || hasFilter);
+  if (groupLayer) {
+    layers.beginLayer({
+      opacity,
+      filter: hasFilter ? style.filter : undefined,
+    });
   }
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
@@ -545,6 +577,7 @@ async function drawNodeCore(
     }
   }
 
+  if (groupLayer) layers.endLayer();
   ctx.restore();
 }
 

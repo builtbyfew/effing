@@ -75,7 +75,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       "blur-showcase",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // With native layers (EFFING_LAYERS=1) the filter applies to the image as
+    // painted, rounded corners included, so its edge is blurred as in a
+    // browser; satori clips after filtering and keeps the edge sharp.
+    expect(percentage).toBeLessThan(process.env.EFFING_LAYERS === "1" ? 3 : 1);
   });
 
   it("renders ObjectFitCoverCard — objectFit cover with cropping", async () => {

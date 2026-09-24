@@ -9,7 +9,7 @@ const fonts = await loadFonts();
 const canvas = createCanvas(1080, 1080);
 const ctx = canvas.getContext("2d");
 
-const card = (scale: number, counter?: number) => (
+const card = (scale: number, counter?: number, extra?: React.CSSProperties) => (
   <div
     style={{
       width: 1080,
@@ -31,6 +31,7 @@ const card = (scale: number, counter?: number) => (
         fontFamily: "Liberation Sans",
         color: "#111",
         transform: `scale(${scale})`,
+        ...extra,
       }}
     >
       <div style={{ fontSize: 56, fontWeight: 700 }}>Quarterly results</div>
@@ -41,11 +42,18 @@ const card = (scale: number, counter?: number) => (
   </div>
 );
 
+// Draws are recorded and only rasterized when pixels are read, so read one to
+// time the full frame, as encoding it would.
+async function frame(element: React.ReactNode) {
+  await renderReactElement(ctx, element, { fonts });
+  ctx.getImageData(0, 0, 1, 1);
+}
+
 async function median(scales: number[], reps: number) {
   const times: number[] = [];
   for (let r = 0; r < reps; r++) {
     const t = performance.now();
-    for (const s of scales) await renderReactElement(ctx, card(s), { fonts });
+    for (const s of scales) await frame(card(s));
     times.push((performance.now() - t) / scales.length);
   }
   times.sort((a, b) => a - b);
@@ -67,9 +75,33 @@ let counter = 1000;
 const times: number[] = [];
 for (let i = 0; i < 200; i++) {
   const t = performance.now();
-  await renderReactElement(ctx, card(1, counter++), { fonts });
+  await frame(card(1, counter++));
   times.push(performance.now() - t);
 }
 times.sort((a, b) => a - b);
 rows.push(`new text every frame: ${times[100]!.toFixed(2)} ms`);
+
+async function medianOf(element: React.ReactNode, reps = 60) {
+  const t: number[] = [];
+  for (let i = 0; i < reps; i++) {
+    const start = performance.now();
+    await frame(element);
+    t.push(performance.now() - start);
+  }
+  t.sort((a, b) => a - b);
+  return t[Math.floor(reps / 2)]!;
+}
+rows.push(
+  `opacity 0.8: ${(await medianOf(card(1, undefined, { opacity: 0.8 }))).toFixed(2)} ms`,
+);
+rows.push(
+  `backdrop blur(12px): ${(
+    await medianOf(
+      card(1, undefined, {
+        background: "rgba(255,255,255,0.4)",
+        backdropFilter: "blur(12px)",
+      }),
+    )
+  ).toFixed(2)} ms`,
+);
 console.log(`BENCH ${label}\n${rows.join("\n")}`);

@@ -87,3 +87,84 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     });
   },
 );
+
+// Summed red-box coverage along a row and a column: a subpixel measure of the
+// box's rendered width and height (the box is pure red on white).
+function redExtent(png: Buffer, row: number, col: number) {
+  const img = PNG.sync.read(png);
+  const coverage = (x: number, y: number) =>
+    1 - img.data[(y * img.width + x) * 4 + 1]! / 255;
+  let width = 0;
+  let height = 0;
+  for (let x = 0; x < img.width; x++) width += coverage(x, row);
+  for (let y = 0; y < img.height; y++) height += coverage(col, y);
+  return { width, height };
+}
+
+// The pure-scale offscreen path pads its buffer by a bleed derived from the
+// subtree's font size. A fractional bleed made the buffer's ceil'd pixel size
+// overshoot the logical area it was composited into, shrinking the scaled
+// content by up to a pixel relative to the direct (unscaled) path.
+describe.skipIf(!HAS_NATIVE_DEPS)(
+  "scale offscreen path lands on the same pixels",
+  () => {
+    let fonts: FontData[];
+
+    beforeAll(async () => {
+      fonts = await loadFonts();
+    });
+
+    it.each([0.9999, 1.5, 2])(
+      "scale(%s) with a fractional font size",
+      async (scale) => {
+        const W = 300;
+        const H = 200;
+        const make = (transform: string) => (
+          <div
+            style={{
+              width: W,
+              height: H,
+              display: "flex",
+              background: "#fff",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: 20,
+                top: 20,
+                width: 100,
+                height: 50,
+                display: "flex",
+                background: "red",
+                transform,
+                transformOrigin: "left top",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "Liberation Sans",
+                  fontSize: 13.01,
+                  color: "red",
+                }}
+              >
+                {"Hi"}
+              </span>
+            </div>
+          </div>
+        );
+
+        const png = await renderWithCanvas(
+          make(`scale(${scale})`),
+          W,
+          H,
+          fonts,
+        );
+        const { width, height } = redExtent(png, 60, 60);
+
+        expect(width).toBeCloseTo(100 * scale, 1);
+        expect(height).toBeCloseTo(50 * scale, 1);
+      },
+    );
+  },
+);

@@ -377,12 +377,13 @@ describe("drawNode", () => {
   // Just past a whole scale, text fades between two supersample factors, each
   // composited at its weight; anything else composites a single buffer.
   it.each([
-    ["a text-free subtree", "1.02", undefined, [1]],
-    ["a subtree with text", "1.02", "Hi", [0.6, 0.4]],
-    ["float noise above scale 1", "1.0000000000000002", "Hi", [1]],
+    ["a text-free subtree", "1.02", undefined, 20, [1]],
+    ["a subtree with text", "1.02", "Hi", 20, [0.6, 0.4]],
+    ["default-size text (no fontSize)", "1.02", "Hi", undefined, [0.6, 0.4]],
+    ["float noise above scale 1", "1.0000000000000002", "Hi", 20, [1]],
   ])(
     "composites supersample levels at their weights for %s",
-    async (_, scale, textContent, weights) => {
+    async (_, scale, textContent, fontSize, weights) => {
       // The mock shares one context, so record the alpha each buffer
       // composite (the 9-argument drawImage) is drawn with.
       ctx.globalAlpha = 1;
@@ -399,7 +400,7 @@ describe("drawNode", () => {
           children: [
             {
               type: "span",
-              style: { fontSize: 20, color: "white" },
+              style: { fontSize, color: "white" },
               children: [],
               textContent,
               props: {},
@@ -424,6 +425,63 @@ describe("drawNode", () => {
       vi.mocked(ctx.drawImage).mockReset();
     },
   );
+
+  it("bleeds the buffer by the default font size for text without a fontSize", async () => {
+    // layoutText draws text at 16px when the style has no fontSize, so the
+    // scan must reserve the same overflow instead of treating it as no text.
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: { transform: "scale(1.1)", color: "white" },
+        children: [
+          {
+            type: "text",
+            style: { color: "white" },
+            children: [],
+            textContent: "AVA.",
+            props: {},
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 20,
+          },
+        ],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 20,
+      },
+      0,
+      0,
+    );
+
+    expect(compositeDestWidth()).toBe(100 + 2 * 16);
+  });
+
+  it("draws a scaled node with a degenerate size directly instead of buffering", async () => {
+    // A NaN box (layout edge case) can't back an offscreen buffer; the node
+    // must fall through to the direct path rather than create a NaN canvas.
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: { transform: "scale(0.9)", backgroundColor: "red" },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: NaN,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+  });
 });
 
 describe("drawNode – clip-path", () => {

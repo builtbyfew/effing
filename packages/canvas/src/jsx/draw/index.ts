@@ -66,22 +66,35 @@ export async function drawNode(
     !hasOtherTransforms
       ? scanSubtree(node)
       : null;
-  if (scaleInfo && subtree && !subtree.hasBackdropFilter) {
+
+  // The offscreen buffer has hard pixel bounds, so anything painted past its
+  // edge is clipped. A CSS transform must never clip the element's own
+  // content, yet ink legitimately overflows the layout box — glyph side
+  // bearings, italic overhang, and negative letter-spacing all push paint
+  // past the content edge (as do box-shadows). Grow the buffer by that much
+  // on every side so transformed content keeps the overflow the untransformed
+  // element would paint. Rounded up to whole pixels: with a fractional bleed
+  // (e.g. from a fractional font size) the buffer size below would be
+  // ceil'd past the logical box it's composited into, shrinking the content
+  // by up to a pixel, and the box would sit off the pixel grid in the buffer.
+  const bleed = subtree ? Math.max(1, Math.ceil(subtree.overflowBleed)) : 0;
+
+  // Logical size of the bleed-expanded box. A degenerate size (zero, negative
+  // or NaN from a layout edge case) can't back a buffer, so such nodes skip
+  // the offscreen path and draw directly like any other node.
+  const boxWidth = width + 2 * bleed;
+  const boxHeight = height + 2 * bleed;
+
+  if (
+    scaleInfo &&
+    subtree &&
+    !subtree.hasBackdropFilter &&
+    boxWidth > 0 &&
+    boxHeight > 0
+  ) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;
-
-    // The offscreen buffer has hard pixel bounds, so anything painted past its
-    // edge is clipped. A CSS transform must never clip the element's own
-    // content, yet ink legitimately overflows the layout box — glyph side
-    // bearings, italic overhang, and negative letter-spacing all push paint
-    // past the content edge (as do box-shadows). Grow the buffer by that much
-    // on every side so transformed content keeps the overflow the untransformed
-    // element would paint. Rounded up to whole pixels: with a fractional bleed
-    // (e.g. from a fractional font size) the buffer size below would be
-    // ceil'd past the logical box it's composited into, shrinking the content
-    // by up to a pixel, and the box would sit off the pixel grid in the buffer.
-    const bleed = Math.max(1, Math.ceil(subtree.overflowBleed));
 
     let ox = x + width / 2;
     let oy = y + height / 2;
@@ -96,8 +109,8 @@ export async function drawNode(
     // for overflow on every side.
     const render = async (qx: number, qy: number) => {
       const [offscreen, offCtx] = acquireOffscreen(
-        Math.ceil((width + 2 * bleed) * qx),
-        Math.ceil((height + 2 * bleed) * qy),
+        Math.ceil(boxWidth * qx),
+        Math.ceil(boxHeight * qy),
       );
       offCtx.save();
       offCtx.scale(qx, qy);
@@ -134,8 +147,8 @@ export async function drawNode(
         offscreen.height,
         x - bleed,
         y - bleed,
-        width + 2 * bleed,
-        height + 2 * bleed,
+        boxWidth,
+        boxHeight,
       );
       target.restore();
     };
@@ -333,6 +346,9 @@ function extractScale(
   return { sx, sy, remaining };
 }
 
+/** Font size `layoutText` draws with when the style specifies none. */
+const DEFAULT_FONT_SIZE = 16;
+
 /**
  * One walk over the visible part of a subtree (nodes that are `display: none`
  * or fully transparent are skipped, as they are when drawing) collecting what
@@ -364,10 +380,14 @@ function scanSubtree(node: LayoutNode): {
     if (n.style.display === "none") return;
     if ((n.style.opacity ?? 1) <= 0) return;
 
-    const fontSize =
-      typeof n.style.fontSize === "number" ? n.style.fontSize : 0;
-    if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
+    if (n.textContent !== undefined && n.textContent !== "") {
       hasText = true;
+      // Text is drawn even when the style carries no fontSize (layoutText
+      // falls back to the 16px default), so size the bleed the same way.
+      const fontSize =
+        typeof n.style.fontSize === "number"
+          ? n.style.fontSize
+          : DEFAULT_FONT_SIZE;
       const letterSpacing =
         typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
       overflowBleed = Math.max(

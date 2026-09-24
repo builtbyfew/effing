@@ -76,8 +76,11 @@ export async function drawNode(
     // bearings, italic overhang, and negative letter-spacing all push paint
     // past the content edge (as do box-shadows). Grow the buffer by that much
     // on every side so transformed content keeps the overflow the untransformed
-    // element would paint.
-    const bleed = Math.max(1, subtree.overflowBleed);
+    // element would paint. Rounded up to whole pixels: with a fractional bleed
+    // (e.g. from a fractional font size) the buffer size below would be
+    // ceil'd past the logical box it's composited into, shrinking the content
+    // by up to a pixel, and the box would sit off the pixel grid in the buffer.
+    const bleed = Math.max(1, Math.ceil(subtree.overflowBleed));
 
     // Quantize to ceil(|scale|) — buffer resolution only changes at
     // integer boundaries (no jitter), and composite is always ≤1x (sharp).

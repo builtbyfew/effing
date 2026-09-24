@@ -1,6 +1,6 @@
 {
   "name": "@effing/ffmpeg",
-  "version": "0.41.0",
+  "version": "0.41.1",
   "description": "FFmpeg binary downloader for Effing",
   "repository": {
     "type": "git",

@@ -1,5 +1,12 @@
 # @effing/ffs
 
+## 0.41.1
+
+### Patch Changes
+
+- @effing/annie@0.41.1
+- @effing/effie@0.41.1
+
 ## 0.41.0
 
 ### Minor Changes

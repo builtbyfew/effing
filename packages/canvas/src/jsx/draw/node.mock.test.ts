@@ -402,45 +402,52 @@ describe("drawNode", () => {
   ])(
     "composites supersample levels at their weights for %s",
     async (_, scale, textContent, fontSize, weights) => {
-      // The mock shares one context, so record the alpha each buffer
-      // composite (the 9-argument drawImage) is drawn with.
+      // The mock shares one context (and one drawImage spy) across tests, so
+      // record the alpha each buffer composite (the 9-argument drawImage) is
+      // drawn with, and undo the recording implementation and the state the
+      // blend leaves on the context even when an assertion throws.
       ctx.globalAlpha = 1;
       const alphas: number[] = [];
       vi.mocked(ctx.drawImage).mockImplementation((...args: unknown[]) => {
         if (args.length === 9) alphas.push(ctx.globalAlpha);
       });
 
-      await drawNode(
-        ctx,
-        {
-          type: "div",
-          style: { transform: `scale(${scale})`, backgroundColor: "red" },
-          children: [
-            {
-              type: "span",
-              style: { fontSize, color: "white" },
-              children: [],
-              textContent,
-              props: {},
-              x: 0,
-              y: 0,
-              width: 20,
-              height: 20,
-            },
-          ],
-          props: {},
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 50,
-        },
-        0,
-        0,
-      );
+      try {
+        await drawNode(
+          ctx,
+          {
+            type: "div",
+            style: { transform: `scale(${scale})`, backgroundColor: "red" },
+            children: [
+              {
+                type: "span",
+                style: { fontSize, color: "white" },
+                children: [],
+                textContent,
+                props: {},
+                x: 0,
+                y: 0,
+                width: 20,
+                height: 20,
+              },
+            ],
+            props: {},
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+          },
+          0,
+          0,
+        );
 
-      expect(alphas).toHaveLength(weights.length);
-      alphas.forEach((alpha, i) => expect(alpha).toBeCloseTo(weights[i]!));
-      vi.mocked(ctx.drawImage).mockReset();
+        expect(alphas).toHaveLength(weights.length);
+        alphas.forEach((alpha, i) => expect(alpha).toBeCloseTo(weights[i]!));
+      } finally {
+        vi.mocked(ctx.drawImage).mockReset();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
     },
   );
 

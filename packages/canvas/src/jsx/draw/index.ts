@@ -148,20 +148,20 @@ export async function drawNode(
       composite(ctx, offscreen);
       releaseOffscreen(offscreen);
     } else {
-      await drawBlended(ctx, levels, render, composite, (m) => {
-        // Device-space bounds of the scaled bleed box.
-        const x0 = ox + sx * (x - bleed - ox);
-        const x1 = ox + sx * (x + width + bleed - ox);
-        const y0 = oy + sy * (y - bleed - oy);
-        const y1 = oy + sy * (y + height + bleed - oy);
-        return transformedBounds(
-          m,
-          Math.min(x0, x1),
-          Math.min(y0, y1),
-          Math.abs(x1 - x0),
-          Math.abs(y1 - y0),
-        );
-      });
+      // Device-space bounds of the scaled bleed box.
+      const m = ctx.getTransform();
+      const x0 = ox + sx * (x - bleed - ox);
+      const x1 = ox + sx * (x + width + bleed - ox);
+      const y0 = oy + sy * (y - bleed - oy);
+      const y1 = oy + sy * (y + height + bleed - oy);
+      const bounds = transformedBounds(
+        m,
+        Math.min(x0, x1),
+        Math.min(y0, y1),
+        Math.abs(x1 - x0),
+        Math.abs(y1 - y0),
+      );
+      await drawBlended(ctx, m, bounds, levels, render, composite);
     }
     return;
   }
@@ -184,6 +184,19 @@ export async function drawNode(
  */
 const SUPERSAMPLE_BLEND_BAND = 0.05;
 
+/**
+ * Levels weighing less than this are dropped: below one 8-bit step at full
+ * coverage they can't change a pixel, and float noise such as a scale of
+ * 1.0000000000000002 would otherwise pay for a whole second render.
+ */
+const SUPERSAMPLE_MIN_WEIGHT = 1 / 512;
+
+/**
+ * The blended layer's device-space bounds are snapped to this grid so its size
+ * (and so the offscreen pool key) stays stable while the scale animates.
+ */
+const BLEND_LAYER_GRID = 64;
+
 type SupersampleLevel = { qx: number; qy: number; weight: number };
 
 /**
@@ -201,6 +214,11 @@ type SupersampleLevel = { qx: number; qy: number; weight: number };
  * matches the 1× buffer. Without text there is nothing to fade (boxes, images
  * and paths land the same at any factor), so `blend: false` skips the extra
  * render.
+ *
+ * The band trades the jump for softness: inside it the text is the average of
+ * two rasterizations up to about a pixel apart, so a slow zoom that stays
+ * within the band (say 1 → 1.05) is slightly soft throughout. A narrower band
+ * shortens that stretch but concentrates the same shift into fewer frames.
  */
 function supersampleLevels(
   sx: number,
@@ -211,7 +229,10 @@ function supersampleLevels(
     const a = Math.abs(s);
     const q = Math.max(1, Math.ceil(a));
     const t = (a - (q - 1)) / SUPERSAMPLE_BLEND_BAND;
-    if (!blend || q === 1 || t >= 1) return [{ q, weight: 1 }];
+    if (!blend || q === 1 || t >= 1 - SUPERSAMPLE_MIN_WEIGHT) {
+      return [{ q, weight: 1 }];
+    }
+    if (t <= SUPERSAMPLE_MIN_WEIGHT) return [{ q: q - 1, weight: 1 }];
     return [
       { q: q - 1, weight: 1 - t },
       { q, weight: t },
@@ -228,28 +249,30 @@ function supersampleLevels(
 }
 
 /**
- * Paint the weighted average of several supersample levels. Each level is
- * composited over its own copy of the destination region, in device space and
- * with the context's current state, and the copies are then blended back
- * pixel-exact: `copy` for the first and `lighter` (additive) for the rest,
- * each at its weight. Averaging the finished results, rather than drawing the
- * levels translucently on top of each other, keeps the blend exact over
- * transparent pixels and never lets the layers show through one another.
+ * Paint the weighted average of several supersample levels, where `bounds` is
+ * the device-space area they cover under the context's transform `m`.
+ *
+ * Each level is composited additively (`lighter`) at its weight onto one
+ * transparent device-space layer, which is then drawn back once with the
+ * context's own state. Source-over is linear in the premultiplied source and
+ * the weights sum to 1, so that equals averaging the levels each composited
+ * over the destination — exact over transparent pixels too, with the context's
+ * clip, alpha and composite operation applied once on the final draw. A filter
+ * set on the context is applied per level on the layer instead, under the same
+ * transform, exactly as the single-buffer path applies it.
  */
 async function drawBlended(
   ctx: SKRSContext2D,
+  m: Matrix,
+  bounds: ReturnType<typeof transformedBounds>,
   levels: SupersampleLevel[],
   render: (qx: number, qy: number) => Promise<Canvas>,
   composite: (target: SKRSContext2D, offscreen: Canvas) => void,
-  deviceBounds: (m: Matrix) => ReturnType<typeof transformedBounds>,
 ): Promise<void> {
-  const m = ctx.getTransform();
-  const bounds = deviceBounds(m);
   // An ancestor's filter (still set on the context) can paint past the
   // element's bounds — a blur's halo, a drop-shadow's offset copy — and
-  // anything outside the blended region would be lost. Grow the region by the
-  // filter's reach, scaled generously in case its lengths follow the
-  // transform.
+  // anything outside the layer would be lost. Grow the layer by the filter's
+  // reach, scaled generously in case its lengths follow the transform.
   const filter = ctx.filter;
   const pad =
     filter && filter !== "none"
@@ -258,42 +281,35 @@ async function drawBlended(
             Math.max(1, Math.hypot(m.a, m.b), Math.hypot(m.c, m.d)),
         )
       : 0;
-  const rx = Math.max(0, Math.floor(bounds.x0) - pad);
-  const ry = Math.max(0, Math.floor(bounds.y0) - pad);
-  const rw = Math.min(ctx.canvas.width, Math.ceil(bounds.x1) + pad) - rx;
-  const rh = Math.min(ctx.canvas.height, Math.ceil(bounds.y1) + pad) - ry;
+  const grid = BLEND_LAYER_GRID;
+  const rx = Math.max(0, Math.floor((bounds.x0 - pad) / grid) * grid);
+  const ry = Math.max(0, Math.floor((bounds.y0 - pad) / grid) * grid);
+  const rw =
+    Math.min(ctx.canvas.width, Math.ceil((bounds.x1 + pad) / grid) * grid) - rx;
+  const rh =
+    Math.min(ctx.canvas.height, Math.ceil((bounds.y1 + pad) / grid) * grid) -
+    ry;
   if (rw <= 0 || rh <= 0) return;
 
-  const layers: Canvas[] = [];
-  for (const { qx, qy } of levels) {
+  const [layer, layerCtx] = acquireOffscreen(rw, rh);
+  layerCtx.setTransform(m.a, m.b, m.c, m.d, m.e - rx, m.f - ry);
+  layerCtx.filter = filter;
+  layerCtx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
+  layerCtx.imageSmoothingQuality = ctx.imageSmoothingQuality;
+  layerCtx.globalCompositeOperation = "lighter";
+  for (const { qx, qy, weight } of levels) {
     const offscreen = await render(qx, qy);
-    const [layer, layerCtx] = acquireOffscreen(rw, rh);
-    layerCtx.drawImage(ctx.canvas, rx, ry, rw, rh, 0, 0, rw, rh);
-    layerCtx.setTransform(m.a, m.b, m.c, m.d, m.e - rx, m.f - ry);
-    layerCtx.globalAlpha = ctx.globalAlpha;
-    layerCtx.globalCompositeOperation = ctx.globalCompositeOperation;
-    layerCtx.filter = ctx.filter;
-    layerCtx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
-    layerCtx.imageSmoothingQuality = ctx.imageSmoothingQuality;
+    layerCtx.globalAlpha = weight;
     composite(layerCtx, offscreen);
     releaseOffscreen(offscreen);
-    layers.push(layer);
   }
 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  // Any clip already in effect still applies on top of this one.
-  ctx.beginPath();
-  ctx.rect(rx, ry, rw, rh);
-  ctx.clip();
   ctx.filter = "none";
-  layers.forEach((layer, i) => {
-    ctx.globalCompositeOperation = i === 0 ? "copy" : "lighter";
-    ctx.globalAlpha = levels[i]!.weight;
-    ctx.drawImage(layer, rx, ry);
-    releaseOffscreen(layer);
-  });
+  ctx.drawImage(layer, rx, ry);
   ctx.restore();
+  releaseOffscreen(layer);
 }
 
 /**

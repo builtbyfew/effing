@@ -374,19 +374,28 @@ describe("drawNode", () => {
     expect(compositeDestWidth()).toBe(100 + 2 * 1);
   });
 
-  // Just past a whole scale, text fades between two supersample factors (two
-  // renders plus the blend); anything else composites a single buffer.
+  // Just past a whole scale, text fades between two supersample factors, each
+  // composited at its weight; anything else composites a single buffer.
   it.each([
-    ["a text-free subtree", undefined, 1],
-    ["a subtree with text", "Hi", 6],
+    ["a text-free subtree", "1.02", undefined, [1]],
+    ["a subtree with text", "1.02", "Hi", [0.6, 0.4]],
+    ["float noise above scale 1", "1.0000000000000002", "Hi", [1]],
   ])(
-    "blends supersample factors past a whole scale only for %s",
-    async (_, textContent, drawImageCalls) => {
+    "composites supersample levels at their weights for %s",
+    async (_, scale, textContent, weights) => {
+      // The mock shares one context, so record the alpha each buffer
+      // composite (the 9-argument drawImage) is drawn with.
+      ctx.globalAlpha = 1;
+      const alphas: number[] = [];
+      vi.mocked(ctx.drawImage).mockImplementation((...args: unknown[]) => {
+        if (args.length === 9) alphas.push(ctx.globalAlpha);
+      });
+
       await drawNode(
         ctx,
         {
           type: "div",
-          style: { transform: "scale(1.02)", backgroundColor: "red" },
+          style: { transform: `scale(${scale})`, backgroundColor: "red" },
           children: [
             {
               type: "span",
@@ -410,7 +419,9 @@ describe("drawNode", () => {
         0,
       );
 
-      expect(ctx.drawImage).toHaveBeenCalledTimes(drawImageCalls);
+      expect(alphas).toHaveLength(weights.length);
+      alphas.forEach((alpha, i) => expect(alpha).toBeCloseTo(weights[i]!));
+      vi.mocked(ctx.drawImage).mockReset();
     },
   );
 });

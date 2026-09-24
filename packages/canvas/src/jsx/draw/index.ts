@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { cachedLoadImage } from "../../image.ts";
@@ -20,7 +20,8 @@ import {
 } from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
-import { parseCSSLength, resolveBoxValue } from "./utils.ts";
+import { parseCSSLength, resolveBoxValue, transformedBounds } from "./utils.ts";
+import type { Matrix } from "./utils.ts";
 
 /**
  * Main draw dispatcher: recursively draws the layout tree onto the canvas.
@@ -82,19 +83,22 @@ export async function drawNode(
     // by up to a pixel, and the box would sit off the pixel grid in the buffer.
     const bleed = Math.max(1, Math.ceil(subtree.overflowBleed));
 
-    // Quantize to ceil(|scale|) — buffer resolution only changes at
-    // integer boundaries (no jitter), and composite is always ≤1x (sharp).
-    const qx = Math.max(1, Math.ceil(Math.abs(sx)));
-    const qy = Math.max(1, Math.ceil(Math.abs(sy)));
+    let ox = x + width / 2;
+    let oy = y + height / 2;
+    if (style.transformOrigin) {
+      const parts = style.transformOrigin.split(/\s+/);
+      ox = resolveOrigin(parts[0], x, width);
+      oy = resolveOrigin(parts[1], y, height);
+    }
 
-    const bufW = Math.ceil((width + 2 * bleed) * qx);
-    const bufH = Math.ceil((height + 2 * bleed) * qy);
-    if (bufW > 0 && bufH > 0) {
-      const [offscreen, offCtx] = acquireOffscreen(bufW, bufH);
-
-      // Render at qx×qy resolution — logical coords produce more pixels.
-      // Offset by `bleed` so the box sits inside the buffer with room for
-      // overflow on every side.
+    // Render the subtree at qx×qy resolution — logical coords produce more
+    // pixels. Offset by `bleed` so the box sits inside the buffer with room
+    // for overflow on every side.
+    const render = async (qx: number, qy: number) => {
+      const [offscreen, offCtx] = acquireOffscreen(
+        Math.ceil((width + 2 * bleed) * qx),
+        Math.ceil((height + 2 * bleed) * qy),
+      );
       offCtx.save();
       offCtx.scale(qx, qy);
       await drawNodeCore(
@@ -109,44 +113,57 @@ export async function drawNode(
         transformWithoutScale,
       );
       offCtx.restore();
+      return offscreen;
+    };
 
-      ctx.save();
+    // Draw a buffer back at logical size under the original scale (the
+    // q→1x downscale happens here). Source and dest both span the
+    // bleed-expanded box, so the overflow region maps back to the same place
+    // it would paint untransformed.
+    const composite = (target: SKRSContext2D, offscreen: Canvas) => {
+      target.save();
       if (opacity < 1) {
-        ctx.globalAlpha *= opacity;
+        target.globalAlpha *= opacity;
       }
-
-      let ox = x + width / 2;
-      let oy = y + height / 2;
-      if (style.transformOrigin) {
-        const parts = style.transformOrigin.split(/\s+/);
-        ox = resolveOrigin(parts[0], x, width);
-        oy = resolveOrigin(parts[1], y, height);
-      }
-
-      // Apply the original scale — drawImage maps the high-res buffer
-      // back to logical size, so the transform needs the full scale value.
-      ctx.translate(ox, oy);
-      ctx.scale(sx, sy);
-      ctx.translate(-ox, -oy);
-
-      // Draw high-res buffer back at logical size (qx→1x downscale happens
-      // here). Source and dest both span the bleed-expanded box, so the
-      // overflow region maps back to the same place it would paint untransformed.
-      ctx.drawImage(
+      target.translate(ox, oy);
+      target.scale(sx, sy);
+      target.translate(-ox, -oy);
+      target.drawImage(
         offscreen,
         0,
         0,
-        bufW,
-        bufH,
+        offscreen.width,
+        offscreen.height,
         x - bleed,
         y - bleed,
         width + 2 * bleed,
         height + 2 * bleed,
       );
+      target.restore();
+    };
+
+    const levels = supersampleLevels(sx, sy);
+    if (levels.length === 1) {
+      const offscreen = await render(levels[0]!.qx, levels[0]!.qy);
+      composite(ctx, offscreen);
       releaseOffscreen(offscreen);
-      ctx.restore();
-      return;
+    } else {
+      await drawBlended(ctx, levels, render, composite, (m) => {
+        // Device-space bounds of the scaled bleed box.
+        const x0 = ox + sx * (x - bleed - ox);
+        const x1 = ox + sx * (x + width + bleed - ox);
+        const y0 = oy + sy * (y - bleed - oy);
+        const y1 = oy + sy * (y + height + bleed - oy);
+        return transformedBounds(
+          m,
+          Math.min(x0, x1),
+          Math.min(y0, y1),
+          Math.abs(x1 - x0),
+          Math.abs(y1 - y0),
+        );
+      });
     }
+    return;
   }
 
   await drawNodeCore(
@@ -159,6 +176,105 @@ export async function drawNode(
     emojiStyle,
     renderContext,
   );
+}
+
+/**
+ * Width of the band just above each whole scale in which the offscreen path
+ * cross-fades between the two neighbouring supersample factors.
+ */
+const SUPERSAMPLE_BLEND_BAND = 0.05;
+
+type SupersampleLevel = { qx: number; qy: number; weight: number };
+
+/**
+ * The supersample factors to render a pure-scale subtree at, with the weight
+ * each contributes to the composite.
+ *
+ * The factor is quantized to ceil(|scale|), so a buffer only changes at whole
+ * scales (no per-frame glyph jitter) and the composite is always ≤1x (sharp).
+ * But Skia hints glyphs and snaps pen positions and baselines on the device
+ * grid, so text rasterized at q× doesn't land exactly where it does at 1× or
+ * (q+1)×: switching factors outright made text jump by a fraction of a pixel
+ * whenever an animated scale crossed a whole number. Instead, just past each
+ * whole scale k, fade from the k× buffer to the (k+1)× one, so the rendered
+ * result is continuous in the scale. Scale 1 itself draws directly, which
+ * matches the 1× buffer.
+ */
+function supersampleLevels(sx: number, sy: number): SupersampleLevel[] {
+  const axis = (s: number): { q: number; weight: number }[] => {
+    const a = Math.abs(s);
+    const q = Math.max(1, Math.ceil(a));
+    const t = (a - (q - 1)) / SUPERSAMPLE_BLEND_BAND;
+    if (q === 1 || t >= 1) return [{ q, weight: 1 }];
+    return [
+      { q: q - 1, weight: 1 - t },
+      { q, weight: t },
+    ];
+  };
+  const xs = axis(sx);
+  if (Math.abs(sx) === Math.abs(sy)) {
+    return xs.map(({ q, weight }) => ({ qx: q, qy: q, weight }));
+  }
+  const ys = axis(sy);
+  return xs.flatMap((lx) =>
+    ys.map((ly) => ({ qx: lx.q, qy: ly.q, weight: lx.weight * ly.weight })),
+  );
+}
+
+/**
+ * Paint the weighted average of several supersample levels. Each level is
+ * composited over its own copy of the destination region, in device space and
+ * with the context's current state, and the copies are then blended back
+ * pixel-exact: `copy` for the first and `lighter` (additive) for the rest,
+ * each at its weight. Averaging the finished results, rather than drawing the
+ * levels translucently on top of each other, keeps the blend exact over
+ * transparent pixels and never lets the layers show through one another.
+ */
+async function drawBlended(
+  ctx: SKRSContext2D,
+  levels: SupersampleLevel[],
+  render: (qx: number, qy: number) => Promise<Canvas>,
+  composite: (target: SKRSContext2D, offscreen: Canvas) => void,
+  deviceBounds: (m: Matrix) => ReturnType<typeof transformedBounds>,
+): Promise<void> {
+  const m = ctx.getTransform();
+  const bounds = deviceBounds(m);
+  const rx = Math.max(0, Math.floor(bounds.x0));
+  const ry = Math.max(0, Math.floor(bounds.y0));
+  const rw = Math.min(ctx.canvas.width, Math.ceil(bounds.x1)) - rx;
+  const rh = Math.min(ctx.canvas.height, Math.ceil(bounds.y1)) - ry;
+  if (rw <= 0 || rh <= 0) return;
+
+  const layers: Canvas[] = [];
+  for (const { qx, qy } of levels) {
+    const offscreen = await render(qx, qy);
+    const [layer, layerCtx] = acquireOffscreen(rw, rh);
+    layerCtx.drawImage(ctx.canvas, rx, ry, rw, rh, 0, 0, rw, rh);
+    layerCtx.setTransform(m.a, m.b, m.c, m.d, m.e - rx, m.f - ry);
+    layerCtx.globalAlpha = ctx.globalAlpha;
+    layerCtx.globalCompositeOperation = ctx.globalCompositeOperation;
+    layerCtx.filter = ctx.filter;
+    layerCtx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
+    layerCtx.imageSmoothingQuality = ctx.imageSmoothingQuality;
+    composite(layerCtx, offscreen);
+    releaseOffscreen(offscreen);
+    layers.push(layer);
+  }
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Any clip already in effect still applies on top of this one.
+  ctx.beginPath();
+  ctx.rect(rx, ry, rw, rh);
+  ctx.clip();
+  ctx.filter = "none";
+  layers.forEach((layer, i) => {
+    ctx.globalCompositeOperation = i === 0 ? "copy" : "lighter";
+    ctx.globalAlpha = levels[i]!.weight;
+    ctx.drawImage(layer, rx, ry);
+    releaseOffscreen(layer);
+  });
+  ctx.restore();
 }
 
 /**

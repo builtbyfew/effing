@@ -79,19 +79,18 @@ export async function drawNode(
   // by up to a pixel, and the box would sit off the pixel grid in the buffer.
   const bleed = subtree ? Math.max(1, Math.ceil(subtree.overflowBleed)) : 0;
 
-  // Logical size of the bleed-expanded box. A degenerate size (zero, negative
-  // or NaN from a layout edge case) can't back a buffer, so such nodes skip
-  // the offscreen path and draw directly like any other node.
+  // Logical size of the bleed-expanded box. A degenerate size (zero, negative,
+  // NaN or infinite, from a layout edge case) can't back a buffer, so such
+  // nodes skip the offscreen path and draw directly like any other node.
   const boxWidth = width + 2 * bleed;
   const boxHeight = height + 2 * bleed;
-
-  if (
-    scaleInfo &&
-    subtree &&
-    !subtree.hasBackdropFilter &&
+  const canBuffer =
+    Number.isFinite(boxWidth) &&
+    Number.isFinite(boxHeight) &&
     boxWidth > 0 &&
-    boxHeight > 0
-  ) {
+    boxHeight > 0;
+
+  if (scaleInfo && subtree && !subtree.hasBackdropFilter && canBuffer) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;

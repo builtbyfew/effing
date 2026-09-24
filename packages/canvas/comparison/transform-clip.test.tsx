@@ -287,64 +287,80 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     );
 
     // Near a whole scale the text is blended over a device-space region; an
-    // ancestor's filter can paint far outside it (here a drop-shadow 90px
-    // below), and that paint must not be clipped away.
-    it("keeps an ancestor filter's reach while blending", async () => {
-      // White text with a red shadow on black: green is the text alone, red
-      // minus green is the shadow.
-      const shadowMass = async (scale: number) => {
-        const png = await renderWithCanvas(
+    // ancestor's filter can paint far outside it (here a drop-shadow below),
+    // and that paint must not be clipped away.
+    //
+    // White text with a red shadow on black: green is the text alone, red
+    // minus green is the shadow.
+    const shadowMass = async (
+      scale: number,
+      shadowOffset: number,
+      height: number,
+    ) => {
+      const png = await renderWithCanvas(
+        <div
+          style={{
+            width: W,
+            height,
+            display: "flex",
+            background: "#000",
+          }}
+        >
           <div
             style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
               width: W,
-              height: H,
+              height,
               display: "flex",
-              background: "#000",
+              filter: `drop-shadow(0px ${shadowOffset}px 0px #f00)`,
             }}
           >
             <div
               style={{
                 position: "absolute",
-                left: 0,
-                top: 0,
-                width: W,
-                height: H,
+                left: LEFT,
+                top: 100,
                 display: "flex",
-                filter: "drop-shadow(0px 90px 0px #f00)",
+                fontFamily: "Liberation Sans",
+                fontWeight: 700,
+                fontSize: 60,
+                color: "#fff",
+                transformOrigin: "left center",
+                transform: `scale(${scale})`,
               }}
             >
-              <div
-                style={{
-                  position: "absolute",
-                  left: LEFT,
-                  top: 100,
-                  display: "flex",
-                  fontFamily: "Liberation Sans",
-                  fontWeight: 700,
-                  fontSize: 60,
-                  color: "#fff",
-                  transformOrigin: "left center",
-                  transform: `scale(${scale})`,
-                }}
-              >
-                {"Hello"}
-              </div>
+              {"Hello"}
             </div>
-          </div>,
-          W,
-          H,
-          fonts,
-        );
-        const img = PNG.sync.read(png);
-        let mass = 0;
-        for (let i = 0; i < img.data.length; i += 4) {
-          mass += img.data[i]! - img.data[i + 1]!;
-        }
-        return mass;
-      };
+          </div>
+        </div>,
+        W,
+        height,
+        fonts,
+      );
+      const img = PNG.sync.read(png);
+      let mass = 0;
+      for (let i = 0; i < img.data.length; i += 4) {
+        mass += img.data[i]! - img.data[i + 1]!;
+      }
+      return mass;
+    };
 
-      const below = await shadowMass(0.9999);
-      const above = await shadowMass(1.0001);
+    it("keeps an ancestor filter's reach while blending", async () => {
+      const below = await shadowMass(0.9999, 90, H);
+      const above = await shadowMass(1.0001, 90, H);
+      expect(below).toBeGreaterThan(0);
+      expect(Math.abs(above - below) / below).toBeLessThan(0.01);
+    });
+
+    // The filter's lengths are the ancestor's, not the node's: at scale 3 a
+    // 150px shadow still lands 150px below the (three times larger) text. The
+    // blended layer is grown by that unscaled reach, and must still hold the
+    // shadow at higher scales, where the layer can reach the canvas edge.
+    it("keeps an ancestor filter's reach while blending at a higher scale", async () => {
+      const below = await shadowMass(2.9999, 150, 800);
+      const above = await shadowMass(3.0001, 150, 800);
       expect(below).toBeGreaterThan(0);
       expect(Math.abs(above - below) / below).toBeLessThan(0.01);
     });

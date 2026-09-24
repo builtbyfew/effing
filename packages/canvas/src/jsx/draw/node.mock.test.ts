@@ -485,28 +485,32 @@ describe("drawNode", () => {
     expect(compositeDestWidth()).toBe(100 + 2 * 16);
   });
 
-  it("draws a scaled node with a degenerate size directly instead of buffering", async () => {
-    // A NaN box (layout edge case) can't back an offscreen buffer; the node
-    // must fall through to the direct path rather than create a NaN canvas.
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(0.9)", backgroundColor: "red" },
-        children: [],
-        props: {},
-        x: 0,
-        y: 0,
-        width: NaN,
-        height: 50,
-      },
-      0,
-      0,
-    );
+  it.each([NaN, Infinity])(
+    "draws a scaled node with a %s size directly instead of buffering",
+    async (width) => {
+      // A NaN or infinite box (layout edge case) can't back an offscreen
+      // buffer; the node must fall through to the direct path rather than
+      // create a canvas with that size.
+      await drawNode(
+        ctx,
+        {
+          type: "div",
+          style: { transform: "scale(0.9)", backgroundColor: "red" },
+          children: [],
+          props: {},
+          x: 0,
+          y: 0,
+          width,
+          height: 50,
+        },
+        0,
+        0,
+      );
 
-    expect(ctx.drawImage).not.toHaveBeenCalled();
-    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
-  });
+      expect(ctx.drawImage).not.toHaveBeenCalled();
+      expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+    },
+  );
 });
 
 describe("drawNode – clip-path", () => {

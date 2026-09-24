@@ -51,6 +51,26 @@ export async function drawText(
   textShadow?: string,
   emojiStyle?: EmojiStyle,
 ): Promise<void> {
+  // Unhinted, unsnapped glyphs (with the @effing/skia build of Skia) land in
+  // the same place at every scale, so text doesn't jump when a scaled subtree
+  // switches supersample factors. Stock @napi-rs/canvas ignores this.
+  const prevTextRendering = ctx.textRendering;
+  ctx.textRendering = "geometricPrecision";
+  try {
+    await drawSegments(ctx, segments, offsetX, offsetY, textShadow, emojiStyle);
+  } finally {
+    ctx.textRendering = prevTextRendering;
+  }
+}
+
+async function drawSegments(
+  ctx: SKRSContext2D,
+  segments: TextSegment[],
+  offsetX: number,
+  offsetY: number,
+  textShadow?: string,
+  emojiStyle?: EmojiStyle,
+): Promise<void> {
   const shadow = textShadow ? parseShadow(textShadow) : null;
 
   for (const seg of segments) {

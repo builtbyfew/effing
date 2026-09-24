@@ -65,7 +65,12 @@ export async function drawNode(
     !hasOtherTransforms
       ? scanSubtree(node)
       : null;
-  if (scaleInfo && subtree && !subtree.hasBackdropFilter) {
+  if (
+    process.env.EFFING_DIRECT_SCALE !== "1" &&
+    scaleInfo &&
+    subtree &&
+    !subtree.hasBackdropFilter
+  ) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;

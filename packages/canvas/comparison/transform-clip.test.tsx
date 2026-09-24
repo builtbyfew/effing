@@ -168,3 +168,125 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     );
   },
 );
+
+// Brightness-weighted centroid of a frame (white ink on black): a subpixel
+// measure of where the ink sits.
+function inkCentroid(png: Buffer): { x: number; y: number } {
+  const img = PNG.sync.read(png);
+  let mass = 0;
+  let sumX = 0;
+  let sumY = 0;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const v = img.data[(y * img.width + x) * 4]!;
+      mass += v;
+      sumX += v * x;
+      sumY += v * y;
+    }
+  }
+  return { x: sumX / mass, y: sumY / mass };
+}
+
+// The pure-scale offscreen path supersamples by ceil(|scale|). Hinted glyphs
+// snapped to the device grid land a fraction of a pixel away at q× from where
+// they land at 1× or (q+1)×, so an animated scale crossing 1, 2, 3, … made
+// text jump while boxes stayed put. With @effing/skia, text is unhinted and
+// filled as outlines at its exact position (textRendering: geometricPrecision),
+// so scaled subtrees can be drawn straight through the transform instead
+// (EFFING_DIRECT_SCALE=1), with nothing to switch at whole scales.
+describe.skipIf(!HAS_NATIVE_DEPS || process.env.EFFING_DIRECT_SCALE !== "1")(
+  "scaled text moves continuously across whole scales",
+  () => {
+    const W = 900;
+    const H = 420;
+    const LEFT = 20.3;
+    const TOP = 200.37;
+    let fonts: FontData[];
+
+    beforeAll(async () => {
+      fonts = await loadFonts();
+    });
+
+    const centroid = async (fontSize: number, scale?: number) => {
+      const png = await renderWithCanvas(
+        <div
+          style={{
+            width: W,
+            height: H,
+            display: "flex",
+            background: "#000",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: LEFT,
+              top: TOP,
+              display: "flex",
+              fontFamily: "Liberation Sans",
+              fontWeight: 700,
+              fontSize,
+              color: "#fff",
+              transformOrigin: "left center",
+              transform: scale === undefined ? undefined : `scale(${scale})`,
+            }}
+          >
+            {"Hello"}
+          </div>
+        </div>,
+        W,
+        H,
+        fonts,
+      );
+      return inkCentroid(png);
+    };
+
+    it.each([40, 60, 97.3])(
+      "%spx text doesn't jump when leaving scale(1)",
+      async (fontSize) => {
+        const none = await centroid(fontSize);
+        for (const scale of [0.9999, 1.0001]) {
+          const c = await centroid(fontSize, scale);
+          expect(Math.abs(c.x - none.x)).toBeLessThan(0.05);
+          expect(Math.abs(c.y - none.y)).toBeLessThan(0.05);
+        }
+      },
+    );
+
+    it.each([40, 60, 97.3])(
+      "%spx text doesn't jump when crossing scale(2) and scale(3)",
+      async (fontSize) => {
+        for (const k of [2, 3]) {
+          const below = await centroid(fontSize, k - 0.0001);
+          const above = await centroid(fontSize, k + 0.0001);
+          // Geometric motion from scaling about the left edge over Δs = 0.0002.
+          const expectedDx = ((below.x - LEFT) * 0.0002) / k;
+          expect(Math.abs(above.x - below.x - expectedDx)).toBeLessThan(0.05);
+          expect(Math.abs(above.y - below.y)).toBeLessThan(0.05);
+        }
+      },
+    );
+
+    it.each([40, 60, 97.3])(
+      "%spx text moves monotonically as scale eases up from 1",
+      async (fontSize) => {
+        const points = [await centroid(fontSize)];
+        for (let i = 1; i <= 100; i++) {
+          points.push(await centroid(fontSize, 1 + i * 0.0001));
+        }
+        for (const axis of ["x", "y"] as const) {
+          const direction =
+            Math.sign(points[100]![axis] - points[0]![axis]) || 1;
+          for (let i = 1; i < points.length; i++) {
+            // Each frame is a fresh rasterization, so anti-aliasing adds up to
+            // ≈0.09px of noise on top of the ≈0.01px of geometric motion per
+            // 0.0001 of scale; stock Skia steps by up to a whole pixel here.
+            const step = points[i]![axis] - points[i - 1]![axis];
+            expect(step * direction).toBeGreaterThan(-0.1);
+            expect(Math.abs(step)).toBeLessThan(0.1);
+          }
+        }
+      },
+    );
+  },
+);

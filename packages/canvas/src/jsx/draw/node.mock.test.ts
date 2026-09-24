@@ -373,6 +373,46 @@ describe("drawNode", () => {
 
     expect(compositeDestWidth()).toBe(100 + 2 * 1);
   });
+
+  // Just past a whole scale, text fades between two supersample factors (two
+  // renders plus the blend); anything else composites a single buffer.
+  it.each([
+    ["a text-free subtree", undefined, 1],
+    ["a subtree with text", "Hi", 6],
+  ])(
+    "blends supersample factors past a whole scale only for %s",
+    async (_, textContent, drawImageCalls) => {
+      await drawNode(
+        ctx,
+        {
+          type: "div",
+          style: { transform: "scale(1.02)", backgroundColor: "red" },
+          children: [
+            {
+              type: "span",
+              style: { fontSize: 20, color: "white" },
+              children: [],
+              textContent,
+              props: {},
+              x: 0,
+              y: 0,
+              width: 20,
+              height: 20,
+            },
+          ],
+          props: {},
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 50,
+        },
+        0,
+        0,
+      );
+
+      expect(ctx.drawImage).toHaveBeenCalledTimes(drawImageCalls);
+    },
+  );
 });
 
 describe("drawNode – clip-path", () => {

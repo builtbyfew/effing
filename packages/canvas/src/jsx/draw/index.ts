@@ -142,7 +142,7 @@ export async function drawNode(
       target.restore();
     };
 
-    const levels = supersampleLevels(sx, sy);
+    const levels = supersampleLevels(sx, sy, subtree.hasText);
     if (levels.length === 1) {
       const offscreen = await render(levels[0]!.qx, levels[0]!.qy);
       composite(ctx, offscreen);
@@ -198,14 +198,20 @@ type SupersampleLevel = { qx: number; qy: number; weight: number };
  * whenever an animated scale crossed a whole number. Instead, just past each
  * whole scale k, fade from the k× buffer to the (k+1)× one, so the rendered
  * result is continuous in the scale. Scale 1 itself draws directly, which
- * matches the 1× buffer.
+ * matches the 1× buffer. Without text there is nothing to fade (boxes, images
+ * and paths land the same at any factor), so `blend: false` skips the extra
+ * render.
  */
-function supersampleLevels(sx: number, sy: number): SupersampleLevel[] {
+function supersampleLevels(
+  sx: number,
+  sy: number,
+  blend: boolean,
+): SupersampleLevel[] {
   const axis = (s: number): { q: number; weight: number }[] => {
     const a = Math.abs(s);
     const q = Math.max(1, Math.ceil(a));
     const t = (a - (q - 1)) / SUPERSAMPLE_BLEND_BAND;
-    if (q === 1 || t >= 1) return [{ q, weight: 1 }];
+    if (!blend || q === 1 || t >= 1) return [{ q, weight: 1 }];
     return [
       { q: q - 1, weight: 1 - t },
       { q, weight: t },
@@ -315,13 +321,17 @@ function extractScale(
  *   result is a single symmetric margin (the max needed on any side).
  * - `hasBackdropFilter`: whether any node applies a backdrop-filter, which
  *   needs the real canvas behind it and so rules out the offscreen path.
+ * - `hasText`: whether any node draws text, the only content whose placement
+ *   depends on the supersample factor (see `supersampleLevels`).
  */
 function scanSubtree(node: LayoutNode): {
   overflowBleed: number;
   hasBackdropFilter: boolean;
+  hasText: boolean;
 } {
   let overflowBleed = 0;
   let hasBackdropFilter = false;
+  let hasText = false;
 
   const visit = (n: LayoutNode): void => {
     if (n.style.display === "none") return;
@@ -330,6 +340,7 @@ function scanSubtree(node: LayoutNode): {
     const fontSize =
       typeof n.style.fontSize === "number" ? n.style.fontSize : 0;
     if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
+      hasText = true;
       const letterSpacing =
         typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
       overflowBleed = Math.max(
@@ -352,7 +363,7 @@ function scanSubtree(node: LayoutNode): {
   };
 
   visit(node);
-  return { overflowBleed, hasBackdropFilter };
+  return { overflowBleed, hasBackdropFilter, hasText };
 }
 
 /**

@@ -198,7 +198,9 @@ const SUPERSAMPLE_BLEND_BAND = 0.05;
 /**
  * Levels weighing less than this are dropped: below one 8-bit step at full
  * coverage they can't change a pixel, and float noise such as a scale of
- * 1.0000000000000002 would otherwise pay for a whole second render.
+ * 1.0000000000000002 would otherwise pay for a whole second render. Applied
+ * to the final level list, so for a non-uniform scale the pruning sees the
+ * product weights, not just the per-axis ones.
  */
 const SUPERSAMPLE_MIN_WEIGHT = 1 / 512;
 
@@ -240,23 +242,31 @@ function supersampleLevels(
     const a = Math.abs(s);
     const q = Math.max(1, Math.ceil(a));
     const t = (a - (q - 1)) / SUPERSAMPLE_BLEND_BAND;
-    if (!blend || q === 1 || t >= 1 - SUPERSAMPLE_MIN_WEIGHT) {
-      return [{ q, weight: 1 }];
-    }
-    if (t <= SUPERSAMPLE_MIN_WEIGHT) return [{ q: q - 1, weight: 1 }];
+    if (!blend || q === 1 || t >= 1) return [{ q, weight: 1 }];
     return [
       { q: q - 1, weight: 1 - t },
       { q, weight: t },
     ];
   };
   const xs = axis(sx);
-  if (Math.abs(sx) === Math.abs(sy)) {
-    return xs.map(({ q, weight }) => ({ qx: q, qy: q, weight }));
-  }
-  const ys = axis(sy);
-  return xs.flatMap((lx) =>
-    ys.map((ly) => ({ qx: lx.q, qy: ly.q, weight: lx.weight * ly.weight })),
-  );
+  // A non-uniform scale blends each axis independently, so its levels are
+  // every combination of the two axes' factors, weighted by the product.
+  const levels =
+    Math.abs(sx) === Math.abs(sy)
+      ? xs.map(({ q, weight }) => ({ qx: q, qy: q, weight }))
+      : xs.flatMap((lx) =>
+          axis(sy).map((ly) => ({
+            qx: lx.q,
+            qy: ly.q,
+            weight: lx.weight * ly.weight,
+          })),
+        );
+
+  // Drop levels too faint to change a pixel and renormalise the rest, so the
+  // weights still sum to 1 (drawBlended relies on that to average exactly).
+  const kept = levels.filter((l) => l.weight >= SUPERSAMPLE_MIN_WEIGHT);
+  const total = kept.reduce((sum, l) => sum + l.weight, 0);
+  return kept.map((l) => ({ ...l, weight: l.weight / total }));
 }
 
 /**

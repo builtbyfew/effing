@@ -381,6 +381,24 @@ describe("drawNode", () => {
     ["a subtree with text", "1.02", "Hi", 20, [0.6, 0.4]],
     ["default-size text (no fontSize)", "1.02", "Hi", undefined, [0.6, 0.4]],
     ["float noise above scale 1", "1.0000000000000002", "Hi", 20, [1]],
+    // Non-uniform: each axis blends on its own, so the levels are the
+    // combinations of the two axes' factors, weighted by the product.
+    [
+      "both axes in their bands",
+      "1.02, 2.03",
+      "Hi",
+      20,
+      [0.24, 0.36, 0.16, 0.24],
+    ],
+    // Products that fall below the minimum weight are pruned and the rest
+    // renormalised: 0.998×{0.4, 0.6} survives, 0.002×{0.4, 0.6} does not.
+    [
+      "one axis barely past a whole scale",
+      "1.0001, 2.03",
+      "Hi",
+      20,
+      [0.4, 0.6],
+    ],
   ])(
     "composites supersample levels at their weights for %s",
     async (_, scale, textContent, fontSize, weights) => {

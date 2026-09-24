@@ -9,7 +9,7 @@ const fonts = await loadFonts();
 const canvas = createCanvas(1080, 1080);
 const ctx = canvas.getContext("2d");
 
-const card = (scale: number) => (
+const card = (scale: number, counter?: number) => (
   <div
     style={{
       width: 1080,
@@ -35,8 +35,7 @@ const card = (scale: number) => (
     >
       <div style={{ fontSize: 56, fontWeight: 700 }}>Quarterly results</div>
       <div style={{ fontSize: 28, marginTop: 16 }}>
-        Revenue grew 23% year over year, driven by strong demand across every
-        region and a record holiday season.
+        {`Revenue grew ${counter ?? 23}% year over year, driven by strong demand across every region and a record holiday season.`}
       </div>
     </div>
   </div>
@@ -62,4 +61,15 @@ const zoom = (to: number) =>
   Array.from({ length: 60 }, (_, i) => 1 + ((to - 1) * i) / 59);
 rows.push(`zoom 1→1.5: ${(await median(zoom(1.5), 5)).toFixed(2)} ms/frame`);
 rows.push(`zoom 1→3: ${(await median(zoom(3), 5)).toFixed(2)} ms/frame`);
+// A counter in the text defeats any per-text caching: every frame lays out
+// new text, as a ticking number or typewriter effect would.
+let counter = 1000;
+const times: number[] = [];
+for (let i = 0; i < 200; i++) {
+  const t = performance.now();
+  await renderReactElement(ctx, card(1, counter++), { fonts });
+  times.push(performance.now() - t);
+}
+times.sort((a, b) => a - b);
+rows.push(`new text every frame: ${times[100]!.toFixed(2)} ms`);
 console.log(`BENCH ${label}\n${rows.join("\n")}`);

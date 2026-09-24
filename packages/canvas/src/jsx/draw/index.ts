@@ -483,6 +483,10 @@ async function drawNodeCore(
       contentY,
       style.textShadow,
       emojiStyle,
+      textLayout.paragraph && {
+        paragraph: textLayout.paragraph,
+        offsetY: textLayout.paragraphOffsetY ?? 0,
+      },
     );
   }
 

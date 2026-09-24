@@ -13,6 +13,12 @@ import { isEmoji } from "../language.ts";
 import { findBreakOpportunities } from "./linebreak.ts";
 import { measureText, measureTrimMetrics, measureWord } from "./measure.ts";
 import type { TextMetrics } from "./measure.ts";
+import {
+  canLayoutNatively,
+  layoutTextNative,
+  nativeTextEnabled,
+} from "./native.ts";
+import type { NativeParagraph } from "./native.ts";
 
 export type TextSegment = {
   text: string;
@@ -37,6 +43,10 @@ export type TextLayoutResult = {
   segments: TextSegment[];
   width: number;
   height: number;
+  /** Set when the text was laid out natively; draw it instead of segments. */
+  paragraph?: NativeParagraph;
+  /** Vertical offset to paint `paragraph` at, relative to the text box. */
+  paragraphOffsetY?: number;
 };
 
 /**
@@ -117,6 +127,24 @@ export function layoutText(
   emojiEnabled?: boolean,
 ): TextLayoutResult {
   const fontSize = style.fontSize ?? 16;
+  if (nativeTextEnabled() && canLayoutNatively(text, style, emojiEnabled)) {
+    const autoLineHeight =
+      style.lineHeight === undefined || style.lineHeight === "normal";
+    const result = layoutTextNative(
+      applyTextTransform(text, style),
+      style,
+      maxWidth,
+      autoLineHeight
+        ? undefined
+        : resolveLineHeight(style.lineHeight, fontSize),
+    );
+    const textStrokeWidth = resolveTextStrokeWidth(style, fontSize);
+    for (const seg of result.segments) {
+      seg.textStrokeWidth = textStrokeWidth;
+      seg.textStrokeColor = style.WebkitTextStrokeColor;
+    }
+    return result;
+  }
   const fontFamily = style.fontFamily ?? DEFAULT_FONT_FAMILY;
   const fontWeight = style.fontWeight ?? 400;
   const fontStyle = style.fontStyle ?? "normal";
@@ -145,17 +173,7 @@ export function layoutText(
   const textOverflow = style.textOverflow ?? "clip";
   const textDecoration = style.textDecoration;
 
-  // Resolve text stroke properties
-  let textStrokeWidth: number | undefined;
-  const rawStrokeWidth = style.WebkitTextStrokeWidth;
-  if (rawStrokeWidth !== undefined) {
-    if (typeof rawStrokeWidth === "number") {
-      textStrokeWidth = rawStrokeWidth;
-    } else {
-      const resolved = resolveUnit(String(rawStrokeWidth), 0, 0, fontSize, 16);
-      textStrokeWidth = typeof resolved === "number" ? resolved : undefined;
-    }
-  }
+  const textStrokeWidth = resolveTextStrokeWidth(style, fontSize);
   const textStrokeColor = style.WebkitTextStrokeColor;
 
   // Choose measurement function based on emoji mode
@@ -181,15 +199,7 @@ export function layoutText(
           ls ?? letterSpacing,
         );
 
-  // Apply text transform
-  let processedText = text;
-  if (style.textTransform === "uppercase") {
-    processedText = text.toUpperCase();
-  } else if (style.textTransform === "lowercase") {
-    processedText = text.toLowerCase();
-  } else if (style.textTransform === "capitalize") {
-    processedText = text.replace(/\b\w/g, (c) => c.toUpperCase());
-  }
+  const processedText = applyTextTransform(text, style);
 
   const noWrap = whiteSpace === "nowrap" || whiteSpace === "pre";
 
@@ -385,6 +395,26 @@ export function layoutText(
     width: maxLineWidth,
     height: totalHeight,
   };
+}
+
+function resolveTextStrokeWidth(
+  style: ComputedStyle,
+  fontSize: number,
+): number | undefined {
+  const raw = style.WebkitTextStrokeWidth;
+  if (raw === undefined) return undefined;
+  if (typeof raw === "number") return raw;
+  const resolved = resolveUnit(String(raw), 0, 0, fontSize, 16);
+  return typeof resolved === "number" ? resolved : undefined;
+}
+
+function applyTextTransform(text: string, style: ComputedStyle): string {
+  if (style.textTransform === "uppercase") return text.toUpperCase();
+  if (style.textTransform === "lowercase") return text.toLowerCase();
+  if (style.textTransform === "capitalize") {
+    return text.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  return text;
 }
 
 function resolveLineHeight(

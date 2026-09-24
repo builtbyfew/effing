@@ -3,6 +3,7 @@ import { GlobalFonts } from "@napi-rs/canvas";
 import type { FontData } from "../types.ts";
 import { parseFontMetrics } from "./font-metrics.ts";
 import type { FontMetrics } from "./font-metrics.ts";
+import { clearNativeParagraphCache } from "./text/native.ts";
 
 const registeredFonts = new Set<string>();
 const metricsCache = new Map<string, FontMetrics>();
@@ -30,6 +31,8 @@ export function registerFont(font: FontData): void {
     : Buffer.from(font.data);
 
   GlobalFonts.register(buffer, font.name);
+  // A new face can change which font text resolves to.
+  clearNativeParagraphCache();
 
   const metrics = parseFontMetrics(font.data);
   if (metrics) {
@@ -73,6 +76,7 @@ export function getFontMetrics(
  */
 export function registerFontFromPath(path: string, nameAlias?: string): void {
   GlobalFonts.registerFromPath(path, nameAlias ?? "");
+  clearNativeParagraphCache();
 }
 
 /**

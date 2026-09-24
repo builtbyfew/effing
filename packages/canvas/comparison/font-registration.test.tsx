@@ -38,6 +38,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
   let regularData: Buffer;
   let boldData: Buffer;
 
+  // measureText rounds widths to 1/100px; native paragraph layout
+  // (EFFING_NATIVE_TEXT) doesn't, so compare layout widths to 2 decimals.
+  const LAYOUT_PRECISION = 2;
+
   // Reference values from a family whose faces were all registered before
   // any lookup.
   let regularWidth: number;
@@ -143,7 +147,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [regular, bold])).toBe(regularDark);
   });
 
@@ -157,7 +164,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
@@ -170,17 +180,23 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     // The regular face is only ever registered by the render path.
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
   });
 
   it("uses a face registered after this package laid out text with its family/weight", async () => {
     const { family, regular, bold } = faces();
     api.registerFont(bold);
-    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, LAYOUT_PRECISION);
 
     api.registerFont(regular);
 
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
@@ -192,7 +208,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     api.registerFont(regular);
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [regular])).toBe(regularDark);
   });
 });

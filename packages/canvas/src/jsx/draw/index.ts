@@ -119,12 +119,10 @@ export async function drawNode(
     // Draw a buffer back at logical size under the original scale (the
     // q→1x downscale happens here). Source and dest both span the
     // bleed-expanded box, so the overflow region maps back to the same place
-    // it would paint untransformed.
+    // it would paint untransformed. The node's opacity is already in the
+    // buffer (drawNodeCore applies it), so it isn't applied again here.
     const composite = (target: SKRSContext2D, offscreen: Canvas) => {
       target.save();
-      if (opacity < 1) {
-        target.globalAlpha *= opacity;
-      }
       target.translate(ox, oy);
       target.scale(sx, sy);
       target.translate(-ox, -oy);

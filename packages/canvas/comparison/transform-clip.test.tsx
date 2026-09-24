@@ -350,3 +350,59 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     });
   },
 );
+
+// The pure-scale offscreen path renders the node itself into its buffer, node
+// opacity included, and used to apply that opacity again when drawing the
+// buffer back: `opacity: 0.5` rendered at ~0.25 at any scale other than 1.
+describe.skipIf(!HAS_NATIVE_DEPS)("scaled elements keep their opacity", () => {
+  let fonts: FontData[];
+
+  beforeAll(async () => {
+    fonts = await loadFonts();
+  });
+
+  // Total brightness of a white box with text on black.
+  const brightness = async (opacity: number, scale?: number) => {
+    const png = await renderWithCanvas(
+      <div
+        style={{ width: 400, height: 200, display: "flex", background: "#000" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 50,
+            top: 50,
+            width: 150,
+            height: 80,
+            display: "flex",
+            border: "4px solid #fff",
+            fontFamily: "Liberation Sans",
+            fontSize: 40,
+            color: "#fff",
+            opacity,
+            transform: scale === undefined ? undefined : `scale(${scale})`,
+          }}
+        >
+          {"Hi"}
+        </div>
+      </div>,
+      400,
+      200,
+      fonts,
+    );
+    const img = PNG.sync.read(png);
+    let sum = 0;
+    for (let i = 0; i < img.data.length; i += 4) sum += img.data[i]!;
+    return sum;
+  };
+
+  it.each([undefined, 0.9999, 1.02, 1.5])(
+    "renders opacity 0.5 at half brightness under scale(%s)",
+    async (scale) => {
+      const ratio =
+        (await brightness(0.5, scale)) / (await brightness(1, scale));
+      expect(ratio).toBeGreaterThan(0.48);
+      expect(ratio).toBeLessThan(0.52);
+    },
+  );
+});

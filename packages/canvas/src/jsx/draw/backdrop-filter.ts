@@ -3,19 +3,10 @@ import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
 import { applyClip } from "./clip.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
 import type { getBorderRadiusFromStyle } from "./rect.ts";
-import { formatCSSNumber } from "./utils.ts";
+import { formatCSSNumber, transformedBounds } from "./utils.ts";
+import type { Matrix } from "./utils.ts";
 
 type BorderRadius = ReturnType<typeof getBorderRadiusFromStyle>;
-
-/** A 2D affine matrix in DOMMatrix `a b c d e f` order. */
-type Matrix = {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
-  e: number;
-  f: number;
-};
 
 /**
  * CSS `backdrop-filter`: filter whatever has already been painted behind the
@@ -197,34 +188,6 @@ function filterSnapshot(
   outCtx.drawImage(snapshot, 0, 0);
   outCtx.filter = "none";
   return out;
-}
-
-/** Axis-aligned device-space bounds of a user-space rectangle under `m`. */
-function transformedBounds(
-  m: Matrix,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): { x0: number; y0: number; x1: number; y1: number } {
-  let x0 = Infinity;
-  let y0 = Infinity;
-  let x1 = -Infinity;
-  let y1 = -Infinity;
-  for (const [px, py] of [
-    [x, y],
-    [x + w, y],
-    [x, y + h],
-    [x + w, y + h],
-  ] as const) {
-    const dx = m.a * px + m.c * py + m.e;
-    const dy = m.b * px + m.d * py + m.f;
-    if (dx < x0) x0 = dx;
-    if (dx > x1) x1 = dx;
-    if (dy < y0) y0 = dy;
-    if (dy > y1) y1 = dy;
-  }
-  return { x0, y0, x1, y1 };
 }
 
 function invert(m: Matrix, det: number): Matrix {

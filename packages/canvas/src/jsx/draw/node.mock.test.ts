@@ -373,6 +373,144 @@ describe("drawNode", () => {
 
     expect(compositeDestWidth()).toBe(100 + 2 * 1);
   });
+
+  // Just past a whole scale, text fades between two supersample factors, each
+  // composited at its weight; anything else composites a single buffer.
+  it.each([
+    ["a text-free subtree", "1.02", undefined, 20, [1]],
+    ["a subtree with text", "1.02", "Hi", 20, [0.6, 0.4]],
+    ["default-size text (no fontSize)", "1.02", "Hi", undefined, [0.6, 0.4]],
+    ["float noise above scale 1", "1.0000000000000002", "Hi", 20, [1]],
+    // Non-uniform: each axis blends on its own, so the levels are the
+    // combinations of the two axes' factors, weighted by the product.
+    [
+      "both axes in their bands",
+      "1.02, 2.03",
+      "Hi",
+      20,
+      [0.24, 0.36, 0.16, 0.24],
+    ],
+    // Products that fall below the minimum weight are pruned and the rest
+    // renormalised: 0.998×{0.4, 0.6} survives, 0.002×{0.4, 0.6} does not.
+    [
+      "one axis barely past a whole scale",
+      "1.0001, 2.03",
+      "Hi",
+      20,
+      [0.4, 0.6],
+    ],
+  ])(
+    "composites supersample levels at their weights for %s",
+    async (_, scale, textContent, fontSize, weights) => {
+      // The mock shares one context (and one drawImage spy) across tests, so
+      // record the alpha each buffer composite (the 9-argument drawImage) is
+      // drawn with, and undo the recording implementation and the state the
+      // blend leaves on the context even when an assertion throws.
+      ctx.globalAlpha = 1;
+      const alphas: number[] = [];
+      vi.mocked(ctx.drawImage).mockImplementation((...args: unknown[]) => {
+        if (args.length === 9) alphas.push(ctx.globalAlpha);
+      });
+
+      try {
+        await drawNode(
+          ctx,
+          {
+            type: "div",
+            style: { transform: `scale(${scale})`, backgroundColor: "red" },
+            children: [
+              {
+                type: "span",
+                style: { fontSize, color: "white" },
+                children: [],
+                textContent,
+                props: {},
+                x: 0,
+                y: 0,
+                width: 20,
+                height: 20,
+              },
+            ],
+            props: {},
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+          },
+          0,
+          0,
+        );
+
+        expect(alphas).toHaveLength(weights.length);
+        alphas.forEach((alpha, i) => expect(alpha).toBeCloseTo(weights[i]!));
+      } finally {
+        vi.mocked(ctx.drawImage).mockReset();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
+    },
+  );
+
+  it("bleeds the buffer by the default font size for text without a fontSize", async () => {
+    // layoutText draws text at 16px when the style has no fontSize, so the
+    // scan must reserve the same overflow instead of treating it as no text.
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: { transform: "scale(1.1)", color: "white" },
+        children: [
+          {
+            type: "text",
+            style: { color: "white" },
+            children: [],
+            textContent: "AVA.",
+            props: {},
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 20,
+          },
+        ],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 20,
+      },
+      0,
+      0,
+    );
+
+    expect(compositeDestWidth()).toBe(100 + 2 * 16);
+  });
+
+  it.each([NaN, Infinity])(
+    "draws a scaled node with a %s size directly instead of buffering",
+    async (width) => {
+      // A NaN or infinite box (layout edge case) can't back an offscreen
+      // buffer; the node must fall through to the direct path rather than
+      // create a canvas with that size.
+      await drawNode(
+        ctx,
+        {
+          type: "div",
+          style: { transform: "scale(0.9)", backgroundColor: "red" },
+          children: [],
+          props: {},
+          x: 0,
+          y: 0,
+          width,
+          height: 50,
+        },
+        0,
+        0,
+      );
+
+      expect(ctx.drawImage).not.toHaveBeenCalled();
+      expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+    },
+  );
 });
 
 describe("drawNode – clip-path", () => {

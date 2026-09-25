@@ -1,11 +1,11 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
-import { drawBackdropFilter } from "./backdrop-filter.ts";
+import { drawBackdropFilter, filterBleed } from "./backdrop-filter.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
@@ -20,7 +20,8 @@ import {
 } from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
-import { parseCSSLength, resolveBoxValue } from "./utils.ts";
+import { parseCSSLength, resolveBoxValue, transformedBounds } from "./utils.ts";
+import type { Matrix } from "./utils.ts";
 
 /**
  * Main draw dispatcher: recursively draws the layout tree onto the canvas.
@@ -65,36 +66,51 @@ export async function drawNode(
     !hasOtherTransforms
       ? scanSubtree(node)
       : null;
-  if (scaleInfo && subtree && !subtree.hasBackdropFilter) {
+
+  // The offscreen buffer has hard pixel bounds, so anything painted past its
+  // edge is clipped. A CSS transform must never clip the element's own
+  // content, yet ink legitimately overflows the layout box — glyph side
+  // bearings, italic overhang, and negative letter-spacing all push paint
+  // past the content edge (as do box-shadows). Grow the buffer by that much
+  // on every side so transformed content keeps the overflow the untransformed
+  // element would paint. Rounded up to whole pixels: with a fractional bleed
+  // (e.g. from a fractional font size) the buffer size below would be
+  // ceil'd past the logical box it's composited into, shrinking the content
+  // by up to a pixel, and the box would sit off the pixel grid in the buffer.
+  const bleed = subtree ? Math.max(1, Math.ceil(subtree.overflowBleed)) : 0;
+
+  // Logical size of the bleed-expanded box. A degenerate size (zero, negative,
+  // NaN or infinite, from a layout edge case) can't back a buffer, so such
+  // nodes skip the offscreen path and draw directly like any other node.
+  const boxWidth = width + 2 * bleed;
+  const boxHeight = height + 2 * bleed;
+  const canBuffer =
+    Number.isFinite(boxWidth) &&
+    Number.isFinite(boxHeight) &&
+    boxWidth > 0 &&
+    boxHeight > 0;
+
+  if (scaleInfo && subtree && !subtree.hasBackdropFilter && canBuffer) {
     const sx = scaleInfo.sx;
     const sy = scaleInfo.sy;
     const transformWithoutScale = scaleInfo.remaining;
 
-    // The offscreen buffer has hard pixel bounds, so anything painted past its
-    // edge is clipped. A CSS transform must never clip the element's own
-    // content, yet ink legitimately overflows the layout box — glyph side
-    // bearings, italic overhang, and negative letter-spacing all push paint
-    // past the content edge (as do box-shadows). Grow the buffer by that much
-    // on every side so transformed content keeps the overflow the untransformed
-    // element would paint. Rounded up to whole pixels: with a fractional bleed
-    // (e.g. from a fractional font size) the buffer size below would be
-    // ceil'd past the logical box it's composited into, shrinking the content
-    // by up to a pixel, and the box would sit off the pixel grid in the buffer.
-    const bleed = Math.max(1, Math.ceil(subtree.overflowBleed));
+    let ox = x + width / 2;
+    let oy = y + height / 2;
+    if (style.transformOrigin) {
+      const parts = style.transformOrigin.split(/\s+/);
+      ox = resolveOrigin(parts[0], x, width);
+      oy = resolveOrigin(parts[1], y, height);
+    }
 
-    // Quantize to ceil(|scale|) — buffer resolution only changes at
-    // integer boundaries (no jitter), and composite is always ≤1x (sharp).
-    const qx = Math.max(1, Math.ceil(Math.abs(sx)));
-    const qy = Math.max(1, Math.ceil(Math.abs(sy)));
-
-    const bufW = Math.ceil((width + 2 * bleed) * qx);
-    const bufH = Math.ceil((height + 2 * bleed) * qy);
-    if (bufW > 0 && bufH > 0) {
-      const [offscreen, offCtx] = acquireOffscreen(bufW, bufH);
-
-      // Render at qx×qy resolution — logical coords produce more pixels.
-      // Offset by `bleed` so the box sits inside the buffer with room for
-      // overflow on every side.
+    // Render the subtree at qx×qy resolution — logical coords produce more
+    // pixels. Offset by `bleed` so the box sits inside the buffer with room
+    // for overflow on every side.
+    const render = async (qx: number, qy: number) => {
+      const [offscreen, offCtx] = acquireOffscreen(
+        Math.ceil(boxWidth * qx),
+        Math.ceil(boxHeight * qy),
+      );
       offCtx.save();
       offCtx.scale(qx, qy);
       await drawNodeCore(
@@ -109,44 +125,55 @@ export async function drawNode(
         transformWithoutScale,
       );
       offCtx.restore();
+      return offscreen;
+    };
 
-      ctx.save();
-      if (opacity < 1) {
-        ctx.globalAlpha *= opacity;
-      }
-
-      let ox = x + width / 2;
-      let oy = y + height / 2;
-      if (style.transformOrigin) {
-        const parts = style.transformOrigin.split(/\s+/);
-        ox = resolveOrigin(parts[0], x, width);
-        oy = resolveOrigin(parts[1], y, height);
-      }
-
-      // Apply the original scale — drawImage maps the high-res buffer
-      // back to logical size, so the transform needs the full scale value.
-      ctx.translate(ox, oy);
-      ctx.scale(sx, sy);
-      ctx.translate(-ox, -oy);
-
-      // Draw high-res buffer back at logical size (qx→1x downscale happens
-      // here). Source and dest both span the bleed-expanded box, so the
-      // overflow region maps back to the same place it would paint untransformed.
-      ctx.drawImage(
+    // Draw a buffer back at logical size under the original scale (the
+    // q→1x downscale happens here). Source and dest both span the
+    // bleed-expanded box, so the overflow region maps back to the same place
+    // it would paint untransformed. The node's opacity is already in the
+    // buffer (drawNodeCore applies it), so it isn't applied again here.
+    const composite = (target: SKRSContext2D, offscreen: Canvas) => {
+      target.save();
+      target.translate(ox, oy);
+      target.scale(sx, sy);
+      target.translate(-ox, -oy);
+      target.drawImage(
         offscreen,
         0,
         0,
-        bufW,
-        bufH,
+        offscreen.width,
+        offscreen.height,
         x - bleed,
         y - bleed,
-        width + 2 * bleed,
-        height + 2 * bleed,
+        boxWidth,
+        boxHeight,
       );
+      target.restore();
+    };
+
+    const levels = supersampleLevels(sx, sy, subtree.hasText);
+    if (levels.length === 1) {
+      const offscreen = await render(levels[0]!.qx, levels[0]!.qy);
+      composite(ctx, offscreen);
       releaseOffscreen(offscreen);
-      ctx.restore();
-      return;
+    } else {
+      // Device-space bounds of the scaled bleed box.
+      const m = ctx.getTransform();
+      const x0 = ox + sx * (x - bleed - ox);
+      const x1 = ox + sx * (x + width + bleed - ox);
+      const y0 = oy + sy * (y - bleed - oy);
+      const y1 = oy + sy * (y + height + bleed - oy);
+      const bounds = transformedBounds(
+        m,
+        Math.min(x0, x1),
+        Math.min(y0, y1),
+        Math.abs(x1 - x0),
+        Math.abs(y1 - y0),
+      );
+      await drawBlended(ctx, m, bounds, levels, render, composite);
     }
+    return;
   }
 
   await drawNodeCore(
@@ -159,6 +186,150 @@ export async function drawNode(
     emojiStyle,
     renderContext,
   );
+}
+
+/**
+ * Width of the band just above each whole scale in which the offscreen path
+ * cross-fades between the two neighbouring supersample factors.
+ */
+const SUPERSAMPLE_BLEND_BAND = 0.05;
+
+/**
+ * Levels weighing less than this are dropped: below one 8-bit step at full
+ * coverage they can't change a pixel, and float noise such as a scale of
+ * 1.0000000000000002 would otherwise pay for a whole second render. Applied
+ * to the final level list, so for a non-uniform scale the pruning sees the
+ * product weights, not just the per-axis ones.
+ */
+const SUPERSAMPLE_MIN_WEIGHT = 1 / 512;
+
+/**
+ * The blended layer's device-space bounds are snapped to this grid so its size
+ * (and so the offscreen pool key) stays stable while the scale animates.
+ */
+const BLEND_LAYER_GRID = 64;
+
+type SupersampleLevel = { qx: number; qy: number; weight: number };
+
+/**
+ * The supersample factors to render a pure-scale subtree at, with the weight
+ * each contributes to the composite.
+ *
+ * The factor is quantized to ceil(|scale|), so a buffer only changes at whole
+ * scales (no per-frame glyph jitter) and the composite is always ≤1x (sharp).
+ * But Skia hints glyphs and snaps pen positions and baselines on the device
+ * grid, so text rasterized at q× doesn't land exactly where it does at 1× or
+ * (q+1)×: switching factors outright made text jump by a fraction of a pixel
+ * whenever an animated scale crossed a whole number. Instead, just past each
+ * whole scale k, fade from the k× buffer to the (k+1)× one, so the rendered
+ * result is continuous in the scale. Scale 1 itself draws directly, which
+ * matches the 1× buffer. Without text there is nothing to fade (boxes, images
+ * and paths land the same at any factor), so `blend: false` skips the extra
+ * render.
+ *
+ * The band trades the jump for softness: inside it the text is the average of
+ * two rasterizations up to about a pixel apart, so a slow zoom that stays
+ * within the band (say 1 → 1.05) is slightly soft throughout. A narrower band
+ * shortens that stretch but concentrates the same shift into fewer frames.
+ */
+function supersampleLevels(
+  sx: number,
+  sy: number,
+  blend: boolean,
+): SupersampleLevel[] {
+  const axis = (s: number): { q: number; weight: number }[] => {
+    const a = Math.abs(s);
+    const q = Math.max(1, Math.ceil(a));
+    const t = (a - (q - 1)) / SUPERSAMPLE_BLEND_BAND;
+    if (!blend || q === 1 || t >= 1) return [{ q, weight: 1 }];
+    return [
+      { q: q - 1, weight: 1 - t },
+      { q, weight: t },
+    ];
+  };
+  const xs = axis(sx);
+  // A non-uniform scale blends each axis independently, so its levels are
+  // every combination of the two axes' factors, weighted by the product.
+  const levels =
+    Math.abs(sx) === Math.abs(sy)
+      ? xs.map(({ q, weight }) => ({ qx: q, qy: q, weight }))
+      : xs.flatMap((lx) =>
+          axis(sy).map((ly) => ({
+            qx: lx.q,
+            qy: ly.q,
+            weight: lx.weight * ly.weight,
+          })),
+        );
+
+  // Drop levels too faint to change a pixel and renormalise the rest, so the
+  // weights still sum to 1 (drawBlended relies on that to average exactly).
+  const kept = levels.filter((l) => l.weight >= SUPERSAMPLE_MIN_WEIGHT);
+  const total = kept.reduce((sum, l) => sum + l.weight, 0);
+  return kept.map((l) => ({ ...l, weight: l.weight / total }));
+}
+
+/**
+ * Paint the weighted average of several supersample levels, where `bounds` is
+ * the device-space area they cover under the context's transform `m`.
+ *
+ * Each level is composited additively (`lighter`) at its weight onto one
+ * transparent device-space layer, which is then drawn back once with the
+ * context's own state. Source-over is linear in the premultiplied source and
+ * the weights sum to 1, so that equals averaging the levels each composited
+ * over the destination — exact over transparent pixels too, with the context's
+ * clip, alpha and composite operation applied once on the final draw. A filter
+ * set on the context is applied per level on the layer instead, under the same
+ * transform, exactly as the single-buffer path applies it.
+ */
+async function drawBlended(
+  ctx: SKRSContext2D,
+  m: Matrix,
+  bounds: ReturnType<typeof transformedBounds>,
+  levels: SupersampleLevel[],
+  render: (qx: number, qy: number) => Promise<Canvas>,
+  composite: (target: SKRSContext2D, offscreen: Canvas) => void,
+): Promise<void> {
+  // An ancestor's filter (still set on the context) can paint past the
+  // element's bounds — a blur's halo, a drop-shadow's offset copy — and
+  // anything outside the layer would be lost. Grow the layer by the filter's
+  // reach, scaled generously in case its lengths follow the transform.
+  const filter = ctx.filter;
+  const pad =
+    filter && filter !== "none"
+      ? Math.ceil(
+          filterBleed(filter) *
+            Math.max(1, Math.hypot(m.a, m.b), Math.hypot(m.c, m.d)),
+        )
+      : 0;
+  const grid = BLEND_LAYER_GRID;
+  const rx = Math.max(0, Math.floor((bounds.x0 - pad) / grid) * grid);
+  const ry = Math.max(0, Math.floor((bounds.y0 - pad) / grid) * grid);
+  const rw =
+    Math.min(ctx.canvas.width, Math.ceil((bounds.x1 + pad) / grid) * grid) - rx;
+  const rh =
+    Math.min(ctx.canvas.height, Math.ceil((bounds.y1 + pad) / grid) * grid) -
+    ry;
+  if (rw <= 0 || rh <= 0) return;
+
+  const [layer, layerCtx] = acquireOffscreen(rw, rh);
+  layerCtx.setTransform(m.a, m.b, m.c, m.d, m.e - rx, m.f - ry);
+  layerCtx.filter = filter;
+  layerCtx.imageSmoothingEnabled = ctx.imageSmoothingEnabled;
+  layerCtx.imageSmoothingQuality = ctx.imageSmoothingQuality;
+  layerCtx.globalCompositeOperation = "lighter";
+  for (const { qx, qy, weight } of levels) {
+    const offscreen = await render(qx, qy);
+    layerCtx.globalAlpha = weight;
+    composite(layerCtx, offscreen);
+    releaseOffscreen(offscreen);
+  }
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.filter = "none";
+  ctx.drawImage(layer, rx, ry);
+  ctx.restore();
+  releaseOffscreen(layer);
 }
 
 /**
@@ -184,6 +355,9 @@ function extractScale(
   return { sx, sy, remaining };
 }
 
+/** Font size `layoutText` draws with when the style specifies none. */
+const DEFAULT_FONT_SIZE = 16;
+
 /**
  * One walk over the visible part of a subtree (nodes that are `display: none`
  * or fully transparent are skipped, as they are when drawing) collecting what
@@ -199,21 +373,30 @@ function extractScale(
  *   result is a single symmetric margin (the max needed on any side).
  * - `hasBackdropFilter`: whether any node applies a backdrop-filter, which
  *   needs the real canvas behind it and so rules out the offscreen path.
+ * - `hasText`: whether any node draws text, the only content whose placement
+ *   depends on the supersample factor (see `supersampleLevels`).
  */
 function scanSubtree(node: LayoutNode): {
   overflowBleed: number;
   hasBackdropFilter: boolean;
+  hasText: boolean;
 } {
   let overflowBleed = 0;
   let hasBackdropFilter = false;
+  let hasText = false;
 
   const visit = (n: LayoutNode): void => {
     if (n.style.display === "none") return;
     if ((n.style.opacity ?? 1) <= 0) return;
 
-    const fontSize =
-      typeof n.style.fontSize === "number" ? n.style.fontSize : 0;
-    if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
+    if (n.textContent !== undefined && n.textContent !== "") {
+      hasText = true;
+      // Text is drawn even when the style carries no fontSize (layoutText
+      // falls back to the 16px default), so size the bleed the same way.
+      const fontSize =
+        typeof n.style.fontSize === "number"
+          ? n.style.fontSize
+          : DEFAULT_FONT_SIZE;
       const letterSpacing =
         typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
       overflowBleed = Math.max(
@@ -236,7 +419,7 @@ function scanSubtree(node: LayoutNode): {
   };
 
   visit(node);
-  return { overflowBleed, hasBackdropFilter };
+  return { overflowBleed, hasBackdropFilter, hasText };
 }
 
 /**

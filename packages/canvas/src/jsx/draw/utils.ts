@@ -37,3 +37,41 @@ export function formatCSSNumber(n: number): string {
   const fixed = n.toFixed(6).replace(/\.?0+$/, "");
   return fixed === "-0" || fixed === "" ? "0" : fixed;
 }
+
+/** A 2D affine matrix in DOMMatrix `a b c d e f` order. */
+export type Matrix = {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+};
+
+/** Axis-aligned device-space bounds of a user-space rectangle under `m`. */
+export function transformedBounds(
+  m: Matrix,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): { x0: number; y0: number; x1: number; y1: number } {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [px, py] of [
+    [x, y],
+    [x + w, y],
+    [x, y + h],
+    [x + w, y + h],
+  ] as const) {
+    const dx = m.a * px + m.c * py + m.e;
+    const dy = m.b * px + m.d * py + m.f;
+    if (dx < x0) x0 = dx;
+    if (dx > x1) x1 = dx;
+    if (dy < y0) y0 = dy;
+    if (dy > y1) y1 = dy;
+  }
+  return { x0, y0, x1, y1 };
+}

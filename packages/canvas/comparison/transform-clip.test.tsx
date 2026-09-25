@@ -168,3 +168,257 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     );
   },
 );
+
+// Brightness-weighted centroid of a frame (white ink on black): a subpixel
+// measure of where the ink sits.
+function inkCentroid(png: Buffer): { x: number; y: number } {
+  const img = PNG.sync.read(png);
+  let mass = 0;
+  let sumX = 0;
+  let sumY = 0;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const v = img.data[(y * img.width + x) * 4]!;
+      mass += v;
+      sumX += v * x;
+      sumY += v * y;
+    }
+  }
+  return { x: sumX / mass, y: sumY / mass };
+}
+
+// The pure-scale offscreen path supersamples by ceil(|scale|). Skia hints
+// glyphs and snaps their positions on the device grid, so text rasterized at
+// q× lands a fraction of a pixel away from where it lands at 1× or (q+1)×:
+// an animated scale crossing 1, 2, 3, … made the text jump while boxes stayed
+// put.
+describe.skipIf(!HAS_NATIVE_DEPS)(
+  "scaled text moves continuously across whole scales",
+  () => {
+    const W = 900;
+    const H = 420;
+    const LEFT = 20.3;
+    const TOP = 200.37;
+    let fonts: FontData[];
+
+    beforeAll(async () => {
+      fonts = await loadFonts();
+    });
+
+    const centroid = async (fontSize: number, scale?: number) => {
+      const png = await renderWithCanvas(
+        <div
+          style={{
+            width: W,
+            height: H,
+            display: "flex",
+            background: "#000",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: LEFT,
+              top: TOP,
+              display: "flex",
+              fontFamily: "Liberation Sans",
+              fontWeight: 700,
+              fontSize,
+              color: "#fff",
+              transformOrigin: "left center",
+              transform: scale === undefined ? undefined : `scale(${scale})`,
+            }}
+          >
+            {"Hello"}
+          </div>
+        </div>,
+        W,
+        H,
+        fonts,
+      );
+      return inkCentroid(png);
+    };
+
+    it.each([40, 60, 97.3])(
+      "%spx text doesn't jump when leaving scale(1)",
+      async (fontSize) => {
+        const none = await centroid(fontSize);
+        for (const scale of [0.9999, 1.0001]) {
+          const c = await centroid(fontSize, scale);
+          expect(Math.abs(c.x - none.x)).toBeLessThan(0.05);
+          expect(Math.abs(c.y - none.y)).toBeLessThan(0.05);
+        }
+      },
+    );
+
+    it.each([40, 60, 97.3])(
+      "%spx text doesn't jump when crossing scale(2) and scale(3)",
+      async (fontSize) => {
+        for (const k of [2, 3]) {
+          const below = await centroid(fontSize, k - 0.0001);
+          const above = await centroid(fontSize, k + 0.0001);
+          // Geometric motion from scaling about the left edge over Δs = 0.0002.
+          const expectedDx = ((below.x - LEFT) * 0.0002) / k;
+          expect(Math.abs(above.x - below.x - expectedDx)).toBeLessThan(0.05);
+          expect(Math.abs(above.y - below.y)).toBeLessThan(0.05);
+        }
+      },
+    );
+
+    it.each([40, 60, 97.3])(
+      "%spx text moves monotonically as scale eases up from 1",
+      async (fontSize) => {
+        const points = [await centroid(fontSize)];
+        for (let i = 1; i <= 100; i++) {
+          points.push(await centroid(fontSize, 1 + i * 0.0001));
+        }
+        for (const axis of ["x", "y"] as const) {
+          const direction =
+            Math.sign(points[100]![axis] - points[0]![axis]) || 1;
+          for (let i = 1; i < points.length; i++) {
+            // No reversals, and no step much larger than the ≈0.01px of
+            // geometric motion per 0.0001 of scale.
+            const step = points[i]![axis] - points[i - 1]![axis];
+            expect(step * direction).toBeGreaterThan(-0.02);
+            expect(Math.abs(step)).toBeLessThan(0.05);
+          }
+        }
+      },
+    );
+
+    // Near a whole scale the text is blended over a device-space region; an
+    // ancestor's filter can paint far outside it (here a drop-shadow below),
+    // and that paint must not be clipped away.
+    //
+    // White text with a red shadow on black: green is the text alone, red
+    // minus green is the shadow.
+    const shadowMass = async (
+      scale: number,
+      shadowOffset: number,
+      height: number,
+    ) => {
+      const png = await renderWithCanvas(
+        <div
+          style={{
+            width: W,
+            height,
+            display: "flex",
+            background: "#000",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: W,
+              height,
+              display: "flex",
+              filter: `drop-shadow(0px ${shadowOffset}px 0px #f00)`,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: LEFT,
+                top: 100,
+                display: "flex",
+                fontFamily: "Liberation Sans",
+                fontWeight: 700,
+                fontSize: 60,
+                color: "#fff",
+                transformOrigin: "left center",
+                transform: `scale(${scale})`,
+              }}
+            >
+              {"Hello"}
+            </div>
+          </div>
+        </div>,
+        W,
+        height,
+        fonts,
+      );
+      const img = PNG.sync.read(png);
+      let mass = 0;
+      for (let i = 0; i < img.data.length; i += 4) {
+        mass += img.data[i]! - img.data[i + 1]!;
+      }
+      return mass;
+    };
+
+    it("keeps an ancestor filter's reach while blending", async () => {
+      const below = await shadowMass(0.9999, 90, H);
+      const above = await shadowMass(1.0001, 90, H);
+      expect(below).toBeGreaterThan(0);
+      expect(Math.abs(above - below) / below).toBeLessThan(0.01);
+    });
+
+    // The filter's lengths are the ancestor's, not the node's: at scale 3 a
+    // 150px shadow still lands 150px below the (three times larger) text. The
+    // blended layer is grown by that unscaled reach, and must still hold the
+    // shadow at higher scales, where the layer can reach the canvas edge.
+    it("keeps an ancestor filter's reach while blending at a higher scale", async () => {
+      const below = await shadowMass(2.9999, 150, 800);
+      const above = await shadowMass(3.0001, 150, 800);
+      expect(below).toBeGreaterThan(0);
+      expect(Math.abs(above - below) / below).toBeLessThan(0.01);
+    });
+  },
+);
+
+// The pure-scale offscreen path renders the node itself into its buffer, node
+// opacity included, and used to apply that opacity again when drawing the
+// buffer back: `opacity: 0.5` rendered at ~0.25 at any scale other than 1.
+describe.skipIf(!HAS_NATIVE_DEPS)("scaled elements keep their opacity", () => {
+  let fonts: FontData[];
+
+  beforeAll(async () => {
+    fonts = await loadFonts();
+  });
+
+  // Total brightness of a white box with text on black.
+  const brightness = async (opacity: number, scale?: number) => {
+    const png = await renderWithCanvas(
+      <div
+        style={{ width: 400, height: 200, display: "flex", background: "#000" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 50,
+            top: 50,
+            width: 150,
+            height: 80,
+            display: "flex",
+            border: "4px solid #fff",
+            fontFamily: "Liberation Sans",
+            fontSize: 40,
+            color: "#fff",
+            opacity,
+            transform: scale === undefined ? undefined : `scale(${scale})`,
+          }}
+        >
+          {"Hi"}
+        </div>
+      </div>,
+      400,
+      200,
+      fonts,
+    );
+    const img = PNG.sync.read(png);
+    let sum = 0;
+    for (let i = 0; i < img.data.length; i += 4) sum += img.data[i]!;
+    return sum;
+  };
+
+  it.each([undefined, 0.9999, 1.02, 1.5])(
+    "renders opacity 0.5 at half brightness under scale(%s)",
+    async (scale) => {
+      const ratio =
+        (await brightness(0.5, scale)) / (await brightness(1, scale));
+      expect(ratio).toBeGreaterThan(0.48);
+      expect(ratio).toBeLessThan(0.52);
+    },
+  );
+});

@@ -59,6 +59,18 @@ describe("layoutText", () => {
     expect(result.segments[0]!.text).toBe("hello");
   });
 
+  it("hangs trailing spaces when deciding whether a word fits", () => {
+    // Mock measures 8px per character: "aaa bbb" is exactly 56px wide.
+    // The space after "bbb" must not count toward the line fitting.
+    const result = layoutText(
+      "aaa bbb ccc",
+      { fontSize: 16, color: "black" },
+      56,
+      ctx,
+    );
+    expect(result.segments.map((s) => s.text)).toEqual(["aaa bbb", "ccc"]);
+  });
+
   it("clamps lines with lineClamp and adds ellipsis", () => {
     const longText =
       "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.";

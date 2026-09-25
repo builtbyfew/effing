@@ -444,7 +444,9 @@ function wrapText(
   let lastBreak = 0;
 
   for (const opp of breakOpps) {
-    const segment = text.slice(lineStart, opp.position);
+    // Trailing whitespace hangs (as in CSS): it doesn't count toward whether
+    // the line fits.  Break positions sit after the space, so trim it here.
+    const segment = text.slice(lineStart, opp.position).replace(/\s+$/, "");
     const segWidth = mw(segment);
 
     if (segWidth > maxWidth && lastBreak > lineStart) {
@@ -620,10 +622,7 @@ export function createTextMeasureFunc(
     const result = layoutText(text, measureStyle, maxWidth, ctx, emojiEnabled);
     // When text wraps to multiple lines, return the constraint width (like CSS
     // block layout).  This ensures the draw phase re-layout gets the same
-    // maxWidth and produces identical line-breaking.  Without this, the
-    // measured content width (widest trimmed line) can be narrower than what
-    // the wrapping algorithm needs (it checks untrimmed segments), causing the
-    // draw phase to wrap differently.
+    // maxWidth and produces identical line-breaking.
     const wrapped = result.segments.length > 1;
     const reportedWidth = wrapped
       ? Math.min(maxWidth, width > 0 ? width : result.width)

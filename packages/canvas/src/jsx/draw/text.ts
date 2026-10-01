@@ -34,7 +34,8 @@ function loadEmojiImage(
 }
 
 /**
- * Draw text segments onto the canvas context.
+ * Draw text segments onto the canvas context, unhinted and unsnapped (see
+ * `withUnsnappedText`).
  *
  * @param ctx - Canvas 2D rendering context
  * @param segments - Positioned text segments from the text layout engine
@@ -44,6 +45,25 @@ function loadEmojiImage(
  * @param emojiStyle - Optional emoji style for rendering emoji as images
  */
 export async function drawText(
+  ctx: SKRSContext2D,
+  segments: TextSegment[],
+  offsetX: number,
+  offsetY: number,
+  textShadow?: string,
+  emojiStyle?: EmojiStyle,
+): Promise<void> {
+  // Emoji images load asynchronously, so the setting is held across awaits
+  // rather than through `withUnsnappedText`.
+  const textRendering = ctx.textRendering;
+  ctx.textRendering = "geometricPrecision";
+  try {
+    await drawSegments(ctx, segments, offsetX, offsetY, textShadow, emojiStyle);
+  } finally {
+    ctx.textRendering = textRendering;
+  }
+}
+
+async function drawSegments(
   ctx: SKRSContext2D,
   segments: TextSegment[],
   offsetX: number,

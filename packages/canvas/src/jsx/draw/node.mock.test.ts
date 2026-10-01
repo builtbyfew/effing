@@ -174,7 +174,7 @@ describe("drawNode", () => {
     expect(ctx.fillRect).toHaveBeenCalledWith(15, 15, 50, 30);
   });
 
-  it("uses offscreen compositing for pure-scale transforms", async () => {
+  it("draws pure-scale transforms straight through the transform", async () => {
     await drawNode(
       ctx,
       {
@@ -194,14 +194,14 @@ describe("drawNode", () => {
       0,
     );
 
-    // Pure scale renders to an offscreen and composites with drawImage.
-    expect(ctx.drawImage).toHaveBeenCalled();
+    // No supersampled offscreen buffer: the scale is applied to the context
+    // and the element painted through it.
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 100, 50);
   });
 
-  it("bypasses offscreen for transforms combining scale with translate", async () => {
-    // Repro of the mixed-transform clipping bug: an offscreen sized only to
-    // the layout box would clip drawing the translate moves outside it.
-    // The fix is to render directly to ctx with the full transform applied.
+  it("applies transforms combining scale with translate to the context", async () => {
     await drawNode(
       ctx,
       {
@@ -222,7 +222,6 @@ describe("drawNode", () => {
       0,
     );
 
-    // No offscreen compositing
     expect(ctx.drawImage).not.toHaveBeenCalled();
     // Translate from the transform was applied directly to ctx (80px, 0)
     expect(ctx.translate).toHaveBeenCalledWith(80, 0);
@@ -230,7 +229,7 @@ describe("drawNode", () => {
     expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
   });
 
-  it("bypasses offscreen for transforms combining scale with rotate", async () => {
+  it("applies transforms combining scale with rotate to the context", async () => {
     await drawNode(
       ctx,
       {
@@ -284,94 +283,6 @@ describe("drawNode", () => {
     // First call args: text, x, y — x should be offset by padding (20)
     const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
     expect(fillTextCall![1]).toBe(20);
-  });
-
-  // drawImage signature: (image, sx, sy, sW, sH, dx, dy, dW, dH).
-  // The composite dest spans the bleed-expanded box, so dW/dH reveal the bleed.
-  const compositeDestWidth = () => {
-    const call = vi.mocked(ctx.drawImage).mock.calls.at(-1)!;
-    return call[7] as number;
-  };
-
-  it("grows the offscreen buffer to fit ink that overflows the scaled box", async () => {
-    // A CSS transform must not clip the element's own content. Glyph ink
-    // overhangs its box, so the offscreen scale buffer must bleed by ~1em
-    // (plus any negative letter-spacing) rather than the old fixed 1px.
-    await drawNode(
-      ctx,
-      {
-        type: "span",
-        style: { transform: "scale(1.1)", fontSize: 80, color: "white" },
-        children: [
-          {
-            type: "text",
-            style: { fontSize: 80, letterSpacing: -10, color: "white" },
-            children: [],
-            textContent: "AVA.",
-            props: {},
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 90,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 90,
-      },
-      0,
-      0,
-    );
-
-    // bleed = fontSize (80) + |letterSpacing| (10) = 90 per side.
-    expect(compositeDestWidth()).toBe(100 + 2 * 90);
-  });
-
-  it("grows the offscreen buffer to fit a scaled element's box-shadow", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: {
-          transform: "scale(1.1)",
-          backgroundColor: "red",
-          boxShadow: "0px 0px 20px black",
-        },
-        children: [],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 50,
-      },
-      0,
-      0,
-    );
-
-    // bleed = blur*2 + |offsetX| + |offsetY| = 40 per side.
-    expect(compositeDestWidth()).toBe(100 + 2 * 40);
-  });
-
-  it("keeps the buffer tight (1px bleed) when nothing overflows the box", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(0.9)", backgroundColor: "red" },
-        children: [],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 50,
-      },
-      0,
-      0,
-    );
-
-    expect(compositeDestWidth()).toBe(100 + 2 * 1);
   });
 });
 
@@ -601,76 +512,5 @@ describe("drawNode – backdrop-filter", () => {
       0,
     );
     expect(ctx.drawImage).not.toHaveBeenCalled();
-  });
-
-  it("bypasses the offscreen scale path when the subtree has a backdrop-filter", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(2)" },
-        children: [
-          {
-            type: "div",
-            style: { backdropFilter: "blur(2px)" },
-            children: [],
-            props: {},
-            x: 0,
-            y: 0,
-            width: 50,
-            height: 50,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      },
-      0,
-      0,
-    );
-    // The scale is applied directly to the context (ctx.scale) rather than via
-    // an offscreen buffer composited with drawImage: no drawImage maps a
-    // buffer onto the bleed-expanded box (-1, -1, 102, 102).
-    expect(ctx.scale).toHaveBeenCalledWith(2, 2);
-    const composite = vi
-      .mocked(ctx.drawImage)
-      .mock.calls.find((c) => c[5] === -1 && c[6] === -1 && c[7] === 102);
-    expect(composite).toBeUndefined();
-  });
-
-  it("ignores invisible backdrop-filter descendants when picking the offscreen path", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(2)" },
-        children: [
-          {
-            type: "div",
-            style: { backdropFilter: "blur(2px)", opacity: 0 },
-            children: [],
-            props: {},
-            x: 0,
-            y: 0,
-            width: 50,
-            height: 50,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      },
-      0,
-      0,
-    );
-    // A fully transparent child is never drawn, so it must not force the
-    // direct path: the subtree renders offscreen and is composited once.
-    const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage).toHaveBeenCalledTimes(1);
-    expect(drawImage.mock.calls[0]!.slice(5)).toEqual([-1, -1, 102, 102]);
   });
 });

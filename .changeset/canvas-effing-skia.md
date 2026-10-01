@@ -3,15 +3,21 @@
 "@effing/dev": patch
 ---
 
-Render with `@effing/skia` instead of `@napi-rs/canvas`.
+Render with `@effing/skia` instead of `@napi-rs/canvas`, and install it as a
+regular dependency instead of a peer.
 
 `@effing/skia` is Effing's fork of `@napi-rs/canvas`: the same API and the
-same Skia, plus primitives `@effing/canvas` will build on. The peer dependency
-is now `@effing/skia` at exactly `1.0.9-effing.1`; rendering is unchanged, pixel
-for pixel. Projects that list `@napi-rs/canvas` themselves only to satisfy the
-peer dependency should list `@effing/skia` instead (package managers that
-install peers automatically need no change), and code that imports from
-`@effing/canvas` needs no change.
+same Skia, plus primitives `@effing/canvas` will build on. Rendering is
+unchanged, pixel for pixel, and code that imports from `@effing/canvas` needs
+no change.
+
+The backend is no longer a peer dependency: `@effing/canvas` depends on
+`@effing/skia` at exactly `1.0.9-effing.1`, so it is installed with
+`@effing/canvas` and no project has to list it. A project that lists
+`@napi-rs/canvas` only to satisfy the old peer dependency can drop it. The
+exception is a pnpm project that runs an `effing build` bundle: the bundle
+resolves the backend from the project's own `node_modules`, so such a project
+should list `@effing/skia`, at the same version, in place of `@napi-rs/canvas`.
 
 `@effing/skia` ships prebuilt binaries for Linux x64 and arm64 (glibc and musl),
 macOS x64 and arm64, and Windows x64. `@napi-rs/canvas`'s other targets (Linux

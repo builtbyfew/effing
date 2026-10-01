@@ -14,7 +14,7 @@ import { HAS_NATIVE_DEPS } from "./_helpers/setup.ts";
 // weight looked up before its face existed stayed pinned to the old match
 // (https://github.com/Brooooooklyn/canvas/issues/1329, fixed in
 // https://github.com/Brooooooklyn/canvas/pull/1334). These tests guard the
-// peer range against that.
+// backend version against that.
 //
 // The cache is keyed on the family name, so every scenario registers the
 // fixtures under its own alias to start from a clean slate.

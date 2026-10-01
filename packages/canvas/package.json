@@ -25,6 +25,7 @@
     "bench": "tsx benchmark/bench.tsx"
   },
   "dependencies": {
+    "@effing/skia": "1.0.9-effing.1",
     "css-background-parser": "^0.1.0",
     "css-box-shadow": "^1.0.0-3",
     "css-gradient-parser": "^0.0.17",
@@ -48,7 +49,6 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@effing/skia": "1.0.9-effing.1",
     "csstype": ">=3.2.0",
     "react": "^18.0.0 || ^19.0.0"
   },

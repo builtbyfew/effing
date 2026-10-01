@@ -12,13 +12,7 @@ A canvas that can render JSX elements and Lottie animations, powered by Skia (vi
 npm install @effing/canvas
 ```
 
-Requires the `@effing/skia` peer dependency (typically installed automatically though):
-
-```bash
-npm install @effing/skia
-```
-
-`@effing/skia` ships prebuilt binaries for Linux x64 and arm64 (glibc and musl), macOS x64 and arm64, and Windows x64.
+The Skia backend, `@effing/skia`, is installed along with it. It ships prebuilt binaries for Linux x64 and arm64 (glibc and musl), macOS x64 and arm64, and Windows x64.
 
 ## Quick Start
 

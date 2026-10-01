@@ -1,6 +1,7 @@
 // Re-export canvas primitives from @effing/skia so consumers never need a
-// direct dependency on it (it's a peer dependency, which pnpm does not expose
-// to the consuming project). Re-exporting also guarantees a single native copy:
+// direct dependency on it (it's a dependency of this package, which pnpm does
+// not expose to the consuming project). Re-exporting also guarantees a single
+// native copy:
 // a Path2D from one copy of @effing/skia cannot be used with a context from
 // another.
 import { createCanvas as _createCanvas } from "@effing/skia";

@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-A canvas that can render JSX elements and Lottie animations, powered by Skia (via [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)) and Yoga flexbox layout. Supports emoji, font management, and CSS properties including transforms, gradients, and text effects.
+A canvas that can render JSX elements and Lottie animations, powered by Skia (via [@effing/skia](https://github.com/builtbyfew/effing-skia), Effing's fork of [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)) and Yoga flexbox layout. Supports emoji, font management, and CSS properties including transforms, gradients, and text effects.
 
 ## Installation
 
@@ -12,11 +12,13 @@ A canvas that can render JSX elements and Lottie animations, powered by Skia (vi
 npm install @effing/canvas
 ```
 
-Requires the `@napi-rs/canvas` peer dependency (typically installed automatically though):
+Requires the `@effing/skia` peer dependency (typically installed automatically though):
 
 ```bash
-npm install @napi-rs/canvas
+npm install @effing/skia
 ```
+
+`@effing/skia` ships prebuilt binaries for Linux x64 and arm64 (glibc and musl), macOS x64 and arm64, and Windows x64.
 
 ## Quick Start
 
@@ -360,7 +362,7 @@ unfiltered backdrop instead of the ancestor forming its own backdrop root.
 
 ### `createCanvas(width, height)`
 
-Create a new canvas. Re-exported from `@napi-rs/canvas`.
+Create a new canvas. Re-exported from `@effing/skia`.
 
 ```typescript
 function createCanvas(width: number, height: number): Canvas;
@@ -402,7 +404,7 @@ for (let frame = 0; frame < frameCount; frame++) {
 
 ### `loadImage(source, options?)`
 
-Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@napi-rs/canvas`'s native loader.
+Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@effing/skia`'s native loader.
 
 ```typescript
 function loadImage(
@@ -504,7 +506,7 @@ type EmojiStyle =
 
 ### Canvas Primitives
 
-The building blocks you need alongside a context are re-exported from `@napi-rs/canvas`, so you never need to import (or declare a dependency on) `@napi-rs/canvas` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
+The building blocks you need alongside a context are re-exported from `@effing/skia`, so you never need to import (or declare a dependency on) `@effing/skia` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
 
 ```typescript
 import { createCanvas, Path2D } from "@effing/canvas";

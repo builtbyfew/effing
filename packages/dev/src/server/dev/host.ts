@@ -58,7 +58,7 @@ export async function startDevServer(
     optimizeDeps: { noDiscovery: true },
     ssr: {
       external: [
-        // `@effing/canvas` wraps `@napi-rs/canvas`, a native N-API addon
+        // `@effing/canvas` wraps `@effing/skia`, a native N-API addon
         // (`.node` binary). Bundlers can't process native code; leaving it
         // external defers loading to Node's runtime require resolver.
         "@effing/canvas",

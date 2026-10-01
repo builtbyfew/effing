@@ -1,4 +1,4 @@
-import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@effing/skia";
 
 import { applyClip } from "./clip.ts";
 import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@napi-rs/canvas", async () => {
+vi.mock("@effing/skia", async () => {
   const { createCanvasMock } = await import("./canvas-mock.ts");
   return createCanvasMock();
 });
 
-import { loadImage } from "@napi-rs/canvas";
+import { loadImage } from "@effing/skia";
 import {
   cachedLoadImage,
   loadImage as loadImagePublic,

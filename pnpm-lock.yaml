@@ -180,9 +180,9 @@ importers:
 
   packages/canvas:
     dependencies:
-      '@napi-rs/canvas':
-        specifier: ^1.0.9
-        version: 1.0.9
+      '@effing/skia':
+        specifier: 1.0.9-effing.1
+        version: 1.0.9-effing.1
       css-background-parser:
         specifier: ^0.1.0
         version: 0.1.0
@@ -821,6 +821,52 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
+  '@effing/skia-darwin-arm64@1.0.9-effing.1':
+    resolution: {integrity: sha512-xJ3+vHlZ8AOgZhiDUe/eXA5mFFO4EL/9Z57w3FakZCUd3ibqU36pNfWcjkdNW383kPbwiuj0xBX4RRkoSXNOvA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@effing/skia-darwin-x64@1.0.9-effing.1':
+    resolution: {integrity: sha512-RjNMdTl5wPl/IfPAnw126vtekinFrAmkJwclcKxTSPg8q10H8+5PPRL23fJEkT84mWC0aOdAcItZNUvHaeNoGA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@effing/skia-linux-arm64-gnu@1.0.9-effing.1':
+    resolution: {integrity: sha512-MJuFyoFhZvGgP8Il2XJiqFbe0Cr7CYAt/E5QZsVS+QcLcEorKqwtvgB/OF5Wsj7bMDmDWmT6dhZI5bqHRyr5bg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@effing/skia-linux-arm64-musl@1.0.9-effing.1':
+    resolution: {integrity: sha512-JNoF7sfg4vRjboMlZslMC1x1RX4DJJANHJVpfp3Q8uI5p0cpNaFDP3sZWGNrSwk7PEotmgEWMZhesuvbutmt2w==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@effing/skia-linux-x64-gnu@1.0.9-effing.1':
+    resolution: {integrity: sha512-eJjBgau1U/FkCyEqOO7VH0X/CY3Q6+IuMTBtP4pgbgKLZAPTz1Rskxwd2KF8i9NxnoeE8pblpWHYH/C/P6AoTA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@effing/skia-linux-x64-musl@1.0.9-effing.1':
+    resolution: {integrity: sha512-CJ30BZdf6+T3QGxHeU4xf8X6e2NEmwzPPsB+8u/14jeslwFkQ31GsDyH2A/bl63RbkW3IZjAnEtD3d5Pkv3jOQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@effing/skia-win32-x64-msvc@1.0.9-effing.1':
+    resolution: {integrity: sha512-KU5x9wjCZc72+oivXCYfNJRd7yaHjD+mwxq9Tch/IBscjguQTjm+sPLBCrgzSlCIBcaoG9hySRYjcBZMknmAhQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@effing/skia@1.0.9-effing.1':
+    resolution: {integrity: sha512-iMnihMDrQpeClfm5uQpM4XDJDcqHAOeetf8XShCKDACVu7xrikHYwkxd6fUET7B+cmLxCEZfNLaAg/XVgwrHRQ==}
+    engines: {node: '>= 10'}
+
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
 
@@ -1385,76 +1431,6 @@ packages:
 
   '@mjackson/node-fetch-server@0.2.0':
     resolution: {integrity: sha512-EMlH1e30yzmTpGLQjlFmaDAjyOeZhng1/XCd7DExR8PNAnG/G1tyruZxEoUe11ClnwGhGrtsdnyyUx1frSzjng==}
-
-  '@napi-rs/canvas-android-arm64@1.0.9':
-    resolution: {integrity: sha512-4LGXk2/0HVzE29K8SzML5WubgCp++B1FH3qgl35XmSZE+lLdr6P9VRQEnZ0MCLZMTSuJP41yyhtoiVNEuvrTIA==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [android]
-
-  '@napi-rs/canvas-darwin-arm64@1.0.9':
-    resolution: {integrity: sha512-YNdfLBzY0W/Pep9fo2L6RmoNlNksnn05LRnX66W63R3ij58S25QOTcjdtEt2v8+PnCESzqZsYzUo+QPeIR44NA==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@napi-rs/canvas-darwin-x64@1.0.9':
-    resolution: {integrity: sha512-ceZQSknTEcy3dOXoekv59LTCkXjvnLsq+VW5PeNNDHEPQbRS5Ervkm1EaDa7WLAjiYWMLuSQTRTHao1dEX4prg==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.9':
-    resolution: {integrity: sha512-XhfI0Wwv4llhd6nnWDtY3kQKjq0r+y1i91PlJlJI24ag2U9WrnwbG1qS3+fDLEyouwEVFchiKkTEHozK+5iUNA==}
-    engines: {node: '>= 10'}
-    cpu: [arm]
-    os: [linux]
-
-  '@napi-rs/canvas-linux-arm64-gnu@1.0.9':
-    resolution: {integrity: sha512-012oiYtKaE7i9oxc8q7nraT7kDOpLcaCmFLzVe9Ty34RHDdoDzbWLrVh827CNxYh/EADX1eSikA3ymLjo/nNuw==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@napi-rs/canvas-linux-arm64-musl@1.0.9':
-    resolution: {integrity: sha512-Ls5UWYFFn63casTZEczbeyEg3vRDRkv9lscuGwfchtY5yLLQhgOB8SN4YGxmfJ5vTaBwZ2YUxBS3NtmjJmFXdA==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@napi-rs/canvas-linux-riscv64-gnu@1.0.9':
-    resolution: {integrity: sha512-hLKEGxV7ZiRHqndePTokgDMdBlo/rDfzg7P4p4QIv9pUhuYobnu3R2NIFLCRghG0nwfo+s2sw+c1xZFeCmEAsw==}
-    engines: {node: '>= 10'}
-    cpu: [riscv64]
-    os: [linux]
-
-  '@napi-rs/canvas-linux-x64-gnu@1.0.9':
-    resolution: {integrity: sha512-6kaz3w0QMy77PDWk6rJ1ksIihdad3qzEyX2o2oGT8GwCaypfT5mhjr8buOO5hstyLxcWXDScuz56RsINLtBPIQ==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-
-  '@napi-rs/canvas-linux-x64-musl@1.0.9':
-    resolution: {integrity: sha512-xrGvmS3v55hmZ86ls/kBLVNMUTYio3f6Ik0DireemG994VfPAwiA3ZXA0Uf1bByctkB3NQ1Sfb+H5bkdUnnzfQ==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-
-  '@napi-rs/canvas-win32-arm64-msvc@1.0.9':
-    resolution: {integrity: sha512-yjmVS3ArZeRVCP7jqbPq4rpZa/BhTeI7ELE2XqJg3snICQBDevLZyArxswHkiTnT34KRic33/4fLirrHI+SY8A==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@napi-rs/canvas-win32-x64-msvc@1.0.9':
-    resolution: {integrity: sha512-QlSYQdMQslB81nlABo9wNfQ6npFhE7/O+saCZdqVGueGanyRk4jCogD5EwQenfP3kIq9e+mm6GreQBjX5MrA8g==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [win32]
-
-  '@napi-rs/canvas@1.0.9':
-    resolution: {integrity: sha512-QviPdJImDi/jMAvBfqaw+19BndMd/sizXVW3NnpMd3VJGz++QXkOHcP9kWR/smHG0hNjHeyuHFyrx/5lD0oNcQ==}
-    engines: {node: '>= 10'}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -4615,6 +4591,37 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
+  '@effing/skia-darwin-arm64@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-darwin-x64@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-linux-arm64-gnu@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-linux-arm64-musl@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-linux-x64-gnu@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-linux-x64-musl@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia-win32-x64-msvc@1.0.9-effing.1':
+    optional: true
+
+  '@effing/skia@1.0.9-effing.1':
+    optionalDependencies:
+      '@effing/skia-darwin-arm64': 1.0.9-effing.1
+      '@effing/skia-darwin-x64': 1.0.9-effing.1
+      '@effing/skia-linux-arm64-gnu': 1.0.9-effing.1
+      '@effing/skia-linux-arm64-musl': 1.0.9-effing.1
+      '@effing/skia-linux-x64-gnu': 1.0.9-effing.1
+      '@effing/skia-linux-x64-musl': 1.0.9-effing.1
+      '@effing/skia-win32-x64-msvc': 1.0.9-effing.1
+
   '@emnapi/runtime@1.11.3':
     dependencies:
       tslib: 2.8.1
@@ -4998,53 +5005,6 @@ snapshots:
       read-yaml-file: 1.1.0
 
   '@mjackson/node-fetch-server@0.2.0': {}
-
-  '@napi-rs/canvas-android-arm64@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-darwin-arm64@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-darwin-x64@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-arm64-gnu@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-arm64-musl@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-riscv64-gnu@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-x64-gnu@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-linux-x64-musl@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-win32-arm64-msvc@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas-win32-x64-msvc@1.0.9':
-    optional: true
-
-  '@napi-rs/canvas@1.0.9':
-    optionalDependencies:
-      '@napi-rs/canvas-android-arm64': 1.0.9
-      '@napi-rs/canvas-darwin-arm64': 1.0.9
-      '@napi-rs/canvas-darwin-x64': 1.0.9
-      '@napi-rs/canvas-linux-arm-gnueabihf': 1.0.9
-      '@napi-rs/canvas-linux-arm64-gnu': 1.0.9
-      '@napi-rs/canvas-linux-arm64-musl': 1.0.9
-      '@napi-rs/canvas-linux-riscv64-gnu': 1.0.9
-      '@napi-rs/canvas-linux-x64-gnu': 1.0.9
-      '@napi-rs/canvas-linux-x64-musl': 1.0.9
-      '@napi-rs/canvas-win32-arm64-msvc': 1.0.9
-      '@napi-rs/canvas-win32-x64-msvc': 1.0.9
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

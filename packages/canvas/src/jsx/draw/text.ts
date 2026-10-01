@@ -1,5 +1,5 @@
-import { loadImage } from "@napi-rs/canvas";
-import type { SKRSContext2D, Image } from "@napi-rs/canvas";
+import { loadImage } from "@effing/skia";
+import type { SKRSContext2D, Image } from "@effing/skia";
 
 import parseCssColor from "parse-css-color";
 

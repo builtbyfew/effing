@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import { cachedLoadImage } from "../../image.ts";
 import type { ComputedStyle } from "../style/compute.ts";

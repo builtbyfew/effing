@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { cachedLoadImage } from "../../image.ts";

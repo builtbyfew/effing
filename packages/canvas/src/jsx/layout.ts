@@ -2,7 +2,7 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 import type { ReactElement, ReactNode } from "react";
 
 import type { ImageCache } from "../image.ts";

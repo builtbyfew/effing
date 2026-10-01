@@ -42,13 +42,15 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     format: "esm",
     platform: "node",
     target: "node22",
-    // Inline everything except node built-ins and @napi-rs/canvas — its
-    // `.node` binding can't be embedded by a JS bundler. Using
+    // Inline everything except node built-ins and @effing/skia — its
+    // `.node` binding can't be embedded by a JS bundler. (@napi-rs/canvas,
+    // which older versions of @effing/canvas wrap, stays external for
+    // projects that haven't upgraded.) Using
     // `packages: "external"` instead would keep workspace deps unbundled,
     // and workspace packages that ship raw TypeScript (`"main":
     // "src/index.ts"`) then crash node with ERR_UNKNOWN_FILE_EXTENSION
     // ".ts" at runtime.
-    external: ["node:*", "@napi-rs/canvas"],
+    external: ["node:*", "@effing/skia", "@napi-rs/canvas"],
     logLevel: "info",
     plugins: [effingFnsPlugin(resolved)],
     banner: {

@@ -1,5 +1,5 @@
-import { Path2D } from "@napi-rs/canvas";
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import { Path2D } from "@effing/skia";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { maxCornerRadius } from "./clip.ts";

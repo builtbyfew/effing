@@ -11,7 +11,7 @@ export async function renderWithCanvas(
   fonts: FontData[],
   emoji?: import("../../src/jsx/emoji.ts").EmojiStyle | "none",
 ): Promise<Buffer> {
-  const { createCanvas } = await import("@napi-rs/canvas");
+  const { createCanvas } = await import("@effing/skia");
   const { renderReactElement } = await import("../../src/jsx/index.ts");
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");

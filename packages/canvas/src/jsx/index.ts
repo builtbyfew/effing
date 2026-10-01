@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 import type { ReactNode } from "react";
 
 import type { RenderReactElementOptions } from "../types.ts";

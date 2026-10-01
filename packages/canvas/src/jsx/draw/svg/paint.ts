@@ -1,4 +1,4 @@
-import type { Path2D, SKRSContext2D } from "@napi-rs/canvas";
+import type { Path2D, SKRSContext2D } from "@effing/skia";
 
 import type { BBox, InheritedSvgStyle, SvgDefs } from "./types.ts";
 import { resolveCurrentColor } from "./style.ts";
@@ -23,8 +23,7 @@ export function applyFillAndStroke(
     resolveCurrentColor(props.fill as string | undefined, color) ??
     inherited.fill;
   const fillRule = (props.fillRule ?? props["fill-rule"]) as
-    | CanvasFillRule
-    | undefined;
+    CanvasFillRule | undefined;
   const fillOpacity = Number(props.fillOpacity ?? props["fill-opacity"] ?? 1);
 
   // Resolve url(#id) gradient reference

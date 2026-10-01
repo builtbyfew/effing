@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { hasRadius, roundedRect } from "./clip.ts";

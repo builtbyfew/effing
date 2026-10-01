@@ -46,8 +46,9 @@ const card = (scale: number, counter?: number, extra?: React.CSSProperties) => (
 );
 
 // A column of rows fading in one after the other, as a staggered list
-// animation does: every row is its own compositing group.
-const fadingList = (rows: number) => (
+// animation does: every row is its own compositing group. A row that clips
+// its content (`overflow: hidden`) gets a group no larger than itself.
+const fadingList = (rows: number, overflow?: "hidden") => (
   <div
     style={{
       width: 1080,
@@ -71,6 +72,7 @@ const fadingList = (rows: number) => (
           borderRadius: 12,
           background: "#1f2937",
           opacity: (i + 1) / (rows + 1),
+          overflow,
         }}
       >
         <div
@@ -143,6 +145,9 @@ rows.push(
 );
 rows.push(
   `fading list, 10 rows: ${(await medianOf(fadingList(10))).toFixed(2)} ms`,
+);
+rows.push(
+  `fading list, 10 clipped rows: ${(await medianOf(fadingList(10, "hidden"))).toFixed(2)} ms`,
 );
 rows.push(
   `backdrop blur(12px): ${(

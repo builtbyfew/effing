@@ -75,7 +75,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       "blur-showcase",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // The filter applies to the image as painted, rounded corners included,
+    // so its edge is blurred as in a browser; satori clips after filtering
+    // and keeps the edge sharp. That outline is the whole difference.
+    expect(percentage).toBeLessThan(3);
   });
 
   it("renders ObjectFitCoverCard — objectFit cover with cropping", async () => {

@@ -12,7 +12,7 @@ vi.mock("@effing/skia/extensions", async () => {
 
 import { createCanvas } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
-import { fillParagraph } from "@effing/skia/extensions";
+import { beginGroup, endGroup, fillParagraph } from "@effing/skia/extensions";
 import { drawNode } from "./index.ts";
 
 describe("drawNode", () => {
@@ -409,6 +409,166 @@ describe("drawNode – clip-path", () => {
   });
 });
 
+describe("drawNode – opacity and filter", () => {
+  let ctx: SKRSContext2D;
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    ctx.globalAlpha = 1;
+    ctx.filter = "none";
+    vi.clearAllMocks();
+  });
+
+  const box = (
+    style: Record<string, unknown>,
+    children: Parameters<typeof drawNode>[1]["children"] = [],
+  ): Parameters<typeof drawNode>[1] => ({
+    type: "div",
+    style,
+    children,
+    props: {},
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 50,
+  });
+
+  const order = (mock: unknown, call = 0) =>
+    vi.mocked(mock as () => void).mock.invocationCallOrder[call]!;
+
+  it("paints a translucent element and its children as one group", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5, backgroundColor: "red" }, [
+        box({ backgroundColor: "blue" }),
+      ]),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      bounds: undefined,
+    });
+    // Both fills land inside the group, which fades them together: the
+    // opacity is not applied to each draw.
+    expect(ctx.fillRect).toHaveBeenCalledTimes(2);
+    expect(order(beginGroup)).toBeLessThan(order(ctx.fillRect, 0));
+    expect(order(ctx.fillRect, 1)).toBeLessThan(order(endGroup));
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
+  it("applies a filter to the group rather than to each draw", async () => {
+    await drawNode(
+      ctx,
+      box({ filter: "drop-shadow(2px 2px 0px red)", backgroundColor: "red" }),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 1,
+      filter: "drop-shadow(2px 2px 0px red)",
+    });
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    expect(ctx.filter).toBe("none");
+  });
+
+  it("nests a group for a translucent child of a translucent parent", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5 }, [box({ opacity: 0.25, backgroundColor: "blue" })]),
+      0,
+      0,
+    );
+
+    expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
+      { opacity: 0.5, bounds: undefined },
+      { opacity: 0.25, bounds: undefined },
+    ]);
+    expect(endGroup).toHaveBeenCalledTimes(2);
+  });
+
+  it("bounds the group of an element that clips its content", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5, overflow: "hidden", backgroundColor: "red" }),
+      0,
+      0,
+    );
+
+    // The border box (0, 0, 100, 50), grown by a device pixel.
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      bounds: [-1, -1, 102, 52],
+    });
+  });
+
+  it("leaves room in the bounds for the box-shadow, drawn outside the clip", async () => {
+    await drawNode(
+      ctx,
+      box({
+        opacity: 0.5,
+        overflow: "hidden",
+        boxShadow: "3px 4px 10px black",
+      }),
+      0,
+      0,
+    );
+
+    // Shadow extent: blur × 2 + |offsets| = 27, plus the device pixel.
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      bounds: [-28, -28, 156, 106],
+    });
+  });
+
+  it("keeps the margin at a device pixel under a scale", async () => {
+    vi.mocked(ctx.getTransform).mockReturnValueOnce({
+      a: 0.5,
+      b: 0,
+      c: 0,
+      d: 0.25,
+      e: 0,
+      f: 0,
+    } as ReturnType<SKRSContext2D["getTransform"]>);
+    await drawNode(ctx, box({ opacity: 0.5, overflow: "hidden" }), 0, 0);
+
+    // The smaller axis scale is 0.25: one device pixel is 4 units.
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      bounds: [-4, -4, 108, 58],
+    });
+  });
+
+  it("doesn't bound a filtered group, whose filter can paint past its content", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5, overflow: "hidden", filter: "blur(4px)" }),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      filter: "blur(4px)",
+    });
+  });
+
+  it.each([{}, { opacity: 1 }, { filter: "none" }, { filter: " " }])(
+    "paints an opaque, unfiltered element without a group: %o",
+    async (style) => {
+      await drawNode(ctx, box({ ...style, backgroundColor: "red" }), 0, 0);
+
+      expect(ctx.fillRect).toHaveBeenCalled();
+      expect(beginGroup).not.toHaveBeenCalled();
+      expect(endGroup).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe("drawNode – backdrop-filter", () => {
   let ctx: SKRSContext2D;
 
@@ -418,7 +578,10 @@ describe("drawNode – backdrop-filter", () => {
     vi.clearAllMocks();
   });
 
-  it("snapshots the backdrop, filters it and paints it back before the background", async () => {
+  const order = (mock: unknown, call = 0) =>
+    vi.mocked(mock as () => void).mock.invocationCallOrder[call]!;
+
+  it("filters the backdrop in a group clipped to the border box, before the background", async () => {
     await drawNode(
       ctx,
       {
@@ -438,65 +601,18 @@ describe("drawNode – backdrop-filter", () => {
       0,
     );
 
-    const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage).toHaveBeenCalledTimes(3);
-    // Snapshot: the padded device-space region (bleed = 3σ + 1 = 13px), drawn
-    // at its device position into a buffer translated by (-37, -47).
-    expect(ctx.translate).toHaveBeenCalledWith(-37, -47);
-    expect(drawImage.mock.calls[0]).toEqual([
-      ctx.canvas,
-      37,
-      47,
-      126,
-      66,
-      37,
-      47,
-      126,
-      66,
-    ]);
-    // The filter pass copies the snapshot into a second buffer.
-    expect(drawImage.mock.calls[1]!.slice(1)).toEqual([0, 0]);
-    // Paint back at the same device position, under an identity transform.
-    expect(drawImage.mock.calls[2]!.slice(1)).toEqual([
-      0, 0, 126, 66, 37, 47, 126, 66,
-    ]);
-    expect(ctx.setTransform).toHaveBeenCalledWith(1, 0, 0, 1, 0, 0);
-    // Clipped to the border box, and painted before the background fill.
+    // A group that starts from the filtered backdrop and holds nothing else.
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      backdropFilter: "blur(4px)",
+      opacity: 1,
+    });
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    // Clipped to the border box, and composited before the background fill.
     expect(ctx.rect).toHaveBeenCalledWith(50, 60, 100, 40);
-    expect(ctx.clip).toHaveBeenCalled();
-    expect(drawImage.mock.invocationCallOrder[2]!).toBeLessThan(
-      vi.mocked(ctx.fillRect).mock.invocationCallOrder[0]!,
-    );
-  });
-
-  it("extends the canvas edge under a snapshot that reaches past it", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { backdropFilter: "blur(10px)" },
-        children: [],
-        props: {},
-        x: -20,
-        y: 180,
-        width: 100,
-        height: 40,
-      },
-      0,
-      0,
-    );
-    // Padded region: x -51..111, y 149..251 on a 200×200 canvas. The part
-    // inside the canvas is copied as is; the strips past the left and bottom
-    // edges (and their corner) stretch the boundary pixels outward.
-    const calls = vi.mocked(ctx.drawImage).mock.calls.map((c) => c.slice(1));
-    expect(calls).toEqual([
-      [0, 149, 111, 51, 0, 149, 111, 51],
-      [0, 149, 1, 51, -51, 149, 51, 51],
-      [0, 199, 111, 1, 0, 200, 111, 51],
-      [0, 199, 1, 1, -51, 200, 51, 51],
-      [0, 0],
-      [0, 0, 162, 102, -51, 149, 162, 102],
-    ]);
+    expect(order(ctx.clip)).toBeLessThan(order(beginGroup));
+    expect(order(beginGroup)).toBeLessThan(order(endGroup));
+    expect(order(endGroup)).toBeLessThan(order(ctx.fillRect));
   });
 
   it("runs before the element's own box-shadow", async () => {
@@ -515,17 +631,45 @@ describe("drawNode – backdrop-filter", () => {
       0,
       0,
     );
-    // The shadow must not be part of the snapshot: the backdrop paint-back
-    // (last drawImage) precedes drawBoxShadow's evenodd clip.
-    const drawImage = vi.mocked(ctx.drawImage);
+    // The shadow must not be part of the backdrop: the backdrop group ends
+    // before drawBoxShadow's evenodd clip.
     const clip = vi.mocked(ctx.clip);
     const shadowClip = clip.mock.calls.findIndex(
       (c) => (c as unknown[])[0] === "evenodd",
     );
     expect(shadowClip).toBeGreaterThanOrEqual(0);
-    expect(drawImage.mock.invocationCallOrder.at(-1)!).toBeLessThan(
+    expect(order(endGroup)).toBeLessThan(
       clip.mock.invocationCallOrder[shadowClip]!,
     );
+  });
+
+  it("composites the backdrop at the element's opacity, outside its own group", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backdropFilter: "blur(4px)",
+          opacity: 0.5,
+          backgroundColor: "red",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
+      { backdropFilter: "blur(4px)", opacity: 0.5 },
+      { opacity: 0.5, bounds: undefined },
+    ]);
+    // The backdrop group has ended before the element's group begins.
+    expect(order(endGroup, 0)).toBeLessThan(order(beginGroup, 1));
   });
 
   it("skips backdrop-filter: none", async () => {
@@ -544,6 +688,6 @@ describe("drawNode – backdrop-filter", () => {
       0,
       0,
     );
-    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(beginGroup).not.toHaveBeenCalled();
   });
 });

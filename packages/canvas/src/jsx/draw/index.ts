@@ -5,13 +5,23 @@ import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
-import { drawBackdropFilter } from "./backdrop-filter.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
+import {
+  beginElementGroup,
+  clippedElementBounds,
+  drawBackdropFilter,
+  endElementGroup,
+} from "./group.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
-import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
+import {
+  boxShadowExtent,
+  drawBoxShadow,
+  drawRect,
+  getBorderRadiusFromStyle,
+} from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
@@ -48,16 +58,6 @@ export async function drawNode(
 
   ctx.save();
 
-  // Apply opacity
-  if (opacity < 1) {
-    ctx.globalAlpha *= opacity;
-  }
-
-  // Apply CSS filter
-  if (style.filter) {
-    ctx.filter = style.filter;
-  }
-
   if (style.transform) {
     applyTransform(
       ctx,
@@ -80,7 +80,7 @@ export async function drawNode(
   const borderRadius = getBorderRadiusFromStyle(style, width, height);
 
   // Filter the backdrop behind the border box before anything of the element
-  // itself is painted: its box-shadow must not end up in the snapshot, and its
+  // itself is painted: its box-shadow must not end up in the backdrop, and its
   // background composites on top of the filtered result.
   if (style.backdropFilter) {
     drawBackdropFilter(
@@ -91,8 +91,35 @@ export async function drawNode(
       width,
       height,
       borderRadius,
+      opacity,
     );
   }
+
+  // The element's own painting and its descendants form one group, composited
+  // with its opacity and filter. CSS applies clip-path after the filter, so the
+  // clip above also clips the filtered result. The backdrop above stays outside
+  // the group: a group's backdrop is read from the enclosing one.
+  const isClipped =
+    style.overflow === "hidden" ||
+    style.overflowX === "hidden" ||
+    style.overflowY === "hidden";
+  const inGroup = beginElementGroup(
+    ctx,
+    opacity,
+    style.filter,
+    // An element that clips its content paints nothing past its border box
+    // and box-shadow, so its group needs no more room than that.
+    isClipped && opacity < 1
+      ? clippedElementBounds(
+          ctx,
+          x,
+          y,
+          width,
+          height,
+          style.boxShadow ? boxShadowExtent(style.boxShadow) : 0,
+        )
+      : undefined,
+  );
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
@@ -101,11 +128,6 @@ export async function drawNode(
   }
 
   // Apply clipping for overflow: hidden
-  const isClipped =
-    style.overflow === "hidden" ||
-    style.overflowX === "hidden" ||
-    style.overflowY === "hidden";
-
   if (isClipped) {
     applyClip(ctx, x, y, width, height, borderRadius);
   }
@@ -312,6 +334,7 @@ export async function drawNode(
     }
   }
 
+  if (inGroup) endElementGroup(ctx);
   ctx.restore();
 }
 

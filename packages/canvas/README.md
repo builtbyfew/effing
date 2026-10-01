@@ -285,6 +285,16 @@ const png = canvas.encodeSync("png");
 | ----------- | ------------------------------------------------ |
 | `objectFit` | `contain`, `cover`, `fill`, `none`, `scale-down` |
 
+### Opacity and filters
+
+`opacity` and `filter` apply to an element and its descendants as one group,
+as in CSS: overlapping children fade together instead of showing through each
+other, and a `drop-shadow()` is cast once by the whole group.
+
+Such an element is composited through an offscreen buffer the size of the
+canvas. An element that clips its content (`overflow: hidden`) only needs one
+its own size, which is cheaper when many elements fade at once.
+
 ### Clip paths
 
 `clipPath` clips the element's entire rendering — background, borders,
@@ -343,10 +353,9 @@ pixels of the element and follow its `transform`, including non-uniform
 scales and skews. At the canvas edge the backdrop is extended outward, like a
 browser clamps it at the viewport edge, so a blur stays uniform there.
 
-One difference from browsers: `opacity` is applied per drawing operation, not
-to the element's subtree as a group. Under an ancestor with `opacity` below 1
-the filtered backdrop is painted back with that opacity, so it blends with the
-unfiltered backdrop instead of the ancestor forming its own backdrop root.
+As in browsers, an ancestor with `opacity` below 1 or a `filter` is a backdrop
+root: an element inside it sees only what that ancestor has painted so far,
+not what lies behind the ancestor.
 
 ### Units
 

@@ -557,7 +557,13 @@ describe("drawNode – opacity and filter", () => {
     });
   });
 
-  it.each([{}, { opacity: 1 }, { filter: "none" }, { filter: " " }])(
+  it.each([
+    {},
+    { opacity: 1 },
+    { opacity: NaN },
+    { filter: "none" },
+    { filter: " " },
+  ])(
     "paints an opaque, unfiltered element without a group: %o",
     async (style) => {
       await drawNode(ctx, box({ ...style, backgroundColor: "red" }), 0, 0);

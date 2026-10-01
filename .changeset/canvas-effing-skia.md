@@ -7,9 +7,9 @@ Render with `@effing/skia` instead of `@napi-rs/canvas`, and install it as a
 regular dependency instead of a peer.
 
 `@effing/skia` is Effing's fork of `@napi-rs/canvas`: the same API and the
-same Skia, plus primitives `@effing/canvas` will build on. Rendering is
-unchanged, pixel for pixel, and code that imports from `@effing/canvas` needs
-no change.
+same Skia, plus the primitives the other changes in this release build on
+(unsnapped text, native paragraphs, compositing groups). Code that imports
+from `@effing/canvas` needs no change.
 
 The backend is no longer a peer dependency: `@effing/canvas` depends on
 `@effing/skia` at exactly `1.0.9-effing.1`, so it is installed with

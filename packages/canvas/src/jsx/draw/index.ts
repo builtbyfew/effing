@@ -53,7 +53,8 @@ export async function drawNode(
 
   if (style.display === "none") return;
 
-  const opacity = style.opacity ?? 1;
+  // Anything that isn't a number leaves the element opaque.
+  const opacity = Number.isFinite(style.opacity) ? style.opacity! : 1;
   if (opacity <= 0) return;
 
   ctx.save();

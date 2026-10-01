@@ -257,6 +257,10 @@ export async function drawNode(
       contentY,
       style.textShadow,
       emojiStyle,
+      textLayout.paragraph && {
+        paragraph: textLayout.paragraph,
+        offsetY: textLayout.paragraphOffsetY ?? 0,
+      },
     );
   }
 

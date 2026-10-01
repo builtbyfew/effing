@@ -6,6 +6,11 @@ vi.mock("@effing/skia", async () => {
   return createCanvasMock();
 });
 
+vi.mock("@effing/skia/extensions", async () => {
+  const { createExtensionsMock } = await import("../canvas-mock.ts");
+  return createExtensionsMock();
+});
+
 import { createCanvas, loadImage } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
 import { buildLayoutTree } from "./layout.ts";

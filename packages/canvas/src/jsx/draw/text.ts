@@ -1,11 +1,13 @@
 import { loadImage } from "@effing/skia";
 import type { SKRSContext2D, Image } from "@effing/skia";
+import { fillParagraph, strokeParagraph } from "@effing/skia/extensions";
 
 import parseCssColor from "parse-css-color";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { getEmojiCode, loadEmoji } from "../emoji.ts";
 import type { TextSegment } from "../text/index.ts";
+import type { NativeParagraph } from "../text/native.ts";
 import { splitTextIntoRuns } from "../text/emoji-split.ts";
 import { setFont } from "../text/measure.ts";
 
@@ -43,6 +45,8 @@ function loadEmojiImage(
  * @param offsetY - Y offset for the text block
  * @param textShadow - Optional text-shadow CSS value
  * @param emojiStyle - Optional emoji style for rendering emoji as images
+ * @param native - The natively laid-out paragraph to paint instead of the
+ *   segments, with its vertical offset in the text block
  */
 export async function drawText(
   ctx: SKRSContext2D,
@@ -51,7 +55,20 @@ export async function drawText(
   offsetY: number,
   textShadow?: string,
   emojiStyle?: EmojiStyle,
+  native?: { paragraph: NativeParagraph; offsetY: number },
 ): Promise<void> {
+  if (native) {
+    drawParagraph(
+      ctx,
+      native.paragraph,
+      segments,
+      offsetX,
+      offsetY,
+      native.offsetY,
+      textShadow,
+    );
+    return;
+  }
   // Emoji images load asynchronously, so the setting is held across awaits
   // rather than through `withUnsnappedText`.
   const textRendering = ctx.textRendering;
@@ -60,6 +77,49 @@ export async function drawText(
     await drawSegments(ctx, segments, offsetX, offsetY, textShadow, emojiStyle);
   } finally {
     ctx.textRendering = textRendering;
+  }
+}
+
+/**
+ * Paint a natively laid-out paragraph: shadow, stroke and fill passes as for
+ * segments, each a single native call for the whole paragraph. A paragraph
+ * always paints unhinted and unsnapped.
+ */
+function drawParagraph(
+  ctx: SKRSContext2D,
+  paragraph: NativeParagraph,
+  segments: TextSegment[],
+  offsetX: number,
+  offsetY: number,
+  paragraphOffsetY: number,
+  textShadow?: string,
+): void {
+  const first = segments[0];
+  if (!first) return;
+  const x = offsetX;
+  const y = offsetY + paragraphOffsetY;
+  const shadow = textShadow ? parseShadow(textShadow) : null;
+  ctx.fillStyle = first.color;
+
+  if (shadow) {
+    drawShadowPass(ctx, shadow, getColorAlpha(first.color), () =>
+      fillParagraph(ctx, paragraph, x, y),
+    );
+  }
+  if (first.textStrokeWidth !== undefined && first.textStrokeWidth > 0) {
+    ctx.save();
+    ctx.lineWidth = first.textStrokeWidth;
+    ctx.strokeStyle = first.textStrokeColor ?? first.color;
+    ctx.lineJoin = "round";
+    strokeParagraph(ctx, paragraph, x, y);
+    ctx.restore();
+  }
+  fillParagraph(ctx, paragraph, x, y);
+
+  for (const seg of segments) {
+    if (seg.textDecoration) {
+      drawTextDecoration(ctx, seg, offsetX, offsetY);
+    }
   }
 }
 

@@ -5,8 +5,14 @@ vi.mock("@effing/skia", async () => {
   return createCanvasMock();
 });
 
+vi.mock("@effing/skia/extensions", async () => {
+  const { createExtensionsMock } = await import("../../canvas-mock.ts");
+  return createExtensionsMock();
+});
+
 import { createCanvas } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
+import { fillParagraph } from "@effing/skia/extensions";
 import { drawNode } from "./index.ts";
 
 describe("drawNode", () => {
@@ -119,7 +125,36 @@ describe("drawNode", () => {
       0,
     );
 
+    // Laid out and painted as one native paragraph, at the content origin.
+    expect(fillParagraph).toHaveBeenCalledWith(ctx, expect.anything(), 0, 0);
+    expect(ctx.fillText).not.toHaveBeenCalled();
+  });
+
+  it("draws text the paragraph can't express through fillText", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: {
+          fontSize: 16,
+          fontFamily: "sans-serif",
+          color: "black",
+          wordBreak: "break-all",
+        },
+        children: [],
+        textContent: "Hello",
+        props: {},
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
     expect(ctx.fillText).toHaveBeenCalled();
+    expect(fillParagraph).not.toHaveBeenCalled();
   });
 
   it("applies overflow hidden clipping", async () => {
@@ -278,11 +313,9 @@ describe("drawNode", () => {
       0,
     );
 
-    // 10% of 200px width = 20px padding on each side
-    expect(ctx.fillText).toHaveBeenCalled();
-    // First call args: text, x, y — x should be offset by padding (20)
-    const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
-    expect(fillTextCall![1]).toBe(20);
+    // 10% of 200px width = 20px padding on each side: the paragraph is
+    // painted with its left edge offset by the padding.
+    expect(fillParagraph).toHaveBeenCalledWith(ctx, expect.anything(), 20, 0);
   });
 });
 

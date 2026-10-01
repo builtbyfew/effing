@@ -62,6 +62,14 @@ function quoteFontFamily(family: string): string {
   return `"${family}"`;
 }
 
+/** A font-family list with every non-generic family name quoted. */
+export function quoteFontFamilies(fontFamily: string): string {
+  return fontFamily
+    .split(",")
+    .map((f) => quoteFontFamily(f.trim()))
+    .join(", ");
+}
+
 /**
  * Set font properties on a canvas context for measurement.
  */
@@ -72,11 +80,7 @@ export function setFont(
   fontWeight: number | string = 400,
   fontStyle: string = "normal",
 ): void {
-  const quoted = fontFamily
-    .split(",")
-    .map((f) => quoteFontFamily(f.trim()))
-    .join(", ");
-  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${quoted}`;
+  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${quoteFontFamilies(fontFamily)}`;
 }
 
 /**

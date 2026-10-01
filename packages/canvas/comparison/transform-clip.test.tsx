@@ -252,14 +252,20 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     it.each([40, 60, 97.3])(
       "%spx text doesn't jump when crossing scale(2) and scale(3)",
       async (fontSize) => {
+        const deviations: Record<string, number> = {};
         for (const k of [2, 3]) {
           const below = await centroid(fontSize, k - 0.0001);
           const above = await centroid(fontSize, k + 0.0001);
           // Geometric motion from scaling about the left edge over Δs = 0.0002.
           const expectedDx = ((below.x - LEFT) * 0.0002) / k;
-          expect(Math.abs(above.x - below.x - expectedDx)).toBeLessThan(0.05);
-          expect(Math.abs(above.y - below.y)).toBeLessThan(0.05);
+          deviations[`x at ${k}`] = Math.abs(above.x - below.x - expectedDx);
+          deviations[`y at ${k}`] = Math.abs(above.y - below.y);
         }
+        // Two rasterizations a hair apart differ by anti-aliasing alone: up to
+        // 0.05px here on arm64 and 0.09px on x64, at whole scales as at any
+        // other. Snapped glyphs jumped by 0.16px to 0.7px at each whole scale.
+        const worst = Math.max(...Object.values(deviations));
+        expect(worst, JSON.stringify(deviations)).toBeLessThan(0.12);
       },
     );
 

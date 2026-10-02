@@ -11,10 +11,15 @@ export type BreakOpportunity = {
  * `linebreak` package resolves them as NS (strict), which can't.
  */
 const CONDITIONAL_JAPANESE_STARTERS =
-  /[\u3041\u3043\u3045\u3047\u3049\u3063\u3083\u3085\u3087\u308E\u3095\u3096\u30A1\u30A3\u30A5\u30A7\u30A9\u30C3\u30E3\u30E5\u30E7\u30EE\u30F5\u30F6\u30FC\u31F0-\u31FF\uFF67-\uFF70]/g;
+  /[\u3041\u3043\u3045\u3047\u3049\u3063\u3083\u3085\u3087\u308E\u3095\u3096\u30A1\u30A3\u30A5\u30A7\u30A9\u30C3\u30E3\u30E5\u30E7\u30EE\u30F5\u30F6\u30FC\u31F0-\u31FF\uFF67-\uFF70\u{1B132}\u{1B150}-\u{1B152}\u{1B155}\u{1B164}-\u{1B167}]/gu;
 
-/** A katakana letter, of class ID, to resolve CJ as (one UTF-16 unit, too). */
-const ID = "\u30A2";
+/**
+ * A character of class ID of the same UTF-16 length as `cj`, to resolve it
+ * as: a katakana letter, or for an astral character a CJK ideograph (one
+ * code point, so no break opportunity falls between its surrogates).
+ */
+const asIdeographic = (cj: string) =>
+  cj.length === 1 ? "\u30A2" : "\u{20000}";
 
 /**
  * Find line-break opportunities in text using UAX #14 algorithm, resolving
@@ -25,7 +30,7 @@ const ID = "\u30A2";
  */
 export function findBreakOpportunities(text: string): BreakOpportunity[] {
   const breaker = new LineBreaker(
-    text.replace(CONDITIONAL_JAPANESE_STARTERS, ID),
+    text.replace(CONDITIONAL_JAPANESE_STARTERS, asIdeographic),
   );
   const opportunities: BreakOpportunity[] = [];
 

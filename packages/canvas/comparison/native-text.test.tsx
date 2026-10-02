@@ -10,6 +10,8 @@ import {
   HAS_NATIVE_DEPS,
   compareImages,
   loadFonts,
+  loadScriptFonts,
+  SCRIPT_FONT_FAMILIES,
   renderWithCanvas,
   renderWithSatori,
 } from "./_helpers/setup.ts";
@@ -25,6 +27,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
   beforeAll(async () => {
     fonts = await loadFonts();
     ensureFontsRegistered(fonts);
+    ensureFontsRegistered(await loadScriptFonts());
   });
 
   const style = (s: Partial<ComputedStyle>) =>
@@ -198,6 +201,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
 
   // Thai, Lao and Burmese are written without spaces between words; Skia
   // breaks them between dictionary words, which UAX #14 alone can't find.
+  // They're set in bundled Noto fonts, not whatever the system falls back to.
   it.each([
     [
       "Thai",
@@ -207,7 +211,14 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     ["Burmese", "မြန်မာဘာသာစကားသည် မြန်မာနိုင်ငံ၏ ရုံးသုံးဘာသာစကား ဖြစ်သည်"],
     ["Thai among English", "Hello ภาษาไทยเป็นภาษาที่มีระดับเสียง world"],
   ])("wraps %s between words", (_, text) => {
-    const result = layoutText(text, style({ fontSize: 20 }), 150);
+    const result = layoutText(
+      text,
+      style({
+        fontFamily: `Liberation Sans, ${SCRIPT_FONT_FAMILIES}`,
+        fontSize: 20,
+      }),
+      150,
+    );
     expect(result.paragraph).toBeDefined();
     expect(result.segments.length).toBeGreaterThan(2);
     for (const seg of result.segments) {
@@ -216,7 +227,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
   });
 
   // Lines from Chrome 154, which fits three of these characters on a line in
-  // the 70px it was given (its Japanese fallback font is 20px wide at 20px).
+  // the 70px it was given (its Japanese fallback font is 20.39px wide at
+  // 20px).
   // Small kana and "ー" (UAX #14 class CJ) may start a line, as in browsers
   // and Skia under `line-break: auto`.
   it.each([

@@ -16,7 +16,11 @@ import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
 import type { FontMetrics } from "../font-metrics.ts";
-import { findBreakOpportunities } from "./linebreak.ts";
+import {
+  findBreakOpportunities,
+  findGraphemeBoundaries,
+  findWordJunctions,
+} from "./linebreak.ts";
 import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
 import type { TextLayoutResult, TextSegment } from "./index.ts";
 
@@ -111,10 +115,11 @@ export async function releaseParagraphs(): Promise<void> {
 /**
  * Whether the paragraph broke its words as CSS does. Skia breaks a word that
  * is wider than `width` to fit, which CSS does only under `break-word`;
- * otherwise (`overflow-wrap: normal`) the word overflows. And where CSS first
- * wraps before such a word and breaks it only if it still doesn't fit, Skia
- * fills the line it's on: `break-word` holds only when every line that ends
- * within a word starts with that word.
+ * otherwise (`overflow-wrap: normal`) the word overflows. And under
+ * `break-word`, CSS first wraps before such a word and then breaks it between
+ * grapheme clusters, where Skia fills the line it's on and may split a
+ * cluster: that holds only when every line that ends within a word starts
+ * with that word, and ends between two clusters.
  */
 function breaksWordsLikeCss(
   text: string,
@@ -125,19 +130,24 @@ function breaksWordsLikeCss(
   if (!breakWord && layout.minIntrinsicWidth > width) return false;
   // Skia measures the widest word before breaking it, except when it's the
   // last word, which then counts by its broken pieces. So look for lines that
-  // end where the next begins (no space between) at a point the text has no
-  // break opportunity.
-  let opportunities: number[] | undefined;
+  // end where the next begins (no space between) at a point the text can't
+  // break: neither a UAX #14 opportunity nor a junction of two words (which
+  // is how Skia breaks Thai, Lao, Khmer and Burmese, from ICU's dictionaries).
+  let breaks: number[] | undefined;
+  let graphemes: Set<number> | undefined;
   const { lines } = layout;
   for (let i = 0; i < lines.length - 1; i++) {
     const line = lines[i]!;
     if (line.hardBreak || line.endIndex !== lines[i + 1]!.startIndex) continue;
-    opportunities ??= findBreakOpportunities(text).map((opp) => opp.position);
-    if (opportunities.includes(line.endIndex)) continue;
+    breaks ??= [
+      ...findBreakOpportunities(text).map((opp) => opp.position),
+      ...findWordJunctions(text),
+    ];
+    if (breaks.includes(line.endIndex)) continue;
     if (!breakWord) return false;
-    if (
-      opportunities.some((pos) => pos > line.startIndex && pos < line.endIndex)
-    ) {
+    graphemes ??= findGraphemeBoundaries(text);
+    if (!graphemes.has(line.endIndex)) return false;
+    if (breaks.some((pos) => pos > line.startIndex && pos < line.endIndex)) {
       return false;
     }
   }
@@ -153,8 +163,8 @@ function breaksWordsLikeCss(
  * Returns null when a word is wider than `maxWidth`: Skia would break it
  * mid-word, where CSS (without `overflow-wrap`) lets it overflow, as the
  * TypeScript layout does. Under `word-break: break-word`, where CSS breaks it
- * too, the paragraph is kept unless Skia broke the word on a line that holds
- * more than that word (see `breaksWordsLikeCss`).
+ * too, the paragraph is kept unless Skia broke the word otherwise than CSS
+ * would (see `breaksWordsLikeCss`).
  *
  * @param lineHeight - Line box height in px, or undefined for `normal`
  */

@@ -10,8 +10,7 @@ import { getFontMetrics } from "../font.ts";
 import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
 import { isEmoji } from "../language.ts";
-import { MeasureMode } from "../yoga.ts";
-import { findBreakOpportunities } from "./linebreak.ts";
+import { findBreakOpportunities, graphemeSegmenter } from "./linebreak.ts";
 import { measureText, measureTrimMetrics, measureWord } from "./measure.ts";
 import type { TextMetrics } from "./measure.ts";
 import { canLayoutNatively, layoutTextNative } from "./native.ts";
@@ -518,8 +517,6 @@ function wrapText(
   return lines.length > 0 ? lines : [""];
 }
 
-const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-
 /**
  * Break the word in `text[start, end)` (trailing whitespace ignored) between
  * grapheme clusters, putting as much on each line as fits and at least one
@@ -537,7 +534,7 @@ function breakWord(
   const word = text.slice(start, end).replace(/\s+$/, "");
   let pieceStart = 0;
   let lastBoundary = 0;
-  const boundaries = [...graphemes.segment(word)].map((g) => g.index);
+  const boundaries = [...graphemeSegmenter.segment(word)].map((g) => g.index);
   boundaries.push(word.length);
   for (const boundary of boundaries) {
     if (
@@ -610,7 +607,7 @@ function truncateWithEllipsis(
 export class TextMeasure {
   /** Yoga's measurements by width (Infinity for unbounded). */
   private readonly sizes = new Map<number, { width: number; height: number }>();
-  /** Every height reported to Yoga since the last pin. */
+  /** The heights reported to Yoga since the last `settle`. */
   private readonly reported = new Set<number>();
   private pinnedHeight: number | undefined;
   private settled: { width: number; result: TextLayoutResult } | undefined;
@@ -628,15 +625,12 @@ export class TextMeasure {
     this.measureStyle = { ...style, textOverflow: "clip" };
   }
 
-  /** The node's Yoga measure function. */
-  readonly measure = (
-    width: number,
-    widthMode: MeasureMode,
-  ): { width: number; height: number } => {
-    const maxWidth =
-      widthMode === MeasureMode.Undefined || Number.isNaN(width)
-        ? Infinity
-        : width;
+  /**
+   * Measure the text for Yoga.
+   *
+   * @param maxWidth - The width available, Infinity for unbounded
+   */
+  measure(maxWidth: number): { width: number; height: number } {
     let size = this.sizes.get(maxWidth);
     if (!size) {
       const result = layoutText(
@@ -659,16 +653,19 @@ export class TextMeasure {
     const height = this.pinnedHeight ?? size.height;
     this.reported.add(height);
     return { width: size.width, height };
-  };
+  }
 
   /**
-   * Lay the text out for drawing at the node's final content width.
+   * Lay the text out for drawing at the node's final content width, and
+   * check it against the heights Yoga was given since the last call.
    *
-   * @returns Whether Yoga sized the node from another height, in which case
-   *   the node's measurements are now pinned to the drawn height and the
-   *   caller should mark the node dirty and compute the layout again.
+   * @param pin - Whether to pin later measurements to the drawn height when
+   *   they disagree
+   * @returns Whether Yoga sized the node from another height. If `pin`, the
+   *   node's measurements are now pinned to the drawn height, and the caller
+   *   should mark the node dirty and compute the layout again.
    */
-  settle(width: number): boolean {
+  settle(width: number, pin: boolean): boolean {
     if (this.settled?.width !== width) {
       this.settled = {
         width,
@@ -685,14 +682,26 @@ export class TextMeasure {
     const agrees =
       this.reported.size === 0 ||
       (this.reported.size === 1 && this.reported.has(height));
-    if (agrees) return false;
-    this.pinnedHeight = height;
     this.reported.clear();
+    if (agrees) return false;
+    if (pin) this.pinnedHeight = height;
     return true;
   }
 
-  /** The text laid out by the last `settle`, if it was at `width`. */
-  layoutAt(width: number): TextLayoutResult | undefined {
-    return this.settled?.width === width ? this.settled.result : undefined;
+  /**
+   * Drop the pinned height, so that Yoga sees the measured heights again.
+   *
+   * @returns Whether there was a pin
+   */
+  unpin(): boolean {
+    const pinned = this.pinnedHeight !== undefined;
+    this.pinnedHeight = undefined;
+    this.reported.clear();
+    return pinned;
+  }
+
+  /** The text as laid out by the last `settle`. */
+  get layout(): TextLayoutResult | undefined {
+    return this.settled?.result;
   }
 }

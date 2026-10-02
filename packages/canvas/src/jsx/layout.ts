@@ -19,7 +19,13 @@ import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { TextMeasure } from "./text/index.ts";
 import type { TextLayoutResult } from "./text/index.ts";
-import { createYogaNode, freeYogaNode, FlexDirection } from "./yoga.ts";
+import {
+  createTextYogaNode,
+  createYogaNode,
+  freeYogaNode,
+  FlexDirection,
+  MeasureMode,
+} from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
 /**
@@ -64,7 +70,10 @@ export async function buildLayoutTree(
     imageCache: new Map(),
     debug: false,
   };
-  const elementYogaNode = createYogaNode();
+  const rootElement = renderComponents(element);
+  const elementYogaNode = isText(rootElement)
+    ? createTextYogaNode()
+    : createYogaNode();
 
   // Set font families as default on root style so all nodes inherit them
   const rootStyle = fontFamilies?.length
@@ -73,7 +82,7 @@ export async function buildLayoutTree(
 
   // Build the tree
   const elementNode = await buildNode(
-    element,
+    rootElement,
     rootStyle,
     elementYogaNode,
     containerWidth,
@@ -93,8 +102,10 @@ export async function buildLayoutTree(
   rootYogaNode.insertChild(elementYogaNode, 0);
 
   rootYogaNode.calculateLayout(containerWidth, containerHeight);
-  settleText(elementNode, () =>
-    rootYogaNode.calculateLayout(containerWidth, containerHeight),
+  settleText(
+    elementNode,
+    () => rootYogaNode.calculateLayout(containerWidth, containerHeight),
+    renderContext.debug,
   );
 
   const elementLayout = extractLayout(elementNode, elementYogaNode);
@@ -146,7 +157,7 @@ async function buildNode(
 
     // Set up text measurement
     const textMeasure = new TextMeasure(text, style, ctx, emojiEnabled);
-    yogaNode.setMeasureFunc(textMeasure.measure);
+    setTextMeasure(yogaNode, textMeasure);
 
     return {
       type: "text",
@@ -314,14 +325,14 @@ async function buildNode(
   // when a parent uses alignItems: "baseline".
   if (textContent !== undefined && !hasElementChildren(props.children)) {
     const childStyle = resolveStyle(undefined, style);
-    const childYogaNode = createYogaNode();
+    const childYogaNode = createTextYogaNode();
     const textMeasure = new TextMeasure(
       textContent,
       childStyle,
       ctx,
       emojiEnabled,
     );
-    childYogaNode.setMeasureFunc(textMeasure.measure);
+    setTextMeasure(childYogaNode, textMeasure);
     const jc = style.justifyContent;
     if (!jc || jc === "flex-start") {
       childYogaNode.setFlexGrow(1);
@@ -384,11 +395,15 @@ async function buildNode(
 
       prevWasBr = isBrElement(child);
 
-      const childYogaNode = createYogaNode();
+      // Rendered first, so that text gets a text node.
+      const rendered = renderComponents(processedChild);
+      const childYogaNode = isText(rendered)
+        ? createTextYogaNode()
+        : createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
       children.push(
         await buildNode(
-          processedChild,
+          rendered,
           style,
           childYogaNode,
           viewportWidth,
@@ -434,30 +449,87 @@ const MAX_TEXT_RELAYOUTS = 2;
  * Lay every text node out at its final width, and compute the layout again
  * while Yoga sized one from a different height.
  */
-function settleText(root: IntermediateNode, relayout: () => void): void {
+function settleText(
+  root: IntermediateNode,
+  relayout: () => void,
+  debug: boolean,
+): void {
   const textNodes: IntermediateNode[] = [];
   const collect = (node: IntermediateNode) => {
+    // Nothing under `display: none` is laid out or drawn.
+    if (node.style.display === "none") return;
     if (node.textMeasure) textNodes.push(node);
     node.children.forEach(collect);
   };
   collect(root);
+  // Text nodes have no padding or border: their width is the content's.
+  const settle = (node: IntermediateNode, pin: boolean) =>
+    node.textMeasure!.settle(node.yogaNode.getComputedWidth(), pin);
 
-  for (let pass = 0; pass <= MAX_TEXT_RELAYOUTS; pass++) {
-    let dirty = false;
+  for (let pass = 0; pass < MAX_TEXT_RELAYOUTS; pass++) {
+    let unsettled = false;
     for (const node of textNodes) {
-      // Text nodes have no padding or border: their width is the content's.
-      if (node.textMeasure!.settle(node.yogaNode.getComputedWidth())) {
+      if (settle(node, true)) {
         node.yogaNode.markDirty();
-        dirty = true;
+        unsettled = true;
       }
     }
-    if (!dirty || pass === MAX_TEXT_RELAYOUTS) return;
+    if (!unsettled) return;
     relayout();
   }
+  if (!textNodes.some((node) => settle(node, false))) return;
+
+  // Each pin moved the layout on to widths the drawn heights don't fit. Go
+  // back to Yoga's own layout, as without the pins, and draw the text at the
+  // widths it gives.
+  for (const node of textNodes) {
+    if (node.textMeasure!.unpin()) node.yogaNode.markDirty();
+  }
+  relayout();
+  const unsettled = textNodes.filter((node) => settle(node, false)).length;
+  if (debug && unsettled > 0) {
+    console.warn(
+      `[@effing/canvas] ${unsettled} text node(s) sized for other lines ` +
+        `than drawn: the layout didn't settle in ${MAX_TEXT_RELAYOUTS} relayouts`,
+    );
+  }
+}
+
+/** Measure `yogaNode` with `textMeasure`. */
+function setTextMeasure(yogaNode: YogaNode, textMeasure: TextMeasure): void {
+  yogaNode.setMeasureFunc((width, widthMode) =>
+    textMeasure.measure(
+      widthMode === MeasureMode.Undefined || Number.isNaN(width)
+        ? Infinity
+        : width,
+    ),
+  );
+}
+
+const isText = (node: ReactNode): node is string | number =>
+  typeof node === "string" || typeof node === "number";
+
+/** Render function components until something else is left. */
+function renderComponents(node: ReactNode): ReactNode {
+  while (
+    node !== null &&
+    typeof node === "object" &&
+    "type" in node &&
+    typeof node.type === "function"
+  ) {
+    const el = node as ReactElement<Record<string, unknown>>;
+    node = (el.type as (props: Record<string, unknown>) => ReactNode)(
+      el.props ?? {},
+    );
+  }
+  return node;
 }
 
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();
+  // Yoga leaves text nodes unrounded (see `createTextYogaNode`) for their
+  // width; they're placed on whole pixels, floored as Yoga rounds text.
+  const place = node.textMeasure ? Math.floor : (v: number) => v;
 
   return {
     type: node.type,
@@ -467,10 +539,10 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
       return extractLayout(child, childYoga);
     }),
     textContent: node.textContent,
-    textLayout: node.textMeasure?.layoutAt(layout.width),
+    textLayout: node.textMeasure?.layout,
     props: node.props,
-    x: layout.left,
-    y: layout.top,
+    x: place(layout.left),
+    y: place(layout.top),
     width: layout.width,
     height: layout.height,
   };

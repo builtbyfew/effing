@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import type { ComputedStyle } from "../src/jsx/style/compute.ts";
@@ -196,6 +196,49 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     ).toBeUndefined();
   });
 
+  // Thai, Lao and Burmese are written without spaces between words; Skia
+  // breaks them between dictionary words, which UAX #14 alone can't find.
+  it.each([
+    [
+      "Thai",
+      "ภาษาไทยเป็นภาษาที่มีระดับเสียงของคำแน่นอนหรือวรรณยุกต์เช่นเดียวกับภาษาจีน",
+    ],
+    ["Lao", "ພາສາລາວເປັນພາສາທີ່ມີວັນນະຍຸດເຊັ່ນດຽວກັບພາສາໄທ"],
+    ["Burmese", "မြန်မာဘာသာစကားသည် မြန်မာနိုင်ငံ၏ ရုံးသုံးဘာသာစကား ဖြစ်သည်"],
+    ["Thai among English", "Hello ภาษาไทยเป็นภาษาที่มีระดับเสียง world"],
+  ])("wraps %s between words", (_, text) => {
+    const result = layoutText(text, style({ fontSize: 20 }), 150);
+    expect(result.paragraph).toBeDefined();
+    expect(result.segments.length).toBeGreaterThan(2);
+    for (const seg of result.segments) {
+      expect(seg.width).toBeLessThanOrEqual(150);
+    }
+  });
+
+  // A word broken under break-word breaks between grapheme clusters, which
+  // Skia doesn't always respect.
+  it.each([
+    ["a family emoji", "👨‍👩‍👧‍👦👨‍👩‍👧‍👦"],
+    ["a Devanagari conjunct", "नमस्ते"],
+  ])("keeps %s whole when break-word breaks a word", (_, text) => {
+    const breakWord = style({ fontSize: 20, wordBreak: "break-word" });
+    const lines = layoutText(text, breakWord, 30).segments.map((s) => s.text);
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.join("")).toBe(text);
+    const graphemes = [
+      ...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(
+        text,
+      ),
+    ].map((g) => g.segment);
+    // Each line is a run of whole clusters.
+    let i = 0;
+    for (const line of lines) {
+      let run = "";
+      while (run.length < line.length) run += graphemes[i++];
+      expect(run).toBe(line);
+    }
+  });
+
   it("keeps one empty line box for empty text, as the TypeScript layout does", () => {
     for (const lineHeight of [undefined, 30]) {
       const s = style({ fontSize: 20, lineHeight });
@@ -313,7 +356,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
           drawn.segments.map((s) => s.text),
         );
         const lineHeight = drawn.segments[0]!.height;
-        expect(node.height).toBe(Math.ceil(drawn.segments.length * lineHeight));
+        expect(drawn.height).toBe(
+          Math.ceil(drawn.segments.length * lineHeight),
+        );
+        expect(node.height).toBe(drawn.height);
       }
       return nodes;
     }
@@ -336,10 +382,11 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
       expect(node!.textLayout!.segments).toHaveLength(lines);
     });
 
-    it("sizes text for the width Yoga rounds its box to", async () => {
-      // Three columns of 98.33px. Yoga measures the text at that width, where
-      // it takes two lines, then rounds each text box out to 99px, where the
-      // text is drawn on one line.
+    it("breaks text at the fractional width Yoga gives it, as Chrome does", async () => {
+      // Three columns of 98.33px, too narrow for "Hello world" (98.93px):
+      // Chrome wraps it to two lines. Yoga rounds boxes to whole pixels, and
+      // a text box out to 99px, where the text would fit on one; text boxes
+      // keep the width the text was measured at instead.
       const nodes = await layOut(
         <div style={{ display: "flex", width: 295, alignItems: "flex-start" }}>
           {[0, 1, 2].map((i) => (
@@ -350,9 +397,14 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
         </div>,
       );
       for (const node of nodes) {
-        expect(node.width).toBe(99);
-        expect(node.textLayout!.segments).toHaveLength(1);
+        expect(node.width).toBeCloseTo(295 / 3, 4);
+        expect(node.textLayout!.segments.map((s) => s.text)).toEqual([
+          "Hello",
+          "world",
+        ]);
       }
+      // Text is still placed on whole pixels, as before.
+      expect(nodes.map((node) => node.x)).toEqual([0, 0, 0]);
     });
 
     it("sizes text squeezed to no width by every line drawn", async () => {
@@ -364,6 +416,78 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
       );
       expect(node!.width).toBe(0);
       expect(node!.textLayout!.segments).toHaveLength(4);
+    });
+
+    it("falls back to Yoga's own layout when the text doesn't settle", async () => {
+      // In a wrapping column of fixed height, a text's height decides which
+      // column the next item goes in, and with it the widths: each height
+      // drawn moves the layout on to widths it doesn't fit.
+      // (A half of the column around it, which has no width of its own.)
+      const element = (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            fontFamily: "Liberation Sans",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flexWrap: "wrap",
+              height: 40,
+              width: "50%",
+              alignItems: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                width: 200,
+                fontSize: 20,
+              }}
+            >
+              dog word word here
+            </div>
+            <div style={{ display: "flex", flexGrow: 1, fontSize: 14 }}>
+              jumps quick quick quick A quick
+            </div>
+          </div>
+        </div>
+      );
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const layOutWith = (debug: boolean) =>
+          buildLayoutTree(
+            element,
+            400,
+            400,
+            undefined,
+            false,
+            ["Liberation Sans"],
+            {
+              imageCache: new Map(),
+              debug,
+            },
+          );
+        const { tree } = await layOutWith(false);
+        expect(warn).not.toHaveBeenCalled();
+        await layOutWith(true);
+        expect(warn).toHaveBeenCalledTimes(1);
+        // Whatever the boxes, the text is drawn as laid out at their widths.
+        for (const node of textNodes(tree)) {
+          expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
+            layoutText(node.textContent!, node.style, node.width).segments.map(
+              (s) => s.text,
+            ),
+          );
+        }
+      } finally {
+        warn.mockRestore();
+      }
     });
   },
 );

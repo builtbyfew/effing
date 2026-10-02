@@ -6,11 +6,16 @@ Size text boxes for the lines drawn in them.
 
 Yoga measures a text node at whatever widths its layout needs, and the text
 is drawn at the node's final width. When the two differed, a box could be a
-line taller or shorter than its text: equal flex columns, for one, are
-measured at a fractional width and drawn at the whole pixels Yoga rounds them
-out to. Text is now laid out once more at its final width during layout, the
-node sized again where that changes its height, and the same layout drawn.
-Text squeezed to no width is also measured at that width, not as unbounded.
+line taller or shorter than its text. Text is now laid out once more at its
+final width during layout, the node sized again where that changes its
+height, and the same layout drawn. Text squeezed to no width is also measured
+at that width, not as unbounded.
+
+Text boxes also keep the fractional width their text was measured at, where
+Yoga used to round them out to whole pixels, so text breaks where Chrome
+breaks it: three equal 98.33px columns wrap "Hello world" (98.93px) to two
+lines, as Chrome does, instead of drawing it on one line in a box sized for
+two. Text is still placed on whole pixels.
 
 `wordBreak: "break-word"` now breaks a word that is wider than its line, as
 in CSS, where it used to leave it overflowing like `normal`. `break-all`

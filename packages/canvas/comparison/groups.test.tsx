@@ -220,10 +220,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
     </div>
   );
 
-  it("keeps everything a clipping element paints inside its bounded group", async () => {
-    // A translucent element that clips its content gets a group sized to its
-    // border box and box-shadow: nothing of the shadow or of the anti-aliased
-    // edges may be cut, also under a rotation and a scale.
+  it("keeps everything a translucent element paints, shadow and edges included", async () => {
+    // A group's buffer is sized to what the group draws. Nothing of the
+    // box-shadow outside the element's clip or of the anti-aliased edges may
+    // be cut, also under a rotation and a scale.
     await expectFadesAsOne(
       (background, opacity) =>
         page(
@@ -251,8 +251,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
     );
   });
 
-  // Elements that are a single draw take their opacity on that draw instead
-  // of through a group (see `fadeOf`). These hold them to the group's result.
+  // Glyphs that overlap, within a line or between lines, fade as one too.
   it.each([
     ["one line of text", { fontSize: 44 }, "Fading words"],
     [
@@ -265,7 +264,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
       { fontSize: 44, letterSpacing: -6 },
       "Tight words",
     ],
-  ])("fades %s as one, without a group", async (_, style, words) => {
+  ])("fades %s as one", async (_, style, words) => {
     await expectFadesAsOne(
       (background, opacity) =>
         page(
@@ -312,59 +311,55 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
   });
 
   // @effing/skia flushes its deferred recording once it holds 32 MiB, decoded
-  // images included, and composites a group that is open at that point in
-  // two parts: what the group paints after a large image no longer hides it.
-  // Expected to fail until the fork keeps such a group whole; when this
-  // starts passing, drop `.fails` (and the note in the README).
-  it.fails(
-    "keeps a group whole when it holds an image past the recording cap",
-    async () => {
-      // 4000×3000 decodes to 45.8 MiB.
-      const { createCanvas } = await import("@effing/skia");
-      const photo = createCanvas(4000, 3000);
-      const photoCtx = photo.getContext("2d");
-      photoCtx.fillStyle = "#f97316";
-      photoCtx.fillRect(0, 0, 4000, 3000);
-      const src = `data:image/png;base64,${photo.toBuffer("image/png").toString("base64")}`;
+  // images included. A flush in the middle of a group would composite it in
+  // two parts, and what the group paints after a large image would no longer
+  // hide it (1.0.10-effing.1 did that); the flush has to wait for the group.
+  it("keeps a group whole when it holds an image past the recording cap", async () => {
+    // 4000×3000 decodes to 45.8 MiB.
+    const { createCanvas } = await import("@effing/skia");
+    const photo = createCanvas(4000, 3000);
+    const photoCtx = photo.getContext("2d");
+    photoCtx.fillStyle = "#f97316";
+    photoCtx.fillRect(0, 0, 4000, 3000);
+    const src = `data:image/png;base64,${photo.toBuffer("image/png").toString("base64")}`;
 
-      const img = await render(
+    const img = await render(
+      <div
+        style={{
+          width: 300,
+          height: 200,
+          display: "flex",
+          background: "#fff",
+        }}
+      >
         <div
           style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
             width: 300,
             height: 200,
             display: "flex",
-            background: "#fff",
+            opacity: 0.5,
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: 300,
-              height: 200,
-              display: "flex",
-              opacity: 0.5,
-            }}
-          >
-            <img
-              src={src}
-              width={200}
-              height={150}
-              style={{ position: "absolute", left: 20, top: 20 }}
-            />
-            {box(100, 60, "#000")}
-          </div>
-        </div>,
-      );
-      // The black box covers the image, so inside it the group is black and
-      // fades to mid-grey over the white canvas. Split in two, the image
-      // shows through the box as an orange tint.
-      for (const channel of pixel(img, 150, 100).slice(0, 3)) {
-        expect(Math.abs(channel - 127)).toBeLessThanOrEqual(2);
-      }
-    },
-  );
+          <img
+            src={src}
+            width={200}
+            height={150}
+            style={{ position: "absolute", left: 20, top: 20 }}
+          />
+          {box(100, 60, "#000")}
+        </div>
+      </div>,
+    );
+    // The black box covers the image, so inside it the group is black and
+    // fades to mid-grey over the white canvas. Split in two, the image
+    // shows through the box as an orange tint.
+    for (const channel of pixel(img, 150, 100).slice(0, 3)) {
+      expect(Math.abs(channel - 127)).toBeLessThanOrEqual(2);
+    }
+  });
 
   it("reads a backdrop only from within its backdrop root", async () => {
     const img = await render(

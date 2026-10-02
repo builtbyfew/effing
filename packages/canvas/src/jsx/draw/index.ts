@@ -5,26 +5,17 @@ import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
-import type { TextLayoutResult } from "../text/index.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
 import {
   beginElementGroup,
-  clippedElementBounds,
   drawBackdropFilter,
   endElementGroup,
-  fadeOf,
-  isNoFilter,
 } from "./group.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
-import {
-  boxShadowExtent,
-  drawBoxShadow,
-  drawRect,
-  getBorderRadiusFromStyle,
-} from "./rect.ts";
+import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
@@ -35,9 +26,6 @@ import { parseCSSLength, resolveBoxValue } from "./utils.ts";
  * Every node, scaled or not, is drawn straight through its transform. Text is
  * drawn unhinted and unsnapped (see `drawText`), so it lands in the same place
  * at any scale and a scaled subtree needs no supersampled offscreen buffer.
- *
- * @param inheritedOpacity - Opacity handed down by a parent that paints
- *   nothing itself and has this node as its only child (see `fadeOf`)
  */
 export async function drawNode(
   ctx: SKRSContext2D,
@@ -46,11 +34,10 @@ export async function drawNode(
   parentY: number,
   context?: RenderContext,
   emojiStyle?: EmojiStyle,
-  inheritedOpacity = 1,
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
-  const { width, style } = node;
+  const { style } = node;
 
   // Resolve a context once so the whole subtree shares one image cache.
   const renderContext: RenderContext = context ?? {
@@ -63,37 +50,8 @@ export async function drawNode(
   // A numeric string counts, as it does in CSS; anything that isn't a
   // number leaves the element opaque.
   const rawOpacity = Number(style.opacity ?? 1);
-  const opacity =
-    (Number.isFinite(rawOpacity) ? rawOpacity : 1) * inheritedOpacity;
+  const opacity = Number.isFinite(rawOpacity) ? rawOpacity : 1;
   if (opacity <= 0) return;
-
-  // Lay the text out first: how the element fades depends on what it paints.
-  let text:
-    | { layout: TextLayoutResult; contentX: number; contentY: number }
-    | undefined;
-  if (node.textContent !== undefined && node.textContent !== "") {
-    const paddingTop = resolveBoxValue(style.paddingTop, width);
-    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
-    const paddingRight = resolveBoxValue(style.paddingRight, width);
-
-    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
-    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
-    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
-
-    const contentWidth =
-      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
-    text = {
-      layout: layoutText(
-        node.textContent,
-        style,
-        contentWidth,
-        ctx,
-        !!emojiStyle,
-      ),
-      contentX: x + paddingLeft + borderLeftW,
-      contentY: y + paddingTop + borderTopW,
-    };
-  }
 
   // Painting awaits image loads, which can fail. The group and the save are
   // closed either way, so a caller that catches the error and draws the next
@@ -101,17 +59,7 @@ export async function drawNode(
   const group = { open: false };
   ctx.save();
   try {
-    await paintNode(
-      ctx,
-      node,
-      x,
-      y,
-      opacity,
-      text,
-      renderContext,
-      emojiStyle,
-      group,
-    );
+    await paintNode(ctx, node, x, y, opacity, renderContext, emojiStyle, group);
   } finally {
     if (group.open) endElementGroup(ctx);
     ctx.restore();
@@ -125,9 +73,6 @@ async function paintNode(
   x: number,
   y: number,
   opacity: number,
-  text:
-    | { layout: TextLayoutResult; contentX: number; contentY: number }
-    | undefined,
   renderContext: RenderContext,
   emojiStyle: EmojiStyle | undefined,
   group: { open: boolean },
@@ -175,36 +120,7 @@ async function paintNode(
   // with its opacity and filter. CSS applies clip-path after the filter, so the
   // clip above also clips the filtered result. The backdrop above stays outside
   // the group: a group's backdrop is read from the enclosing one.
-  const isClipped =
-    style.overflow === "hidden" ||
-    style.overflowX === "hidden" ||
-    style.overflowY === "hidden";
-  // Where a group would change nothing, the element fades without one.
-  const fade =
-    opacity < 1 && isNoFilter(style.filter)
-      ? fadeOf(node, text?.layout, renderContext.debug)
-      : "group";
-  if (fade === "alpha") {
-    ctx.globalAlpha *= opacity;
-  } else if (fade === "group") {
-    group.open = beginElementGroup(
-      ctx,
-      opacity,
-      style.filter,
-      // An element that clips its content paints nothing past its border box
-      // and box-shadow, so its group needs no more room than that.
-      isClipped && opacity < 1
-        ? clippedElementBounds(
-            ctx,
-            x,
-            y,
-            width,
-            height,
-            style.boxShadow ? boxShadowExtent(style.boxShadow) : 0,
-          )
-        : undefined,
-    );
-  }
+  group.open = beginElementGroup(ctx, opacity, style.filter);
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
@@ -213,6 +129,11 @@ async function paintNode(
   }
 
   // Apply clipping for overflow: hidden
+  const isClipped =
+    style.overflow === "hidden" ||
+    style.overflowX === "hidden" ||
+    style.overflowY === "hidden";
+
   if (isClipped) {
     applyClip(ctx, x, y, width, height, borderRadius);
   }
@@ -336,17 +257,37 @@ async function paintNode(
   }
 
   // Draw text content
-  if (text) {
+  if (node.textContent !== undefined && node.textContent !== "") {
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
+
+    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
+    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
+    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
+
+    const contentX = x + paddingLeft + borderLeftW;
+    const contentY = y + paddingTop + borderTopW;
+    const contentWidth =
+      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
+
+    const textLayout = layoutText(
+      node.textContent,
+      style,
+      contentWidth,
+      ctx,
+      !!emojiStyle,
+    );
     await drawText(
       ctx,
-      text.layout.segments,
-      text.contentX,
-      text.contentY,
+      textLayout.segments,
+      contentX,
+      contentY,
       style.textShadow,
       emojiStyle,
-      text.layout.paragraph && {
-        paragraph: text.layout.paragraph,
-        offsetY: text.layout.paragraphOffsetY ?? 0,
+      textLayout.paragraph && {
+        paragraph: textLayout.paragraph,
+        offsetY: textLayout.paragraphOffsetY ?? 0,
       },
     );
   }
@@ -395,15 +336,7 @@ async function paintNode(
     drawSvgContainer(ctx, node, x, y, width, height);
   } else {
     for (const child of node.children) {
-      await drawNode(
-        ctx,
-        child,
-        x,
-        y,
-        renderContext,
-        emojiStyle,
-        fade === "through" ? opacity : 1,
-      );
+      await drawNode(ctx, child, x, y, renderContext, emojiStyle);
     }
   }
 }

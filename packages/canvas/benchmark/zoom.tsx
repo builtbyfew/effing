@@ -46,8 +46,8 @@ const card = (scale: number, counter?: number, extra?: React.CSSProperties) => (
 );
 
 // A column of rows fading in one after the other, as a staggered list
-// animation does: every row is its own compositing group. A row that clips
-// its content (`overflow: hidden`) gets a group no larger than itself.
+// animation does: every row is its own compositing group, with or without
+// `overflow: hidden`.
 const fadingList = (rows: number, overflow?: "hidden") => (
   <div
     style={{

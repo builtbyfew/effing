@@ -220,8 +220,5 @@ export function layoutTextNative(
     height,
     paragraph,
     paragraphOffsetY,
-    paragraphLinesApart:
-      layout.lines.length <= 1 ||
-      layout.lineHeight >= layout.ascent + layout.descent,
   };
 }

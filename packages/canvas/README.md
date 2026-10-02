@@ -296,17 +296,6 @@ rounded corners included. To keep the edge sharp, clip after the filter: give
 the element a `clipPath` (for example `inset(0px round 8px)`), or wrap it in an
 element with `overflow: hidden`.
 
-An element that is a single draw (text, an image, a plain background) fades
-directly. One with several parts is composited through an offscreen buffer the
-size of the canvas; if it clips its content (`overflow: hidden`) the buffer is
-only its own size, which is cheaper when many such elements fade at once.
-
-One limit: a group that holds more than 32 MiB of decoded images (a single
-photo of about 8 megapixels is enough) is composited in two parts, so what the
-element paints after such an image no longer hides it while the element is
-translucent. Scaling large images down to the size they are shown at avoids
-it.
-
 ### Clip paths
 
 `clipPath` clips the element's entire rendering — background, borders,

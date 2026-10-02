@@ -46,11 +46,6 @@ export type TextLayoutResult = {
   paragraph?: NativeParagraph;
   /** Vertical offset to paint `paragraph` at, relative to the text box. */
   paragraphOffsetY?: number;
-  /**
-   * Whether the paragraph's line boxes are at least as tall as the font's
-   * ascent plus descent, so that the ink of one line doesn't reach the next.
-   */
-  paragraphLinesApart?: boolean;
 };
 
 /**

@@ -437,31 +437,8 @@ describe("drawNode – opacity and filter", () => {
     ...extra,
   });
 
-  // Two children: fading them together takes a group.
-  const pair = () => [
-    box({ backgroundColor: "blue" }),
-    box({ backgroundColor: "green" }),
-  ];
-
-  // The mock paragraph measures 8px per character, so "Hello" is one line.
-  const text = (style: Record<string, unknown> = {}, content = "Hello") =>
-    box({ fontSize: 16, color: "black", ...style }, [], {
-      type: "text",
-      textContent: content,
-    });
-
   const order = (mock: unknown, call = 0) =>
     vi.mocked(mock as () => void).mock.invocationCallOrder[call]!;
-
-  // The alpha in effect each time a mocked draw is called. (The mock's
-  // restore() is a no-op, so it has to be read at the call.)
-  const alphaAt = (mock: unknown) => {
-    const seen: number[] = [];
-    vi.mocked(mock as () => void).mockImplementation(() => {
-      seen.push(ctx.globalAlpha);
-    });
-    return seen;
-  };
 
   it("paints a translucent element and its children as one group", async () => {
     await drawNode(
@@ -476,7 +453,7 @@ describe("drawNode – opacity and filter", () => {
     expect(beginGroup).toHaveBeenCalledTimes(1);
     expect(beginGroup).toHaveBeenCalledWith(ctx, {
       opacity: 0.5,
-      bounds: undefined,
+      filter: undefined,
     });
     // Both fills land inside the group, which fades them together: the
     // opacity is not applied to each draw.
@@ -502,11 +479,28 @@ describe("drawNode – opacity and filter", () => {
     expect(ctx.filter).toBe("none");
   });
 
+  it("fades text through a group too", async () => {
+    await drawNode(
+      ctx,
+      box({ fontSize: 16, color: "black", opacity: 0.5 }, [], {
+        type: "text",
+        textContent: "Hello",
+      }),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(order(beginGroup)).toBeLessThan(order(fillParagraph));
+    expect(order(fillParagraph)).toBeLessThan(order(endGroup));
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
   it("reads a numeric string as an opacity, as CSS does", async () => {
-    await drawNode(ctx, box({ opacity: "0.5" }, pair()), 0, 0);
+    await drawNode(ctx, box({ opacity: "0.5", backgroundColor: "red" }), 0, 0);
     expect(beginGroup).toHaveBeenCalledWith(ctx, {
       opacity: 0.5,
-      bounds: undefined,
+      filter: undefined,
     });
 
     vi.clearAllMocks();
@@ -517,90 +511,16 @@ describe("drawNode – opacity and filter", () => {
   it("nests a group for a translucent child of a translucent parent", async () => {
     await drawNode(
       ctx,
-      box({ opacity: 0.5 }, [
-        box({ opacity: 0.25 }, pair()),
-        box({ backgroundColor: "red" }),
-      ]),
+      box({ opacity: 0.5 }, [box({ opacity: 0.25, backgroundColor: "blue" })]),
       0,
       0,
     );
 
     expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
-      { opacity: 0.5, bounds: undefined },
-      { opacity: 0.25, bounds: undefined },
+      { opacity: 0.5, filter: undefined },
+      { opacity: 0.25, filter: undefined },
     ]);
     expect(endGroup).toHaveBeenCalledTimes(2);
-  });
-
-  it("bounds the group of an element that clips its content", async () => {
-    await drawNode(
-      ctx,
-      box({ opacity: 0.5, overflow: "hidden" }, pair()),
-      0,
-      0,
-    );
-
-    // The border box (0, 0, 100, 50), grown by a device pixel.
-    expect(beginGroup).toHaveBeenCalledWith(ctx, {
-      opacity: 0.5,
-      bounds: [-1, -1, 102, 52],
-    });
-  });
-
-  it("leaves room in the bounds for the box-shadow, drawn outside the clip", async () => {
-    await drawNode(
-      ctx,
-      box({
-        opacity: 0.5,
-        overflow: "hidden",
-        boxShadow: "3px 4px 10px black",
-      }),
-      0,
-      0,
-    );
-
-    // Shadow extent: blur × 2 + |offsets| = 27, plus the device pixel.
-    expect(beginGroup).toHaveBeenCalledWith(ctx, {
-      opacity: 0.5,
-      bounds: [-28, -28, 156, 106],
-    });
-  });
-
-  it("keeps the margin at a device pixel under a scale", async () => {
-    vi.mocked(ctx.getTransform).mockReturnValueOnce({
-      a: 0.5,
-      b: 0,
-      c: 0,
-      d: 0.25,
-      e: 0,
-      f: 0,
-    } as ReturnType<SKRSContext2D["getTransform"]>);
-    await drawNode(
-      ctx,
-      box({ opacity: 0.5, overflow: "hidden" }, pair()),
-      0,
-      0,
-    );
-
-    // The smaller axis scale is 0.25: one device pixel is 4 units.
-    expect(beginGroup).toHaveBeenCalledWith(ctx, {
-      opacity: 0.5,
-      bounds: [-4, -4, 108, 58],
-    });
-  });
-
-  it("doesn't bound a filtered group, whose filter can paint past its content", async () => {
-    await drawNode(
-      ctx,
-      box({ opacity: 0.5, overflow: "hidden", filter: "blur(4px)" }),
-      0,
-      0,
-    );
-
-    expect(beginGroup).toHaveBeenCalledWith(ctx, {
-      opacity: 0.5,
-      filter: "blur(4px)",
-    });
   });
 
   it.each([
@@ -619,83 +539,6 @@ describe("drawNode – opacity and filter", () => {
       expect(endGroup).not.toHaveBeenCalled();
     },
   );
-
-  // A group costs a buffer the size of the canvas, so an element that is a
-  // single draw takes its opacity on that draw: the same picture without one.
-
-  it("fades a plain background on its one fill, without a group", async () => {
-    const alpha = alphaAt(ctx.fillRect);
-    await drawNode(ctx, box({ opacity: 0.5, backgroundColor: "red" }), 0, 0);
-
-    expect(beginGroup).not.toHaveBeenCalled();
-    expect(alpha).toEqual([0.5]);
-  });
-
-  it("fades a text-only element on its one paragraph fill", async () => {
-    const alpha = alphaAt(fillParagraph);
-    await drawNode(ctx, text({ opacity: 0.5 }), 0, 0);
-
-    expect(beginGroup).not.toHaveBeenCalled();
-    expect(alpha).toEqual([0.5]);
-  });
-
-  it("fades an image on its one draw", async () => {
-    const alpha = alphaAt(ctx.drawImage);
-    await drawNode(
-      ctx,
-      box({ opacity: 0.5, borderTopLeftRadius: 8 }, [], {
-        type: "img",
-        props: { src: "photo.png" },
-      }),
-      0,
-      0,
-    );
-
-    expect(beginGroup).not.toHaveBeenCalled();
-    expect(alpha).toEqual([0.5]);
-  });
-
-  it("hands the opacity of an element that paints nothing to its only child", async () => {
-    const alpha = alphaAt(fillParagraph);
-    await drawNode(ctx, box({ opacity: 0.5 }, [text()]), 0, 0);
-    // The child's own opacity multiplies with what it is handed.
-    ctx.globalAlpha = 1;
-    await drawNode(ctx, box({ opacity: 0.5 }, [text({ opacity: 0.5 })]), 0, 0);
-
-    expect(beginGroup).not.toHaveBeenCalled();
-    expect(alpha).toEqual([0.5, 0.25]);
-  });
-
-  it.each([
-    ["a text shadow", { textShadow: "1px 1px 0 red" }],
-    ["a text stroke", { WebkitTextStrokeWidth: 2 }],
-    ["a text decoration", { textDecoration: "underline" }],
-    ["a background behind the text", { backgroundColor: "white" }],
-    ["a border", { borderTopWidth: 1 }],
-    ["a box shadow", { boxShadow: "0 0 4px black" }],
-  ])("keeps the group for text with %s", async (_, style) => {
-    await drawNode(ctx, text({ opacity: 0.5, ...style }), 0, 0);
-
-    expect(beginGroup).toHaveBeenCalledTimes(1);
-    expect(endGroup).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps the group for lines of text close enough to overlap", async () => {
-    // Two lines in a 56px box. The mock font is 16px tall (ascent 12,
-    // descent 4): 10px line boxes let one line's ink reach the next.
-    const lines = (lineHeight: number) =>
-      box({ fontSize: 16, color: "black", opacity: 0.5, lineHeight }, [], {
-        type: "text",
-        textContent: "aaa bbb ccc",
-        width: 56,
-      });
-    await drawNode(ctx, lines(10), 0, 0);
-    expect(beginGroup).toHaveBeenCalledTimes(1);
-
-    vi.clearAllMocks();
-    await drawNode(ctx, lines(20), 0, 0);
-    expect(beginGroup).not.toHaveBeenCalled();
-  });
 
   it("closes the group and every save when an image inside it fails to load", async () => {
     vi.mocked(loadImage).mockRejectedValueOnce(new Error("no such image"));
@@ -716,7 +559,8 @@ describe("drawNode – opacity and filter", () => {
     expect(ctx.fillRect).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the group over a backdrop-filter, whose backdrop root it is", async () => {
+  it("groups a translucent element around a backdrop-filter inside it", async () => {
+    // The element's group is the backdrop root of what it contains.
     await drawNode(
       ctx,
       box({ opacity: 0.5 }, [box({ backdropFilter: "blur(2px)" })]),
@@ -725,7 +569,7 @@ describe("drawNode – opacity and filter", () => {
     );
 
     expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
-      { opacity: 0.5, bounds: undefined },
+      { opacity: 0.5, filter: undefined },
       { backdropFilter: "blur(2px)", opacity: 1 },
     ]);
   });
@@ -828,7 +672,7 @@ describe("drawNode – backdrop-filter", () => {
 
     expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
       { backdropFilter: "blur(4px)", opacity: 0.5 },
-      { opacity: 0.5, bounds: undefined },
+      { opacity: 0.5, filter: undefined },
     ]);
     // The backdrop group has ended before the element's group begins.
     expect(order(endGroup, 0)).toBeLessThan(order(beginGroup, 1));

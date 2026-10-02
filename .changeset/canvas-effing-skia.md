@@ -12,7 +12,7 @@ paragraphs, compositing groups). Code that imports from `@effing/canvas` needs
 no change.
 
 The backend is no longer a peer dependency: `@effing/canvas` depends on
-`@effing/skia` at exactly `1.0.10-effing.1`, so it is installed with
+`@effing/skia` at exactly `1.0.10-effing.2`, so it is installed with
 `@effing/canvas` and no project has to list it. A project that lists
 `@napi-rs/canvas` only to satisfy the old peer dependency can drop it.
 

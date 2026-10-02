@@ -3,7 +3,9 @@ import React from "react";
 import type { FontData } from "../src/types.ts";
 import type { ComputedStyle } from "../src/jsx/style/compute.ts";
 import { ensureFontsRegistered } from "../src/jsx/font.ts";
-import { layoutText } from "../src/jsx/text/index.ts";
+import { buildLayoutTree } from "../src/jsx/layout.ts";
+import type { LayoutNode } from "../src/jsx/layout.ts";
+import { layoutText, layoutTextFallback } from "../src/jsx/text/index.ts";
 import {
   HAS_NATIVE_DEPS,
   compareImages,
@@ -136,6 +138,80 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     ]);
   });
 
+  it("leaves a last word wider than the box unbroken too", () => {
+    // Skia's min-intrinsic width counts a broken last word by its pieces.
+    const result = layoutText("over lazy here", style({ fontSize: 20 }), 39);
+    expect(result.paragraph).toBeUndefined();
+    expect(result.segments.map((s) => s.text)).toEqual([
+      "over",
+      "lazy",
+      "here",
+    ]);
+  });
+
+  // Lines from Chrome 154 for the same text, font and width, with
+  // `word-break: break-word`.
+  it.each([
+    [
+      "A supercalifragilisticexpialidocious word here",
+      80,
+      ["A", "supercal", "ifragilisti", "cexpialid", "ocious", "word", "here"],
+    ],
+    [
+      "A supercalifragilisticexpialidocious word here",
+      120,
+      ["A", "supercalifragi", "listicexpialido", "cious word", "here"],
+    ],
+    ["over lazy here", 39, ["over", "lazy", "her", "e"]],
+    [
+      "supercalifragilisticexpialidocious",
+      100,
+      ["supercalifr", "agilisticexp", "ialidocious"],
+    ],
+    ["The quick brown fox", 30, ["Th", "e", "qui", "ck", "bro", "wn", "fox"]],
+  ])(
+    "breaks a word wider than the box under break-word, as Chrome does: %s at %spx",
+    (text, width, lines) => {
+      const breakWord = style({ fontSize: 20, wordBreak: "break-word" });
+      const result = layoutText(text, breakWord, width);
+      expect(result.segments.map((s) => s.text)).toEqual(lines);
+      expect(
+        layoutTextFallback(text, breakWord, width).segments.map((s) => s.text),
+      ).toEqual(lines);
+    },
+  );
+
+  it("keeps the paragraph under break-word where Skia breaks as CSS does", () => {
+    const breakWord = style({ fontSize: 20, wordBreak: "break-word" });
+    // The broken word starts its line, as CSS has it.
+    expect(
+      layoutText("supercalifragilisticexpialidocious", breakWord, 100)
+        .paragraph,
+    ).toBeDefined();
+    // Skia fills the line "A" is on with the start of the long word, where
+    // CSS wraps before it first: the TypeScript layout does that.
+    expect(
+      layoutText("A supercalifragilisticexpialidocious", breakWord, 80)
+        .paragraph,
+    ).toBeUndefined();
+  });
+
+  it("keeps one empty line box for empty text, as the TypeScript layout does", () => {
+    for (const lineHeight of [undefined, 30]) {
+      const s = style({ fontSize: 20, lineHeight });
+      const native = layoutText("", s, 300);
+      const typescript = layoutTextFallback("", s, 300);
+      expect(native.paragraph).toBeDefined();
+      expect(native.height).toBe(typescript.height);
+      expect(native.segments).toHaveLength(1);
+      expect(native.segments[0]!.y).toBeCloseTo(typescript.segments[0]!.y, 4);
+      expect(native.segments[0]!.height).toBeCloseTo(
+        typescript.segments[0]!.height,
+        4,
+      );
+    }
+  });
+
   it("start-aligns a centred or right-aligned line that overflows, as browsers do", () => {
     for (const textAlign of ["center", "right"] as const) {
       const overflowing = layoutText(
@@ -194,3 +270,100 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     }
   });
 });
+
+// Yoga measures a text node at whatever widths its algorithm needs, while the
+// text is drawn at the node's final width; the node must be as tall as the
+// lines drawn (#166).
+describe.skipIf(!HAS_NATIVE_DEPS)(
+  "text measured and drawn at one width",
+  () => {
+    beforeAll(async () => {
+      ensureFontsRegistered(await loadFonts());
+    });
+
+    const textNodes = (node: LayoutNode): LayoutNode[] =>
+      node.type === "text" ? [node] : node.children.flatMap(textNodes);
+
+    /** Lay `element` out, and check every text node against its drawn lines. */
+    async function layOut(element: React.ReactElement) {
+      const { tree } = await buildLayoutTree(
+        // A column that doesn't stretch its children, so that boxes keep the
+        // height their text gives them.
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            fontFamily: "Liberation Sans",
+          }}
+        >
+          {element}
+        </div>,
+        400,
+        400,
+        undefined,
+        false,
+        ["Liberation Sans"],
+      );
+      const nodes = textNodes(tree);
+      for (const node of nodes) {
+        // What drawing lays out: the text at the node's width.
+        const drawn = layoutText(node.textContent!, node.style, node.width);
+        expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
+          drawn.segments.map((s) => s.text),
+        );
+        const lineHeight = drawn.segments[0]!.height;
+        expect(node.height).toBe(Math.ceil(drawn.segments.length * lineHeight));
+      }
+      return nodes;
+    }
+
+    it.each([
+      // The issue's example: measured at 300px (the flex basis), where every
+      // word fits, and drawn at 80px, where one doesn't.
+      ["A supercalifragilisticexpialidocious word here", 4],
+      // The same with words that fit at both widths, so both lay the text out
+      // natively.
+      ["A quick brown fox jumps over here", 6],
+    ])("sizes shrunk text for its final width: %s", async (text, lines) => {
+      const [node] = await layOut(
+        <div style={{ display: "flex", width: 300 }}>
+          <div style={{ fontSize: 20 }}>{text}</div>
+          <div style={{ width: 220, height: 20, flexShrink: 0 }} />
+        </div>,
+      );
+      expect(node!.width).toBe(80);
+      expect(node!.textLayout!.segments).toHaveLength(lines);
+    });
+
+    it("sizes text for the width Yoga rounds its box to", async () => {
+      // Three columns of 98.33px. Yoga measures the text at that width, where
+      // it takes two lines, then rounds each text box out to 99px, where the
+      // text is drawn on one line.
+      const nodes = await layOut(
+        <div style={{ display: "flex", width: 295, alignItems: "flex-start" }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ fontSize: 20, flexGrow: 1, flexBasis: 0 }}>
+              Hello world
+            </div>
+          ))}
+        </div>,
+      );
+      for (const node of nodes) {
+        expect(node.width).toBe(99);
+        expect(node.textLayout!.segments).toHaveLength(1);
+      }
+    });
+
+    it("sizes text squeezed to no width by every line drawn", async () => {
+      const [node] = await layOut(
+        <div style={{ display: "flex", width: 100 }}>
+          <div style={{ fontSize: 20 }}>A quick brown fox</div>
+          <div style={{ width: 100, height: 20, flexShrink: 0 }} />
+        </div>,
+      );
+      expect(node!.width).toBe(0);
+      expect(node!.textLayout!.segments).toHaveLength(4);
+    });
+  },
+);

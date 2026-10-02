@@ -17,7 +17,8 @@ import {
 } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
-import { createTextMeasureFunc } from "./text/index.ts";
+import { TextMeasure } from "./text/index.ts";
+import type { TextLayoutResult } from "./text/index.ts";
 import { createYogaNode, freeYogaNode, FlexDirection } from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
@@ -29,6 +30,8 @@ export type LayoutNode = {
   style: ComputedStyle;
   children: LayoutNode[];
   textContent?: string;
+  /** The text laid out at the node's width, for drawing. */
+  textLayout?: TextLayoutResult;
   props: Record<string, unknown>;
   x: number;
   y: number;
@@ -90,6 +93,9 @@ export async function buildLayoutTree(
   rootYogaNode.insertChild(elementYogaNode, 0);
 
   rootYogaNode.calculateLayout(containerWidth, containerHeight);
+  settleText(elementNode, () =>
+    rootYogaNode.calculateLayout(containerWidth, containerHeight),
+  );
 
   const elementLayout = extractLayout(elementNode, elementYogaNode);
   freeYogaNode(rootYogaNode);
@@ -139,14 +145,15 @@ async function buildNode(
     const style = resolveStyle(undefined, parentStyle);
 
     // Set up text measurement
-    const measureFunc = createTextMeasureFunc(text, style, ctx, emojiEnabled);
-    yogaNode.setMeasureFunc(measureFunc);
+    const textMeasure = new TextMeasure(text, style, ctx, emojiEnabled);
+    yogaNode.setMeasureFunc(textMeasure.measure);
 
     return {
       type: "text",
       style,
       children: [],
       textContent: text,
+      textMeasure,
       props: {},
       yogaNode,
     };
@@ -308,13 +315,13 @@ async function buildNode(
   if (textContent !== undefined && !hasElementChildren(props.children)) {
     const childStyle = resolveStyle(undefined, style);
     const childYogaNode = createYogaNode();
-    const measureFunc = createTextMeasureFunc(
+    const textMeasure = new TextMeasure(
       textContent,
       childStyle,
       ctx,
       emojiEnabled,
     );
-    childYogaNode.setMeasureFunc(measureFunc);
+    childYogaNode.setMeasureFunc(textMeasure.measure);
     const jc = style.justifyContent;
     if (!jc || jc === "flex-start") {
       childYogaNode.setFlexGrow(1);
@@ -338,6 +345,7 @@ async function buildNode(
           style: childStyle,
           children: [],
           textContent,
+          textMeasure,
           props: {},
           yogaNode: childYogaNode,
         },
@@ -408,9 +416,45 @@ type IntermediateNode = {
   style: ComputedStyle;
   children: IntermediateNode[];
   textContent?: string;
+  /** Set on text nodes, which Yoga measures. */
+  textMeasure?: TextMeasure;
   props: Record<string, unknown>;
   yogaNode: YogaNode;
 };
+
+/**
+ * How many times the layout is computed again for text that Yoga sized at
+ * another width than it's drawn at (see `TextMeasure`). One normally settles
+ * it; the bound is for layouts where a node's width depends on its height
+ * (wrapping columns, aspect ratios), which could otherwise keep changing.
+ */
+const MAX_TEXT_RELAYOUTS = 2;
+
+/**
+ * Lay every text node out at its final width, and compute the layout again
+ * while Yoga sized one from a different height.
+ */
+function settleText(root: IntermediateNode, relayout: () => void): void {
+  const textNodes: IntermediateNode[] = [];
+  const collect = (node: IntermediateNode) => {
+    if (node.textMeasure) textNodes.push(node);
+    node.children.forEach(collect);
+  };
+  collect(root);
+
+  for (let pass = 0; pass <= MAX_TEXT_RELAYOUTS; pass++) {
+    let dirty = false;
+    for (const node of textNodes) {
+      // Text nodes have no padding or border: their width is the content's.
+      if (node.textMeasure!.settle(node.yogaNode.getComputedWidth())) {
+        node.yogaNode.markDirty();
+        dirty = true;
+      }
+    }
+    if (!dirty || pass === MAX_TEXT_RELAYOUTS) return;
+    relayout();
+  }
+}
 
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();
@@ -423,6 +467,7 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
       return extractLayout(child, childYoga);
     }),
     textContent: node.textContent,
+    textLayout: node.textMeasure?.layoutAt(layout.width),
     props: node.props,
     x: layout.left,
     y: layout.top,

@@ -6,12 +6,17 @@
 // glyphs, exactly as `fillText` does under `withUnsnappedText`.
 
 import { Paragraph } from "@effing/skia/extensions";
-import type { ParagraphStyle } from "@effing/skia/extensions";
+import type {
+  ParagraphLayout,
+  ParagraphLine,
+  ParagraphStyle,
+} from "@effing/skia/extensions";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
 import type { FontMetrics } from "../font-metrics.ts";
+import { findBreakOpportunities } from "./linebreak.ts";
 import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
 import type { TextLayoutResult, TextSegment } from "./index.ts";
 
@@ -28,9 +33,6 @@ export function canLayoutNatively(
   style: ComputedStyle,
   emojiEnabled?: boolean,
 ): boolean {
-  // An empty paragraph has no lines; the TypeScript layout keeps one empty
-  // line box for it.
-  if (text === "") return false;
   if (style.wordBreak === "break-all") return false;
   if (style.whiteSpace === "pre" && /[ \t](?:\n|$)/.test(text)) return false;
   if (emojiEnabled) {
@@ -107,6 +109,42 @@ export async function releaseParagraphs(): Promise<void> {
 }
 
 /**
+ * Whether the paragraph broke its words as CSS does. Skia breaks a word that
+ * is wider than `width` to fit, which CSS does only under `break-word`;
+ * otherwise (`overflow-wrap: normal`) the word overflows. And where CSS first
+ * wraps before such a word and breaks it only if it still doesn't fit, Skia
+ * fills the line it's on: `break-word` holds only when every line that ends
+ * within a word starts with that word.
+ */
+function breaksWordsLikeCss(
+  text: string,
+  layout: ParagraphLayout,
+  width: number,
+  breakWord: boolean,
+): boolean {
+  if (!breakWord && layout.minIntrinsicWidth > width) return false;
+  // Skia measures the widest word before breaking it, except when it's the
+  // last word, which then counts by its broken pieces. So look for lines that
+  // end where the next begins (no space between) at a point the text has no
+  // break opportunity.
+  let opportunities: number[] | undefined;
+  const { lines } = layout;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i]!;
+    if (line.hardBreak || line.endIndex !== lines[i + 1]!.startIndex) continue;
+    opportunities ??= findBreakOpportunities(text).map((opp) => opp.position);
+    if (opportunities.includes(line.endIndex)) continue;
+    if (!breakWord) return false;
+    if (
+      opportunities.some((pos) => pos > line.startIndex && pos < line.endIndex)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Lay out already-transformed text natively. Mirrors the TypeScript layout:
  * one segment per line, CSS half-leading line boxes from the font's hhea
  * metrics, an ellipsis for nowrap + text-overflow and for line-clamp, and
@@ -114,7 +152,9 @@ export async function releaseParagraphs(): Promise<void> {
  *
  * Returns null when a word is wider than `maxWidth`: Skia would break it
  * mid-word, where CSS (without `overflow-wrap`) lets it overflow, as the
- * TypeScript layout does.
+ * TypeScript layout does. Under `word-break: break-word`, where CSS breaks it
+ * too, the paragraph is kept unless Skia broke the word on a line that holds
+ * more than that word (see `breaksWordsLikeCss`).
  *
  * @param lineHeight - Line box height in px, or undefined for `normal`
  */
@@ -157,9 +197,29 @@ export function layoutTextNative(
   });
   countParagraph();
   const layout = paragraph.layout(width);
-  if (!noWrap && layout.minIntrinsicWidth > width) return null;
+  if (
+    !noWrap &&
+    !breaksWordsLikeCss(text, layout, width, style.wordBreak === "break-word")
+  ) {
+    return null;
+  }
 
-  const segments: TextSegment[] = layout.lines.map((line, i) => ({
+  // An empty paragraph has no lines, where CSS keeps one empty line box.
+  const lines: ParagraphLine[] =
+    layout.lines.length > 0
+      ? layout.lines
+      : [
+          {
+            left: 0,
+            width: 0,
+            // As Skia places a baseline: by half-leading in the line box.
+            baseline: (layout.lineHeight + layout.ascent - layout.descent) / 2,
+            startIndex: 0,
+            endIndex: 0,
+            hardBreak: true,
+          },
+        ];
+  const segments: TextSegment[] = lines.map((line, i) => ({
     // A line that ends the text at a newline reports the newline as its text.
     text: text.slice(line.startIndex, line.endIndex).replace(/\n/g, ""),
     x: line.left,
@@ -177,7 +237,7 @@ export function layoutTextNative(
     lineIndex: i,
   }));
 
-  let height = layout.height;
+  let height = lines.length * layout.lineHeight;
   // As in the TypeScript layout: round auto line-height boxes up so Yoga's
   // integer rounding never clips a descender.
   if (lineHeight === undefined && segments.length > 0) {

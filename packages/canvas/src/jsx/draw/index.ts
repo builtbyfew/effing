@@ -1,29 +1,31 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
-import { drawBackdropFilter } from "./backdrop-filter.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
+import {
+  beginElementGroup,
+  drawBackdropFilter,
+  endElementGroup,
+} from "./group.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
-import { acquireOffscreen, releaseOffscreen } from "./offscreen.ts";
-import {
-  boxShadowExtent,
-  drawBoxShadow,
-  drawRect,
-  getBorderRadiusFromStyle,
-} from "./rect.ts";
+import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
 
 /**
  * Main draw dispatcher: recursively draws the layout tree onto the canvas.
+ *
+ * Every node, scaled or not, is drawn straight through its transform. Text is
+ * drawn unhinted and unsnapped (see `drawText`), so it lands in the same place
+ * at any scale and a scaled subtree needs no supersampled offscreen buffer.
  */
 export async function drawNode(
   ctx: SKRSContext2D,
@@ -35,9 +37,9 @@ export async function drawNode(
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
-  const { width, height, style } = node;
+  const { style } = node;
 
-  // Resolve a context once so children and the offscreen path share one cache.
+  // Resolve a context once so the whole subtree shares one image cache.
   const renderContext: RenderContext = context ?? {
     imageCache: new Map(),
     debug: false,
@@ -45,244 +47,42 @@ export async function drawNode(
 
   if (style.display === "none") return;
 
-  const opacity = style.opacity ?? 1;
+  // A numeric string counts, as it does in CSS; anything that isn't a
+  // number leaves the element opaque.
+  const rawOpacity = Number(style.opacity ?? 1);
+  const opacity = Number.isFinite(rawOpacity) ? rawOpacity : 1;
   if (opacity <= 0) return;
 
-  // Detect pure-scale transforms — render to offscreen buffer at 1x then
-  // composite scaled, to avoid Skia re-rasterizing glyphs per-frame.
-  // Mixed transforms (scale combined with translate/rotate/skew) bypass this
-  // path because the layout-box-sized offscreen would clip any drawing the
-  // translate/rotate moves outside that box.
-  const scaleInfo = style.transform ? extractScale(style.transform) : null;
-  const hasOtherTransforms =
-    scaleInfo !== null && scaleInfo.remaining.length > 0;
-  // A backdrop-filter anywhere in the subtree also bypasses it: the filter
-  // samples the canvas it draws on, and an offscreen buffer holds none of the
-  // content behind the element.
-  const subtree =
-    scaleInfo &&
-    (scaleInfo.sx !== 1 || scaleInfo.sy !== 1) &&
-    !hasOtherTransforms
-      ? scanSubtree(node)
-      : null;
-  if (scaleInfo && subtree && !subtree.hasBackdropFilter) {
-    const sx = scaleInfo.sx;
-    const sy = scaleInfo.sy;
-    const transformWithoutScale = scaleInfo.remaining;
-
-    // The offscreen buffer has hard pixel bounds, so anything painted past its
-    // edge is clipped. A CSS transform must never clip the element's own
-    // content, yet ink legitimately overflows the layout box — glyph side
-    // bearings, italic overhang, and negative letter-spacing all push paint
-    // past the content edge (as do box-shadows). Grow the buffer by that much
-    // on every side so transformed content keeps the overflow the untransformed
-    // element would paint. Rounded up to whole pixels: with a fractional bleed
-    // (e.g. from a fractional font size) the buffer size below would be
-    // ceil'd past the logical box it's composited into, shrinking the content
-    // by up to a pixel, and the box would sit off the pixel grid in the buffer.
-    const bleed = Math.max(1, Math.ceil(subtree.overflowBleed));
-
-    // Quantize to ceil(|scale|) — buffer resolution only changes at
-    // integer boundaries (no jitter), and composite is always ≤1x (sharp).
-    const qx = Math.max(1, Math.ceil(Math.abs(sx)));
-    const qy = Math.max(1, Math.ceil(Math.abs(sy)));
-
-    const bufW = Math.ceil((width + 2 * bleed) * qx);
-    const bufH = Math.ceil((height + 2 * bleed) * qy);
-    if (bufW > 0 && bufH > 0) {
-      const [offscreen, offCtx] = acquireOffscreen(bufW, bufH);
-
-      // Render at qx×qy resolution — logical coords produce more pixels.
-      // Offset by `bleed` so the box sits inside the buffer with room for
-      // overflow on every side.
-      offCtx.save();
-      offCtx.scale(qx, qy);
-      await drawNodeCore(
-        offCtx,
-        node,
-        parentX,
-        parentY,
-        bleed - x,
-        bleed - y,
-        emojiStyle,
-        renderContext,
-        transformWithoutScale,
-      );
-      offCtx.restore();
-
-      ctx.save();
-      if (opacity < 1) {
-        ctx.globalAlpha *= opacity;
-      }
-
-      let ox = x + width / 2;
-      let oy = y + height / 2;
-      if (style.transformOrigin) {
-        const parts = style.transformOrigin.split(/\s+/);
-        ox = resolveOrigin(parts[0], x, width);
-        oy = resolveOrigin(parts[1], y, height);
-      }
-
-      // Apply the original scale — drawImage maps the high-res buffer
-      // back to logical size, so the transform needs the full scale value.
-      ctx.translate(ox, oy);
-      ctx.scale(sx, sy);
-      ctx.translate(-ox, -oy);
-
-      // Draw high-res buffer back at logical size (qx→1x downscale happens
-      // here). Source and dest both span the bleed-expanded box, so the
-      // overflow region maps back to the same place it would paint untransformed.
-      ctx.drawImage(
-        offscreen,
-        0,
-        0,
-        bufW,
-        bufH,
-        x - bleed,
-        y - bleed,
-        width + 2 * bleed,
-        height + 2 * bleed,
-      );
-      releaseOffscreen(offscreen);
-      ctx.restore();
-      return;
-    }
+  // Painting awaits image loads, which can fail. The group and the save are
+  // closed either way, so a caller that catches the error and draws the next
+  // frame on this context doesn't paint into a layer left open.
+  const group = { open: false };
+  ctx.save();
+  try {
+    await paintNode(ctx, node, x, y, opacity, renderContext, emojiStyle, group);
+  } finally {
+    if (group.open) endElementGroup(ctx);
+    ctx.restore();
   }
-
-  await drawNodeCore(
-    ctx,
-    node,
-    parentX,
-    parentY,
-    0,
-    0,
-    emojiStyle,
-    renderContext,
-  );
 }
 
-/**
- * Extract scale(sx, sy) from a transform string, returning the scale values
- * and the remaining transform with scale removed.
- */
-function extractScale(
-  transform: string,
-): { sx: number; sy: number; remaining: string } | null {
-  const scaleMatch = transform.match(/\b(scale|scaleX|scaleY)\(([^)]+)\)/);
-  if (!scaleMatch) return null;
-
-  const [fullMatch, name, args] = scaleMatch;
-  const values = args!.split(",").map((s) => s.trim());
-
-  const sx = name === "scaleY" ? 1 : parseFloat(values[0]!);
-  const sy =
-    name === "scaleX"
-      ? 1
-      : parseFloat(values[name === "scale" ? 1 : 0] ?? String(sx));
-
-  const remaining = transform.replace(fullMatch!, "").trim();
-  return { sx, sy, remaining };
-}
-
-/**
- * One walk over the visible part of a subtree (nodes that are `display: none`
- * or fully transparent are skipped, as they are when drawing) collecting what
- * the offscreen scale path needs to know:
- *
- * - `overflowBleed`: how far the subtree's painting can extend beyond its
- *   layout box, in logical (pre-scale) pixels, to size the offscreen buffer so
- *   its hard pixel bounds don't slice ink that legitimately overflows the box.
- *   Glyph ink overhangs its advance box by up to roughly one em (side
- *   bearings, italics, accents), and negative letter-spacing trims the box
- *   while leaving the trailing glyph's ink in place — so it overflows by the
- *   magnitude of the spacing. Box-shadows extend the painted area too. The
- *   result is a single symmetric margin (the max needed on any side).
- * - `hasBackdropFilter`: whether any node applies a backdrop-filter, which
- *   needs the real canvas behind it and so rules out the offscreen path.
- */
-function scanSubtree(node: LayoutNode): {
-  overflowBleed: number;
-  hasBackdropFilter: boolean;
-} {
-  let overflowBleed = 0;
-  let hasBackdropFilter = false;
-
-  const visit = (n: LayoutNode): void => {
-    if (n.style.display === "none") return;
-    if ((n.style.opacity ?? 1) <= 0) return;
-
-    const fontSize =
-      typeof n.style.fontSize === "number" ? n.style.fontSize : 0;
-    if (n.textContent !== undefined && n.textContent !== "" && fontSize > 0) {
-      const letterSpacing =
-        typeof n.style.letterSpacing === "number" ? n.style.letterSpacing : 0;
-      overflowBleed = Math.max(
-        overflowBleed,
-        fontSize + Math.max(0, -letterSpacing),
-      );
-    }
-
-    if (n.style.boxShadow) {
-      overflowBleed = Math.max(
-        overflowBleed,
-        boxShadowExtent(n.style.boxShadow),
-      );
-    }
-
-    const filter = n.style.backdropFilter;
-    if (filter && filter.trim() !== "none") hasBackdropFilter = true;
-
-    for (const child of n.children) visit(child);
-  };
-
-  visit(node);
-  return { overflowBleed, hasBackdropFilter };
-}
-
-/**
- * Core draw logic shared by both the normal path and the offscreen-buffer path.
- * offsetX/offsetY shift all coordinates so the node renders at a buffer-local position.
- * overrideTransform replaces the node's transform (used to strip scale for offscreen).
- */
-async function drawNodeCore(
+/** Paints a node inside the save that `drawNode` opened for it. */
+async function paintNode(
   ctx: SKRSContext2D,
   node: LayoutNode,
-  parentX: number,
-  parentY: number,
-  offsetX: number,
-  offsetY: number,
+  x: number,
+  y: number,
+  opacity: number,
+  renderContext: RenderContext,
   emojiStyle: EmojiStyle | undefined,
-  context: RenderContext,
-  overrideTransform?: string,
+  group: { open: boolean },
 ): Promise<void> {
-  const x = parentX + node.x + offsetX;
-  const y = parentY + node.y + offsetY;
   const { width, height, style } = node;
 
-  if (style.display === "none") return;
-
-  const opacity = style.opacity ?? 1;
-  if (opacity <= 0) return;
-
-  ctx.save();
-
-  // Apply opacity
-  if (opacity < 1) {
-    ctx.globalAlpha *= opacity;
-  }
-
-  // Apply CSS filter
-  if (style.filter) {
-    ctx.filter = style.filter;
-  }
-
-  // Apply transform (use override when provided, e.g. scale stripped)
-  const transformToApply =
-    overrideTransform !== undefined ? overrideTransform : style.transform;
-  if (transformToApply) {
+  if (style.transform) {
     applyTransform(
       ctx,
-      transformToApply,
+      style.transform,
       x,
       y,
       width,
@@ -301,7 +101,7 @@ async function drawNodeCore(
   const borderRadius = getBorderRadiusFromStyle(style, width, height);
 
   // Filter the backdrop behind the border box before anything of the element
-  // itself is painted: its box-shadow must not end up in the snapshot, and its
+  // itself is painted: its box-shadow must not end up in the backdrop, and its
   // background composites on top of the filtered result.
   if (style.backdropFilter) {
     drawBackdropFilter(
@@ -312,8 +112,15 @@ async function drawNodeCore(
       width,
       height,
       borderRadius,
+      opacity,
     );
   }
+
+  // The element's own painting and its descendants form one group, composited
+  // with its opacity and filter. CSS applies clip-path after the filter, so the
+  // clip above also clips the filtered result. The backdrop above stays outside
+  // the group: a group's backdrop is read from the enclosing one.
+  group.open = beginElementGroup(ctx, opacity, style.filter);
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
@@ -377,9 +184,9 @@ async function drawNodeCore(
           }
 
           const image = await cachedLoadImage(
-            context.imageCache,
+            renderContext.imageCache,
             urlMatch[1]!,
-            context.userAgent,
+            renderContext.userAgent,
           );
           const bgSize = style.backgroundSize;
 
@@ -443,7 +250,7 @@ async function drawNodeCore(
   }
 
   // Debug: draw bounding boxes
-  if (context.debug) {
+  if (renderContext.debug) {
     ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
     ctx.lineWidth = 1;
     ctx.strokeRect(x, y, width, height);
@@ -478,6 +285,10 @@ async function drawNodeCore(
       contentY,
       style.textShadow,
       emojiStyle,
+      textLayout.paragraph && {
+        paragraph: textLayout.paragraph,
+        offsetY: textLayout.paragraphOffsetY ?? 0,
+      },
     );
   }
 
@@ -515,7 +326,7 @@ async function drawNodeCore(
       imgY,
       imgW,
       imgH,
-      context,
+      renderContext,
       style,
     );
   }
@@ -524,19 +335,10 @@ async function drawNodeCore(
   if (node.type === "svg") {
     drawSvgContainer(ctx, node, x, y, width, height);
   } else {
-    // Recursively draw children
-    // When rendering via offset (offscreen buffer), children use offset 0
-    // since x,y already incorporates the offset.
     for (const child of node.children) {
-      if (offsetX === 0 && offsetY === 0) {
-        await drawNode(ctx, child, x, y, context, emojiStyle);
-      } else {
-        await drawNodeCore(ctx, child, x, y, 0, 0, emojiStyle, context);
-      }
+      await drawNode(ctx, child, x, y, renderContext, emojiStyle);
     }
   }
-
-  ctx.restore();
 }
 
 function applyTransform(

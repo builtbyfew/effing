@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 /**
  * Save context state and apply transform + opacity if present.

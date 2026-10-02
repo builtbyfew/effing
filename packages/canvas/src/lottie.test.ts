@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock @napi-rs/canvas before any imports that use it
-vi.mock("@napi-rs/canvas", () => {
+// Mock @effing/skia before any imports that use it
+vi.mock("@effing/skia", () => {
   const mockRender = vi.fn();
   const mockSeekFrame = vi.fn();
 
@@ -24,8 +24,8 @@ vi.mock("@napi-rs/canvas", () => {
   };
 });
 
-import { LottieAnimation } from "@napi-rs/canvas";
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import { LottieAnimation } from "@effing/skia";
+import type { SKRSContext2D } from "@effing/skia";
 
 import { loadLottie, renderLottieFrame } from "./lottie.ts";
 

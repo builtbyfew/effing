@@ -1,12 +1,18 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@napi-rs/canvas", async () => {
+vi.mock("@effing/skia", async () => {
   const { createCanvasMock } = await import("../../canvas-mock.ts");
   return createCanvasMock();
 });
 
-import { createCanvas } from "@napi-rs/canvas";
-import type { SKRSContext2D } from "@napi-rs/canvas";
+vi.mock("@effing/skia/extensions", async () => {
+  const { createExtensionsMock } = await import("../../canvas-mock.ts");
+  return createExtensionsMock();
+});
+
+import { createCanvas, loadImage } from "@effing/skia";
+import type { SKRSContext2D } from "@effing/skia";
+import { beginGroup, endGroup, fillParagraph } from "@effing/skia/extensions";
 import { drawNode } from "./index.ts";
 
 describe("drawNode", () => {
@@ -119,7 +125,36 @@ describe("drawNode", () => {
       0,
     );
 
+    // Laid out and painted as one native paragraph, at the content origin.
+    expect(fillParagraph).toHaveBeenCalledWith(ctx, expect.anything(), 0, 0);
+    expect(ctx.fillText).not.toHaveBeenCalled();
+  });
+
+  it("draws text the paragraph can't express through fillText", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "span",
+        style: {
+          fontSize: 16,
+          fontFamily: "sans-serif",
+          color: "black",
+          wordBreak: "break-all",
+        },
+        children: [],
+        textContent: "Hello",
+        props: {},
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
     expect(ctx.fillText).toHaveBeenCalled();
+    expect(fillParagraph).not.toHaveBeenCalled();
   });
 
   it("applies overflow hidden clipping", async () => {
@@ -174,7 +209,7 @@ describe("drawNode", () => {
     expect(ctx.fillRect).toHaveBeenCalledWith(15, 15, 50, 30);
   });
 
-  it("uses offscreen compositing for pure-scale transforms", async () => {
+  it("draws pure-scale transforms straight through the transform", async () => {
     await drawNode(
       ctx,
       {
@@ -194,14 +229,14 @@ describe("drawNode", () => {
       0,
     );
 
-    // Pure scale renders to an offscreen and composites with drawImage.
-    expect(ctx.drawImage).toHaveBeenCalled();
+    // No supersampled offscreen buffer: the scale is applied to the context
+    // and the element painted through it.
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 100, 50);
   });
 
-  it("bypasses offscreen for transforms combining scale with translate", async () => {
-    // Repro of the mixed-transform clipping bug: an offscreen sized only to
-    // the layout box would clip drawing the translate moves outside it.
-    // The fix is to render directly to ctx with the full transform applied.
+  it("applies transforms combining scale with translate to the context", async () => {
     await drawNode(
       ctx,
       {
@@ -222,7 +257,6 @@ describe("drawNode", () => {
       0,
     );
 
-    // No offscreen compositing
     expect(ctx.drawImage).not.toHaveBeenCalled();
     // Translate from the transform was applied directly to ctx (80px, 0)
     expect(ctx.translate).toHaveBeenCalledWith(80, 0);
@@ -230,7 +264,7 @@ describe("drawNode", () => {
     expect(ctx.scale).toHaveBeenCalledWith(0.9, 0.9);
   });
 
-  it("bypasses offscreen for transforms combining scale with rotate", async () => {
+  it("applies transforms combining scale with rotate to the context", async () => {
     await drawNode(
       ctx,
       {
@@ -279,99 +313,9 @@ describe("drawNode", () => {
       0,
     );
 
-    // 10% of 200px width = 20px padding on each side
-    expect(ctx.fillText).toHaveBeenCalled();
-    // First call args: text, x, y — x should be offset by padding (20)
-    const fillTextCall = vi.mocked(ctx.fillText).mock.calls[0];
-    expect(fillTextCall![1]).toBe(20);
-  });
-
-  // drawImage signature: (image, sx, sy, sW, sH, dx, dy, dW, dH).
-  // The composite dest spans the bleed-expanded box, so dW/dH reveal the bleed.
-  const compositeDestWidth = () => {
-    const call = vi.mocked(ctx.drawImage).mock.calls.at(-1)!;
-    return call[7] as number;
-  };
-
-  it("grows the offscreen buffer to fit ink that overflows the scaled box", async () => {
-    // A CSS transform must not clip the element's own content. Glyph ink
-    // overhangs its box, so the offscreen scale buffer must bleed by ~1em
-    // (plus any negative letter-spacing) rather than the old fixed 1px.
-    await drawNode(
-      ctx,
-      {
-        type: "span",
-        style: { transform: "scale(1.1)", fontSize: 80, color: "white" },
-        children: [
-          {
-            type: "text",
-            style: { fontSize: 80, letterSpacing: -10, color: "white" },
-            children: [],
-            textContent: "AVA.",
-            props: {},
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 90,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 90,
-      },
-      0,
-      0,
-    );
-
-    // bleed = fontSize (80) + |letterSpacing| (10) = 90 per side.
-    expect(compositeDestWidth()).toBe(100 + 2 * 90);
-  });
-
-  it("grows the offscreen buffer to fit a scaled element's box-shadow", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: {
-          transform: "scale(1.1)",
-          backgroundColor: "red",
-          boxShadow: "0px 0px 20px black",
-        },
-        children: [],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 50,
-      },
-      0,
-      0,
-    );
-
-    // bleed = blur*2 + |offsetX| + |offsetY| = 40 per side.
-    expect(compositeDestWidth()).toBe(100 + 2 * 40);
-  });
-
-  it("keeps the buffer tight (1px bleed) when nothing overflows the box", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(0.9)", backgroundColor: "red" },
-        children: [],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 50,
-      },
-      0,
-      0,
-    );
-
-    expect(compositeDestWidth()).toBe(100 + 2 * 1);
+    // 10% of 200px width = 20px padding on each side: the paragraph is
+    // painted with its left edge offset by the padding.
+    expect(fillParagraph).toHaveBeenCalledWith(ctx, expect.anything(), 20, 0);
   });
 });
 
@@ -465,6 +409,172 @@ describe("drawNode – clip-path", () => {
   });
 });
 
+describe("drawNode – opacity and filter", () => {
+  let ctx: SKRSContext2D;
+  type Node = Parameters<typeof drawNode>[1];
+
+  beforeEach(() => {
+    const canvas = createCanvas(200, 200);
+    ctx = canvas.getContext("2d");
+    ctx.globalAlpha = 1;
+    ctx.filter = "none";
+    vi.clearAllMocks();
+  });
+
+  const box = (
+    style: Record<string, unknown>,
+    children: Node["children"] = [],
+    extra: Partial<Node> = {},
+  ): Node => ({
+    type: "div",
+    style,
+    children,
+    props: {},
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 50,
+    ...extra,
+  });
+
+  const order = (mock: unknown, call = 0) =>
+    vi.mocked(mock as () => void).mock.invocationCallOrder[call]!;
+
+  it("paints a translucent element and its children as one group", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5, backgroundColor: "red" }, [
+        box({ backgroundColor: "blue" }),
+      ]),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      filter: undefined,
+    });
+    // Both fills land inside the group, which fades them together: the
+    // opacity is not applied to each draw.
+    expect(ctx.fillRect).toHaveBeenCalledTimes(2);
+    expect(order(beginGroup)).toBeLessThan(order(ctx.fillRect, 0));
+    expect(order(ctx.fillRect, 1)).toBeLessThan(order(endGroup));
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
+  it("applies a filter to the group rather than to each draw", async () => {
+    await drawNode(
+      ctx,
+      box({ filter: "drop-shadow(2px 2px 0px red)", backgroundColor: "red" }),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 1,
+      filter: "drop-shadow(2px 2px 0px red)",
+    });
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    expect(ctx.filter).toBe("none");
+  });
+
+  it("fades text through a group too", async () => {
+    await drawNode(
+      ctx,
+      box({ fontSize: 16, color: "black", opacity: 0.5 }, [], {
+        type: "text",
+        textContent: "Hello",
+      }),
+      0,
+      0,
+    );
+
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(order(beginGroup)).toBeLessThan(order(fillParagraph));
+    expect(order(fillParagraph)).toBeLessThan(order(endGroup));
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
+  it("reads a numeric string as an opacity, as CSS does", async () => {
+    await drawNode(ctx, box({ opacity: "0.5", backgroundColor: "red" }), 0, 0);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      filter: undefined,
+    });
+
+    vi.clearAllMocks();
+    await drawNode(ctx, box({ opacity: "0", backgroundColor: "red" }), 0, 0);
+    expect(ctx.fillRect).not.toHaveBeenCalled();
+  });
+
+  it("nests a group for a translucent child of a translucent parent", async () => {
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5 }, [box({ opacity: 0.25, backgroundColor: "blue" })]),
+      0,
+      0,
+    );
+
+    expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
+      { opacity: 0.5, filter: undefined },
+      { opacity: 0.25, filter: undefined },
+    ]);
+    expect(endGroup).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    {},
+    { opacity: 1 },
+    { opacity: NaN },
+    { filter: "none" },
+    { filter: " " },
+  ])(
+    "paints an opaque, unfiltered element without a group: %o",
+    async (style) => {
+      await drawNode(ctx, box({ ...style, backgroundColor: "red" }), 0, 0);
+
+      expect(ctx.fillRect).toHaveBeenCalled();
+      expect(beginGroup).not.toHaveBeenCalled();
+      expect(endGroup).not.toHaveBeenCalled();
+    },
+  );
+
+  it("closes the group and every save when an image inside it fails to load", async () => {
+    vi.mocked(loadImage).mockRejectedValueOnce(new Error("no such image"));
+    const node = box({ opacity: 0.5, backgroundColor: "red" }, [
+      box({}, [], { type: "img", props: { src: "missing.png" } }),
+      box({ backgroundColor: "blue" }),
+    ]);
+
+    await expect(drawNode(ctx, node, 0, 0)).rejects.toThrow("no such image");
+
+    // Nothing is left open for the next frame drawn on this context.
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(ctx.restore).mock.calls).toHaveLength(
+      vi.mocked(ctx.save).mock.calls.length,
+    );
+    // The sibling after the failed image is not painted.
+    expect(ctx.fillRect).toHaveBeenCalledTimes(1);
+  });
+
+  it("groups a translucent element around a backdrop-filter inside it", async () => {
+    // The element's group is the backdrop root of what it contains.
+    await drawNode(
+      ctx,
+      box({ opacity: 0.5 }, [box({ backdropFilter: "blur(2px)" })]),
+      0,
+      0,
+    );
+
+    expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
+      { opacity: 0.5, filter: undefined },
+      { backdropFilter: "blur(2px)", opacity: 1 },
+    ]);
+  });
+});
+
 describe("drawNode – backdrop-filter", () => {
   let ctx: SKRSContext2D;
 
@@ -474,7 +584,10 @@ describe("drawNode – backdrop-filter", () => {
     vi.clearAllMocks();
   });
 
-  it("snapshots the backdrop, filters it and paints it back before the background", async () => {
+  const order = (mock: unknown, call = 0) =>
+    vi.mocked(mock as () => void).mock.invocationCallOrder[call]!;
+
+  it("filters the backdrop in a group clipped to the border box, before the background", async () => {
     await drawNode(
       ctx,
       {
@@ -494,65 +607,18 @@ describe("drawNode – backdrop-filter", () => {
       0,
     );
 
-    const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage).toHaveBeenCalledTimes(3);
-    // Snapshot: the padded device-space region (bleed = 3σ + 1 = 13px), drawn
-    // at its device position into a buffer translated by (-37, -47).
-    expect(ctx.translate).toHaveBeenCalledWith(-37, -47);
-    expect(drawImage.mock.calls[0]).toEqual([
-      ctx.canvas,
-      37,
-      47,
-      126,
-      66,
-      37,
-      47,
-      126,
-      66,
-    ]);
-    // The filter pass copies the snapshot into a second buffer.
-    expect(drawImage.mock.calls[1]!.slice(1)).toEqual([0, 0]);
-    // Paint back at the same device position, under an identity transform.
-    expect(drawImage.mock.calls[2]!.slice(1)).toEqual([
-      0, 0, 126, 66, 37, 47, 126, 66,
-    ]);
-    expect(ctx.setTransform).toHaveBeenCalledWith(1, 0, 0, 1, 0, 0);
-    // Clipped to the border box, and painted before the background fill.
+    // A group that starts from the filtered backdrop and holds nothing else.
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      backdropFilter: "blur(4px)",
+      opacity: 1,
+    });
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    // Clipped to the border box, and composited before the background fill.
     expect(ctx.rect).toHaveBeenCalledWith(50, 60, 100, 40);
-    expect(ctx.clip).toHaveBeenCalled();
-    expect(drawImage.mock.invocationCallOrder[2]!).toBeLessThan(
-      vi.mocked(ctx.fillRect).mock.invocationCallOrder[0]!,
-    );
-  });
-
-  it("extends the canvas edge under a snapshot that reaches past it", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { backdropFilter: "blur(10px)" },
-        children: [],
-        props: {},
-        x: -20,
-        y: 180,
-        width: 100,
-        height: 40,
-      },
-      0,
-      0,
-    );
-    // Padded region: x -51..111, y 149..251 on a 200×200 canvas. The part
-    // inside the canvas is copied as is; the strips past the left and bottom
-    // edges (and their corner) stretch the boundary pixels outward.
-    const calls = vi.mocked(ctx.drawImage).mock.calls.map((c) => c.slice(1));
-    expect(calls).toEqual([
-      [0, 149, 111, 51, 0, 149, 111, 51],
-      [0, 149, 1, 51, -51, 149, 51, 51],
-      [0, 199, 111, 1, 0, 200, 111, 51],
-      [0, 199, 1, 1, -51, 200, 51, 51],
-      [0, 0],
-      [0, 0, 162, 102, -51, 149, 162, 102],
-    ]);
+    expect(order(ctx.clip)).toBeLessThan(order(beginGroup));
+    expect(order(beginGroup)).toBeLessThan(order(endGroup));
+    expect(order(endGroup)).toBeLessThan(order(ctx.fillRect));
   });
 
   it("runs before the element's own box-shadow", async () => {
@@ -571,17 +637,45 @@ describe("drawNode – backdrop-filter", () => {
       0,
       0,
     );
-    // The shadow must not be part of the snapshot: the backdrop paint-back
-    // (last drawImage) precedes drawBoxShadow's evenodd clip.
-    const drawImage = vi.mocked(ctx.drawImage);
+    // The shadow must not be part of the backdrop: the backdrop group ends
+    // before drawBoxShadow's evenodd clip.
     const clip = vi.mocked(ctx.clip);
     const shadowClip = clip.mock.calls.findIndex(
       (c) => (c as unknown[])[0] === "evenodd",
     );
     expect(shadowClip).toBeGreaterThanOrEqual(0);
-    expect(drawImage.mock.invocationCallOrder.at(-1)!).toBeLessThan(
+    expect(order(endGroup)).toBeLessThan(
       clip.mock.invocationCallOrder[shadowClip]!,
     );
+  });
+
+  it("composites the backdrop at the element's opacity, outside its own group", async () => {
+    await drawNode(
+      ctx,
+      {
+        type: "div",
+        style: {
+          backdropFilter: "blur(4px)",
+          opacity: 0.5,
+          backgroundColor: "red",
+        },
+        children: [],
+        props: {},
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+      },
+      0,
+      0,
+    );
+
+    expect(vi.mocked(beginGroup).mock.calls.map((c) => c[1])).toEqual([
+      { backdropFilter: "blur(4px)", opacity: 0.5 },
+      { opacity: 0.5, filter: undefined },
+    ]);
+    // The backdrop group has ended before the element's group begins.
+    expect(order(endGroup, 0)).toBeLessThan(order(beginGroup, 1));
   });
 
   it("skips backdrop-filter: none", async () => {
@@ -600,77 +694,6 @@ describe("drawNode – backdrop-filter", () => {
       0,
       0,
     );
-    expect(ctx.drawImage).not.toHaveBeenCalled();
-  });
-
-  it("bypasses the offscreen scale path when the subtree has a backdrop-filter", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(2)" },
-        children: [
-          {
-            type: "div",
-            style: { backdropFilter: "blur(2px)" },
-            children: [],
-            props: {},
-            x: 0,
-            y: 0,
-            width: 50,
-            height: 50,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      },
-      0,
-      0,
-    );
-    // The scale is applied directly to the context (ctx.scale) rather than via
-    // an offscreen buffer composited with drawImage: no drawImage maps a
-    // buffer onto the bleed-expanded box (-1, -1, 102, 102).
-    expect(ctx.scale).toHaveBeenCalledWith(2, 2);
-    const composite = vi
-      .mocked(ctx.drawImage)
-      .mock.calls.find((c) => c[5] === -1 && c[6] === -1 && c[7] === 102);
-    expect(composite).toBeUndefined();
-  });
-
-  it("ignores invisible backdrop-filter descendants when picking the offscreen path", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "div",
-        style: { transform: "scale(2)" },
-        children: [
-          {
-            type: "div",
-            style: { backdropFilter: "blur(2px)", opacity: 0 },
-            children: [],
-            props: {},
-            x: 0,
-            y: 0,
-            width: 50,
-            height: 50,
-          },
-        ],
-        props: {},
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      },
-      0,
-      0,
-    );
-    // A fully transparent child is never drawn, so it must not force the
-    // direct path: the subtree renders offscreen and is composited once.
-    const drawImage = vi.mocked(ctx.drawImage);
-    expect(drawImage).toHaveBeenCalledTimes(1);
-    expect(drawImage.mock.calls[0]!.slice(5)).toEqual([-1, -1, 102, 102]);
+    expect(beginGroup).not.toHaveBeenCalled();
   });
 });

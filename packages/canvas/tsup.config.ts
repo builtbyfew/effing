@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ["@napi-rs/canvas", "react"],
+  external: ["@effing/skia", "react"],
 });

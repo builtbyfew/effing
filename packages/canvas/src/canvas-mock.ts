@@ -1,5 +1,111 @@
 import { vi } from "vitest";
 
+type MockParagraphStyle = {
+  letterSpacing?: number;
+  lineHeight?: number;
+  textAlign?: string;
+  noWrap?: boolean;
+  maxLines?: number;
+  ellipsis?: string;
+};
+
+/**
+ * Mock of `@effing/skia/extensions`, to pair with `createCanvasMock`. Its
+ * `Paragraph` lays text out the way the canvas mock measures it: 8px per
+ * character, ascent 12 and descent 4, breaking greedily at spaces.
+ */
+export function createExtensionsMock() {
+  class Paragraph {
+    constructor(
+      readonly text: string,
+      readonly style: MockParagraphStyle,
+    ) {}
+
+    layout(width: number) {
+      const { text, style } = this;
+      const charWidth = 8 + (style.letterSpacing ?? 0);
+      const lineHeight = style.lineHeight || 16;
+      const bounded = width > 0 && Number.isFinite(width);
+      const fits = (chars: number) => !bounded || chars * charWidth <= width;
+
+      // [start, end) ranges of the text, trailing spaces excluded.
+      const ranges: { start: number; end: number; hardBreak: boolean }[] = [];
+      let longestWord = 0;
+      let offset = 0;
+      for (const hardLine of text.split("\n")) {
+        let start = offset;
+        let end = offset;
+        for (const word of hardLine.matchAll(/\S+/g)) {
+          const wordStart = offset + word.index;
+          const wordEnd = wordStart + word[0].length;
+          longestWord = Math.max(longestWord, word[0].length);
+          if (!style.noWrap && end > start && !fits(wordEnd - start)) {
+            ranges.push({ start, end, hardBreak: false });
+            start = wordStart;
+          }
+          end = wordEnd;
+        }
+        ranges.push({ start, end, hardBreak: true });
+        offset += hardLine.length + 1;
+      }
+
+      const didExceedMaxLines =
+        !!style.maxLines && ranges.length > style.maxLines;
+      if (didExceedMaxLines) ranges.length = style.maxLines!;
+
+      const lines = ranges.map(({ start, end, hardBreak }, i) => {
+        let chars = end - start;
+        const truncated =
+          !!style.ellipsis &&
+          ((didExceedMaxLines && i === ranges.length - 1) ||
+            (!!style.noWrap && !fits(chars)));
+        if (truncated) {
+          // Room for the ellipsis, which the line's width includes.
+          while (chars > 0 && !fits(chars + 1)) chars--;
+          end = start + chars;
+          chars += 1;
+        }
+        const lineWidth = chars * charWidth;
+        const slack = bounded ? Math.max(0, width - lineWidth) : 0;
+        const left =
+          style.textAlign === "center"
+            ? slack / 2
+            : style.textAlign === "right" || style.textAlign === "end"
+              ? slack
+              : 0;
+        return {
+          left,
+          width: lineWidth,
+          baseline: i * lineHeight + (lineHeight + 12 - 4) / 2,
+          startIndex: start,
+          endIndex: end,
+          hardBreak,
+        };
+      });
+      const longestLine = lines.reduce((w, l) => Math.max(w, l.width), 0);
+      return {
+        height: lines.length * lineHeight,
+        longestLine,
+        minIntrinsicWidth: style.noWrap ? longestLine : longestWord * charWidth,
+        maxIntrinsicWidth: text.length * charWidth,
+        didExceedMaxLines,
+        lineHeight,
+        ascent: 12,
+        descent: 4,
+        lines,
+      };
+    }
+  }
+
+  return {
+    Paragraph,
+    fillParagraph: vi.fn(),
+    strokeParagraph: vi.fn(),
+    beginGroup: vi.fn(),
+    endGroup: vi.fn(),
+  };
+}
+
 export function createCanvasMock() {
   const mockCtx = {
     font: "",

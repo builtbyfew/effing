@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@napi-rs/canvas", async () => {
+vi.mock("@effing/skia", async () => {
   const { createCanvasMock } = await import("../../canvas-mock.ts");
   return createCanvasMock();
 });
 
-import { Path2D } from "@napi-rs/canvas";
+import { Path2D } from "@effing/skia";
 import { clipShapeToPath } from "./clip-path.ts";
 
 type MockPath = {

@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { hasRadius, roundedRect } from "./clip.ts";
@@ -262,19 +262,6 @@ function drawBorders(
 // Parse simple box-shadow: offsetX offsetY blur spread? color
 const BOX_SHADOW_RE =
   /(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?(?:\s+(-?\d+(?:\.\d+)?)\s*(?:px)?)?\s+(.*)/;
-
-/**
- * Distance a box-shadow paints beyond the element's box, on any side.
- * Matches the clip margin used by {@link drawBoxShadow}.
- */
-export function boxShadowExtent(boxShadow: string): number {
-  const parts = boxShadow.match(BOX_SHADOW_RE);
-  if (!parts) return 0;
-  const offsetX = parseFloat(parts[1]!);
-  const offsetY = parseFloat(parts[2]!);
-  const blur = parseFloat(parts[3]!);
-  return blur * 2 + Math.abs(offsetX) + Math.abs(offsetY);
-}
 
 export function drawBoxShadow(
   ctx: SKRSContext2D,

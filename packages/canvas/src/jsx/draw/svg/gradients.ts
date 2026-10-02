@@ -1,9 +1,9 @@
-import { Path2D } from "@napi-rs/canvas";
+import { Path2D } from "@effing/skia";
 import type {
   CanvasGradient,
   DOMMatrix2DInit,
   SKRSContext2D,
-} from "@napi-rs/canvas";
+} from "@effing/skia";
 
 import parseCssColor from "parse-css-color";
 

@@ -229,8 +229,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("backdrop-filter rendering", () => {
 
   it("keeps the blur uniform up to the canvas edge", async () => {
     // A full-width bar flush with the bottom edge: the blur must not fade out
-    // along the left, right and bottom edges where the snapshot leaves the
-    // canvas.
+    // along the left, right and bottom edges, where the backdrop ends at the
+    // canvas edge.
     const png = await render(
       stripes(
         <div

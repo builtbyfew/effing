@@ -1,4 +1,4 @@
-import type { Canvas } from "@napi-rs/canvas";
+import type { Canvas } from "@effing/skia";
 
 import type { SvgChild } from "./types.ts";
 import { normalizeChildren } from "./tree.ts";

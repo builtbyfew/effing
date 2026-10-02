@@ -1,4 +1,4 @@
-import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@effing/skia";
 
 import type { InheritedSvgStyle, SvgChild, SvgDefs } from "./types.ts";
 import { EMPTY_DEFS } from "./defs.ts";

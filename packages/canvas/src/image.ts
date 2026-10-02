@@ -1,7 +1,7 @@
-import type { Image } from "@napi-rs/canvas";
-import { loadImage as nativeLoadImage } from "@napi-rs/canvas";
+import type { Image } from "@effing/skia";
+import { loadImage as nativeLoadImage } from "@effing/skia";
 
-/** Source types accepted by {@link loadImage}, mirroring @napi-rs/canvas. */
+/** Source types accepted by {@link loadImage}, mirroring @effing/skia. */
 export type LoadImageSource = Parameters<typeof nativeLoadImage>[0];
 
 /** Options for {@link loadImage}. */
@@ -23,11 +23,11 @@ export interface LoadImageOptions {
  * native loader as bytes — the same path `<img>` sources take in
  * `renderReactElement`. This keeps `loadImage(url)` and `<img src={url}>`
  * consistent: both honor a global dispatcher / proxy (undici's
- * setGlobalDispatcher) and the `userAgent` option. @napi-rs/canvas's own URL
+ * setGlobalDispatcher) and the `userAgent` option. @effing/skia's own URL
  * loader uses Node's raw http modules, which bypass any dispatcher, so it is
  * only used for non-remote sources here.
  *
- * Note: @napi-rs/canvas's `maxRedirects` / `requestOptions` load options are
+ * Note: @effing/skia's `maxRedirects` / `requestOptions` load options are
  * intentionally not exposed — they only configure its built-in URL loader,
  * which this wrapper bypasses. Control remote fetches via fetch/undici instead.
  */
@@ -96,7 +96,7 @@ export function isRemoteUrl(src: string): boolean {
 
 /**
  * Fetch a remote image via global fetch() and decode the bytes with the native
- * loader. Routing through fetch (rather than @napi-rs/canvas's raw-http URL
+ * loader. Routing through fetch (rather than @effing/skia's raw-http URL
  * loader) lets a global dispatcher / proxy and the `userAgent` apply.
  */
 export async function loadRemoteImage(

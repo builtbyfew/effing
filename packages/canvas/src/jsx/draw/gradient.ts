@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 /**
  * Parse and create a canvas gradient from a CSS gradient string.

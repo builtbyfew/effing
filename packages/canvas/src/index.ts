@@ -1,9 +1,10 @@
-// Re-export canvas primitives from @napi-rs/canvas so consumers never need a
-// direct dependency on it (it's a peer dependency, which pnpm does not expose
-// to the consuming project). Re-exporting also guarantees a single native copy:
-// a Path2D from one copy of @napi-rs/canvas cannot be used with a context from
+// Re-export canvas primitives from @effing/skia so consumers never need a
+// direct dependency on it (it's a dependency of this package, which pnpm does
+// not expose to the consuming project). Re-exporting also guarantees a single
+// native copy:
+// a Path2D from one copy of @effing/skia cannot be used with a context from
 // another.
-import { createCanvas as _createCanvas } from "@napi-rs/canvas";
+import { createCanvas as _createCanvas } from "@effing/skia";
 export {
   Canvas,
   type SKRSContext2D,
@@ -18,7 +19,7 @@ export {
   FillType,
   StrokeJoin,
   StrokeCap,
-} from "@napi-rs/canvas";
+} from "@effing/skia";
 
 // loadImage is wrapped (not re-exported) so remote URLs go through the same
 // fetch path as <img> sources — see ./image.ts.
@@ -29,19 +30,14 @@ export {
   type LoadImageSource,
 } from "./image.ts";
 
+// encode() needs no patching: it snapshots the canvas when called, so later
+// drawing can't reach a pending encode, and the Buffer it resolves with owns
+// its native memory until the Buffer itself is collected (see
+// ./encode.test.ts). This used to copy the result to the JS heap, to guard
+// against lifetime bugs in @napi-rs/canvas's async encode that were fixed
+// upstream (napi-rs/canvas#1314, #1323) before @effing/skia was forked.
 export function createCanvas(width: number, height: number) {
-  const canvas = _createCanvas(width, height);
-  const origEncode = canvas.encode.bind(canvas);
-  type Encode = typeof canvas.encode;
-
-  // The native @napi-rs/canvas encode() returns Buffers backed by Rust/Skia
-  // memory that can be freed before downstream consumers finish reading (e.g.
-  // when streaming frames concurrently). We patch encode to copy the result
-  // to the JS heap so the data remains valid regardless of native GC timing.
-  canvas.encode = (async (...args: unknown[]) =>
-    Buffer.from(await origEncode(...(args as Parameters<Encode>)))) as Encode;
-
-  return canvas;
+  return _createCanvas(width, height);
 }
 
 // Lottie API

@@ -8,7 +8,7 @@
  */
 
 import { Resvg } from "@resvg/resvg-js";
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas } from "@effing/skia";
 import { bench, group, run } from "mitata";
 import React from "react";
 import satori from "satori";

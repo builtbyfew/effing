@@ -1,4 +1,4 @@
-import type { SKRSContext2D } from "@napi-rs/canvas";
+import type { SKRSContext2D } from "@effing/skia";
 
 import type { LayoutNode } from "../../layout.ts";
 import type { SvgChild } from "./types.ts";

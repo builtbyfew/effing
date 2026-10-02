@@ -5,7 +5,7 @@ import type { ImageCache } from "../image.ts";
 
 const HAS_NATIVE_DEPS = (() => {
   try {
-    require.resolve("@napi-rs/canvas");
+    require.resolve("@effing/skia");
     return true;
   } catch {
     return false;

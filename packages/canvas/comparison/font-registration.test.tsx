@@ -14,7 +14,7 @@ import { HAS_NATIVE_DEPS } from "./_helpers/setup.ts";
 // weight looked up before its face existed stayed pinned to the old match
 // (https://github.com/Brooooooklyn/canvas/issues/1329, fixed in
 // https://github.com/Brooooooklyn/canvas/pull/1334). These tests guard the
-// peer range against that.
+// backend version against that.
 //
 // The cache is keyed on the family name, so every scenario registers the
 // fixtures under its own alias to start from a clean slate.
@@ -37,6 +37,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
   let layoutText: LayoutText;
   let regularData: Buffer;
   let boldData: Buffer;
+
+  // measureText rounds widths to 1/100px and native paragraph layout doesn't,
+  // so layout widths are compared to 2 decimals.
+  const LAYOUT_PRECISION = 2;
 
   // Reference values from a family whose faces were all registered before
   // any lookup.
@@ -143,7 +147,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [regular, bold])).toBe(regularDark);
   });
 
@@ -157,7 +164,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
     expect(rawMeasure(family, 700)).toBeCloseTo(boldWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
@@ -170,17 +180,23 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     // The regular face is only ever registered by the render path.
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
   });
 
   it("uses a face registered after this package laid out text with its family/weight", async () => {
     const { family, regular, bold } = faces();
     api.registerFont(bold);
-    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(boldWidth, LAYOUT_PRECISION);
 
     api.registerFont(regular);
 
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
@@ -192,7 +208,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     api.registerFont(regular);
 
     expect(rawMeasure(family, 400)).toBeCloseTo(regularWidth, 3);
-    expect(layoutWidth(family, 400)).toBeCloseTo(regularWidth, 3);
+    expect(layoutWidth(family, 400)).toBeCloseTo(
+      regularWidth,
+      LAYOUT_PRECISION,
+    );
     expect(await renderDark(family, 400, [regular])).toBe(regularDark);
   });
 });

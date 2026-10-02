@@ -150,7 +150,7 @@ export type ComputedStyle = {
 const ROOT_FONT_SIZE = 16;
 
 /**
- * Default font family. Uses concrete system font names so @napi-rs/canvas
+ * Default font family. Uses concrete system font names so @effing/skia
  * resolves real font metrics instead of generic ratios for unnamed families.
  */
 export const DEFAULT_FONT_FAMILY = "Helvetica, Arial, sans-serif";

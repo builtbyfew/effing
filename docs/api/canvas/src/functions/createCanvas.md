@@ -8,7 +8,7 @@
 
 > **createCanvas**(`width`, `height`): `Canvas`
 
-Defined in: [canvas/src/index.ts:32](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/index.ts#L32)
+Defined in: [canvas/src/index.ts:39](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/index.ts#L39)
 
 ## Parameters
 

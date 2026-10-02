@@ -1,4 +1,4 @@
-import { GlobalFonts } from "@napi-rs/canvas";
+import { GlobalFonts } from "@effing/skia";
 
 import type { FontData } from "../types.ts";
 import { parseFontMetrics } from "./font-metrics.ts";

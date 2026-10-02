@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-A canvas that can render JSX elements and Lottie animations, powered by Skia (via [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)) and Yoga flexbox layout. Supports emoji, font management, and CSS properties including transforms, gradients, and text effects.
+A canvas that can render JSX elements and Lottie animations, powered by Skia (via [@effing/skia](https://github.com/builtbyfew/effing-skia), Effing's fork of [@napi-rs/canvas](https://github.com/Brooooooklyn/canvas)) and Yoga flexbox layout. Supports emoji, font management, and CSS properties including transforms, gradients, and text effects.
 
 ## Installation
 
@@ -12,11 +12,7 @@ A canvas that can render JSX elements and Lottie animations, powered by Skia (vi
 npm install @effing/canvas
 ```
 
-Requires the `@napi-rs/canvas` peer dependency (typically installed automatically though):
-
-```bash
-npm install @napi-rs/canvas
-```
+The Skia backend, `@effing/skia`, is installed along with it. It ships prebuilt binaries for Linux x64 and arm64 (glibc and musl), macOS x64 and arm64, and Windows x64.
 
 ## Quick Start
 
@@ -289,6 +285,17 @@ const png = canvas.encodeSync("png");
 | ----------- | ------------------------------------------------ |
 | `objectFit` | `contain`, `cover`, `fill`, `none`, `scale-down` |
 
+### Opacity and filters
+
+`opacity` and `filter` apply to an element and its descendants as one group,
+as in CSS: overlapping children fade together instead of showing through each
+other, and a `drop-shadow()` is cast once by the whole group.
+
+A filter covers the element as painted, so `blur()` softens its edge too,
+rounded corners included. To keep the edge sharp, clip after the filter: give
+the element a `clipPath` (for example `inset(0px round 8px)`), or wrap it in an
+element with `overflow: hidden`.
+
 ### Clip paths
 
 `clipPath` clips the element's entire rendering — background, borders,
@@ -347,10 +354,9 @@ pixels of the element and follow its `transform`, including non-uniform
 scales and skews. At the canvas edge the backdrop is extended outward, like a
 browser clamps it at the viewport edge, so a blur stays uniform there.
 
-One difference from browsers: `opacity` is applied per drawing operation, not
-to the element's subtree as a group. Under an ancestor with `opacity` below 1
-the filtered backdrop is painted back with that opacity, so it blends with the
-unfiltered backdrop instead of the ancestor forming its own backdrop root.
+As in browsers, an ancestor with `opacity` below 1 or a `filter` is a backdrop
+root: an element inside it sees only what that ancestor has painted so far,
+not what lies behind the ancestor.
 
 ### Units
 
@@ -360,7 +366,7 @@ unfiltered backdrop instead of the ancestor forming its own backdrop root.
 
 ### `createCanvas(width, height)`
 
-Create a new canvas. Re-exported from `@napi-rs/canvas`.
+Create a new canvas. Re-exported from `@effing/skia`.
 
 ```typescript
 function createCanvas(width: number, height: number): Canvas;
@@ -402,7 +408,7 @@ for (let frame = 0; frame < frameCount; frame++) {
 
 ### `loadImage(source, options?)`
 
-Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@napi-rs/canvas`'s native loader.
+Load an image from a path, Buffer, data URI, or remote URL. Remote `http`/`https` URLs are fetched via the global `fetch()` — the same path `<img>` sources take in `renderReactElement` — so a global dispatcher / proxy (e.g. undici's `setGlobalDispatcher`) and the `userAgent` option are honored. All other sources delegate to `@effing/skia`'s native loader.
 
 ```typescript
 function loadImage(
@@ -504,7 +510,7 @@ type EmojiStyle =
 
 ### Canvas Primitives
 
-The building blocks you need alongside a context are re-exported from `@napi-rs/canvas`, so you never need to import (or declare a dependency on) `@napi-rs/canvas` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
+The building blocks you need alongside a context are re-exported from `@effing/skia`, so you never need to import (or declare a dependency on) `@effing/skia` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
 
 ```typescript
 import { createCanvas, Path2D } from "@effing/canvas";

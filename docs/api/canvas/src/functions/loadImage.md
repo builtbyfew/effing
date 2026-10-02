@@ -16,11 +16,11 @@ Remote http/https URLs are fetched via global fetch() and passed to the
 native loader as bytes — the same path `<img>` sources take in
 `renderReactElement`. This keeps `loadImage(url)` and `<img src={url}>`
 consistent: both honor a global dispatcher / proxy (undici's
-setGlobalDispatcher) and the `userAgent` option. @napi-rs/canvas's own URL
+setGlobalDispatcher) and the `userAgent` option. @effing/skia's own URL
 loader uses Node's raw http modules, which bypass any dispatcher, so it is
 only used for non-remote sources here.
 
-Note: @napi-rs/canvas's `maxRedirects` / `requestOptions` load options are
+Note: @effing/skia's `maxRedirects` / `requestOptions` load options are
 intentionally not exposed — they only configure its built-in URL loader,
 which this wrapper bypasses. Control remote fetches via fetch/undici instead.
 

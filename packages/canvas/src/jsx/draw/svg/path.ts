@@ -1,4 +1,4 @@
-import { Path2D } from "@napi-rs/canvas";
+import { Path2D } from "@effing/skia";
 
 import type { BBox, SvgChild } from "./types.ts";
 import { mergeStyleIntoProps } from "./style.ts";

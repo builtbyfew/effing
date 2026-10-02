@@ -1,5 +1,5 @@
-import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
-import { createCanvas } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@effing/skia";
+import { createCanvas } from "@effing/skia";
 
 const canvasPool = new Map<string, WeakRef<Canvas>[]>();
 

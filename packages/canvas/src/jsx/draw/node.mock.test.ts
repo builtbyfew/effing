@@ -476,6 +476,18 @@ describe("drawNode – opacity and filter", () => {
     expect(ctx.filter).toBe("none");
   });
 
+  it("reads a numeric string as an opacity, as CSS does", async () => {
+    await drawNode(ctx, box({ opacity: "0.5", backgroundColor: "red" }), 0, 0);
+    expect(beginGroup).toHaveBeenCalledWith(ctx, {
+      opacity: 0.5,
+      bounds: undefined,
+    });
+
+    vi.clearAllMocks();
+    await drawNode(ctx, box({ opacity: "0", backgroundColor: "red" }), 0, 0);
+    expect(ctx.fillRect).not.toHaveBeenCalled();
+  });
+
   it("nests a group for a translucent child of a translucent parent", async () => {
     await drawNode(
       ctx,

@@ -19,8 +19,9 @@ export type NativeParagraph = Paragraph;
 
 /**
  * Whether the native path covers this text. The TypeScript layout remains for
- * what a paragraph can't express: `word-break: break-all`, and emoji drawn as
- * images, which need a position per emoji.
+ * what a paragraph can't express: `word-break: break-all`, emoji drawn as
+ * images, which need a position per emoji, and trailing spaces that
+ * `white-space: pre` preserves, where a paragraph lets them hang.
  */
 export function canLayoutNatively(
   text: string,
@@ -31,6 +32,7 @@ export function canLayoutNatively(
   // line box for it.
   if (text === "") return false;
   if (style.wordBreak === "break-all") return false;
+  if (style.whiteSpace === "pre" && /[ \t](?:\n|$)/.test(text)) return false;
   if (emojiEnabled) {
     for (const char of text) {
       if (isEmoji(char)) return false;

@@ -53,8 +53,10 @@ export async function drawNode(
 
   if (style.display === "none") return;
 
-  // Anything that isn't a number leaves the element opaque.
-  const opacity = Number.isFinite(style.opacity) ? style.opacity! : 1;
+  // A numeric string counts, as it does in CSS; anything that isn't a
+  // number leaves the element opaque.
+  const rawOpacity = Number(style.opacity ?? 1);
+  const opacity = Number.isFinite(rawOpacity) ? rawOpacity : 1;
   if (opacity <= 0) return;
 
   ctx.save();

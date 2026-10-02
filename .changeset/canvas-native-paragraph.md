@@ -16,6 +16,9 @@ tall, the baseline placed by half-leading from the font's hhea metrics), and
 in the test suite lines break where they did. What changes:
 
 - `textAlign: "justify"` now justifies wrapped lines; it used to left-align.
+- A centred or right-aligned line that is wider than its box now starts at the
+  box's start edge and overflows its end, as in browsers; it used to stay
+  centred or right-aligned across the box.
 - Line widths are no longer rounded to 1/100px.
 
 The TypeScript layout remains for what a paragraph can't express:

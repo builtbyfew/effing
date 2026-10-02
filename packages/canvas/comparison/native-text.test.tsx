@@ -136,6 +136,46 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     ]);
   });
 
+  it("start-aligns a centred or right-aligned line that overflows, as browsers do", () => {
+    for (const textAlign of ["center", "right"] as const) {
+      const overflowing = layoutText(
+        "An overflowing title",
+        style({ fontSize: 20, whiteSpace: "nowrap", textAlign }),
+        100,
+      );
+      expect(overflowing.paragraph).toBeDefined();
+      expect(overflowing.segments[0]!.width).toBeGreaterThan(100);
+      expect(overflowing.segments[0]!.x).toBe(0);
+      // The TypeScript layout, which a too-wide word goes through, agrees.
+      const word = layoutText(
+        "Supercalifragilistic",
+        style({ fontSize: 20, textAlign }),
+        100,
+      );
+      expect(word.paragraph).toBeUndefined();
+      expect(word.segments[0]!.x).toBe(0);
+    }
+  });
+
+  it("keeps the trailing spaces of white-space: pre in the line", () => {
+    const pre = (text: string) =>
+      layoutText(text, style({ fontSize: 20, whiteSpace: "pre" }), 10_000);
+    const space = pre("a b").width - pre("ab").width;
+    expect(pre("Hello   ").width).toBeCloseTo(
+      pre("Hello").width + 3 * space,
+      1,
+    );
+  });
+
+  it("collapses the line box for a line height of 0", () => {
+    const result = layoutText(
+      "Hello world",
+      style({ fontSize: 20, lineHeight: 0 }),
+      500,
+    );
+    expect(result.height).toBe(0);
+  });
+
   it("agrees with the TypeScript layout on where lines break", () => {
     for (const width of [69, 105, 150, 177, 240, 400]) {
       const native = layoutText(TEXT, style({ fontSize: 20 }), width);

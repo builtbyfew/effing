@@ -130,17 +130,21 @@ export function layoutText(
   ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
 ): TextLayoutResult {
-  if (canLayoutNatively(text, style, emojiEnabled)) {
-    const fontSize = style.fontSize ?? 16;
-    const isAutoLineHeight =
-      style.lineHeight === undefined || style.lineHeight === "normal";
+  const fontSize = style.fontSize ?? 16;
+  const isAutoLineHeight =
+    style.lineHeight === undefined || style.lineHeight === "normal";
+  const lineHeight = isAutoLineHeight
+    ? undefined
+    : resolveLineHeight(style.lineHeight, fontSize);
+  // A paragraph reads a line height of 0 as `normal`, so a line box
+  // collapsed to nothing is left to the fallback.
+  const hasLineBox = lineHeight === undefined || lineHeight > 0;
+  if (hasLineBox && canLayoutNatively(text, style, emojiEnabled)) {
     const result = layoutTextNative(
       applyTextTransform(text, style),
       style,
       maxWidth,
-      isAutoLineHeight
-        ? undefined
-        : resolveLineHeight(style.lineHeight, fontSize),
+      lineHeight,
     );
     if (result) {
       const textStrokeWidth = resolveTextStrokeWidth(style, fontSize);
@@ -306,11 +310,14 @@ export function layoutTextFallback(
     const line = lines[i]!;
     const lineWidth = measure(line);
 
+    // A line wider than the box is start-aligned and overflows the end edge,
+    // as in CSS, whatever the alignment (and as a native paragraph does).
+    const slack = Math.max(0, maxWidth - lineWidth);
     let x = 0;
     if (textAlign === "center") {
-      x = (maxWidth - lineWidth) / 2;
+      x = slack / 2;
     } else if (textAlign === "right") {
-      x = maxWidth - lineWidth;
+      x = slack;
     }
 
     const metrics = measureText(

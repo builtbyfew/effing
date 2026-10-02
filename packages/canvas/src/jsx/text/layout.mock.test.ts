@@ -143,6 +143,46 @@ describe("layoutText", () => {
     ]);
   });
 
+  it("falls back for a line height of 0, which a paragraph reads as normal", () => {
+    const result = layoutText(
+      "aaa bbb ccc",
+      { fontSize: 16, lineHeight: 0 },
+      56,
+    );
+    expect(result.paragraph).toBeUndefined();
+    expect(result.segments).toHaveLength(2);
+    expect(result.height).toBe(0);
+  });
+
+  it("falls back for trailing spaces that white-space: pre preserves", () => {
+    const pre = { fontSize: 16, whiteSpace: "pre" } as const;
+    // The three trailing spaces are part of the line: 8 characters of 8px.
+    const padded = layoutText("Hello   ", pre, 500);
+    expect(padded.paragraph).toBeUndefined();
+    expect(padded.width).toBe(64);
+    // Without them there is nothing a paragraph would drop.
+    expect(layoutText("Hello", pre, 500).paragraph).toBeDefined();
+    expect(layoutText("a  b\nc", pre, 500).paragraph).toBeDefined();
+    expect(layoutText("a \nc", pre, 500).paragraph).toBeUndefined();
+  });
+
+  it.each(["center", "right"] as const)(
+    "start-aligns a %s-aligned line that overflows its box, on both paths",
+    (textAlign) => {
+      const style = { fontSize: 16, whiteSpace: "nowrap", textAlign } as const;
+      // 11 characters of 8px in a 56px box.
+      const native = layoutText("aaa bbb ccc", style, 56);
+      expect(native.paragraph).toBeDefined();
+      expect(native.segments[0]!.x).toBe(0);
+      const fallback = layoutTextFallback("aaa bbb ccc", style, 56);
+      expect(fallback.segments[0]!.x).toBe(0);
+      // A line that fits is still aligned.
+      expect(layoutTextFallback("aaa", style, 56).segments[0]!.x).toBe(
+        textAlign === "center" ? 16 : 32,
+      );
+    },
+  );
+
   it("falls back for empty text, which keeps one empty line box", () => {
     const result = layoutText("", { fontSize: 16, lineHeight: 20 }, 500);
     expect(result.paragraph).toBeUndefined();

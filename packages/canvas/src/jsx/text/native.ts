@@ -133,22 +133,25 @@ function breaksWordsLikeCss(
   // end where the next begins (no space between) at a point the text can't
   // break: neither a UAX #14 opportunity nor a junction of two words (which
   // is how Skia breaks Thai, Lao, Khmer and Burmese, from ICU's dictionaries).
-  let breaks: number[] | undefined;
+  // Each is found only when needed: a paragraph without such a line, or
+  // whose lines all end at UAX #14 opportunities (CJK), needs no more.
+  let opportunities: Set<number> | undefined;
+  let junctions: Set<number> | undefined;
   let graphemes: Set<number> | undefined;
+  const canBreakAt = (pos: number) =>
+    (opportunities ??= new Set(
+      findBreakOpportunities(text).map((opp) => opp.position),
+    )).has(pos) || (junctions ??= findWordJunctions(text)).has(pos);
   const { lines } = layout;
   for (let i = 0; i < lines.length - 1; i++) {
     const line = lines[i]!;
     if (line.hardBreak || line.endIndex !== lines[i + 1]!.startIndex) continue;
-    breaks ??= [
-      ...findBreakOpportunities(text).map((opp) => opp.position),
-      ...findWordJunctions(text),
-    ];
-    if (breaks.includes(line.endIndex)) continue;
+    if (canBreakAt(line.endIndex)) continue;
     if (!breakWord) return false;
     graphemes ??= findGraphemeBoundaries(text);
     if (!graphemes.has(line.endIndex)) return false;
-    if (breaks.some((pos) => pos > line.startIndex && pos < line.endIndex)) {
-      return false;
+    for (let pos = line.startIndex + 1; pos < line.endIndex; pos++) {
+      if (canBreakAt(pos)) return false;
     }
   }
   return true;

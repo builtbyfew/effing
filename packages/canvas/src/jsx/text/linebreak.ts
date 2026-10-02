@@ -6,13 +6,27 @@ export type BreakOpportunity = {
 };
 
 /**
- * Find line-break opportunities in text using UAX #14 algorithm.
+ * UAX #14 class CJ: small kana and the prolonged sound mark, which may start
+ * a line in browsers (and in Skia's paragraph) under `line-break: auto`. The
+ * `linebreak` package resolves them as NS (strict), which can't.
+ */
+const CONDITIONAL_JAPANESE_STARTERS =
+  /[\u3041\u3043\u3045\u3047\u3049\u3063\u3083\u3085\u3087\u308E\u3095\u3096\u30A1\u30A3\u30A5\u30A7\u30A9\u30C3\u30E3\u30E5\u30E7\u30EE\u30F5\u30F6\u30FC\u31F0-\u31FF\uFF67-\uFF70]/g;
+
+/** A katakana letter, of class ID, to resolve CJ as (one UTF-16 unit, too). */
+const ID = "\u30A2";
+
+/**
+ * Find line-break opportunities in text using UAX #14 algorithm, resolving
+ * class CJ as ID as browsers do under `line-break: auto`.
  *
  * @param text - The text to analyze
  * @returns Array of break opportunities with positions and whether they're required (hard breaks)
  */
 export function findBreakOpportunities(text: string): BreakOpportunity[] {
-  const breaker = new LineBreaker(text);
+  const breaker = new LineBreaker(
+    text.replace(CONDITIONAL_JAPANESE_STARTERS, ID),
+  );
   const opportunities: BreakOpportunity[] = [];
 
   let bk = breaker.nextBreak();

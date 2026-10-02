@@ -215,6 +215,28 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     }
   });
 
+  // Lines from Chrome 154, which fits three of these characters on a line in
+  // the 70px it was given (its Japanese fallback font is 20px wide at 20px).
+  // Small kana and "ー" (UAX #14 class CJ) may start a line, as in browsers
+  // and Skia under `line-break: auto`.
+  it.each([
+    ["東京ディズニーランド", ["東京デ", "ィズニ", "ーラン", "ド"]],
+    [
+      "きゃりーぱみゅぱみゅのコンサート",
+      ["きゃり", "ーぱみ", "ゅぱみ", "ゅのコ", "ンサー", "ト"],
+    ],
+  ])("breaks Japanese before small kana and ー: %s", (text, lines) => {
+    const s = style({ fontSize: 20 });
+    // Three characters to a line, whatever the fallback font's advance.
+    const width = 3.5 * layoutText("東", s, Infinity).width;
+    const native = layoutText(text, s, width);
+    expect(native.paragraph).toBeDefined();
+    expect(native.segments.map((seg) => seg.text)).toEqual(lines);
+    expect(
+      layoutTextFallback(text, s, width).segments.map((seg) => seg.text),
+    ).toEqual(lines);
+  });
+
   // A word broken under break-word breaks between grapheme clusters, which
   // Skia doesn't always respect.
   it.each([

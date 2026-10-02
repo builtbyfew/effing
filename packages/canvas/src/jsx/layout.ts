@@ -124,6 +124,11 @@ export async function buildLayoutTree(
   return { tree, imageCache: renderContext.imageCache };
 }
 
+/**
+ * Build the node for `element` on `yogaNode`. Function components must be
+ * rendered first (`renderComponents`), so the caller can make text a text
+ * node (`createTextYogaNode`).
+ */
 async function buildNode(
   element: ReactNode,
   parentStyle: ComputedStyle,
@@ -170,27 +175,9 @@ async function buildNode(
     };
   }
 
-  // Handle React elements
+  // Handle React elements (host elements: components are rendered already)
   const el = element as ReactElement<Record<string, unknown>>;
   const type = el.type;
-
-  // Expand function/class components
-  if (typeof type === "function") {
-    const rendered = (type as (props: Record<string, unknown>) => ReactNode)(
-      el.props ?? {},
-    );
-    return await buildNode(
-      rendered,
-      parentStyle,
-      yogaNode,
-      viewportWidth,
-      viewportHeight,
-      ctx,
-      emojiEnabled,
-      fontFamilies,
-      context,
-    );
-  }
 
   const props = (el.props ?? {}) as Record<string, unknown>;
   const rawStyle = (props.style ?? {}) as Record<string, unknown>;
@@ -525,11 +512,17 @@ function renderComponents(node: ReactNode): ReactNode {
   return node;
 }
 
+/** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
+function floorToPixel(value: number): number {
+  const rounded = Math.round(value);
+  return Math.abs(value - rounded) < 1e-4 ? rounded : Math.floor(value);
+}
+
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();
   // Yoga leaves text nodes unrounded (see `createTextYogaNode`) for their
   // width; they're placed on whole pixels, floored as Yoga rounds text.
-  const place = node.textMeasure ? Math.floor : (v: number) => v;
+  const place = node.textMeasure ? floorToPixel : (v: number) => v;
 
   return {
     type: node.type,

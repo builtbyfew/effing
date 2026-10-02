@@ -5,6 +5,7 @@ import { cachedLoadImage } from "../../image.ts";
 import type { LayoutNode } from "../layout.ts";
 import type { RenderContext } from "../context.ts";
 import { layoutText } from "../text/index.ts";
+import type { TextLayoutResult } from "../text/index.ts";
 import { applyClip, hasRadius, roundedRect } from "./clip.ts";
 import { applyClipPath } from "./clip-path.ts";
 import { createGradientFromCSS, splitGradientArgs } from "./gradient.ts";
@@ -13,6 +14,8 @@ import {
   clippedElementBounds,
   drawBackdropFilter,
   endElementGroup,
+  fadeOf,
+  isNoFilter,
 } from "./group.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
@@ -32,6 +35,9 @@ import { parseCSSLength, resolveBoxValue } from "./utils.ts";
  * Every node, scaled or not, is drawn straight through its transform. Text is
  * drawn unhinted and unsnapped (see `drawText`), so it lands in the same place
  * at any scale and a scaled subtree needs no supersampled offscreen buffer.
+ *
+ * @param inheritedOpacity - Opacity handed down by a parent that paints
+ *   nothing itself and has this node as its only child (see `fadeOf`)
  */
 export async function drawNode(
   ctx: SKRSContext2D,
@@ -40,6 +46,7 @@ export async function drawNode(
   parentY: number,
   context?: RenderContext,
   emojiStyle?: EmojiStyle,
+  inheritedOpacity = 1,
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
@@ -56,8 +63,37 @@ export async function drawNode(
   // A numeric string counts, as it does in CSS; anything that isn't a
   // number leaves the element opaque.
   const rawOpacity = Number(style.opacity ?? 1);
-  const opacity = Number.isFinite(rawOpacity) ? rawOpacity : 1;
+  const opacity =
+    (Number.isFinite(rawOpacity) ? rawOpacity : 1) * inheritedOpacity;
   if (opacity <= 0) return;
+
+  // Lay the text out first: how the element fades depends on what it paints.
+  let text:
+    | { layout: TextLayoutResult; contentX: number; contentY: number }
+    | undefined;
+  if (node.textContent !== undefined && node.textContent !== "") {
+    const paddingTop = resolveBoxValue(style.paddingTop, width);
+    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
+    const paddingRight = resolveBoxValue(style.paddingRight, width);
+
+    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
+    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
+    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
+
+    const contentWidth =
+      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
+    text = {
+      layout: layoutText(
+        node.textContent,
+        style,
+        contentWidth,
+        ctx,
+        !!emojiStyle,
+      ),
+      contentX: x + paddingLeft + borderLeftW,
+      contentY: y + paddingTop + borderTopW,
+    };
+  }
 
   ctx.save();
 
@@ -106,23 +142,33 @@ export async function drawNode(
     style.overflow === "hidden" ||
     style.overflowX === "hidden" ||
     style.overflowY === "hidden";
-  const inGroup = beginElementGroup(
-    ctx,
-    opacity,
-    style.filter,
-    // An element that clips its content paints nothing past its border box
-    // and box-shadow, so its group needs no more room than that.
-    isClipped && opacity < 1
-      ? clippedElementBounds(
-          ctx,
-          x,
-          y,
-          width,
-          height,
-          style.boxShadow ? boxShadowExtent(style.boxShadow) : 0,
-        )
-      : undefined,
-  );
+  // Where a group would change nothing, the element fades without one.
+  const fade =
+    opacity < 1 && isNoFilter(style.filter)
+      ? fadeOf(node, text?.layout, renderContext.debug)
+      : "group";
+  let inGroup = false;
+  if (fade === "alpha") {
+    ctx.globalAlpha *= opacity;
+  } else if (fade === "group") {
+    inGroup = beginElementGroup(
+      ctx,
+      opacity,
+      style.filter,
+      // An element that clips its content paints nothing past its border box
+      // and box-shadow, so its group needs no more room than that.
+      isClipped && opacity < 1
+        ? clippedElementBounds(
+            ctx,
+            x,
+            y,
+            width,
+            height,
+            style.boxShadow ? boxShadowExtent(style.boxShadow) : 0,
+          )
+        : undefined,
+    );
+  }
 
   // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
@@ -254,37 +300,17 @@ export async function drawNode(
   }
 
   // Draw text content
-  if (node.textContent !== undefined && node.textContent !== "") {
-    const paddingTop = resolveBoxValue(style.paddingTop, width);
-    const paddingLeft = resolveBoxValue(style.paddingLeft, width);
-    const paddingRight = resolveBoxValue(style.paddingRight, width);
-
-    const borderTopW = resolveBoxValue(style.borderTopWidth, width);
-    const borderLeftW = resolveBoxValue(style.borderLeftWidth, width);
-    const borderRightW = resolveBoxValue(style.borderRightWidth, width);
-
-    const contentX = x + paddingLeft + borderLeftW;
-    const contentY = y + paddingTop + borderTopW;
-    const contentWidth =
-      width - paddingLeft - paddingRight - borderLeftW - borderRightW;
-
-    const textLayout = layoutText(
-      node.textContent,
-      style,
-      contentWidth,
-      ctx,
-      !!emojiStyle,
-    );
+  if (text) {
     await drawText(
       ctx,
-      textLayout.segments,
-      contentX,
-      contentY,
+      text.layout.segments,
+      text.contentX,
+      text.contentY,
       style.textShadow,
       emojiStyle,
-      textLayout.paragraph && {
-        paragraph: textLayout.paragraph,
-        offsetY: textLayout.paragraphOffsetY ?? 0,
+      text.layout.paragraph && {
+        paragraph: text.layout.paragraph,
+        offsetY: text.layout.paragraphOffsetY ?? 0,
       },
     );
   }
@@ -333,7 +359,15 @@ export async function drawNode(
     drawSvgContainer(ctx, node, x, y, width, height);
   } else {
     for (const child of node.children) {
-      await drawNode(ctx, child, x, y, renderContext, emojiStyle);
+      await drawNode(
+        ctx,
+        child,
+        x,
+        y,
+        renderContext,
+        emojiStyle,
+        fade === "through" ? opacity : 1,
+      );
     }
   }
 

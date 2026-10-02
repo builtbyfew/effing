@@ -176,45 +176,20 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
     expect(pixel(img, 150, 142)).toEqual([255, 255, 255, 255]);
   });
 
-  it("keeps everything a clipping element paints inside its bounded group", async () => {
-    // A translucent element that clips its content gets a group sized to its
-    // border box and box-shadow. Fading the element rendered on its own must
-    // give the same picture: nothing of the shadow or of the anti-aliased
-    // edges may be cut, also under a rotation and a scale.
-    const scene = (background: string | undefined, opacity: number) => (
-      <div
-        style={{
-          width: 300,
-          height: 200,
-          display: "flex",
-          background,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            left: 80.3,
-            top: 50.7,
-            width: 120,
-            height: 70,
-            display: "flex",
-            borderRadius: 16,
-            overflow: "hidden",
-            background: "#f97316",
-            boxShadow: "6px 8px 10px #000",
-            transform: "rotate(8deg) scale(1.2)",
-            opacity,
-          }}
-        >
-          {box(70, 20, "#2563eb")}
-        </div>
-      </div>
-    );
+  // Fading an element must give the same picture as rendering it on its own
+  // and compositing that at the opacity, which is what a group is. `scene`
+  // draws the element over the given page background at the given opacity.
+  const expectFadesAsOne = async (
+    scene: (
+      background: string | undefined,
+      opacity: number,
+    ) => React.ReactElement,
+    minPainted: number,
+  ) => {
     const [actual, alone] = await Promise.all([
       render(scene("#fff", 0.5)),
       render(scene(undefined, 1)),
     ]);
-
     // Opacity is quantized to 8 bits, as globalAlpha is.
     const alpha = Math.round(0.5 * 255) / 255;
     let painted = 0;
@@ -227,9 +202,113 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
         worst = Math.max(worst, Math.abs(actual.data[i + c]! - expected));
       }
     }
-    // The element and its shadow cover a good part of the frame.
-    expect(painted).toBeGreaterThan(15_000);
+    expect(painted).toBeGreaterThan(minPainted);
     expect(worst).toBeLessThanOrEqual(2);
+  };
+
+  const page = (background: string | undefined, child: React.ReactNode) => (
+    <div
+      style={{
+        width: 300,
+        height: 200,
+        display: "flex",
+        background,
+        fontFamily: "Liberation Sans",
+      }}
+    >
+      {child}
+    </div>
+  );
+
+  it("keeps everything a clipping element paints inside its bounded group", async () => {
+    // A translucent element that clips its content gets a group sized to its
+    // border box and box-shadow: nothing of the shadow or of the anti-aliased
+    // edges may be cut, also under a rotation and a scale.
+    await expectFadesAsOne(
+      (background, opacity) =>
+        page(
+          background,
+          <div
+            style={{
+              position: "absolute",
+              left: 80.3,
+              top: 50.7,
+              width: 120,
+              height: 70,
+              display: "flex",
+              borderRadius: 16,
+              overflow: "hidden",
+              background: "#f97316",
+              boxShadow: "6px 8px 10px #000",
+              transform: "rotate(8deg) scale(1.2)",
+              opacity,
+            }}
+          >
+            {box(70, 20, "#2563eb")}
+          </div>,
+        ),
+      15_000,
+    );
+  });
+
+  // Elements that are a single draw take their opacity on that draw instead
+  // of through a group (see `fadeOf`). These hold them to the group's result.
+  it.each([
+    ["one line of text", { fontSize: 44 }, "Fading words"],
+    [
+      "wrapped text",
+      { fontSize: 26, width: 220 },
+      "Words that wrap onto a second and a third line of text",
+    ],
+    [
+      "letter-spaced text whose glyphs overlap",
+      { fontSize: 44, letterSpacing: -6 },
+      "Tight words",
+    ],
+  ])("fades %s as one, without a group", async (_, style, words) => {
+    await expectFadesAsOne(
+      (background, opacity) =>
+        page(
+          background,
+          <div
+            style={{
+              position: "absolute",
+              left: 20.4,
+              top: 30.6,
+              color: "#1d4ed8",
+              opacity,
+              ...style,
+            }}
+          >
+            {words}
+          </div>,
+        ),
+      1_500,
+    );
+  });
+
+  it("fades text and the background behind it as one", async () => {
+    await expectFadesAsOne(
+      (background, opacity) =>
+        page(
+          background,
+          <div
+            style={{
+              position: "absolute",
+              left: 20,
+              top: 30,
+              padding: 12,
+              fontSize: 40,
+              color: "#000",
+              background: "#f97316",
+              opacity,
+            }}
+          >
+            Label
+          </div>,
+        ),
+      5_000,
+    );
   });
 
   // @effing/skia flushes its deferred recording once it holds 32 MiB, decoded

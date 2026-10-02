@@ -5,6 +5,7 @@ import type { RenderReactElementOptions } from "../types.ts";
 import { drawNode } from "./draw/index.ts";
 import { ensureFontsRegistered } from "./font.ts";
 import { buildLayoutTree } from "./layout.ts";
+import { releaseParagraphs } from "./text/native.ts";
 import type { RenderContext } from "./context.ts";
 
 /**
@@ -98,4 +99,8 @@ export async function renderReactElement(
 
   // Draw to canvas
   await drawNode(ctx, layoutTree, 0, 0, renderContext, emojiStyle);
+
+  // Text is laid out as native paragraphs, whose memory Node releases only on
+  // a turn of the event loop: take one when a caller's loop hasn't.
+  await releaseParagraphs();
 }

@@ -91,6 +91,58 @@ const fadingList = (rows: number, overflow?: "hidden") => (
   </div>
 );
 
+// Words fading in one by one, as a caption animation does: each word is a
+// text-only element with its own opacity.
+const fadingWords = (words: number) => (
+  <div
+    style={{
+      width: 1080,
+      height: 1080,
+      display: "flex",
+      flexWrap: "wrap",
+      alignContent: "flex-start",
+      gap: 12,
+      background: "#101418",
+      padding: 60,
+      fontFamily: "Liberation Sans",
+      fontSize: 48,
+      color: "#fff",
+    }}
+  >
+    {Array.from({ length: words }, (_, i) => (
+      <div key={i} style={{ opacity: (i + 1) / (words + 1) }}>
+        {["revenue", "grew", "across", "every", "region"][i % 5]}
+      </div>
+    ))}
+  </div>
+);
+
+// A page of small text: many glyphs, filled as outlines.
+const denseText = (paragraphs: number) => (
+  <div
+    style={{
+      width: 1080,
+      height: 1080,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      background: "#fff",
+      padding: 24,
+      fontFamily: "Liberation Sans",
+      fontSize: 18,
+      color: "#111",
+    }}
+  >
+    {Array.from({ length: paragraphs }, (_, i) => (
+      <div key={i}>
+        {"Revenue grew year over year, driven by strong demand across every region and a record holiday season. ".repeat(
+          3,
+        )}
+      </div>
+    ))}
+  </div>
+);
+
 // Draws are recorded and only rasterized when pixels are read, so read one to
 // time the full frame, as encoding it would.
 async function frame(element: React.ReactNode) {
@@ -148,6 +200,12 @@ rows.push(
 );
 rows.push(
   `fading list, 10 clipped rows: ${(await medianOf(fadingList(10, "hidden"))).toFixed(2)} ms`,
+);
+rows.push(
+  `40 words fading separately: ${(await medianOf(fadingWords(40))).toFixed(2)} ms`,
+);
+rows.push(
+  `dense text, 12 paragraphs: ${(await medianOf(denseText(12))).toFixed(2)} ms`,
 );
 rows.push(
   `backdrop blur(12px): ${(

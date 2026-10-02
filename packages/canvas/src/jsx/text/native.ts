@@ -77,6 +77,35 @@ function toTextAlign(
 // opportunity instead.
 const MIN_WIDTH = 0.01;
 
+// A paragraph's native memory (some 20 KB) is released by a finalizer, and
+// Node only runs finalizers on a later turn of the event loop. A frame loop
+// that awaits nothing but microtasks never gets there, and would grow by every
+// paragraph it has built. So they are counted per turn, and a render that
+// finds too many outstanding yields one turn itself.
+const MAX_PENDING_PARAGRAPHS = 2000;
+let pendingParagraphs = 0;
+let turnWatched = false;
+
+function countParagraph(): void {
+  pendingParagraphs++;
+  if (turnWatched) return;
+  turnWatched = true;
+  // Runs once the event loop turns, by whoever's doing.
+  setImmediate(() => {
+    pendingParagraphs = 0;
+    turnWatched = false;
+  });
+}
+
+/**
+ * Give Node a turn of the event loop to release the paragraphs built so far,
+ * if enough have piled up since the last one.
+ */
+export async function releaseParagraphs(): Promise<void> {
+  if (pendingParagraphs < MAX_PENDING_PARAGRAPHS) return;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+}
+
 /**
  * Lay out already-transformed text natively. Mirrors the TypeScript layout:
  * one segment per line, CSS half-leading line boxes from the font's hhea
@@ -126,6 +155,7 @@ export function layoutTextNative(
     maxLines: lineClamp,
     ellipsis,
   });
+  countParagraph();
   const layout = paragraph.layout(width);
   if (!noWrap && layout.minIntrinsicWidth > width) return null;
 
@@ -190,5 +220,8 @@ export function layoutTextNative(
     height,
     paragraph,
     paragraphOffsetY,
+    paragraphLinesApart:
+      layout.lines.length <= 1 ||
+      layout.lineHeight >= layout.ascent + layout.descent,
   };
 }

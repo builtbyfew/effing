@@ -8,16 +8,87 @@
 import type { SKRSContext2D } from "@effing/skia";
 import { beginGroup, endGroup } from "@effing/skia/extensions";
 
+import type { LayoutNode } from "../layout.ts";
+import type { TextLayoutResult } from "../text/index.ts";
 import { applyClip } from "./clip.ts";
 import type { getBorderRadiusFromStyle } from "./rect.ts";
 
 type BorderRadius = ReturnType<typeof getBorderRadiusFromStyle>;
 
 /** A CSS filter value that filters nothing. */
-function isNoFilter(filter: string | undefined): boolean {
+export function isNoFilter(filter: string | undefined): boolean {
   if (!filter) return true;
   const normalized = filter.trim();
   return normalized === "" || normalized === "none";
+}
+
+/**
+ * How an element with `opacity` below 1 and no filter takes that opacity.
+ *
+ * A group is always right, but it is composited through a buffer the size of
+ * the canvas, so the two cases that give the same picture without one are
+ * told apart:
+ *
+ * - `"through"`: the element paints nothing itself and has a single child.
+ *   The group would hold exactly that child, so the opacity is handed to it.
+ *   Not over a `backdrop-filter`, though: a translucent element is a
+ *   backdrop root, which only its group makes it.
+ * - `"alpha"`: the element is a single draw (a plain background, an image,
+ *   or one natively painted paragraph without shadow, stroke or decoration),
+ *   which fades the same with the opacity on that draw.
+ */
+export type Fade = "group" | "through" | "alpha";
+
+export function fadeOf(
+  node: LayoutNode,
+  textLayout: TextLayoutResult | undefined,
+  debug: boolean,
+): Fade {
+  const { style } = node;
+  // The filtered backdrop and an SVG subtree are several draws each.
+  if (!isNoFilter(style.backdropFilter) || node.type === "svg") return "group";
+  const hasFrame =
+    !!style.boxShadow ||
+    !!style.backgroundImage ||
+    !!style.borderTopWidth ||
+    !!style.borderRightWidth ||
+    !!style.borderBottomWidth ||
+    !!style.borderLeftWidth ||
+    debug;
+  const hasBackground = !!style.backgroundColor;
+  const isImage = node.type === "img" && !!node.props.src;
+  const hasText = node.textContent !== undefined && node.textContent !== "";
+  const ownDraws = Number(hasBackground) + Number(isImage) + Number(hasText);
+
+  if (node.children.length === 1 && !hasFrame && ownDraws === 0) {
+    return hasBackdropFilter(node.children[0]!) ? "group" : "through";
+  }
+  if (node.children.length > 0 || hasFrame || ownDraws > 1) return "group";
+  if (hasText && !fillsAsOne(style, textLayout)) return "group";
+  return "alpha";
+}
+
+/** Whether anything visible in the subtree filters its backdrop. */
+function hasBackdropFilter(node: LayoutNode): boolean {
+  if (node.style.display === "none") return false;
+  if (!isNoFilter(node.style.backdropFilter)) return true;
+  return node.children.some(hasBackdropFilter);
+}
+
+/**
+ * Whether the element's text is a single fill: a native paragraph, whose
+ * glyphs are filled a run at a time as one path, with nothing drawn around
+ * it, and with lines too far apart for one line's ink to reach the next.
+ */
+function fillsAsOne(
+  style: LayoutNode["style"],
+  textLayout: TextLayoutResult | undefined,
+): boolean {
+  if (!textLayout?.paragraph || !textLayout.paragraphLinesApart) return false;
+  if (style.textShadow) return false;
+  if (style.textDecoration && style.textDecoration !== "none") return false;
+  const strokeWidth = textLayout.segments[0]?.textStrokeWidth;
+  return !(strokeWidth !== undefined && strokeWidth > 0);
 }
 
 /** A rectangle `[x, y, width, height]` in the current coordinate space. */

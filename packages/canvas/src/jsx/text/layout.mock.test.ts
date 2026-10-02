@@ -22,6 +22,7 @@ import { createCanvas } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
 import { getFontMetrics } from "../font.ts";
 import { layoutText, layoutTextFallback } from "./index.ts";
+import { releaseParagraphs } from "./native.ts";
 
 // The mocks measure 8px per character, with ascent 12 and descent 4.
 
@@ -188,6 +189,36 @@ describe("layoutText", () => {
     expect(result.paragraph).toBeUndefined();
     expect(result.segments).toHaveLength(1);
     expect(result.height).toBe(20);
+  });
+});
+
+describe("releaseParagraphs", () => {
+  const turn = () => new Promise<void>((resolve) => setImmediate(resolve));
+  // Whether the event loop turned while `fn` ran.
+  const turnsDuring = async (fn: () => Promise<void>) => {
+    let turned = false;
+    setImmediate(() => {
+      turned = true;
+    });
+    await fn();
+    return turned;
+  };
+  const layOut = (count: number) => {
+    for (let i = 0; i < count; i++) layoutText("aaa", { fontSize: 16 }, 500);
+  };
+
+  it("returns at once while few paragraphs have been built since the last turn", async () => {
+    await turn();
+    layOut(100);
+    expect(await turnsDuring(releaseParagraphs)).toBe(false);
+  });
+
+  it("yields a turn of the event loop once many have piled up", async () => {
+    await turn();
+    layOut(2000);
+    expect(await turnsDuring(releaseParagraphs)).toBe(true);
+    // The turn released them: nothing is outstanding now.
+    expect(await turnsDuring(releaseParagraphs)).toBe(false);
   });
 });
 

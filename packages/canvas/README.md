@@ -291,6 +291,11 @@ const png = canvas.encodeSync("png");
 as in CSS: overlapping children fade together instead of showing through each
 other, and a `drop-shadow()` is cast once by the whole group.
 
+A filter covers the element as painted, so `blur()` softens its edge too,
+rounded corners included. To keep the edge sharp, clip after the filter: give
+the element a `clipPath` (for example `inset(0px round 8px)`), or wrap it in an
+element with `overflow: hidden`.
+
 Such an element is composited through an offscreen buffer the size of the
 canvas. An element that clips its content (`overflow: hidden`) only needs one
 its own size, which is cheaper when many elements fade at once.

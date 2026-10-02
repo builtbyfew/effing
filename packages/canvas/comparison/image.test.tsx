@@ -126,6 +126,45 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
     }
   });
 
+  // To keep a blurred image's edge sharp, clip it after the filter. Satori's
+  // image is always clipped that way, so here the whole card compares.
+  it.each([
+    ["a wrapper with overflow: hidden", "wrapper"],
+    ["its own clip-path", "clip-path"],
+  ] as const)(
+    "renders BlurShowcaseCard — blurred image clipped by %s",
+    async (_, clip) => {
+      const imageDataUri = await makeTestImage(120, 120);
+      const element = (
+        <BlurShowcaseCard
+          width={WIDTH}
+          height={HEIGHT}
+          imageDataUri={imageDataUri}
+          clip={clip}
+        />
+      );
+
+      const [canvasPng, satoriPng] = await Promise.all([
+        renderWithCanvas(element, WIDTH, HEIGHT, fonts),
+        renderWithSatori(element, WIDTH, HEIGHT, fonts),
+      ]);
+      const { percentage } = await compareImages(
+        canvasPng,
+        satoriPng,
+        `blur-showcase-${clip}`,
+      );
+      expect(percentage).toBeLessThan(1);
+
+      // Nothing of the image is painted past its edge (x = 384): just beyond
+      // it is the card's own background.
+      const canvas = PNG.sync.read(canvasPng);
+      const i = (150 * canvas.width + 385) * 4;
+      expect(Array.from(canvas.data.subarray(i, i + 3))).toEqual([
+        248, 250, 252,
+      ]);
+    },
+  );
+
   it("renders ObjectFitCoverCard — objectFit cover with cropping", async () => {
     const imageDataUri = await makeTestImage(160, 80); // landscape image
     const element = (

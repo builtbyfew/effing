@@ -21,7 +21,8 @@ Four things to know when upgrading:
 - Frames with translucent or filtered elements that have overlapping
   descendants render differently (correctly).
 - A `filter` on an image with `borderRadius` now blurs its rounded edge, as in
-  a browser.
+  a browser. For a sharp edge, give the image a `clipPath` or wrap it in an
+  element with `overflow: hidden`.
 - A group that holds more than 32 MiB of decoded images (one photo of about
   8 megapixels) is composited in two parts: what the element paints after
   such an image no longer hides it while the element is translucent.

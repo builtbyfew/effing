@@ -8,13 +8,33 @@ export interface BlurShowcaseCardProps {
   width: number;
   height: number;
   imageDataUri: string;
+  /**
+   * Clip the blurred image to its rounded box, either with a wrapper that has
+   * `overflow: hidden` or with a `clip-path` on the image itself (CSS clips
+   * after filtering). Without one, the blur softens the image's edge.
+   */
+  clip?: "wrapper" | "clip-path";
 }
 
 export function BlurShowcaseCard({
   width,
   height,
   imageDataUri,
+  clip,
 }: BlurShowcaseCardProps) {
+  const image = (style: React.CSSProperties) => (
+    <img
+      src={imageDataUri}
+      width={Math.floor((width - 48) / 2)}
+      height={height - 32}
+      style={{
+        flex: 1,
+        filter: "blur(3px)",
+        objectFit: "cover",
+        ...style,
+      }}
+    />
+  );
   return (
     <div
       style={{
@@ -38,17 +58,22 @@ export function BlurShowcaseCard({
         }}
       />
       {/* Blurred image */}
-      <img
-        src={imageDataUri}
-        width={Math.floor((width - 48) / 2)}
-        height={height - 32}
-        style={{
-          flex: 1,
-          filter: "blur(3px)",
-          borderRadius: 8,
-          objectFit: "cover",
-        }}
-      />
+      {clip === "wrapper" ? (
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            overflow: "hidden",
+            borderRadius: 8,
+          }}
+        >
+          {image({})}
+        </div>
+      ) : clip === "clip-path" ? (
+        image({ clipPath: "inset(0px round 8px)" })
+      ) : (
+        image({ borderRadius: 8 })
+      )}
     </div>
   );
 }

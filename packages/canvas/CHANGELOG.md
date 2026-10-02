@@ -1,5 +1,104 @@
 # @effing/canvas
 
+## 0.42.0
+
+### Minor Changes
+
+- 61e382f: Apply `opacity` and `filter` to an element and its descendants as one group,
+  and filter backdrops natively.
+
+  `opacity` and `filter` used to be applied to each drawing operation, so
+  overlapping children of a fading element showed through each other, and a
+  `drop-shadow()` was cast by every child separately. An element with either is
+  now composited as a group (`beginGroup` / `endGroup` of `@effing/skia`), which
+  is what CSS specifies.
+
+  `backdropFilter` is a native backdrop group instead of a snapshot filtered in
+  JavaScript: about a third faster in our benchmark. As in browsers, an ancestor
+  with `opacity` below 1 or a `filter` is now a backdrop root, so an element
+  inside it filters only what that ancestor has painted so far.
+
+  Two things to know when upgrading:
+
+  - Frames with translucent or filtered elements that have overlapping
+    descendants render differently (correctly).
+  - A `filter` on an image with `borderRadius` now blurs its rounded edge, as in
+    a browser. For a sharp edge, give the image a `clipPath` or wrap it in an
+    element with `overflow: hidden`.
+
+- 61e382f: Render with `@effing/skia` instead of `@napi-rs/canvas`, and install it as a
+  regular dependency instead of a peer.
+
+  `@effing/skia` is Effing's fork of `@napi-rs/canvas`: the same API, plus the
+  primitives the other changes in this release build on (unsnapped text, native
+  paragraphs, compositing groups). Code that imports from `@effing/canvas` needs
+  no change.
+
+  The backend is no longer a peer dependency: `@effing/canvas` depends on
+  `@effing/skia` at exactly `1.0.10-effing.2`, so it is installed with
+  `@effing/canvas` and no project has to list it. A project that lists
+  `@napi-rs/canvas` only to satisfy the old peer dependency can drop it.
+
+  `@effing/skia` ships prebuilt binaries for Linux x64 and arm64 (glibc and musl),
+  macOS x64 and arm64, and Windows x64. `@napi-rs/canvas`'s other targets (Linux
+  armv7 and riscv64, Android, Windows ARM64) are no longer supported.
+
+  `createCanvas().encode()` resolves with the backend's buffer as it is. It used
+  to be copied to the JavaScript heap, a guard against lifetime bugs in
+  `@napi-rs/canvas`'s asynchronous encode that `@effing/skia` does not have.
+
+  `effing build` now leaves `@effing/canvas` out of the bundle instead of its
+  backend, so the bundle loads the backend through `@effing/canvas`. A pnpm
+  project used to have to list the backend itself for its bundle to start; it no
+  longer does. The build also fails, naming the package, when the bundle imports
+  one that Node would not find from where the bundle sits.
+
+- 61e382f: Lay text out natively, as one paragraph that Skia breaks, shapes and paints.
+
+  Text used to be wrapped in TypeScript by measuring it word by word, and each
+  line drawn with its own `fillText` (one per character with `letterSpacing`).
+  A text node is now a single `Paragraph` of `@effing/skia`: one native call
+  lays it out, one paints it. On a 1080×1080 frame with a text card, a frame
+  takes 0.8 ms where it took 1.0 ms, and a page of twelve paragraphs of 18px
+  text 16 ms where it took 32 ms, even though glyphs are now filled as outlines.
+
+  Line boxes follow the same CSS model as before (each exactly `lineHeight`
+  tall, the baseline placed by half-leading from the font's hhea metrics), and
+  in the test suite lines break where they did. What changes:
+
+  - `textAlign: "justify"` now justifies wrapped lines; it used to left-align.
+  - A centred or right-aligned line that is wider than its box now starts at the
+    box's start edge and overflows its end, as in browsers; it used to stay
+    centred or right-aligned across the box.
+  - Line widths are no longer rounded to 1/100px.
+
+  The TypeScript layout remains for what a paragraph can't express:
+  `wordBreak: "break-all"`, emoji drawn as images, and a word wider than its
+  box, which overflows unbroken as in CSS.
+
+- 61e382f: Draw text unhinted and unsnapped, so it stays put while a scale animates.
+
+  Glyphs used to be drawn as hinted masks snapped to the pixel grid, which
+  places text up to half a pixel away from where its geometry puts it, by an
+  amount that depends on the scale. To hide that, an element with a pure
+  `scale()` transform was rendered into a supersampled offscreen buffer and
+  composited back, which still made text jump when an animated scale crossed 1,
+  2, 3, … and the buffer changed resolution.
+
+  Text is now measured and filled as glyph outlines at their exact positions
+  (`textRendering: "geometricPrecision"` on `@effing/skia`), and every element is
+  drawn straight through its transform. Scaled text moves continuously with the
+  rest of the element, and a frame renders the same at any output scale. Text
+  pixels differ slightly from earlier versions: glyph edges are anti-aliased
+  where they fall rather than aligned to the pixel grid.
+
+### Patch Changes
+
+- 1a2daea: Fix text wrapping pushing a word to the next line when it fits exactly (or with
+  less than a space's width to spare). The wrapping check measured each candidate
+  line including the space after its last word; trailing spaces now hang, as in
+  CSS and satori, and no longer count toward whether a line fits.
+
 ## 0.41.1
 
 ### Patch Changes

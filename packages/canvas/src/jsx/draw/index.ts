@@ -271,13 +271,11 @@ async function paintNode(
     const contentWidth =
       width - paddingLeft - paddingRight - borderLeftW - borderRightW;
 
-    const textLayout = layoutText(
-      node.textContent,
-      style,
-      contentWidth,
-      ctx,
-      !!emojiStyle,
-    );
+    // Text nodes come laid out at their width from the layout phase.
+    const textLayout =
+      node.textLayout && contentWidth === node.width
+        ? node.textLayout
+        : layoutText(node.textContent, style, contentWidth, ctx, !!emojiStyle);
     await drawText(
       ctx,
       textLayout.segments,

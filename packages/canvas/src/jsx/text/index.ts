@@ -10,7 +10,7 @@ import { getFontMetrics } from "../font.ts";
 import { fontMetricsToPx } from "../font-metrics.ts";
 import type { FontMetrics } from "../font-metrics.ts";
 import { isEmoji } from "../language.ts";
-import { findBreakOpportunities } from "./linebreak.ts";
+import { findBreakOpportunities, graphemeSegmenter } from "./linebreak.ts";
 import { measureText, measureTrimMetrics, measureWord } from "./measure.ts";
 import type { TextMetrics } from "./measure.ts";
 import { canLayoutNatively, layoutTextNative } from "./native.ts";
@@ -113,8 +113,9 @@ function emojiAwareMeasureWord(
  *
  * Text is laid out natively, as one paragraph that Skia breaks and shapes
  * (see `./native.ts`), except where a paragraph can't express the result —
- * `word-break: break-all`, emoji drawn as images, a word wider than the box —
- * which goes through `layoutTextFallback`.
+ * `word-break: break-all`, emoji drawn as images, a word wider than the box
+ * (or, under `break-word`, a line Skia breaks such a word on before wrapping)
+ * — which goes through `layoutTextFallback`.
  *
  * @param text - The text to lay out
  * @param style - Computed style
@@ -240,18 +241,7 @@ export function layoutTextFallback(
     }
 
     // Wrap text
-    const wrapped = wrapText(
-      paragraph,
-      maxWidth,
-      fontSize,
-      fontFamily,
-      fontWeight,
-      fontStyle,
-      letterSpacing,
-      wordBreak,
-      ctx,
-      measure,
-    );
+    const wrapped = wrapText(paragraph, maxWidth, wordBreak, measure);
     lines.push(...wrapped);
   }
 
@@ -472,69 +462,48 @@ function resolveLineHeight(
 function wrapText(
   text: string,
   maxWidth: number,
-  fontSize: number,
-  fontFamily: string,
-  fontWeight: number | string,
-  fontStyle: string,
-  letterSpacing: number,
   wordBreak: string,
-  ctx?: SKRSContext2D,
-  measureFn?: (word: string, ls?: number) => number,
+  measure: (word: string) => number,
 ): string[] {
   if (!text) return [""];
 
-  const mw =
-    measureFn ??
-    ((word: string) =>
-      measureWord(
-        word,
-        fontSize,
-        fontFamily,
-        fontWeight,
-        fontStyle,
-        ctx,
-        letterSpacing,
-      ));
-
+  // A word wider than the line by itself is broken to fit, instead of left to
+  // overflow. That's `break-word`; `break-all` gets the same until it breaks
+  // between any two characters.
+  const breakWords = wordBreak === "break-word" || wordBreak === "break-all";
   const breakOpps = findBreakOpportunities(text);
   const lines: string[] = [];
   let lineStart = 0;
   let lastBreak = 0;
+  // Trailing whitespace hangs (as in CSS): it doesn't count toward whether the
+  // line fits. Break positions sit after the space, so trim it here.
+  const lineWidth = (end: number) =>
+    measure(text.slice(lineStart, end).replace(/\s+$/, ""));
 
   for (const opp of breakOpps) {
-    // Trailing whitespace hangs (as in CSS): it doesn't count toward whether
-    // the line fits.  Break positions sit after the space, so trim it here.
-    const segment = text.slice(lineStart, opp.position).replace(/\s+$/, "");
-    const segWidth = mw(segment);
-
-    if (segWidth > maxWidth && lastBreak > lineStart) {
+    let width = lineWidth(opp.position);
+    if (width > maxWidth && lastBreak > lineStart) {
       // Line overflows — break at last opportunity
-      const line = text.slice(lineStart, lastBreak).replace(/\s+$/, "");
-      lines.push(line);
+      lines.push(text.slice(lineStart, lastBreak).replace(/\s+$/, ""));
       lineStart = lastBreak;
-    } else if (segWidth > maxWidth && wordBreak === "break-all") {
-      // Force break within word
-      const broken = forceBreakWord(
+      width = lineWidth(opp.position);
+    }
+    if (width > maxWidth && breakWords) {
+      // The line is one word, wider than the box: break it, and leave its
+      // last piece to start the next line.
+      lineStart = breakWord(
         text,
         lineStart,
         opp.position,
         maxWidth,
-        fontSize,
-        fontFamily,
-        fontWeight,
-        fontStyle,
-        ctx,
-        letterSpacing,
-        measureFn,
+        measure,
+        lines,
       );
-      lines.push(...broken.lines);
-      lineStart = broken.endPos;
     }
 
     if (opp.required) {
       // Hard break (newline)
-      const line = text.slice(lineStart, opp.position).replace(/\s+$/, "");
-      lines.push(line);
+      lines.push(text.slice(lineStart, opp.position).replace(/\s+$/, ""));
       lineStart = opp.position;
     }
 
@@ -542,77 +511,42 @@ function wrapText(
   }
 
   // Remaining text
-  if (lineStart < text.length) {
-    const remaining = text.slice(lineStart).replace(/\s+$/, "");
-    if (remaining) {
-      const remWidth = mw(remaining);
-      if (remWidth > maxWidth && wordBreak === "break-all") {
-        const broken = forceBreakWord(
-          text,
-          lineStart,
-          text.length,
-          maxWidth,
-          fontSize,
-          fontFamily,
-          fontWeight,
-          fontStyle,
-          ctx,
-          letterSpacing,
-          measureFn,
-        );
-        lines.push(...broken.lines);
-      } else {
-        lines.push(remaining);
-      }
-    }
-  }
+  const remaining = text.slice(lineStart).replace(/\s+$/, "");
+  if (remaining) lines.push(remaining);
 
   return lines.length > 0 ? lines : [""];
 }
 
-function forceBreakWord(
+/**
+ * Break the word in `text[start, end)` (trailing whitespace ignored) between
+ * grapheme clusters, putting as much on each line as fits and at least one
+ * cluster. Pushes every full line and returns where the last piece starts,
+ * which the next words may join.
+ */
+function breakWord(
   text: string,
   start: number,
   end: number,
   maxWidth: number,
-  fontSize: number,
-  fontFamily: string,
-  fontWeight: number | string,
-  fontStyle: string,
-  ctx?: SKRSContext2D,
-  letterSpacing: number = 0,
-  measureFn?: (word: string, ls?: number) => number,
-): { lines: string[]; endPos: number } {
-  const mw =
-    measureFn ??
-    ((word: string) =>
-      measureWord(
-        word,
-        fontSize,
-        fontFamily,
-        fontWeight,
-        fontStyle,
-        ctx,
-        letterSpacing,
-      ));
-  const lines: string[] = [];
-  let pos = start;
-
-  while (pos < end) {
-    let breakPos = pos + 1;
-    while (breakPos < end) {
-      const chunk = text.slice(pos, breakPos + 1);
-      const w = mw(chunk);
-      if (w > maxWidth) break;
-      breakPos++;
+  measure: (word: string) => number,
+  lines: string[],
+): number {
+  const word = text.slice(start, end).replace(/\s+$/, "");
+  let pieceStart = 0;
+  let lastBoundary = 0;
+  const boundaries = [...graphemeSegmenter.segment(word)].map((g) => g.index);
+  boundaries.push(word.length);
+  for (const boundary of boundaries) {
+    if (
+      lastBoundary > pieceStart &&
+      measure(word.slice(pieceStart, boundary)) > maxWidth
+    ) {
+      lines.push(word.slice(pieceStart, lastBoundary));
+      pieceStart = lastBoundary;
     }
-
-    const line = text.slice(pos, breakPos);
-    if (line.trim()) lines.push(line);
-    pos = breakPos;
+    lastBoundary = boundary;
   }
-
-  return { lines, endPos: end };
+  return start + pieceStart;
 }
 
 function truncateWithEllipsis(
@@ -657,34 +591,117 @@ function truncateWithEllipsis(
 }
 
 /**
- * Yoga-compatible measure function for text nodes.
- * Returns the dimensions needed for the text content.
+ * Sizes a text node for Yoga, and lays its text out for drawing at the width
+ * Yoga finally gives it.
+ *
+ * Yoga measures a node at whatever widths its algorithm needs, and may size
+ * the node (or its ancestors) from a measurement at a width other than the
+ * final one — a flex basis at the available width, say, before the node
+ * shrinks. Laid out again at the final width, the text can then take more or
+ * fewer lines than the box was sized for. `settle` catches that: it lays the
+ * text out at the final width and, when Yoga saw a different height, pins
+ * every later measurement to the height drawn, for the caller to compute the
+ * layout again. The widths Yoga is given, which decide the line breaks, are
+ * unchanged by the pin, so the next layout normally keeps the node's width.
  */
-export function createTextMeasureFunc(
-  text: string,
-  style: ComputedStyle,
-  ctx?: SKRSContext2D,
-  emojiEnabled?: boolean,
-) {
-  // Strip textOverflow during measurement so ellipsis truncation doesn't
-  // shrink the reported width below the Yoga constraint.  The draw phase
-  // still uses the original style (with textOverflow) for rendering.
-  const measureStyle = { ...style, textOverflow: "clip" as const };
-  return (
-    width: number,
-    _widthMode: number,
-    _height: number,
-    _heightMode: number,
-  ) => {
-    const maxWidth = width > 0 ? width : Infinity;
-    const result = layoutText(text, measureStyle, maxWidth, ctx, emojiEnabled);
-    // When text wraps to multiple lines, return the constraint width (like CSS
-    // block layout).  This ensures the draw phase re-layout gets the same
-    // maxWidth and produces identical line-breaking.
-    const wrapped = result.segments.length > 1;
-    const reportedWidth = wrapped
-      ? Math.min(maxWidth, width > 0 ? width : result.width)
-      : result.width;
-    return { width: Math.min(reportedWidth, maxWidth), height: result.height };
-  };
+export class TextMeasure {
+  /** Yoga's measurements by width (Infinity for unbounded). */
+  private readonly sizes = new Map<number, { width: number; height: number }>();
+  /** The heights reported to Yoga since the last `settle`. */
+  private readonly reported = new Set<number>();
+  private pinnedHeight: number | undefined;
+  private settled: { width: number; result: TextLayoutResult } | undefined;
+  private readonly measureStyle: ComputedStyle;
+
+  constructor(
+    private readonly text: string,
+    private readonly style: ComputedStyle,
+    private readonly ctx?: SKRSContext2D,
+    private readonly emojiEnabled?: boolean,
+  ) {
+    // Strip textOverflow during measurement so ellipsis truncation doesn't
+    // shrink the reported width below the Yoga constraint.  The draw phase
+    // still uses the original style (with textOverflow) for rendering.
+    this.measureStyle = { ...style, textOverflow: "clip" };
+  }
+
+  /**
+   * Measure the text for Yoga.
+   *
+   * @param maxWidth - The width available, Infinity for unbounded
+   */
+  measure(maxWidth: number): { width: number; height: number } {
+    let size = this.sizes.get(maxWidth);
+    if (!size) {
+      const result = layoutText(
+        this.text,
+        this.measureStyle,
+        maxWidth,
+        this.ctx,
+        this.emojiEnabled,
+      );
+      // When text wraps to multiple lines, report the constraint width (like
+      // CSS block layout), so that the node is drawn at the width its lines
+      // were broken at.
+      const wrapped = result.segments.length > 1 && maxWidth < Infinity;
+      size = {
+        width: wrapped ? maxWidth : Math.min(result.width, maxWidth),
+        height: result.height,
+      };
+      this.sizes.set(maxWidth, size);
+    }
+    const height = this.pinnedHeight ?? size.height;
+    this.reported.add(height);
+    return { width: size.width, height };
+  }
+
+  /**
+   * Lay the text out for drawing at the node's final content width, and
+   * check it against the heights Yoga was given since the last call.
+   *
+   * @param pin - Whether to pin later measurements to the drawn height when
+   *   they disagree
+   * @returns Whether Yoga sized the node from another height. If `pin`, the
+   *   node's measurements are now pinned to the drawn height, and the caller
+   *   should mark the node dirty and compute the layout again.
+   */
+  settle(width: number, pin: boolean): boolean {
+    if (this.settled?.width !== width) {
+      this.settled = {
+        width,
+        result: layoutText(
+          this.text,
+          this.style,
+          width,
+          this.ctx,
+          this.emojiEnabled,
+        ),
+      };
+    }
+    const { height } = this.settled.result;
+    const agrees =
+      this.reported.size === 0 ||
+      (this.reported.size === 1 && this.reported.has(height));
+    this.reported.clear();
+    if (agrees) return false;
+    if (pin) this.pinnedHeight = height;
+    return true;
+  }
+
+  /**
+   * Drop the pinned height, so that Yoga sees the measured heights again.
+   *
+   * @returns Whether there was a pin
+   */
+  unpin(): boolean {
+    const pinned = this.pinnedHeight !== undefined;
+    this.pinnedHeight = undefined;
+    this.reported.clear();
+    return pinned;
+  }
+
+  /** The text as laid out by the last `settle`. */
+  get layout(): TextLayoutResult | undefined {
+    return this.settled?.result;
+  }
 }

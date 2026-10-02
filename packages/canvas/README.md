@@ -257,7 +257,7 @@ const png = canvas.encodeSync("png");
 | `lineHeight`            | Number or string (inherited)                                  |
 | `letterSpacing`         | Number or CSS length (inherited)                              |
 | `whiteSpace`            | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
-| `wordBreak`             | `normal`, `break-all`, `break-word`, `keep-all` (inherited)   |
+| `wordBreak`             | `normal`, `break-word`, `break-all`¹, `keep-all`¹ (inherited) |
 | `textOverflow`          | `clip`, `ellipsis` (inherited)                                |
 | `lineClamp`             | Number — max visible lines (adds ellipsis)                    |
 | `textBox`               | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
@@ -266,6 +266,8 @@ const png = canvas.encodeSync("png");
 | `WebkitTextStroke`      | Shorthand, e.g. `"2px red"` (inherited)                       |
 | `WebkitTextStrokeWidth` | CSS length (inherited)                                        |
 | `WebkitTextStrokeColor` | Any CSS color (inherited)                                     |
+
+¹ For now `break-all` only breaks a word that is wider than its line, as `break-word` does, and `keep-all` breaks lines as `normal` does.
 
 ### Effects
 

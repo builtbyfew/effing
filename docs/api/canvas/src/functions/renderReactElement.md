@@ -8,7 +8,7 @@
 
 > **renderReactElement**(`ctx`, `element`, `options?`): `Promise`\<`void`\>
 
-Defined in: [canvas/src/jsx/index.ts:62](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L62)
+Defined in: [canvas/src/jsx/index.ts:63](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/index.ts#L63)
 
 Render a React element tree to a canvas context.
 

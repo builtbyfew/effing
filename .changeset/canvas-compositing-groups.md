@@ -26,7 +26,8 @@ Four things to know when upgrading:
 - A group that holds more than 32 MiB of decoded images (one photo of about
   8 megapixels) is composited in two parts: what the element paints after
   such an image no longer hides it while the element is translucent.
-- A group is composited through an offscreen buffer the size of the canvas,
-  which costs about 0.4 ms per translucent element on a 1080×1080 frame. An
-  element with `overflow: hidden` gets a buffer its own size and costs next to
-  nothing.
+- A translucent element with several parts (say a background and children)
+  is composited through an offscreen buffer the size of the canvas, about
+  0.4 ms each on a 1080×1080 frame. With `overflow: hidden` the buffer is the
+  element's own size and costs next to nothing. Text, images and plain
+  backgrounds fade directly, without a buffer.

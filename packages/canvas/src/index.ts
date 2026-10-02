@@ -30,19 +30,14 @@ export {
   type LoadImageSource,
 } from "./image.ts";
 
+// encode() needs no patching: it snapshots the canvas when called, so later
+// drawing can't reach a pending encode, and the Buffer it resolves with owns
+// its native memory until the Buffer itself is collected (see
+// ./encode.test.ts). This used to copy the result to the JS heap, to guard
+// against lifetime bugs in @napi-rs/canvas's async encode that were fixed
+// upstream (napi-rs/canvas#1314, #1323) before @effing/skia was forked.
 export function createCanvas(width: number, height: number) {
-  const canvas = _createCanvas(width, height);
-  const origEncode = canvas.encode.bind(canvas);
-  type Encode = typeof canvas.encode;
-
-  // The native @effing/skia encode() returns Buffers backed by Rust/Skia
-  // memory that can be freed before downstream consumers finish reading (e.g.
-  // when streaming frames concurrently). We patch encode to copy the result
-  // to the JS heap so the data remains valid regardless of native GC timing.
-  canvas.encode = (async (...args: unknown[]) =>
-    Buffer.from(await origEncode(...(args as Parameters<Encode>)))) as Encode;
-
-  return canvas;
+  return _createCanvas(width, height);
 }
 
 // Lottie API

@@ -20,6 +20,10 @@ The backend is no longer a peer dependency: `@effing/canvas` depends on
 macOS x64 and arm64, and Windows x64. `@napi-rs/canvas`'s other targets (Linux
 armv7 and riscv64, Android, Windows ARM64) are no longer supported.
 
+`createCanvas().encode()` resolves with the backend's buffer as it is. It used
+to be copied to the JavaScript heap, a guard against lifetime bugs in
+`@napi-rs/canvas`'s asynchronous encode that `@effing/skia` does not have.
+
 `effing build` now leaves `@effing/canvas` out of the bundle instead of its
 backend, so the bundle loads the backend through `@effing/canvas`. A pnpm
 project used to have to list the backend itself for its bundle to start; it no

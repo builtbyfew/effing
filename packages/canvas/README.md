@@ -295,6 +295,12 @@ Such an element is composited through an offscreen buffer the size of the
 canvas. An element that clips its content (`overflow: hidden`) only needs one
 its own size, which is cheaper when many elements fade at once.
 
+One limit: a group that holds more than 32 MiB of decoded images (a single
+photo of about 8 megapixels is enough) is composited in two parts, so what the
+element paints after such an image no longer hides it while the element is
+translucent. Scaling large images down to the size they are shown at avoids
+it.
+
 ### Clip paths
 
 `clipPath` clips the element's entire rendering — background, borders,

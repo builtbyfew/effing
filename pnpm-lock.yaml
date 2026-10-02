@@ -181,8 +181,8 @@ importers:
   packages/canvas:
     dependencies:
       '@effing/skia':
-        specifier: 1.0.9-effing.1
-        version: 1.0.9-effing.1
+        specifier: 1.0.10-effing.1
+        version: 1.0.10-effing.1
       css-background-parser:
         specifier: ^0.1.0
         version: 0.1.0
@@ -821,50 +821,50 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@effing/skia-darwin-arm64@1.0.9-effing.1':
-    resolution: {integrity: sha512-xJ3+vHlZ8AOgZhiDUe/eXA5mFFO4EL/9Z57w3FakZCUd3ibqU36pNfWcjkdNW383kPbwiuj0xBX4RRkoSXNOvA==}
+  '@effing/skia-darwin-arm64@1.0.10-effing.1':
+    resolution: {integrity: sha512-zW3jVD/HiI3QGYuy3dnKGzlc/PoNHtLamkqVWMXzHY3E2uo3hzQ1g9S2xn95ADXy7nteToNWD1Z/hIbyGRtHlg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@effing/skia-darwin-x64@1.0.9-effing.1':
-    resolution: {integrity: sha512-RjNMdTl5wPl/IfPAnw126vtekinFrAmkJwclcKxTSPg8q10H8+5PPRL23fJEkT84mWC0aOdAcItZNUvHaeNoGA==}
+  '@effing/skia-darwin-x64@1.0.10-effing.1':
+    resolution: {integrity: sha512-ecGtOyss41ynr3KlcI/f1l2uFNtE/naDPVM4zXJM2zid+/f0g7Qh6ZX/70JNNvDUtoa18XuWK49mT15brjVhBA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@effing/skia-linux-arm64-gnu@1.0.9-effing.1':
-    resolution: {integrity: sha512-MJuFyoFhZvGgP8Il2XJiqFbe0Cr7CYAt/E5QZsVS+QcLcEorKqwtvgB/OF5Wsj7bMDmDWmT6dhZI5bqHRyr5bg==}
+  '@effing/skia-linux-arm64-gnu@1.0.10-effing.1':
+    resolution: {integrity: sha512-E3GYxAcN9wHFnbr57+MukR6EZaGeXmSIaETAivfU3EDojw7KWF1afPRkOxqxtjattz/8pBPdLhTmQ/aPEBtdsQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@effing/skia-linux-arm64-musl@1.0.9-effing.1':
-    resolution: {integrity: sha512-JNoF7sfg4vRjboMlZslMC1x1RX4DJJANHJVpfp3Q8uI5p0cpNaFDP3sZWGNrSwk7PEotmgEWMZhesuvbutmt2w==}
+  '@effing/skia-linux-arm64-musl@1.0.10-effing.1':
+    resolution: {integrity: sha512-sO30Hu6LqRpF+mweleBnPpEhjT/K+spBgP8Q7Okuwx4vMHnlpSRxZhIHUyeSutS00evb/SGRphppKF6kd7e4+w==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@effing/skia-linux-x64-gnu@1.0.9-effing.1':
-    resolution: {integrity: sha512-eJjBgau1U/FkCyEqOO7VH0X/CY3Q6+IuMTBtP4pgbgKLZAPTz1Rskxwd2KF8i9NxnoeE8pblpWHYH/C/P6AoTA==}
+  '@effing/skia-linux-x64-gnu@1.0.10-effing.1':
+    resolution: {integrity: sha512-nGAYFvaLv7rhdW2dAyVPJ6TtwF0zHBkX867v+yuO9d7/kJlSr+XZBXg9Y4LD4a1KZZRxyT138l1F/a1WK1Sa6A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@effing/skia-linux-x64-musl@1.0.9-effing.1':
-    resolution: {integrity: sha512-CJ30BZdf6+T3QGxHeU4xf8X6e2NEmwzPPsB+8u/14jeslwFkQ31GsDyH2A/bl63RbkW3IZjAnEtD3d5Pkv3jOQ==}
+  '@effing/skia-linux-x64-musl@1.0.10-effing.1':
+    resolution: {integrity: sha512-VccDvTY1tj6U344r/sqUltwEwtZ4rj7JctpNT3E/vsXvzUrMdYV6ZVHT8Ou66jzuSNxSDBNTXTSRGIPrVQwb3g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@effing/skia-win32-x64-msvc@1.0.9-effing.1':
-    resolution: {integrity: sha512-KU5x9wjCZc72+oivXCYfNJRd7yaHjD+mwxq9Tch/IBscjguQTjm+sPLBCrgzSlCIBcaoG9hySRYjcBZMknmAhQ==}
+  '@effing/skia-win32-x64-msvc@1.0.10-effing.1':
+    resolution: {integrity: sha512-hqve1BLka6nLdCk0HheB1nE3wHyAsZd/ZzvRejSIjzPfVy1GdVXHUh7SL+AuOks3v1CqkFwbm3k6v6Bcw3oCPg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  '@effing/skia@1.0.9-effing.1':
-    resolution: {integrity: sha512-iMnihMDrQpeClfm5uQpM4XDJDcqHAOeetf8XShCKDACVu7xrikHYwkxd6fUET7B+cmLxCEZfNLaAg/XVgwrHRQ==}
+  '@effing/skia@1.0.10-effing.1':
+    resolution: {integrity: sha512-7nINgtPoi9Eksxg0nUrWm03Vh6fq9jwSFkcS9pudU+R4ypc24QtrSPnLxWi9dNKjA/fDQU5g4s6jOd2aCFQbwg==}
     engines: {node: '>= 10'}
 
   '@emnapi/runtime@1.11.3':
@@ -4591,36 +4591,36 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@effing/skia-darwin-arm64@1.0.9-effing.1':
+  '@effing/skia-darwin-arm64@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-darwin-x64@1.0.9-effing.1':
+  '@effing/skia-darwin-x64@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-linux-arm64-gnu@1.0.9-effing.1':
+  '@effing/skia-linux-arm64-gnu@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-linux-arm64-musl@1.0.9-effing.1':
+  '@effing/skia-linux-arm64-musl@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-linux-x64-gnu@1.0.9-effing.1':
+  '@effing/skia-linux-x64-gnu@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-linux-x64-musl@1.0.9-effing.1':
+  '@effing/skia-linux-x64-musl@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia-win32-x64-msvc@1.0.9-effing.1':
+  '@effing/skia-win32-x64-msvc@1.0.10-effing.1':
     optional: true
 
-  '@effing/skia@1.0.9-effing.1':
+  '@effing/skia@1.0.10-effing.1':
     optionalDependencies:
-      '@effing/skia-darwin-arm64': 1.0.9-effing.1
-      '@effing/skia-darwin-x64': 1.0.9-effing.1
-      '@effing/skia-linux-arm64-gnu': 1.0.9-effing.1
-      '@effing/skia-linux-arm64-musl': 1.0.9-effing.1
-      '@effing/skia-linux-x64-gnu': 1.0.9-effing.1
-      '@effing/skia-linux-x64-musl': 1.0.9-effing.1
-      '@effing/skia-win32-x64-msvc': 1.0.9-effing.1
+      '@effing/skia-darwin-arm64': 1.0.10-effing.1
+      '@effing/skia-darwin-x64': 1.0.10-effing.1
+      '@effing/skia-linux-arm64-gnu': 1.0.10-effing.1
+      '@effing/skia-linux-arm64-musl': 1.0.10-effing.1
+      '@effing/skia-linux-x64-gnu': 1.0.10-effing.1
+      '@effing/skia-linux-x64-musl': 1.0.10-effing.1
+      '@effing/skia-win32-x64-msvc': 1.0.10-effing.1
 
   '@emnapi/runtime@1.11.3':
     dependencies:

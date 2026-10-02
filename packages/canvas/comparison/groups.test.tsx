@@ -232,6 +232,61 @@ describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
     expect(worst).toBeLessThanOrEqual(2);
   });
 
+  // @effing/skia flushes its deferred recording once it holds 32 MiB, decoded
+  // images included, and composites a group that is open at that point in
+  // two parts: what the group paints after a large image no longer hides it.
+  // Expected to fail until the fork keeps such a group whole; when this
+  // starts passing, drop `.fails` (and the note in the README).
+  it.fails(
+    "keeps a group whole when it holds an image past the recording cap",
+    async () => {
+      // 4000×3000 decodes to 45.8 MiB.
+      const { createCanvas } = await import("@effing/skia");
+      const photo = createCanvas(4000, 3000);
+      const photoCtx = photo.getContext("2d");
+      photoCtx.fillStyle = "#f97316";
+      photoCtx.fillRect(0, 0, 4000, 3000);
+      const src = `data:image/png;base64,${photo.toBuffer("image/png").toString("base64")}`;
+
+      const img = await render(
+        <div
+          style={{
+            width: 300,
+            height: 200,
+            display: "flex",
+            background: "#fff",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 300,
+              height: 200,
+              display: "flex",
+              opacity: 0.5,
+            }}
+          >
+            <img
+              src={src}
+              width={200}
+              height={150}
+              style={{ position: "absolute", left: 20, top: 20 }}
+            />
+            {box(100, 60, "#000")}
+          </div>
+        </div>,
+      );
+      // The black box covers the image, so inside it the group is black and
+      // fades to mid-grey over the white canvas. Split in two, the image
+      // shows through the box as an orange tint.
+      for (const channel of pixel(img, 150, 100).slice(0, 3)) {
+        expect(Math.abs(channel - 127)).toBeLessThanOrEqual(2);
+      }
+    },
+  );
+
   it("reads a backdrop only from within its backdrop root", async () => {
     const img = await render(
       <div

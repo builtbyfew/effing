@@ -1,7 +1,8 @@
 import fs from "node:fs";
+import { isBuiltin } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { build as esbuild, type Plugin } from "esbuild";
+import { build as esbuild, type Metafile, type Plugin } from "esbuild";
 import { loadConfig } from "../config/load";
 import { resolveFns, FN_KINDS, type ResolvedFns } from "../fns";
 
@@ -35,22 +36,26 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
   const outFile = path.resolve(configDir, options.outFile ?? "dist/server.js");
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
 
-  await esbuild({
+  const result = await esbuild({
     entryPoints: [entryPoint],
     outfile: outFile,
     bundle: true,
     format: "esm",
     platform: "node",
     target: "node22",
-    // Inline everything except node built-ins and @effing/skia — its
-    // `.node` binding can't be embedded by a JS bundler. (@napi-rs/canvas,
-    // which older versions of @effing/canvas wrap, stays external for
-    // projects that haven't upgraded.) Using
-    // `packages: "external"` instead would keep workspace deps unbundled,
-    // and workspace packages that ship raw TypeScript (`"main":
-    // "src/index.ts"`) then crash node with ERR_UNKNOWN_FILE_EXTENSION
-    // ".ts" at runtime.
-    external: ["node:*", "@effing/skia", "@napi-rs/canvas"],
+    // Inline everything except node built-ins and @effing/canvas. Its Skia
+    // backend is a native addon, whose `.node` binding a JS bundler can't
+    // embed, and the backend is a dependency of @effing/canvas, not of the
+    // project: only from inside @effing/canvas's own install can Node always
+    // find it (pnpm links nothing else into the project). So the bundle
+    // imports @effing/canvas, which the project lists, and Node resolves the
+    // backend from there. The backends themselves stay external too, for
+    // code that imports one directly. Using `packages: "external"` instead
+    // would keep workspace deps unbundled, and workspace packages that ship
+    // raw TypeScript (`"main": "src/index.ts"`) then crash node with
+    // ERR_UNKNOWN_FILE_EXTENSION ".ts" at runtime.
+    external: ["node:*", "@effing/canvas", "@effing/skia", "@napi-rs/canvas"],
+    metafile: true,
     logLevel: "info",
     plugins: [effingFnsPlugin(resolved)],
     banner: {
@@ -60,11 +65,54 @@ export async function runBuild(options: BuildOptions = {}): Promise<void> {
     sourcemap: true,
   });
 
+  const missing = unresolvableImports(result.metafile, outFile);
+  if (missing.length > 0) {
+    throw new Error(
+      `The bundle imports ${missing.join(", ")}, which Node can't find from ${path.dirname(outFile)}. ` +
+        `Add ${missing.length > 1 ? "them" : "it"} to your project's dependencies.`,
+    );
+  }
+
   const size = fs.statSync(outFile).size;
   console.log(
     `Built ${outFile} (${formatSize(size)}) — image: ${resolved.image.length}, annie: ${resolved.annie.length}, effie: ${resolved.effie.length}`,
   );
   console.log(`\nRun with: node ${path.relative(configDir, outFile)}`);
+}
+
+/**
+ * The packages the bundle imports at runtime that Node would not find from
+ * where the bundle sits: looked up the way Node does, in the `node_modules`
+ * of the bundle's directory and of each directory above it.
+ */
+export function unresolvableImports(
+  metafile: Metafile,
+  outFile: string,
+): string[] {
+  const packages = new Set<string>();
+  for (const output of Object.values(metafile.outputs)) {
+    for (const imported of output.imports) {
+      if (!imported.external || isBuiltin(imported.path)) continue;
+      if (imported.path.startsWith(".") || path.isAbsolute(imported.path)) {
+        continue;
+      }
+      const [first, second] = imported.path.split("/");
+      packages.add(first!.startsWith("@") ? `${first}/${second}` : first!);
+    }
+  }
+  return [...packages].filter((name) => !isInstalledFor(name, outFile)).sort();
+}
+
+function isInstalledFor(name: string, file: string): boolean {
+  let dir = path.dirname(path.resolve(file));
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "node_modules", name, "package.json"))) {
+      return true;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
 }
 
 function prodEntryPath(): string {

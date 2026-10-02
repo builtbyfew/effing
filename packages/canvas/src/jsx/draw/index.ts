@@ -50,7 +50,7 @@ export async function drawNode(
 ): Promise<void> {
   const x = parentX + node.x;
   const y = parentY + node.y;
-  const { width, height, style } = node;
+  const { width, style } = node;
 
   // Resolve a context once so the whole subtree shares one image cache.
   const renderContext: RenderContext = context ?? {
@@ -95,7 +95,44 @@ export async function drawNode(
     };
   }
 
+  // Painting awaits image loads, which can fail. The group and the save are
+  // closed either way, so a caller that catches the error and draws the next
+  // frame on this context doesn't paint into a layer left open.
+  const group = { open: false };
   ctx.save();
+  try {
+    await paintNode(
+      ctx,
+      node,
+      x,
+      y,
+      opacity,
+      text,
+      renderContext,
+      emojiStyle,
+      group,
+    );
+  } finally {
+    if (group.open) endElementGroup(ctx);
+    ctx.restore();
+  }
+}
+
+/** Paints a node inside the save that `drawNode` opened for it. */
+async function paintNode(
+  ctx: SKRSContext2D,
+  node: LayoutNode,
+  x: number,
+  y: number,
+  opacity: number,
+  text:
+    | { layout: TextLayoutResult; contentX: number; contentY: number }
+    | undefined,
+  renderContext: RenderContext,
+  emojiStyle: EmojiStyle | undefined,
+  group: { open: boolean },
+): Promise<void> {
+  const { width, height, style } = node;
 
   if (style.transform) {
     applyTransform(
@@ -147,11 +184,10 @@ export async function drawNode(
     opacity < 1 && isNoFilter(style.filter)
       ? fadeOf(node, text?.layout, renderContext.debug)
       : "group";
-  let inGroup = false;
   if (fade === "alpha") {
     ctx.globalAlpha *= opacity;
   } else if (fade === "group") {
-    inGroup = beginElementGroup(
+    group.open = beginElementGroup(
       ctx,
       opacity,
       style.filter,
@@ -370,9 +406,6 @@ export async function drawNode(
       );
     }
   }
-
-  if (inGroup) endElementGroup(ctx);
-  ctx.restore();
 }
 
 function applyTransform(

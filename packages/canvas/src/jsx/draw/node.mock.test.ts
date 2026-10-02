@@ -10,7 +10,7 @@ vi.mock("@effing/skia/extensions", async () => {
   return createExtensionsMock();
 });
 
-import { createCanvas } from "@effing/skia";
+import { createCanvas, loadImage } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
 import { beginGroup, endGroup, fillParagraph } from "@effing/skia/extensions";
 import { drawNode } from "./index.ts";
@@ -695,6 +695,25 @@ describe("drawNode – opacity and filter", () => {
     vi.clearAllMocks();
     await drawNode(ctx, lines(20), 0, 0);
     expect(beginGroup).not.toHaveBeenCalled();
+  });
+
+  it("closes the group and every save when an image inside it fails to load", async () => {
+    vi.mocked(loadImage).mockRejectedValueOnce(new Error("no such image"));
+    const node = box({ opacity: 0.5, backgroundColor: "red" }, [
+      box({}, [], { type: "img", props: { src: "missing.png" } }),
+      box({ backgroundColor: "blue" }),
+    ]);
+
+    await expect(drawNode(ctx, node, 0, 0)).rejects.toThrow("no such image");
+
+    // Nothing is left open for the next frame drawn on this context.
+    expect(beginGroup).toHaveBeenCalledTimes(1);
+    expect(endGroup).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(ctx.restore).mock.calls).toHaveLength(
+      vi.mocked(ctx.save).mock.calls.length,
+    );
+    // The sibling after the failed image is not painted.
+    expect(ctx.fillRect).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the group over a backdrop-filter, whose backdrop root it is", async () => {

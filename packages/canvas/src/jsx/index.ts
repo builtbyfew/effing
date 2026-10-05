@@ -91,7 +91,6 @@ export async function renderReactElement(
     element,
     width,
     height,
-    ctx,
     !!emojiStyle,
     fontFamilies,
     renderContext,

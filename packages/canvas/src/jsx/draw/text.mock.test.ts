@@ -10,138 +10,19 @@ vi.mock("@effing/skia/extensions", async () => {
   return createExtensionsMock();
 });
 
-import { createCanvas } from "@effing/skia";
+// Emoji SVGs come from a CDN; the tests don't need the network.
+vi.mock("../emoji.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../emoji.ts")>()),
+  loadEmoji: vi.fn(async () => "<svg></svg>"),
+}));
+
+import { createCanvas, loadImage } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
 import { fillParagraph, strokeParagraph } from "@effing/skia/extensions";
 import { drawText } from "./text.ts";
 import { layoutText } from "../text/index.ts";
-import type { TextSegment } from "../text/index.ts";
 
-function makeSegment(overrides?: Partial<TextSegment>): TextSegment {
-  return {
-    text: "Hello",
-    x: 0,
-    y: 20,
-    width: 40,
-    height: 16,
-    fontSize: 16,
-    fontFamily: "sans-serif",
-    fontWeight: 400,
-    fontStyle: "normal",
-    color: "black",
-    ascent: 12,
-    letterSpacing: 0,
-    lineIndex: 0,
-    ...overrides,
-  };
-}
-
-describe("drawText — textShadow", () => {
-  let ctx: SKRSContext2D;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-    // Reset properties that leak between tests (mock restore() is a no-op)
-    ctx.globalAlpha = 1;
-    ctx.filter = "none";
-    vi.clearAllMocks();
-  });
-
-  it("draws shadow as separate fillText with shadow color", async () => {
-    await drawText(ctx, [makeSegment()], 0, 0, "3px 4px 0 red");
-
-    // Shadow pass + main text pass = 2 fillText calls
-    expect(ctx.fillText).toHaveBeenCalledTimes(2);
-    // Shadow pass uses shadow color as fillStyle and translate for offset
-    expect(ctx.translate).toHaveBeenCalledWith(3, 4);
-  });
-
-  it("applies blur filter for shadow with blur radius", async () => {
-    await drawText(ctx, [makeSegment()], 0, 0, "0 0 4px rgba(0,0,0,0.5)");
-
-    expect(ctx.filter).toBe("blur(2px)");
-  });
-
-  it("scales shadow opacity by text alpha for alpha colors", async () => {
-    // rgba(255,255,255,0.5) → text alpha 0.5
-    await drawText(
-      ctx,
-      [makeSegment({ color: "rgba(255, 255, 255, 0.5)" })],
-      0,
-      0,
-      "2px 2px 0 red",
-    );
-
-    // globalAlpha should be multiplied by text alpha during shadow pass
-    expect(ctx.globalAlpha).toBe(0.5);
-  });
-
-  it("does not scale shadow opacity for opaque text", async () => {
-    await drawText(
-      ctx,
-      [makeSegment({ color: "black" })],
-      0,
-      0,
-      "2px 2px 0 red",
-    );
-
-    // globalAlpha should remain 1 for opaque text
-    expect(ctx.globalAlpha).toBe(1);
-  });
-});
-
-describe("drawText — fillText call count", () => {
-  let ctx: SKRSContext2D;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-    vi.clearAllMocks();
-  });
-
-  it("draws text exactly once without shadow", async () => {
-    await drawText(ctx, [makeSegment()], 0, 0);
-
-    expect(ctx.fillText).toHaveBeenCalledTimes(1);
-  });
-
-  it("draws shadow + text (2 fillText calls) with shadow", async () => {
-    await drawText(ctx, [makeSegment()], 0, 0, "0 1px 2px rgba(0, 0, 0, 0.25)");
-
-    // 1 shadow fillText + 1 main fillText
-    expect(ctx.fillText).toHaveBeenCalledTimes(2);
-  });
-
-  it("draws shadow + text + stroke with shadow + stroke", async () => {
-    await drawText(
-      ctx,
-      [makeSegment({ textStrokeWidth: 2, textStrokeColor: "red" })],
-      0,
-      0,
-      "0 1px 2px rgba(0, 0, 0, 0.25)",
-    );
-
-    // 1 shadow fillText + 1 main fillText
-    expect(ctx.fillText).toHaveBeenCalledTimes(2);
-    expect(ctx.strokeText).toHaveBeenCalledTimes(1);
-  });
-
-  it("draws shadow + text with letterSpacing", async () => {
-    await drawText(
-      ctx,
-      [makeSegment({ text: "AB", letterSpacing: 2 })],
-      0,
-      0,
-      "0 1px 2px rgba(0, 0, 0, 0.25)",
-    );
-
-    // 2 chars × shadow pass + 2 chars × main pass = 4
-    expect(ctx.fillText).toHaveBeenCalledTimes(4);
-  });
-});
-
-describe("drawText — native paragraph", () => {
+describe("drawText", () => {
   let ctx: SKRSContext2D;
 
   beforeEach(() => {
@@ -159,10 +40,8 @@ describe("drawText — native paragraph", () => {
     offsetY = 0,
   ) => {
     const layout = layoutText("aaa bbb ccc", { fontSize: 16, ...style }, 56);
-    return drawText(ctx, layout.segments, 10, 20, textShadow, undefined, {
-      paragraph: layout.paragraph!,
-      offsetY,
-    });
+    layout.paragraphOffsetY = offsetY;
+    return drawText(ctx, layout, 10, 20, textShadow);
   };
 
   it("fills the whole paragraph in one call", async () => {
@@ -197,6 +76,44 @@ describe("drawText — native paragraph", () => {
     expect(
       vi.mocked(strokeParagraph).mock.invocationCallOrder[0]!,
     ).toBeLessThan(vi.mocked(fillParagraph).mock.invocationCallOrder[0]!);
+  });
+
+  it("draws an emoji image in its box, over the text", async () => {
+    const layout = layoutText(
+      "aa \u{1F30D}",
+      { fontSize: 16, lineHeight: 20 },
+      500,
+      true,
+    );
+    const emoji = layout.emoji[0]!;
+    // Loaded once per emoji style and grapheme, so this one is unique here.
+    await drawText(ctx, layout, 10, 20, undefined, "twemoji");
+
+    expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+    expect(ctx.drawImage).toHaveBeenCalledWith(
+      expect.anything(),
+      10 + emoji.x,
+      20 + emoji.y,
+      16,
+      16,
+    );
+    expect(vi.mocked(fillParagraph).mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(ctx.drawImage).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("draws an emoji as text on its baseline when its image is missing", async () => {
+    vi.mocked(loadImage).mockRejectedValueOnce(new Error("offline"));
+    const layout = layoutText(
+      "aa \u{1F389}",
+      { fontSize: 16, lineHeight: 20 },
+      500,
+      true,
+    );
+    await drawText(ctx, layout, 10, 20, undefined, "twemoji");
+
+    expect(ctx.drawImage).not.toHaveBeenCalled();
+    expect(ctx.fillText).toHaveBeenCalledWith("\u{1F389}", 10 + 24, 20 + 14);
   });
 
   it("decorates each line of the paragraph", async () => {

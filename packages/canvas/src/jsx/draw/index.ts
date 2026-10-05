@@ -275,18 +275,14 @@ async function paintNode(
     const textLayout =
       node.textLayout && contentWidth === node.width
         ? node.textLayout
-        : layoutText(node.textContent, style, contentWidth, ctx, !!emojiStyle);
+        : layoutText(node.textContent, style, contentWidth, !!emojiStyle);
     await drawText(
       ctx,
-      textLayout.segments,
+      textLayout,
       contentX,
       contentY,
       style.textShadow,
       emojiStyle,
-      textLayout.paragraph && {
-        paragraph: textLayout.paragraph,
-        offsetY: textLayout.paragraphOffsetY ?? 0,
-      },
     );
   }
 

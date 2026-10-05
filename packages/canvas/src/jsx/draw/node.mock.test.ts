@@ -130,33 +130,6 @@ describe("drawNode", () => {
     expect(ctx.fillText).not.toHaveBeenCalled();
   });
 
-  it("draws text the paragraph can't express through fillText", async () => {
-    await drawNode(
-      ctx,
-      {
-        type: "span",
-        style: {
-          fontSize: 16,
-          fontFamily: "sans-serif",
-          color: "black",
-          wordBreak: "break-all",
-        },
-        children: [],
-        textContent: "Hello",
-        props: {},
-        x: 0,
-        y: 0,
-        width: 200,
-        height: 50,
-      },
-      0,
-      0,
-    );
-
-    expect(ctx.fillText).toHaveBeenCalled();
-    expect(fillParagraph).not.toHaveBeenCalled();
-  });
-
   it("applies overflow hidden clipping", async () => {
     await drawNode(
       ctx,

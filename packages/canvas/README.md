@@ -87,7 +87,7 @@ Emoji characters are automatically rendered as images from CDNs. Supported style
 | `fluent`     | Microsoft Fluent Emoji (color) |
 | `fluentFlat` | Microsoft Fluent Emoji (flat)  |
 
-Pass `emoji: "none"` to disable emoji image rendering.
+Each emoji takes an inline box of 1em on its line, with its bottom 0.1em below the baseline, about where browsers draw an emoji glyph. Pass `emoji: "none"` to disable emoji image rendering; emoji are then drawn as text, so they need a font that covers them among the fonts given to `renderReactElement`.
 
 ## Fit Text
 
@@ -245,29 +245,32 @@ const png = canvas.encodeSync("png");
 
 ### Typography
 
-| Property                | Values / Notes                                                |
-| ----------------------- | ------------------------------------------------------------- |
-| `fontFamily`            | Font name (inherited)                                         |
-| `fontSize`              | Number or CSS length (inherited)                              |
-| `fontWeight`            | Numeric weight (inherited)                                    |
-| `fontStyle`             | `normal`, `italic` (inherited)                                |
-| `textAlign`             | `left`, `center`, `right`, `justify` (inherited)              |
-| `textDecoration`        | String (inherited)                                            |
-| `textTransform`         | `none`, `uppercase`, `lowercase`, `capitalize` (inherited)    |
-| `lineHeight`            | Number or string (inherited)                                  |
-| `letterSpacing`         | Number or CSS length (inherited)                              |
-| `whiteSpace`            | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited) |
-| `wordBreak`             | `normal`, `break-word`, `break-all`¹, `keep-all`¹ (inherited) |
-| `textOverflow`          | `clip`, `ellipsis` (inherited)                                |
-| `lineClamp`             | Number — max visible lines (adds ellipsis)                    |
-| `textBox`               | Shorthand for `textBoxTrim` and `textBoxEdge`                 |
-| `textBoxTrim`           | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)     |
-| `textBoxEdge`           | e.g. `"cap alphabetic"` (inherited)                           |
-| `WebkitTextStroke`      | Shorthand, e.g. `"2px red"` (inherited)                       |
-| `WebkitTextStrokeWidth` | CSS length (inherited)                                        |
-| `WebkitTextStrokeColor` | Any CSS color (inherited)                                     |
+| Property                | Values / Notes                                                 |
+| ----------------------- | -------------------------------------------------------------- |
+| `fontFamily`            | Font name (inherited)                                          |
+| `fontSize`              | Number or CSS length (inherited)                               |
+| `fontWeight`            | Numeric weight (inherited)                                     |
+| `fontStyle`             | `normal`, `italic` (inherited)                                 |
+| `textAlign`             | `left`, `center`, `right`, `justify` (inherited)               |
+| `textDecoration`        | String (inherited)                                             |
+| `textTransform`         | `none`, `uppercase`, `lowercase`, `capitalize` (inherited)     |
+| `lineHeight`            | Number or string (inherited)                                   |
+| `letterSpacing`         | Number or CSS length (inherited)                               |
+| `whiteSpace`            | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` (inherited)¹ |
+| `wordBreak`             | `normal`, `break-all`, `keep-all`, `break-word`² (inherited)   |
+| `overflowWrap`          | `normal`, `break-word`, `anywhere`² (inherited)                |
+| `textOverflow`          | `clip`, `ellipsis` (inherited)                                 |
+| `lineClamp`             | Number — max visible lines (adds ellipsis)                     |
+| `textBox`               | Shorthand for `textBoxTrim` and `textBoxEdge`                  |
+| `textBoxTrim`           | `none`, `trim-start`, `trim-end`, `trim-both` (inherited)      |
+| `textBoxEdge`           | e.g. `"cap alphabetic"` (inherited)                            |
+| `WebkitTextStroke`      | Shorthand, e.g. `"2px red"` (inherited)                        |
+| `WebkitTextStrokeWidth` | CSS length (inherited)                                         |
+| `WebkitTextStrokeColor` | Any CSS color (inherited)                                      |
 
-¹ For now `break-all` only breaks a word that is wider than its line, as `break-word` does, and `keep-all` breaks lines as `normal` does.
+¹ `pre` and `pre-wrap` keep the spaces before a line break in the line's width and alignment, as browsers do; a tab is one space wide.
+
+² A word wider than its line overflows it, as in CSS, unless `overflowWrap` is `break-word` or `anywhere` (or `wordBreak` the deprecated `break-word`): the word then starts a line of its own and is broken between grapheme clusters where that line is full. `anywhere` breaks as `break-word` does.
 
 ### Effects
 

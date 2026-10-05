@@ -5,7 +5,7 @@ import type { ComputedStyle } from "../src/jsx/style/compute.ts";
 import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import { buildLayoutTree } from "../src/jsx/layout.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
-import { layoutText, layoutTextFallback } from "../src/jsx/text/index.ts";
+import { layoutText } from "../src/jsx/text/index.ts";
 import {
   HAS_NATIVE_DEPS,
   compareImages,
@@ -125,35 +125,31 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     expect(spaced.width).toBeCloseTo(plain.width + 5 * 3, 3);
   });
 
-  it("leaves a word wider than the box unbroken, to overflow", () => {
-    // Skia would break the word mid-way to fit; CSS without `overflow-wrap`
-    // doesn't, so this text goes through the TypeScript layout instead.
-    const result = layoutText(
-      "A supercalifragilisticexpialidocious word",
-      style({ fontSize: 20 }),
+  // The tests below hold Chrome 154's lines for the same text, font (Liberation
+  // Sans, 20px) and width.
+
+  it.each([
+    [
+      "A supercalifragilisticexpialidocious word here",
       80,
-    );
-    expect(result.paragraph).toBeUndefined();
-    expect(result.segments.map((s) => s.text)).toEqual([
-      "A",
-      "supercalifragilisticexpialidocious",
-      "word",
-    ]);
-  });
+      ["A", "supercalifragilisticexpialidocious", "word", "here"],
+    ],
+    [
+      "A supercalifragilisticexpialidocious word here",
+      120,
+      ["A", "supercalifragilisticexpialidocious", "word here"],
+    ],
+    // Skia's min-intrinsic width used to count a last word by its pieces.
+    ["over lazy here", 39, ["over", "lazy", "here"]],
+  ])(
+    "leaves a word wider than the box unbroken, to overflow: %s at %spx",
+    (text, width, lines) => {
+      const result = layoutText(text, style({ fontSize: 20 }), width);
+      expect(result.segments.map((s) => s.text)).toEqual(lines);
+      expect(result.width).toBeGreaterThan(width);
+    },
+  );
 
-  it("leaves a last word wider than the box unbroken too", () => {
-    // Skia's min-intrinsic width counts a broken last word by its pieces.
-    const result = layoutText("over lazy here", style({ fontSize: 20 }), 39);
-    expect(result.paragraph).toBeUndefined();
-    expect(result.segments.map((s) => s.text)).toEqual([
-      "over",
-      "lazy",
-      "here",
-    ]);
-  });
-
-  // Lines from Chrome 154 for the same text, font and width, with
-  // `word-break: break-word`.
   it.each([
     [
       "A supercalifragilisticexpialidocious word here",
@@ -175,29 +171,77 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
   ])(
     "breaks a word wider than the box under break-word, as Chrome does: %s at %spx",
     (text, width, lines) => {
-      const breakWord = style({ fontSize: 20, wordBreak: "break-word" });
-      const result = layoutText(text, breakWord, width);
-      expect(result.segments.map((s) => s.text)).toEqual(lines);
-      expect(
-        layoutTextFallback(text, breakWord, width).segments.map((s) => s.text),
-      ).toEqual(lines);
+      for (const s of [
+        { wordBreak: "break-word" },
+        { overflowWrap: "break-word" },
+      ] as const) {
+        const result = layoutText(text, style({ fontSize: 20, ...s }), width);
+        expect(result.segments.map((seg) => seg.text)).toEqual(lines);
+      }
     },
   );
 
-  it("keeps the paragraph under break-word where Skia breaks as CSS does", () => {
-    const breakWord = style({ fontSize: 20, wordBreak: "break-word" });
-    // The broken word starts its line, as CSS has it.
-    expect(
-      layoutText("supercalifragilisticexpialidocious", breakWord, 100)
-        .paragraph,
-    ).toBeDefined();
-    // Skia fills the line "A" is on with the start of the long word, where
-    // CSS wraps before it first: the TypeScript layout does that.
-    expect(
-      layoutText("A supercalifragilisticexpialidocious", breakWord, 80)
-        .paragraph,
-    ).toBeUndefined();
-  });
+  it.each([
+    [
+      TEXT,
+      69,
+      [
+        "The qui",
+        "ck brow",
+        "n fox ju",
+        "mps ov",
+        "er the l",
+        "azy do",
+        "g. Pack",
+        "my box",
+        "with fiv",
+        "e doze",
+        "n liquor",
+        "jugs.",
+      ],
+    ],
+    [
+      TEXT,
+      105,
+      [
+        "The quick b",
+        "rown fox ju",
+        "mps over th",
+        "e lazy dog.",
+        "Pack my bo",
+        "x with five d",
+        "ozen liquor",
+        "jugs.",
+      ],
+    ],
+    [
+      TEXT,
+      150,
+      [
+        "The quick brown",
+        "fox jumps over t",
+        "he lazy dog. Pac",
+        "k my box with fiv",
+        "e dozen liquor ju",
+        "gs.",
+      ],
+    ],
+    [
+      "A supercalifragilisticexpialidocious word here",
+      100,
+      ["A supercali", "fragilisticex", "pialidociou", "s word her", "e"],
+    ],
+  ])(
+    "breaks between any two letters under break-all, as Chrome does: %#",
+    (text, width, lines) => {
+      const result = layoutText(
+        text,
+        style({ fontSize: 20, wordBreak: "break-all" }),
+        width,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual(lines);
+    },
+  );
 
   // Thai, Lao and Burmese are written without spaces between words; Skia
   // breaks them between dictionary words, which UAX #14 alone can't find.
@@ -219,16 +263,18 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       }),
       150,
     );
-    expect(result.paragraph).toBeDefined();
     expect(result.segments.length).toBeGreaterThan(2);
     for (const seg of result.segments) {
       expect(seg.width).toBeLessThanOrEqual(150);
     }
   });
 
-  // Lines from Chrome 154, which fits three of these characters on a line in
-  // the 70px it was given (its Japanese fallback font is 20.39px wide at
-  // 20px).
+  // Chrome fits three of these characters on a line in the 70px it was given
+  // (its Japanese fallback font is 20.39px wide at 20px), so the width is
+  // three and a half of whatever font sets them here.
+  const cjkWidth = (s: ComputedStyle) =>
+    3.5 * layoutText("東", s, Infinity).width;
+
   // Small kana and "ー" (UAX #14 class CJ) may start a line, as in browsers
   // and Skia under `line-break: auto`.
   it.each([
@@ -239,18 +285,19 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     ],
   ])("breaks Japanese before small kana and ー: %s", (text, lines) => {
     const s = style({ fontSize: 20 });
-    // Three characters to a line, whatever the fallback font's advance.
-    const width = 3.5 * layoutText("東", s, Infinity).width;
-    const native = layoutText(text, s, width);
-    expect(native.paragraph).toBeDefined();
-    expect(native.segments.map((seg) => seg.text)).toEqual(lines);
-    expect(
-      layoutTextFallback(text, s, width).segments.map((seg) => seg.text),
-    ).toEqual(lines);
+    const result = layoutText(text, s, cjkWidth(s));
+    expect(result.segments.map((seg) => seg.text)).toEqual(lines);
   });
 
-  // A word broken under break-word breaks between grapheme clusters, which
-  // Skia doesn't always respect.
+  it("breaks CJK text only at spaces under keep-all, as Chrome does", () => {
+    const text = "東京ディズニーランド へ ようこそ";
+    const keepAll = style({ fontSize: 20, wordBreak: "keep-all" });
+    expect(
+      layoutText(text, keepAll, cjkWidth(keepAll)).segments.map((s) => s.text),
+    ).toEqual(["東京ディズニーランド", "へ", "ようこそ"]);
+  });
+
+  // A word broken under break-word breaks between grapheme clusters.
   it.each([
     ["a family emoji", "👨‍👩‍👧‍👦👨‍👩‍👧‍👦"],
     ["a Devanagari conjunct", "नमस्ते"],
@@ -273,17 +320,20 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     }
   });
 
-  it("keeps one empty line box for empty text, as the TypeScript layout does", () => {
-    for (const lineHeight of [undefined, 30]) {
-      const s = style({ fontSize: 20, lineHeight });
-      const native = layoutText("", s, 300);
-      const typescript = layoutTextFallback("", s, 300);
-      expect(native.paragraph).toBeDefined();
-      expect(native.height).toBe(typescript.height);
-      expect(native.segments).toHaveLength(1);
-      expect(native.segments[0]!.y).toBeCloseTo(typescript.segments[0]!.y, 4);
-      expect(native.segments[0]!.height).toBeCloseTo(
-        typescript.segments[0]!.height,
+  it("keeps one empty line box for empty text", () => {
+    // Liberation Sans: hhea ascender 1854, descender -434, unitsPerEm 2048.
+    const ascent = (1854 / 2048) * 20;
+    const descent = (434 / 2048) * 20;
+    for (const [lineHeight, box, height] of [
+      [undefined, ascent + descent, 23],
+      [30, 30, 30],
+    ]) {
+      const result = layoutText("", style({ fontSize: 20, lineHeight }), 300);
+      expect(result.height).toBe(height);
+      expect(result.segments).toHaveLength(1);
+      expect(result.segments[0]!.height).toBeCloseTo(box!, 4);
+      expect(result.segments[0]!.y).toBeCloseTo(
+        (box! + ascent - descent) / 2,
         4,
       );
     }
@@ -296,55 +346,84 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
         style({ fontSize: 20, whiteSpace: "nowrap", textAlign }),
         100,
       );
-      expect(overflowing.paragraph).toBeDefined();
       expect(overflowing.segments[0]!.width).toBeGreaterThan(100);
       expect(overflowing.segments[0]!.x).toBe(0);
-      // The TypeScript layout, which a too-wide word goes through, agrees.
       const word = layoutText(
         "Supercalifragilistic",
         style({ fontSize: 20, textAlign }),
         100,
       );
-      expect(word.paragraph).toBeUndefined();
       expect(word.segments[0]!.x).toBe(0);
     }
   });
 
-  it("keeps the trailing spaces of white-space: pre in the line", () => {
-    const pre = (text: string) =>
-      layoutText(text, style({ fontSize: 20, whiteSpace: "pre" }), 10_000);
-    const space = pre("a b").width - pre("ab").width;
-    expect(pre("Hello   ").width).toBeCloseTo(
-      pre("Hello").width + 3 * space,
-      1,
-    );
-  });
+  it.each(["pre", "pre-wrap"] as const)(
+    "keeps the trailing spaces of white-space: %s in the line, as Chrome does",
+    (whiteSpace) => {
+      const result = layoutText(
+        "Hello   \nab",
+        style({ fontSize: 20, whiteSpace, textAlign: "right" }),
+        300,
+      );
+      // Chrome puts "Hello" at 237.75 and "ab" at 277.75.
+      expect(result.segments.map((s) => s.x)).toEqual([
+        expect.closeTo(237.75, 1),
+        expect.closeTo(277.75, 1),
+      ]);
+      expect(result.segments[0]!.width).toBeCloseTo(300 - 237.75, 1);
+    },
+  );
 
-  it("collapses the line box for a line height of 0", () => {
+  it("collapses the line boxes for a line height of 0, as Chrome does", () => {
     const result = layoutText(
-      "Hello world",
+      "Hello world again",
       style({ fontSize: 20, lineHeight: 0 }),
-      500,
+      80,
     );
     expect(result.height).toBe(0);
+    expect(result.segments.map((s) => s.text)).toEqual([
+      "Hello",
+      "world",
+      "again",
+    ]);
+    // Every line's baseline is where the glyphs centre on the collapsed line
+    // box: (ascent - descent) / 2 below it.
+    for (const seg of result.segments) {
+      expect(seg.y).toBeCloseTo(((1854 - 434) / 2048) * 10, 4);
+    }
   });
 
-  it("agrees with the TypeScript layout on where lines break", () => {
-    for (const width of [69, 105, 150, 177, 240, 400]) {
-      const native = layoutText(TEXT, style({ fontSize: 20 }), width);
-      // `word-break: break-all` only differs once a word is wider than the
-      // box, and takes the TypeScript layout.
-      const typescript = layoutText(
-        TEXT,
-        style({ fontSize: 20, wordBreak: "break-all" }),
-        width,
+  describe("emoji drawn as images", () => {
+    it("sets each emoji in a box of 1em, 0.1em below the baseline", () => {
+      const result = layoutText(
+        "Hello 🌍 World",
+        style({ fontSize: 48 }),
+        1000,
+        true,
       );
-      expect(native.paragraph).toBeDefined();
-      expect(typescript.paragraph).toBeUndefined();
-      expect(native.segments.map((s) => s.text)).toEqual(
-        typescript.segments.map((s) => s.text),
+      // "Hello " with its space, which `pre` keeps in the line.
+      const hello = layoutText(
+        "Hello ",
+        style({ fontSize: 48, whiteSpace: "pre" }),
+        1000,
       );
-    }
+      const [emoji] = result.emoji;
+      expect(emoji).toMatchObject({ grapheme: "🌍", size: 48 });
+      expect(emoji!.x).toBeCloseTo(hello.width, 2);
+      const baseline = result.segments[0]!.y;
+      expect(emoji!.baseline).toBe(baseline);
+      expect(emoji!.y + 48).toBeCloseTo(baseline + 4.8, 4);
+    });
+
+    it("breaks around an emoji as Chrome does", () => {
+      const result = layoutText(
+        "Done 🎉! ok",
+        style({ fontSize: 20 }),
+        60,
+        true,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual(["Done", "🎉! ok"]);
+    });
   });
 });
 
@@ -378,7 +457,6 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
         </div>,
         400,
         400,
-        undefined,
         false,
         ["Liberation Sans"],
       );
@@ -495,18 +573,10 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       try {
         const layOutWith = (debug: boolean) =>
-          buildLayoutTree(
-            element,
-            400,
-            400,
-            undefined,
-            false,
-            ["Liberation Sans"],
-            {
-              imageCache: new Map(),
-              debug,
-            },
-          );
+          buildLayoutTree(element, 400, 400, false, ["Liberation Sans"], {
+            imageCache: new Map(),
+            debug,
+          });
         const { tree } = await layOutWith(false);
         expect(warn).not.toHaveBeenCalled();
         await layOutWith(true);

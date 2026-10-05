@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@effing/skia", async () => {
   const { createCanvasMock } = await import("../../canvas-mock.ts");
@@ -10,19 +10,12 @@ vi.mock("@effing/skia/extensions", async () => {
   return createExtensionsMock();
 });
 
-vi.mock("../font.ts", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../font.ts")>();
-  return {
-    ...original,
-    getFontMetrics: vi.fn(() => null),
-  };
-});
-
-import { createCanvas } from "@effing/skia";
-import type { SKRSContext2D } from "@effing/skia";
-import { getFontMetrics } from "../font.ts";
-import { layoutText, layoutTextFallback } from "./index.ts";
+import { layoutText } from "./index.ts";
 import { releaseParagraphs } from "./native.ts";
+
+/** The style the mock paragraph was built with. */
+const paragraphStyle = (result: ReturnType<typeof layoutText>) =>
+  (result.paragraph as unknown as { style: Record<string, unknown> }).style;
 
 // The mocks measure 8px per character, with ascent 12 and descent 4.
 
@@ -120,86 +113,181 @@ describe("layoutText", () => {
   });
 
   it.each([
-    ["word-break: break-all", { wordBreak: "break-all" } as const, false],
-    ["emoji drawn as images", {}, true],
-  ])("falls back to the TypeScript layout for %s", (_, style, emojiEnabled) => {
-    const result = layoutText(
-      "aaa \u{1F30D} bbb",
-      { fontSize: 16, ...style },
-      500,
-      undefined,
-      emojiEnabled,
-    );
-    expect(result.paragraph).toBeUndefined();
-    expect(result.segments).toHaveLength(1);
-  });
+    ["normal", {}, "normal", "normal"],
+    ["break-all", { wordBreak: "break-all" }, "break-all", "normal"],
+    ["keep-all", { wordBreak: "keep-all" }, "keep-all", "normal"],
+    [
+      "word-break: break-word",
+      { wordBreak: "break-word" },
+      "normal",
+      "break-word",
+    ],
+    [
+      "overflow-wrap: break-word",
+      { overflowWrap: "break-word" },
+      "normal",
+      "break-word",
+    ],
+    [
+      "overflow-wrap: anywhere",
+      { overflowWrap: "anywhere" },
+      "normal",
+      "break-word",
+    ],
+  ] as const)(
+    "breaks words as CSS %s does",
+    (_, style, wordBreak, overflowWrap) => {
+      const result = layoutText("aaa bbb", { fontSize: 16, ...style }, 500);
+      expect(paragraphStyle(result)).toMatchObject({ wordBreak, overflowWrap });
+    },
+  );
 
-  it("falls back for a word wider than the box, which overflows unbroken", () => {
+  it("leaves a word wider than the box to overflow it", () => {
     const result = layoutText("aaa bbbbbbbbbb ccc", { fontSize: 16 }, 56);
-    expect(result.paragraph).toBeUndefined();
     expect(result.segments.map((s) => s.text)).toEqual([
       "aaa",
       "bbbbbbbbbb",
       "ccc",
     ]);
+    expect(result.segments[1]!.width).toBe(80);
+    expect(result.width).toBe(80);
   });
 
-  it("falls back for a line height of 0, which a paragraph reads as normal", () => {
+  it("collapses the line boxes for a line height of 0", () => {
     const result = layoutText(
       "aaa bbb ccc",
       { fontSize: 16, lineHeight: 0 },
       56,
     );
-    expect(result.paragraph).toBeUndefined();
+    expect(paragraphStyle(result).lineHeight).toBe(0);
     expect(result.segments).toHaveLength(2);
     expect(result.height).toBe(0);
   });
 
-  it("falls back for trailing spaces that white-space: pre preserves", () => {
-    const pre = { fontSize: 16, whiteSpace: "pre" } as const;
-    // The three trailing spaces are part of the line: 8 characters of 8px.
-    const padded = layoutText("Hello   ", pre, 500);
-    expect(padded.paragraph).toBeUndefined();
-    expect(padded.width).toBe(64);
-    // Without them there is nothing a paragraph would drop.
-    expect(layoutText("Hello", pre, 500).paragraph).toBeDefined();
-    expect(layoutText("a  b\nc", pre, 500).paragraph).toBeDefined();
-    expect(layoutText("a \nc", pre, 500).paragraph).toBeUndefined();
+  it("leaves `normal` line height to the paragraph", () => {
+    for (const lineHeight of [undefined, "normal"]) {
+      const result = layoutText("aaa", { fontSize: 16, lineHeight }, 500);
+      expect(paragraphStyle(result).lineHeight).toBeUndefined();
+    }
+  });
+
+  it("keeps the trailing spaces of white-space: pre and pre-wrap in the line", () => {
+    for (const whiteSpace of ["pre", "pre-wrap"] as const) {
+      // The three trailing spaces are part of the line: 8 characters of 8px.
+      const padded = layoutText("Hello   ", { fontSize: 16, whiteSpace }, 500);
+      expect(padded.width).toBe(64);
+    }
+    expect(
+      layoutText("Hello   ", { fontSize: 16, whiteSpace: "pre-line" }, 500)
+        .width,
+    ).toBe(40);
   });
 
   it.each(["center", "right"] as const)(
-    "start-aligns a %s-aligned line that overflows its box, on both paths",
+    "start-aligns a %s-aligned line that overflows its box",
     (textAlign) => {
       const style = { fontSize: 16, whiteSpace: "nowrap", textAlign } as const;
       // 11 characters of 8px in a 56px box.
-      const native = layoutText("aaa bbb ccc", style, 56);
-      expect(native.paragraph).toBeDefined();
-      expect(native.segments[0]!.x).toBe(0);
-      const fallback = layoutTextFallback("aaa bbb ccc", style, 56);
-      expect(fallback.segments[0]!.x).toBe(0);
+      expect(layoutText("aaa bbb ccc", style, 56).segments[0]!.x).toBe(0);
       // A line that fits is still aligned.
-      expect(layoutTextFallback("aaa", style, 56).segments[0]!.x).toBe(
+      expect(layoutText("aaa", style, 56).segments[0]!.x).toBe(
         textAlign === "center" ? 16 : 32,
       );
     },
   );
 
-  it("keeps one empty line box for empty text, like the TypeScript layout", () => {
-    for (const lineHeight of [20, undefined]) {
-      const style = { fontSize: 16, lineHeight };
-      const result = layoutText("", style, 500);
-      expect(result.paragraph).toBeDefined();
+  it("keeps one empty line box for empty text", () => {
+    for (const [lineHeight, y, height] of [
+      [20, 14, 20],
+      // `normal`: the mock's 16px line, rounded up.
+      [undefined, 12, 16],
+    ]) {
+      const result = layoutText("", { fontSize: 16, lineHeight }, 500);
       expect(result.segments).toHaveLength(1);
-      const fallback = layoutTextFallback("", style, 500);
       expect(result.segments[0]).toMatchObject({
         text: "",
         x: 0,
         width: 0,
-        y: fallback.segments[0]!.y,
-        height: fallback.segments[0]!.height,
+        y,
+        height: lineHeight ?? 16,
       });
-      expect(result.height).toBe(fallback.height);
+      expect(result.height).toBe(height);
     }
+  });
+
+  describe("with emoji drawn as images", () => {
+    it("leaves each emoji an inline box of a square em", () => {
+      const result = layoutText(
+        "aa \u{1F30D} bb",
+        { fontSize: 16, lineHeight: 20 },
+        500,
+        true,
+      );
+      // "aa " is 24px; the box's bottom is 0.1em below the baseline.
+      expect(result.emoji).toHaveLength(1);
+      const [emoji] = result.emoji;
+      expect(emoji).toMatchObject({
+        grapheme: "\u{1F30D}",
+        x: 24,
+        size: 16,
+        baseline: 14,
+      });
+      expect(emoji!.y).toBeCloseTo(14 + 1.6 - 16, 6);
+      expect(result.segments[0]!.text).toBe("aa \u{1F30D} bb");
+      expect(result.width).toBe(6 * 8 + 16);
+    });
+
+    it("keeps an emoji's grapheme cluster whole", () => {
+      const family = "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}";
+      const result = layoutText(`a${family}b`, { fontSize: 16 }, 500, true);
+      expect(result.emoji.map((e) => e.grapheme)).toEqual([family]);
+      expect(result.segments[0]!.text).toBe(`a${family}b`);
+    });
+
+    it("maps each line back to its text across emoji", () => {
+      const result = layoutText(
+        "aa\u{1F30D} bb\u{1F389}\u{1F389} cc",
+        { fontSize: 16 },
+        40,
+        true,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual([
+        "aa\u{1F30D}",
+        "bb\u{1F389}\u{1F389}",
+        "cc",
+      ]);
+      expect(result.emoji.map((e) => [e.x, e.baseline])).toEqual([
+        [16, 12],
+        [16, 28],
+        [32, 28],
+      ]);
+    });
+
+    it("adds letter spacing after an emoji, as after any character", () => {
+      const result = layoutText(
+        "\u{1F30D}a",
+        { fontSize: 16, letterSpacing: 2 },
+        500,
+        true,
+      );
+      expect(result.width).toBe(18 + 10);
+    });
+
+    it("leaves out an emoji that line-clamp cuts off", () => {
+      const result = layoutText(
+        "aaa bbb \u{1F30D}",
+        { fontSize: 16, lineClamp: 1 },
+        56,
+        true,
+      );
+      expect(result.emoji).toEqual([]);
+    });
+
+    it("lays emoji out as text when they're not drawn as images", () => {
+      const result = layoutText("aa \u{1F30D}", { fontSize: 16 }, 500);
+      expect(result.emoji).toEqual([]);
+      expect(result.segments[0]!.text).toBe("aa \u{1F30D}");
+    });
   });
 });
 
@@ -230,154 +318,5 @@ describe("releaseParagraphs", () => {
     expect(await turnsDuring(releaseParagraphs)).toBe(true);
     // The turn released them: nothing is outstanding now.
     expect(await turnsDuring(releaseParagraphs)).toBe(false);
-  });
-});
-
-describe("layoutTextFallback", () => {
-  let ctx: SKRSContext2D;
-  const layoutText = layoutTextFallback;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-  });
-
-  it("lays out single line text", () => {
-    const result = layoutText(
-      "Hello",
-      { fontSize: 16, color: "black" },
-      500,
-      ctx,
-    );
-    expect(result.segments).toHaveLength(1);
-    expect(result.segments[0]!.text).toBe("Hello");
-    expect(result.width).toBeGreaterThan(0);
-    expect(result.height).toBeGreaterThan(0);
-  });
-
-  it("applies text transform uppercase", () => {
-    const result = layoutText(
-      "hello",
-      { fontSize: 16, color: "black", textTransform: "uppercase" },
-      500,
-      ctx,
-    );
-    expect(result.segments[0]!.text).toBe("HELLO");
-  });
-
-  it("applies text transform lowercase", () => {
-    const result = layoutText(
-      "HELLO",
-      { fontSize: 16, color: "black", textTransform: "lowercase" },
-      500,
-      ctx,
-    );
-    expect(result.segments[0]!.text).toBe("hello");
-  });
-
-  it("hangs trailing spaces when deciding whether a word fits", () => {
-    // Mock measures 8px per character: "aaa bbb" is exactly 56px wide.
-    // The space after "bbb" must not count toward the line fitting.
-    const result = layoutText(
-      "aaa bbb ccc",
-      { fontSize: 16, color: "black" },
-      56,
-      ctx,
-    );
-    expect(result.segments.map((s) => s.text)).toEqual(["aaa bbb", "ccc"]);
-  });
-
-  it("clamps lines with lineClamp and adds ellipsis", () => {
-    const longText =
-      "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.";
-    const unclamped = layoutText(
-      longText,
-      { fontSize: 16, color: "black" },
-      150,
-      ctx,
-    );
-    expect(unclamped.segments.length).toBeGreaterThan(2);
-
-    const clamped = layoutText(
-      longText,
-      { fontSize: 16, color: "black", lineClamp: 2 },
-      150,
-      ctx,
-    );
-    expect(clamped.segments).toHaveLength(2);
-    expect(clamped.segments[1]!.text).toContain("\u2026");
-    expect(clamped.height).toBeLessThan(unclamped.height);
-  });
-
-  it("keeps baseline within line box when hhea metrics shrink auto lineHeight below font content", () => {
-    // hhea metrics: ascender=600, descender=-150 → lineHeight=12px
-    // Font-derived: ascent=9.6, descent=2.4 → contentHeight=12 (equal)
-    // No scaling needed, baselineY = (12 + 9.6 - 2.4) / 2 = 9.6
-    vi.mocked(getFontMetrics).mockReturnValue({
-      ascender: 600,
-      descender: -150,
-      unitsPerEm: 1000,
-      // (600 + 150) / 1000 * 16 = 12px lineHeight
-    });
-
-    const result = layoutText(
-      "Hello",
-      { fontSize: 16, color: "black" }, // line-height: normal (auto)
-      500,
-      ctx,
-    );
-    const seg = result.segments[0]!;
-    // seg.y is the baseline Y; it must stay within [0, lineHeightPx=12]
-    expect(seg.y).toBeGreaterThanOrEqual(0);
-    expect(seg.y).toBeLessThanOrEqual(12);
-
-    // totalHeight is ceiled to prevent Yoga rounding from clipping descent
-    expect(result.height).toBe(Math.ceil(result.height));
-
-    // Reset mock
-    vi.mocked(getFontMetrics).mockReturnValue(null);
-  });
-
-  it("ceils totalHeight when descent overflows the line box", () => {
-    // hhea metrics: (775 + 194) / 1000 * 16 = 15.504 lineHeightPx
-    // Font-derived ascent = 12.4, descent = 3.104 → contentHeight = 15.504
-    // baselineY = (15.504 + 12.4 - 3.104) / 2 = 12.4
-    // Ceiled to 16 to prevent Yoga rounding from clipping descent.
-    vi.mocked(getFontMetrics).mockReturnValue({
-      ascender: 775,
-      descender: -194,
-      unitsPerEm: 1000,
-    });
-
-    const result = layoutText("g", { fontSize: 16, color: "black" }, 500, ctx);
-
-    expect(result.height).toBe(16);
-
-    vi.mocked(getFontMetrics).mockReturnValue(null);
-  });
-
-  it("does not scale baseline for explicit tight lineHeight", () => {
-    // With explicit lineHeight, overflow is intentional — use standard half-leading.
-    // Mock canvas: ascent=12, descent=4, contentHeight=16, lineHeight=10.
-    // Original formula: baselineY = (10 + 12 - 4) / 2 = 9
-    const result = layoutText(
-      "Hello",
-      { fontSize: 16, color: "black", lineHeight: 10 },
-      500,
-      ctx,
-    );
-    const seg = result.segments[0]!;
-    expect(seg.y).toBe(9);
-  });
-
-  it("does not clamp when text fits within lineClamp", () => {
-    const result = layoutText(
-      "Short",
-      { fontSize: 16, color: "black", lineClamp: 3 },
-      500,
-      ctx,
-    );
-    expect(result.segments).toHaveLength(1);
-    expect(result.segments[0]!.text).toBe("Short");
   });
 });

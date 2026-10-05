@@ -234,7 +234,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
 
     it("doesn't render a run of nothing but white space", async () => {
       for (const ws of ["normal", "pre-line", "pre", "pre-wrap"] as const) {
-        for (const space of [" ", "\n   ", "\t", ""]) {
+        for (const space of [" ", "\n   ", "\t", "", "\f", "\v"]) {
           const column = await layOut(
             [<span key="a">a</span>, space, <span key="b">b</span>],
             { flexDirection: "column", whiteSpace: ws },
@@ -392,6 +392,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
       [" ", { whiteSpace: "pre-wrap" }],
       ["  ", { lineHeight: "30px" }],
       ["\f", {}],
+      ["\v", {}],
     ] as const)("has no line box for %j in %j", async (text, style) => {
       const node = await box(text, style);
       expect(node.children).toHaveLength(0);

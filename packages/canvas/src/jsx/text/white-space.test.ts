@@ -110,6 +110,7 @@ describe("isWhiteSpaceOnly", () => {
     ["\u00a0", false],
     [" a ", false],
     ["\f", true],
+    ["\v", true],
     ["\u2028", false],
   ])("%j: %s", (text, expected) => {
     expect(isWhiteSpaceOnly(text)).toBe(expected);

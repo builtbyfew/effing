@@ -9,12 +9,13 @@ import type { ComputedStyle } from "../style/compute.ts";
 type WhiteSpace = NonNullable<ComputedStyle["whiteSpace"]>;
 
 /**
- * Whether `text` is nothing but white space: spaces, tabs, segment breaks and
- * form feeds. CSS doesn't render a run of text in a flex container that is,
- * under any `white-space` (CSS Flexbox §4), as Chrome confirms.
+ * Whether `text` is nothing but white space: spaces, tabs, segment breaks,
+ * form feeds and vertical tabs, the ASCII white space Chrome checks for. CSS
+ * doesn't render a run of text in a flex container that is, under any
+ * `white-space` (CSS Flexbox §4), as Chrome confirms.
  */
 export function isWhiteSpaceOnly(text: string): boolean {
-  return /^[ \t\n\r\f]*$/.test(text);
+  return /^[ \t\n\r\f\v]*$/.test(text);
 }
 
 /**

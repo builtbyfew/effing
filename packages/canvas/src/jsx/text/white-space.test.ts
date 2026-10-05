@@ -1,0 +1,92 @@
+import { describe, expect, it } from "vitest";
+
+import { collapseWhiteSpace, isWhiteSpaceOnly } from "./white-space.ts";
+
+describe("collapseWhiteSpace", () => {
+  it.each([
+    ["a\nb", "a b"],
+    ["a  \n  b", "a b"],
+    ["a\n\n\nb", "a b"],
+    ["a \n \n b", "a b"],
+    ["a\r\nb", "a b"],
+    ["a\rb", "a b"],
+    ["a\tb\t\tc", "a b c"],
+    ["a     b", "a b"],
+    ["   Hello world   ", "Hello world"],
+    ["\n  Hello\n  world\n", "Hello world"],
+    ["", ""],
+    [" \t\n ", ""],
+    ["东京\n大阪", "东京 大阪"],
+  ])("collapses %j to %j under normal and nowrap", (text, expected) => {
+    expect(collapseWhiteSpace(text, "normal")).toBe(expected);
+    expect(collapseWhiteSpace(text, "nowrap")).toBe(expected);
+    expect(collapseWhiteSpace(text, undefined)).toBe(expected);
+  });
+
+  it.each([
+    ["a\nb", "a\nb"],
+    ["a  \n  b", "a\nb"],
+    ["a\n\n\nb", "a\n\n\nb"],
+    ["a \n \n b", "a\n\nb"],
+    ["a\r\nb", "a\nb"],
+    ["a\rb", "a b"],
+    ["a\tb\t\tc", "a b c"],
+    ["a     b", "a b"],
+    ["   Hello world   ", "Hello world"],
+    ["\n  Hello", "\nHello"],
+    ["Hello \n ", "Hello"],
+    ["a\n\n", "a\n"],
+    ["a\r\n", "a"],
+  ])("collapses %j to %j under pre-line", (text, expected) => {
+    expect(collapseWhiteSpace(text, "pre-line")).toBe(expected);
+  });
+
+  it.each(["pre", "pre-wrap"] as const)("keeps the text under %s", (ws) => {
+    for (const text of ["a  \n  b", " a\tb ", "a\r\nb", "a \n "]) {
+      expect(collapseWhiteSpace(text, ws)).toBe(text);
+    }
+  });
+
+  // Chrome gives "a\n" one line, and "a\n\n" two.
+  it.each(["pre", "pre-wrap"] as const)(
+    "drops a segment break at the end of the text under %s",
+    (ws) => {
+      expect(collapseWhiteSpace("a  \n", ws)).toBe("a  ");
+      expect(collapseWhiteSpace("a\r\n", ws)).toBe("a");
+      expect(collapseWhiteSpace("a\n\n", ws)).toBe("a\n");
+    },
+  );
+
+  it("keeps white space other than spaces, tabs and segment breaks", () => {
+    expect(collapseWhiteSpace("a\u00a0\u00a0 b", "normal")).toBe(
+      "a\u00a0\u00a0 b",
+    );
+    expect(collapseWhiteSpace("\u3000a\u2003", "normal")).toBe("\u3000a\u2003");
+  });
+
+  it("keeps the emoji and the text around them", () => {
+    expect(collapseWhiteSpace("Hi \n 🌍 \t there", "normal")).toBe(
+      "Hi 🌍 there",
+    );
+    expect(collapseWhiteSpace("Hi \n 🌍 \t there", "pre-line")).toBe(
+      "Hi\n🌍 there",
+    );
+  });
+
+  it("returns text with nothing to collapse as it is", () => {
+    const text = "The quick brown fox";
+    expect(collapseWhiteSpace(text, "normal")).toBe(text);
+  });
+});
+
+describe("isWhiteSpaceOnly", () => {
+  it.each([
+    ["", true],
+    [" ", true],
+    ["\n  \t\r\n", true],
+    ["\u00a0", false],
+    [" a ", false],
+  ])("%j: %s", (text, expected) => {
+    expect(isWhiteSpaceOnly(text)).toBe(expected);
+  });
+});

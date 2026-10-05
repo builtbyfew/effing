@@ -38,7 +38,7 @@ Line height — `"normal"` uses font metrics, numeric values are CSS multipliers
 
 > `optional` **maxFontSize?**: `number`
 
-Defined in: [canvas/src/fit-text.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L29)
+Defined in: [canvas/src/fit-text.ts:30](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L30)
 
 Maximum font size to consider (default: 1000)
 
@@ -68,7 +68,7 @@ Maximum width in pixels
 
 > `optional` **minFontSize?**: `number`
 
-Defined in: [canvas/src/fit-text.ts:27](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L27)
+Defined in: [canvas/src/fit-text.ts:28](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L28)
 
 Minimum font size to consider (default: 1)
 
@@ -88,8 +88,9 @@ The text to fit
 
 > `optional` **whiteSpace?**: `ComputedStyle`\[`"whiteSpace"`\]
 
-Defined in: [canvas/src/fit-text.ts:25](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L25)
+Defined in: [canvas/src/fit-text.ts:26](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/fit-text.ts#L26)
 
-Whitespace handling, mirroring CSS. Use `"nowrap"` (or `"pre"`) to fit text
-on one line (per newline-separated paragraph) instead of wrapping to
-`maxWidth` (default: `"normal"`).
+Whitespace handling, as in CSS (default: `"normal"`). Use `"nowrap"` to
+fit the text on one line instead of wrapping to `maxWidth`, its newlines
+collapsing to spaces, or `"pre"` to fit each newline-separated paragraph
+on a line of its own.

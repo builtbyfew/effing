@@ -17,6 +17,7 @@ import {
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { TextMeasure } from "./text/index.ts";
+import { isWhiteSpaceOnly } from "./text/white-space.ts";
 import type { TextLayoutResult } from "./text/index.ts";
 import {
   createTextYogaNode,
@@ -352,28 +353,28 @@ async function buildNode(
       ? rawChildren.flat(Infinity)
       : [rawChildren];
 
-    // CSS Text 3 §4.1.1: collapse leading whitespace after a forced break
-    const ws = style.whiteSpace;
-    const collapsesWhitespace =
-      ws === undefined ||
-      ws === "normal" ||
-      ws === "nowrap" ||
-      ws === "pre-line";
-    let prevWasBr = false;
-
+    // Function components are rendered first, so that text gets a text
+    // node. Adjacent text, as `Hello {name}` gives, is one run of text, and
+    // a run of text between elements a flex item of its own (CSS Flexbox
+    // §4), its white space collapsed as its box's text (see `layoutText`):
+    // the spaces at its start and end, after a <br> say, are removed. A run
+    // of nothing but white space isn't rendered at all, whatever its
+    // `white-space`.
+    const items: ReactNode[] = [];
     for (const child of childArray as ElementChild[]) {
       if (child === null || child === undefined || typeof child === "boolean")
         continue;
-
-      let processedChild: ElementChild = child;
-      if (prevWasBr && collapsesWhitespace && typeof child === "string") {
-        processedChild = child.trimStart();
+      const rendered = renderComponents(child);
+      const last = items.length > 0 ? items[items.length - 1] : undefined;
+      if (isText(rendered) && isText(last)) {
+        items[items.length - 1] = `${last}${rendered}`;
+      } else {
+        items.push(rendered);
       }
+    }
 
-      prevWasBr = isBrElement(child);
-
-      // Rendered first, so that text gets a text node.
-      const rendered = renderComponents(processedChild);
+    for (const rendered of items) {
+      if (typeof rendered === "string" && isWhiteSpaceOnly(rendered)) continue;
       const childYogaNode = isText(rendered)
         ? createTextYogaNode()
         : createYogaNode();
@@ -533,12 +534,6 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
 /**
  * Extract plain text content from children if they are all strings/numbers.
  */
-function isBrElement(child: unknown): boolean {
-  if (child === null || child === undefined || typeof child !== "object")
-    return false;
-  return (child as ReactElement).type === "br";
-}
-
 function extractTextContent(children: unknown): string | undefined {
   if (children === undefined || children === null) return undefined;
   if (typeof children === "string") return children;

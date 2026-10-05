@@ -153,7 +153,7 @@ function splitEmoji(
   let paragraphIndex = 0;
   let textIndex = 0;
   for (const { segment } of graphemeSegmenter.segment(text)) {
-    if (![...segment].some(isEmoji)) {
+    if (!isEmoji(segment)) {
       run += segment;
       paragraphIndex += segment.length;
       textIndex += segment.length;

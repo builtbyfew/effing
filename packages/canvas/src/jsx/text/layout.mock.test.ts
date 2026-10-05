@@ -244,6 +244,24 @@ describe("layoutText", () => {
       expect(result.segments[0]!.text).toBe(`a${family}b`);
     });
 
+    it("leaves a flag a box of its own", () => {
+      const flag = "\u{1F1E7}\u{1F1EA}";
+      const result = layoutText(`a${flag}b`, { fontSize: 16 }, 500, true);
+      expect(result.emoji.map((e) => [e.grapheme, e.x])).toEqual([[flag, 8]]);
+      expect(result.width).toBe(2 * 8 + 16);
+    });
+
+    it.each([
+      ["a ZWJ between letters", "a\u200Db"],
+      ["Arabic joined by a ZWJ", "\u0644\u200D \u0628\u200D\u0628"],
+      ["Devanagari with a ZWJ", "\u0915\u094D\u200D\u0937"],
+      ["symbols presented as text", "\u00A9 \u2713 \u25CF \u260E 1"],
+    ])("lays %s out as text", (_, text) => {
+      const result = layoutText(text, { fontSize: 16 }, 500, true);
+      expect(result.emoji).toEqual([]);
+      expect(result.width).toBe(text.length * 8);
+    });
+
     it("maps each line back to its text across emoji", () => {
       const result = layoutText(
         "aa\u{1F30D} bb\u{1F389}\u{1F389} cc",

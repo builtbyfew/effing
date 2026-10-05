@@ -87,7 +87,7 @@ Emoji characters are automatically rendered as images from CDNs. Supported style
 | `fluent`     | Microsoft Fluent Emoji (color) |
 | `fluentFlat` | Microsoft Fluent Emoji (flat)  |
 
-Each emoji takes an inline box of 1em on its line, with its bottom 0.1em below the baseline, about where browsers draw an emoji glyph. Pass `emoji: "none"` to disable emoji image rendering. An emoji drawn without an image — with `emoji: "none"`, one the style has no image for (such as `✓`), or one whose image failed to load — is drawn as text, so it needs a font that covers it among the text's font families (every font given to `renderReactElement` is one).
+An emoji is what Unicode presents as one ([UTS #51](https://www.unicode.org/reports/tr51/)): a character shown as an emoji by default (`🌍`), one followed by U+FE0F (`©️`), a keycap (`1️⃣`), a flag (`🇧🇪`, `🏴󠁧󠁢󠁥󠁮󠁧󠁿`), a skin-tone sequence (`👍🏽`) or a ZWJ sequence of emoji (`👨‍👩‍👧`). Symbols that are text by default, such as `©`, `✓`, `●` or `☎`, are text, as in browsers. Each emoji takes an inline box of 1em on its line, with its bottom 0.1em below the baseline, about where browsers draw an emoji glyph. Pass `emoji: "none"` to disable emoji image rendering. An emoji drawn without an image — with `emoji: "none"`, one the style has no image for (the Fluent styles have no flags), or one whose image failed to load — is drawn as text, so it needs a font that covers it among the text's font families (every font given to `renderReactElement` is one), as do text symbols.
 
 ## Fit Text
 

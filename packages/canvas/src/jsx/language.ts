@@ -69,10 +69,11 @@ const EMOJI_CHAR = String.raw`[\p{Emoji}\p{Extended_Pictographic}]`;
 const KEYCAP_BASE = "[0-9#*]";
 
 /**
- * An emoji character that stays text unless U+FE0F (or, for a keycap base, a
- * keycap) follows it: ©, ®, ™, digits, # and *.
+ * An emoji character that stays text on its own: a keycap base (digits, # and
+ * *), text unless a keycap follows it, and ©, ® and ™, text unless U+FE0F
+ * follows them.
  */
-const TEXT_EMOJI_CHAR = String.raw`[\u00A9\u00AE\u21220-9#*]`;
+const TEXT_EMOJI_CHAR = String.raw`[0-9#*\u00A9\u00AE\u2122]`;
 
 /** A tag sequence's tags, as in a subdivision flag such as 🏴󠁧󠁢󠁥󠁮󠁧󠁿. */
 const TAGS = String.raw`[\u{E0020}-\u{E007E}]+\u{E007F}`;
@@ -106,8 +107,8 @@ const EMOJI_RE = new RegExp(
 
 /**
  * Whether a grapheme cluster is an emoji, to draw as an image: an emoji
- * character with or without U+FE0F (©, ®, ™, digits, # and * only with it),
- * a keycap, a flag, a modifier or tag sequence, or a ZWJ sequence of emoji
+ * character with or without U+FE0F (©, ®, ™ only with it, and digits, # and
+ * * only in a keycap), a keycap, a flag, a modifier or tag sequence, or a ZWJ sequence of emoji
  * (UTS #51). U+FE0E keeps an emoji character text. A ZWJ between anything
  * else (the joiner in Arabic or Indic text, or a lone one) doesn't make an
  * emoji, and neither do symbols with no emoji form, such as ✓ or ●.

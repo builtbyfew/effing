@@ -312,7 +312,8 @@ export function layoutTextNative(
     // Round auto line-height boxes up so Yoga's integer rounding never clips
     // a descender. Text of no font size, laid out at MIN_FONT_SIZE, has line
     // boxes of no height, as in CSS.
-    height = styledFontSize > 0 ? Math.ceil(height) : 0;
+    const noFontSize = Number.isFinite(styledFontSize) && styledFontSize <= 0;
+    height = noFontSize ? 0 : Math.ceil(height);
   }
 
   let paragraphOffsetY = 0;

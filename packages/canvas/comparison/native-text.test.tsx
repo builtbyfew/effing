@@ -374,7 +374,9 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     },
   );
 
-  it("gives text of no font size line boxes of no height, as Chrome does", () => {
+  // Chrome gives `font-size: 0` line boxes of no height; it drops a negative
+  // font size as invalid, where this lays the text out as at 0.
+  it("gives text of no font size line boxes of no height", () => {
     for (const fontSize of [0, -3]) {
       const result = layoutText("Hello world", style({ fontSize }), 100);
       expect(result.height).toBe(0);
@@ -384,6 +386,14 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     expect(
       layoutText("Hello", style({ fontSize: 0, lineHeight: 30 }), 100).height,
     ).toBe(30);
+  });
+
+  it("sizes text of a font size that isn't a number as at 16px", () => {
+    const at16 = layoutText("Hello world", style({ fontSize: 16 }), 60);
+    const result = layoutText("Hello world", style({ fontSize: NaN }), 60);
+    expect(result.segments).toHaveLength(2);
+    expect(result.height).toBe(at16.height);
+    expect(result.width).toBe(at16.width);
   });
 
   it("collapses the line boxes for a line height of 0, as Chrome does", () => {

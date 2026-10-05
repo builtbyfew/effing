@@ -1,6 +1,7 @@
 import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
+import { emojiApis, getEmojiCode } from "../src/jsx/emoji.ts";
 import {
   HAS_NATIVE_DEPS,
   loadFonts,
@@ -21,7 +22,13 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
 
   beforeAll(async () => {
     fonts = await loadFonts();
-    networkAvailable = await fetch("https://cdnjs.cloudflare.com", {
+    // An image the renderer fetches, from the same CDN.
+    const twemoji = emojiApis.twemoji;
+    const url =
+      typeof twemoji === "function"
+        ? twemoji(getEmojiCode("🌍"))
+        : `${twemoji}${getEmojiCode("🌍").toUpperCase()}.svg`;
+    networkAvailable = await fetch(url, {
       method: "HEAD",
       signal: AbortSignal.timeout(2000),
     })

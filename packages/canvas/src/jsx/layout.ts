@@ -2,7 +2,6 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
-import type { SKRSContext2D } from "@effing/skia";
 import type { ReactElement, ReactNode } from "react";
 
 import type { ImageCache } from "../image.ts";
@@ -54,14 +53,12 @@ type ElementChild = string | number | ReactElement | null | undefined | boolean;
  * @param element - React element tree to lay out
  * @param containerWidth - Width of the container (from canvas)
  * @param containerHeight - Height of the container (from canvas)
- * @param ctx - Canvas context for text measurement
  * @returns Root layout node with computed positions and dimensions
  */
 export async function buildLayoutTree(
   element: ReactNode,
   containerWidth: number,
   containerHeight: number,
-  ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
   context?: RenderContext,
@@ -87,7 +84,6 @@ export async function buildLayoutTree(
     elementYogaNode,
     containerWidth,
     containerHeight,
-    ctx,
     emojiEnabled,
     fontFamilies,
     renderContext,
@@ -135,7 +131,6 @@ async function buildNode(
   yogaNode: YogaNode,
   viewportWidth: number,
   viewportHeight: number,
-  ctx?: SKRSContext2D,
   emojiEnabled?: boolean,
   fontFamilies?: string[],
   context?: RenderContext,
@@ -161,7 +156,7 @@ async function buildNode(
     const style = resolveStyle(undefined, parentStyle);
 
     // Set up text measurement
-    const textMeasure = new TextMeasure(text, style, ctx, emojiEnabled);
+    const textMeasure = new TextMeasure(text, style, emojiEnabled);
     setTextMeasure(yogaNode, textMeasure);
 
     return {
@@ -313,12 +308,7 @@ async function buildNode(
   if (textContent !== undefined && !hasElementChildren(props.children)) {
     const childStyle = resolveStyle(undefined, style);
     const childYogaNode = createTextYogaNode();
-    const textMeasure = new TextMeasure(
-      textContent,
-      childStyle,
-      ctx,
-      emojiEnabled,
-    );
+    const textMeasure = new TextMeasure(textContent, childStyle, emojiEnabled);
     setTextMeasure(childYogaNode, textMeasure);
     const jc = style.justifyContent;
     if (!jc || jc === "flex-start") {
@@ -395,7 +385,6 @@ async function buildNode(
           childYogaNode,
           viewportWidth,
           viewportHeight,
-          ctx,
           emojiEnabled,
           fontFamilies,
           context,

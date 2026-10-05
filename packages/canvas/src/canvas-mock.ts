@@ -2,33 +2,70 @@ import { vi } from "vitest";
 
 type MockParagraphStyle = {
   letterSpacing?: number;
-  lineHeight?: number;
+  lineHeight?: number | null;
   textAlign?: string;
   noWrap?: boolean;
   maxLines?: number;
   ellipsis?: string;
+  keepTrailingWhitespace?: boolean;
+  wordBreak?: string;
+  overflowWrap?: string;
+};
+
+type MockPlaceholder = {
+  width: number;
+  height: number;
+  baselineOffset?: number | null;
 };
 
 /**
  * Mock of `@effing/skia/extensions`, to pair with `createCanvasMock`. Its
  * `Paragraph` lays text out the way the canvas mock measures it: 8px per
- * character, ascent 12 and descent 4, breaking greedily at spaces.
+ * character, ascent 12 and descent 4, breaking greedily at spaces and leaving
+ * a word wider than the line to overflow it. A placeholder is one character
+ * (U+FFFC) of its own width, its baseline on the line's.
  */
 export function createExtensionsMock() {
   class Paragraph {
+    readonly text: string;
+    readonly placeholders: MockPlaceholder[];
+
     constructor(
-      readonly text: string,
+      content: string | readonly (string | MockPlaceholder)[],
       readonly style: MockParagraphStyle,
-    ) {}
+    ) {
+      const items = typeof content === "string" ? [content] : content;
+      this.text = items
+        .map((item) => (typeof item === "string" ? item : "\uFFFC"))
+        .join("");
+      this.placeholders = items.filter(
+        (item): item is MockPlaceholder => typeof item !== "string",
+      );
+    }
 
     layout(width: number) {
-      const { text, style } = this;
+      const { text, style, placeholders } = this;
       const charWidth = 8 + (style.letterSpacing ?? 0);
-      const lineHeight = style.lineHeight || 16;
+      const lineHeight = style.lineHeight ?? 16;
       const bounded = width > 0 && Number.isFinite(width);
-      const fits = (chars: number) => !bounded || chars * charWidth <= width;
+      // Each character's advance, and where each placeholder is.
+      const advances: number[] = [];
+      const placeholderAt = new Map<number, number>();
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === "\uFFFC") {
+          placeholderAt.set(i, placeholderAt.size);
+          advances.push(placeholders[placeholderAt.size - 1]!.width);
+        } else {
+          advances.push(charWidth);
+        }
+      }
+      const measure = (start: number, end: number) =>
+        advances.slice(start, end).reduce((w, a) => w + a, 0);
+      const fits = (start: number, end: number) =>
+        !bounded || measure(start, end) <= width;
 
-      // [start, end) ranges of the text, trailing spaces excluded.
+      // [start, end) ranges of the text, trailing spaces excluded (unless
+      // kept before a hard break).
       const ranges: { start: number; end: number; hardBreak: boolean }[] = [];
       let longestWord = 0;
       let offset = 0;
@@ -38,13 +75,14 @@ export function createExtensionsMock() {
         for (const word of hardLine.matchAll(/\S+/g)) {
           const wordStart = offset + word.index;
           const wordEnd = wordStart + word[0].length;
-          longestWord = Math.max(longestWord, word[0].length);
-          if (!style.noWrap && end > start && !fits(wordEnd - start)) {
+          longestWord = Math.max(longestWord, measure(wordStart, wordEnd));
+          if (!style.noWrap && end > start && !fits(start, wordEnd)) {
             ranges.push({ start, end, hardBreak: false });
             start = wordStart;
           }
           end = wordEnd;
         }
+        if (style.keepTrailingWhitespace) end = offset + hardLine.length;
         ranges.push({ start, end, hardBreak: true });
         offset += hardLine.length + 1;
       }
@@ -54,18 +92,18 @@ export function createExtensionsMock() {
       if (didExceedMaxLines) ranges.length = style.maxLines!;
 
       const lines = ranges.map(({ start, end, hardBreak }, i) => {
-        let chars = end - start;
+        let lineWidth = measure(start, end);
         const truncated =
           !!style.ellipsis &&
           ((didExceedMaxLines && i === ranges.length - 1) ||
-            (!!style.noWrap && !fits(chars)));
+            (!!style.noWrap && !fits(start, end)));
         if (truncated) {
           // Room for the ellipsis, which the line's width includes.
-          while (chars > 0 && !fits(chars + 1)) chars--;
-          end = start + chars;
-          chars += 1;
+          const room = (e: number) =>
+            !bounded || measure(start, e) + charWidth <= width;
+          while (end > start && !room(end)) end--;
+          lineWidth = measure(start, end) + charWidth;
         }
-        const lineWidth = chars * charWidth;
         const slack = bounded ? Math.max(0, width - lineWidth) : 0;
         const left =
           style.textAlign === "center"
@@ -82,17 +120,36 @@ export function createExtensionsMock() {
           hardBreak,
         };
       });
+
+      const boxes = placeholders.map(() => null as unknown);
+      for (const [index, n] of placeholderAt) {
+        const line = lines.findIndex(
+          (l) => l.startIndex <= index && index < l.endIndex,
+        );
+        if (line < 0) continue;
+        const { left, startIndex, baseline } = lines[line]!;
+        const { width, height, baselineOffset } = placeholders[n]!;
+        boxes[n] = {
+          x: left + measure(startIndex, index),
+          y: baseline - (baselineOffset ?? height),
+          width,
+          height,
+          line,
+        };
+      }
+
       const longestLine = lines.reduce((w, l) => Math.max(w, l.width), 0);
       return {
         height: lines.length * lineHeight,
         longestLine,
-        minIntrinsicWidth: style.noWrap ? longestLine : longestWord * charWidth,
-        maxIntrinsicWidth: text.length * charWidth,
+        minIntrinsicWidth: style.noWrap ? longestLine : longestWord,
+        maxIntrinsicWidth: measure(0, text.length),
         didExceedMaxLines,
         lineHeight,
         ascent: 12,
         descent: 4,
         lines,
+        placeholders: boxes,
       };
     }
   }

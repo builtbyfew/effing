@@ -6,9 +6,11 @@ import parseCssColor from "parse-css-color";
 
 import type { EmojiStyle } from "../emoji.ts";
 import { getEmojiCode, loadEmoji } from "../emoji.ts";
-import type { TextSegment } from "../text/index.ts";
-import type { NativeParagraph } from "../text/native.ts";
-import { splitTextIntoRuns } from "../text/emoji-split.ts";
+import type {
+  PlacedEmoji,
+  TextLayoutResult,
+  TextSegment,
+} from "../text/index.ts";
 import { setFont } from "../text/measure.ts";
 
 const emojiImageCache = new Map<string, Promise<Image | null>>();
@@ -36,71 +38,34 @@ function loadEmojiImage(
 }
 
 /**
- * Draw text segments onto the canvas context, unhinted and unsnapped (see
- * `withUnsnappedText`).
+ * Draw laid-out text onto the canvas context: the paragraph, unhinted and
+ * unsnapped, with its shadow, stroke and decorations, and the emoji drawn as
+ * images in the inline boxes it left them.
  *
  * @param ctx - Canvas 2D rendering context
- * @param segments - Positioned text segments from the text layout engine
+ * @param layout - The text as laid out by `layoutText`
  * @param offsetX - X offset for the text block
  * @param offsetY - Y offset for the text block
  * @param textShadow - Optional text-shadow CSS value
- * @param emojiStyle - Optional emoji style for rendering emoji as images
- * @param native - The natively laid-out paragraph to paint instead of the
- *   segments, with its vertical offset in the text block
+ * @param emojiStyle - The emoji style the text was laid out for, if any
  */
 export async function drawText(
   ctx: SKRSContext2D,
-  segments: TextSegment[],
+  layout: TextLayoutResult,
   offsetX: number,
   offsetY: number,
   textShadow?: string,
   emojiStyle?: EmojiStyle,
-  native?: { paragraph: NativeParagraph; offsetY: number },
 ): Promise<void> {
-  if (native) {
-    drawParagraph(
-      ctx,
-      native.paragraph,
-      segments,
-      offsetX,
-      offsetY,
-      native.offsetY,
-      textShadow,
-    );
-    return;
-  }
-  // Emoji images load asynchronously, so the setting is held across awaits
-  // rather than through `withUnsnappedText`.
-  const textRendering = ctx.textRendering;
-  ctx.textRendering = "geometricPrecision";
-  try {
-    await drawSegments(ctx, segments, offsetX, offsetY, textShadow, emojiStyle);
-  } finally {
-    ctx.textRendering = textRendering;
-  }
-}
-
-/**
- * Paint a natively laid-out paragraph: shadow, stroke and fill passes as for
- * segments, each a single native call for the whole paragraph. A paragraph
- * always paints unhinted and unsnapped.
- */
-function drawParagraph(
-  ctx: SKRSContext2D,
-  paragraph: NativeParagraph,
-  segments: TextSegment[],
-  offsetX: number,
-  offsetY: number,
-  paragraphOffsetY: number,
-  textShadow?: string,
-): void {
+  const { paragraph, segments, emoji } = layout;
   const first = segments[0];
   if (!first) return;
   const x = offsetX;
-  const y = offsetY + paragraphOffsetY;
+  const y = offsetY + layout.paragraphOffsetY;
   const shadow = textShadow ? parseShadow(textShadow) : null;
   ctx.fillStyle = first.color;
 
+  // Each pass is a single native call for the whole paragraph.
   if (shadow) {
     drawShadowPass(ctx, shadow, getColorAlpha(first.color), () =>
       fillParagraph(ctx, paragraph, x, y),
@@ -116,6 +81,10 @@ function drawParagraph(
   }
   fillParagraph(ctx, paragraph, x, y);
 
+  if (emojiStyle && emoji.length > 0) {
+    await drawEmoji(ctx, emoji, first, offsetX, offsetY, emojiStyle);
+  }
+
   for (const seg of segments) {
     if (seg.textDecoration) {
       drawTextDecoration(ctx, seg, offsetX, offsetY);
@@ -123,199 +92,36 @@ function drawParagraph(
   }
 }
 
-async function drawSegments(
+async function drawEmoji(
   ctx: SKRSContext2D,
-  segments: TextSegment[],
+  emoji: PlacedEmoji[],
+  font: TextSegment,
   offsetX: number,
   offsetY: number,
-  textShadow?: string,
-  emojiStyle?: EmojiStyle,
-): Promise<void> {
-  const shadow = textShadow ? parseShadow(textShadow) : null;
-
-  for (const seg of segments) {
-    if (!seg.text) continue;
-
-    setFont(ctx, seg.fontSize, seg.fontFamily, seg.fontWeight, seg.fontStyle);
-    ctx.fillStyle = seg.color;
-
-    const x = offsetX + seg.x;
-    const y = offsetY + seg.y;
-    const textAlpha = shadow ? getColorAlpha(seg.color) : 1;
-
-    const hasStroke =
-      seg.textStrokeWidth !== undefined && seg.textStrokeWidth > 0;
-
-    if (emojiStyle) {
-      await drawSegmentWithEmoji(
-        ctx,
-        seg,
-        x,
-        y,
-        textShadow,
-        emojiStyle,
-        hasStroke,
-      );
-    } else if (seg.letterSpacing && seg.letterSpacing !== 0) {
-      if (shadow) {
-        drawShadowPass(ctx, shadow, textAlpha, () =>
-          drawTextWithLetterSpacing(ctx, seg.text, x, y, seg.letterSpacing),
-        );
-      }
-      if (hasStroke) {
-        drawStrokeWithLetterSpacing(
-          ctx,
-          seg.text,
-          x,
-          y,
-          seg.letterSpacing,
-          seg.textStrokeWidth!,
-          seg.textStrokeColor ?? seg.color,
-        );
-      }
-      drawTextWithLetterSpacing(ctx, seg.text, x, y, seg.letterSpacing);
-    } else {
-      if (shadow) {
-        drawShadowPass(ctx, shadow, textAlpha, () =>
-          ctx.fillText(seg.text, x, y),
-        );
-      }
-      if (hasStroke) {
-        ctx.save();
-        ctx.lineWidth = seg.textStrokeWidth!;
-        ctx.strokeStyle = seg.textStrokeColor ?? seg.color;
-        ctx.lineJoin = "round";
-        ctx.strokeText(seg.text, x, y);
-        ctx.restore();
-      }
-      ctx.fillText(seg.text, x, y);
-    }
-
-    // Text decoration
-    if (seg.textDecoration) {
-      drawTextDecoration(ctx, seg, offsetX, offsetY);
-    }
-  }
-}
-
-async function drawSegmentWithEmoji(
-  ctx: SKRSContext2D,
-  seg: TextSegment,
-  x: number,
-  y: number,
-  textShadow: string | undefined,
   emojiStyle: EmojiStyle,
-  hasStroke?: boolean,
 ): Promise<void> {
-  const letterSpacing = seg.letterSpacing ?? 0;
-  const runs = splitTextIntoRuns(
-    seg.text,
-    (text) => {
-      setFont(ctx, seg.fontSize, seg.fontFamily, seg.fontWeight, seg.fontStyle);
-      return ctx.measureText(text).width;
-    },
-    seg.fontSize,
-    letterSpacing,
+  const images = await Promise.all(
+    emoji.map((e) => loadEmojiImage(emojiStyle, e.grapheme)),
   );
-
-  const shadow = textShadow ? parseShadow(textShadow) : null;
-  const textAlpha = shadow ? getColorAlpha(seg.color) : 1;
-
-  for (const run of runs) {
-    if (run.kind === "text") {
-      if (shadow) {
-        if (letterSpacing !== 0) {
-          drawShadowPass(ctx, shadow, textAlpha, () =>
-            drawTextWithLetterSpacing(
-              ctx,
-              run.text,
-              x + run.x,
-              y,
-              letterSpacing,
-            ),
-          );
-        } else {
-          drawShadowPass(ctx, shadow, textAlpha, () =>
-            ctx.fillText(run.text, x + run.x, y),
-          );
-        }
-      }
-      if (hasStroke) {
-        if (letterSpacing !== 0) {
-          drawStrokeWithLetterSpacing(
-            ctx,
-            run.text,
-            x + run.x,
-            y,
-            letterSpacing,
-            seg.textStrokeWidth!,
-            seg.textStrokeColor ?? seg.color,
-          );
-        } else {
-          ctx.save();
-          ctx.lineWidth = seg.textStrokeWidth!;
-          ctx.strokeStyle = seg.textStrokeColor ?? seg.color;
-          ctx.lineJoin = "round";
-          ctx.strokeText(run.text, x + run.x, y);
-          ctx.restore();
-        }
-      }
-      if (letterSpacing !== 0) {
-        drawTextWithLetterSpacing(ctx, run.text, x + run.x, y, letterSpacing);
-      } else {
-        ctx.fillText(run.text, x + run.x, y);
-      }
-    } else {
-      const img = await loadEmojiImage(emojiStyle, run.char);
-      if (img) {
-        const emojiSize = seg.fontSize;
-        // Position emoji so it aligns vertically with text:
-        // y is the baseline, ascent goes up from baseline
-        const emojiY = y - seg.ascent + (seg.height - seg.fontSize) / 2;
-        ctx.drawImage(img, x + run.x, emojiY, emojiSize, emojiSize);
-      } else {
-        // Emoji image unavailable — fall back to text rendering
-        ctx.fillText(run.char, x + run.x, y);
-      }
+  emoji.forEach((e, i) => {
+    const img = images[i];
+    if (img) {
+      ctx.drawImage(img, offsetX + e.x, offsetY + e.y, e.size, e.size);
+      return;
     }
-  }
-}
-
-function drawTextWithLetterSpacing(
-  ctx: SKRSContext2D,
-  text: string,
-  x: number,
-  y: number,
-  letterSpacing: number,
-): void {
-  let currentX = x;
-  for (const char of text) {
-    ctx.fillText(char, currentX, y);
-    const metrics = ctx.measureText(char);
-    currentX += metrics.width + letterSpacing;
-  }
-}
-
-function drawStrokeWithLetterSpacing(
-  ctx: SKRSContext2D,
-  text: string,
-  x: number,
-  y: number,
-  letterSpacing: number,
-  strokeWidth: number,
-  strokeColor: string,
-): void {
-  ctx.save();
-  ctx.lineWidth = strokeWidth;
-  ctx.strokeStyle = strokeColor;
-  ctx.lineJoin = "round";
-  let currentX = x;
-  for (const char of text) {
-    ctx.strokeText(char, currentX, y);
-    const metrics = ctx.measureText(char);
-    currentX += metrics.width + letterSpacing;
-  }
-  ctx.restore();
+    // Emoji image unavailable: draw it as text, in its box on the baseline.
+    setFont(
+      ctx,
+      font.fontSize,
+      font.fontFamily,
+      font.fontWeight,
+      font.fontStyle,
+    );
+    const textRendering = ctx.textRendering;
+    ctx.textRendering = "geometricPrecision";
+    ctx.fillText(e.grapheme, offsetX + e.x, offsetY + e.baseline);
+    ctx.textRendering = textRendering;
+  });
 }
 
 interface ParsedShadow {

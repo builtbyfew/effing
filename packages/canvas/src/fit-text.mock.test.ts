@@ -2,7 +2,6 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("./jsx/font.ts", () => ({
   registerFont: vi.fn(),
-  getFontMetrics: vi.fn(() => null),
 }));
 
 vi.mock("./jsx/text/index.ts", () => ({
@@ -12,7 +11,12 @@ vi.mock("./jsx/text/index.ts", () => ({
 import { registerFont } from "./jsx/font.ts";
 import { layoutText } from "./jsx/text/index.ts";
 import { findLargestUsableFontSize } from "./fit-text.ts";
+import type { TextLayoutResult } from "./jsx/text/index.ts";
 import type { FontData } from "./types.ts";
+
+/** A layout result of the given size; the search reads nothing else. */
+const sized = (width: number, height: number) =>
+  ({ segments: [], width, height }) as unknown as TextLayoutResult;
 
 const font: FontData = {
   name: "TestFont",
@@ -31,7 +35,7 @@ describe("findLargestUsableFontSize", () => {
     // At maxWidth=210, maxHeight=60: 42*5=210 fits, 43*5=215 doesn't
     vi.mocked(layoutText).mockImplementation((_text, style) => {
       const fs = style.fontSize ?? 16;
-      return { segments: [], width: fs * 5, height: fs * 1.2 };
+      return sized(fs * 5, fs * 1.2);
     });
 
     const result = findLargestUsableFontSize({
@@ -45,11 +49,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("returns minFontSize when nothing fits", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 9999,
-      height: 9999,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(9999, 9999));
 
     const result = findLargestUsableFontSize({
       text: "Huge text",
@@ -63,11 +63,7 @@ describe("findLargestUsableFontSize", () => {
 
   it("respects maxFontSize ceiling", () => {
     // Everything fits — should cap at maxFontSize
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 1,
-      height: 1,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(1, 1));
 
     const result = findLargestUsableFontSize({
       text: "Tiny",
@@ -81,11 +77,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("respects custom minFontSize", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 9999,
-      height: 9999,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(9999, 9999));
 
     const result = findLargestUsableFontSize({
       text: "Won't fit",
@@ -99,11 +91,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("maps lineHeight 'normal' to undefined in style", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 10,
-      height: 10,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(10, 10));
 
     findLargestUsableFontSize({
       text: "Test",
@@ -120,11 +108,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("passes whiteSpace through to style for single-line fitting", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 10,
-      height: 10,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(10, 10));
 
     findLargestUsableFontSize({
       text: "One line",
@@ -140,11 +124,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("leaves whiteSpace undefined when not provided (defaults to wrapping)", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 10,
-      height: 10,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(10, 10));
 
     findLargestUsableFontSize({
       text: "Test",
@@ -159,11 +139,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("passes numeric lineHeight through to style", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 10,
-      height: 10,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(10, 10));
 
     findLargestUsableFontSize({
       text: "Test",
@@ -179,11 +155,7 @@ describe("findLargestUsableFontSize", () => {
   });
 
   it("calls registerFont with the provided FontData", () => {
-    vi.mocked(layoutText).mockReturnValue({
-      segments: [],
-      width: 10,
-      height: 10,
-    });
+    vi.mocked(layoutText).mockReturnValue(sized(10, 10));
 
     findLargestUsableFontSize({
       text: "Test",

@@ -243,6 +243,11 @@ export function expandStyle(
       style.backdropFilter = style.WebkitBackdropFilter;
     delete style.WebkitBackdropFilter;
   }
+  // `word-wrap` is the legacy name of `overflow-wrap`.
+  if (style.wordWrap !== undefined) {
+    if (style.overflowWrap === undefined) style.overflowWrap = style.wordWrap;
+    delete style.wordWrap;
+  }
   if (style.WebkitClipPath !== undefined) {
     if (style.clipPath === undefined) style.clipPath = style.WebkitClipPath;
     delete style.WebkitClipPath;

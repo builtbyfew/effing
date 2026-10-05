@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@effing/skia", async () => {
   const { createCanvasMock } = await import("../canvas-mock.ts");
@@ -11,20 +11,12 @@ vi.mock("@effing/skia/extensions", async () => {
   return createExtensionsMock();
 });
 
-import { createCanvas, loadImage } from "@effing/skia";
-import type { SKRSContext2D } from "@effing/skia";
+import { loadImage } from "@effing/skia";
 import { buildLayoutTree } from "./layout.ts";
 
 describe("buildLayoutTree", () => {
-  let ctx: SKRSContext2D;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-  });
-
   it("wraps root element in a canvas-sized container", async () => {
-    const { tree } = await buildLayoutTree("Hello", 200, 200, ctx);
+    const { tree } = await buildLayoutTree("Hello", 200, 200);
     expect(tree.type).toBe("div");
     expect(tree.width).toBe(200);
     expect(tree.height).toBe(200);
@@ -35,7 +27,7 @@ describe("buildLayoutTree", () => {
   });
 
   it("builds layout for null content", async () => {
-    const { tree } = await buildLayoutTree(null, 200, 200, ctx);
+    const { tree } = await buildLayoutTree(null, 200, 200);
     expect(tree.type).toBe("div");
     expect(tree.children[0].type).toBe("empty");
   });
@@ -57,7 +49,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -78,7 +69,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -99,7 +89,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -124,7 +113,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -149,7 +137,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -174,7 +161,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -200,7 +186,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -225,7 +210,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -244,7 +228,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const textChild = div.children[0];
@@ -263,7 +246,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const textChild = div.children[0];
@@ -289,7 +271,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -318,7 +299,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const parent = tree.children[0];
     expect(parent.children).toHaveLength(5);
@@ -350,7 +330,6 @@ describe("buildLayoutTree", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     // Root is a wrapper
     expect(tree.x).toBe(0);
@@ -367,13 +346,6 @@ describe("buildLayoutTree", () => {
 });
 
 describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
-  let ctx: SKRSContext2D;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-  });
-
   it("SVG with viewBox + width='100%' inside known-size parent fills parent", async () => {
     const { tree } = await buildLayoutTree(
       {
@@ -392,7 +364,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -417,7 +388,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
       } as unknown as ReactElement,
       400,
       400,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -443,7 +413,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -469,7 +438,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -496,7 +464,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const div = tree.children[0];
     const img = div.children[0];
@@ -507,13 +474,6 @@ describe("buildLayoutTree — SVG viewBox percentage sizing", () => {
 });
 
 describe("buildLayoutTree — SVG viewport-relative units", () => {
-  let ctx: SKRSContext2D;
-
-  beforeEach(() => {
-    const canvas = createCanvas(200, 200);
-    ctx = canvas.getContext("2d");
-  });
-
   it("resolves vw unit on SVG width attribute", async () => {
     const { tree } = await buildLayoutTree(
       {
@@ -532,7 +492,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       400,
       400,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];
@@ -560,7 +519,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const svg = tree.children[0];
     const children = svg.props.children as Array<{ type: string }>;
@@ -586,7 +544,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const svg = tree.children[0];
     const children = svg.props.children as Array<{ type: string }>;
@@ -621,7 +578,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const svg = tree.children[0];
     const children = svg.props.children as Array<{ type: string }>;
@@ -654,7 +610,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const svg = tree.children[0];
     const children = svg.props.children as Array<{ type: string }>;
@@ -688,7 +643,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       200,
       200,
-      ctx,
     );
     const svg = tree.children[0];
     const g = svg.props.children as {
@@ -719,7 +673,6 @@ describe("buildLayoutTree — SVG viewport-relative units", () => {
       } as unknown as ReactElement,
       800,
       600,
-      ctx,
     );
     const div = tree.children[0];
     const svg = div.children[0];

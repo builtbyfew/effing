@@ -48,7 +48,14 @@ export function detectLanguageCode(text: string): string | undefined {
 
 // What Unicode presents as an emoji (UTS #51), as Chrome draws it. A
 // character with an emoji form that is text by default, such as © or ☎, is
-// text unless U+FE0F follows it.
+// text unless U+FE0F follows it; outside the Basic Multilingual Plane, where
+// no text font covers one (🕵, 🏳), it's an emoji either way.
+
+/**
+ * A code point reserved for emoji that this runtime's Unicode doesn't know
+ * yet: every emoji added since Unicode 9 is presented as one by default.
+ */
+export const UNASSIGNED_PICTOGRAPHIC = String.raw`(?=\p{Cn})\p{Extended_Pictographic}`;
 
 /** A character with an emoji form, \p{Emoji} or \p{Extended_Pictographic}. */
 const EMOJI_CHAR = String.raw`[\p{Emoji}\p{Extended_Pictographic}]`;
@@ -73,14 +80,16 @@ const PRESENTED_EMOJI = [
   String.raw`(?!${KEYCAP_BASE})${EMOJI_CHAR}(?:\uFE0F|\p{Emoji_Modifier}|${TAGS})`,
   // Emoji presentation by default (🌍, ⭐).
   String.raw`\p{Emoji_Presentation}`,
-  // A code point reserved for emoji that this runtime's Unicode doesn't know
-  // yet: every emoji added since Unicode 9 is presented as one by default.
-  String.raw`(?=\p{Cn})\p{Extended_Pictographic}`,
+  // An emoji character outside the BMP, text by default or not (🕵, 🏳), or
+  // one reserved for emoji there (every unassigned Extended_Pictographic
+  // code point is). No text font covers them, so Chrome draws them as emoji
+  // on every platform.
+  String.raw`(?=[\u{1F000}-\u{1FFFF}])(?:\p{Emoji}|${UNASSIGNED_PICTOGRAPHIC})`,
 ].join("|");
 
 /**
  * An element of a ZWJ sequence: any emoji element, presented as one or not
- * (the 🏳 in a minimally qualified 🏳‍🌈), but no bare keycap base.
+ * (the ♂ in a minimally qualified 🏃‍♂), but no bare keycap base.
  */
 const ZWJ_ELEMENT = `(?:${PRESENTED_EMOJI}|(?!${KEYCAP_BASE})${EMOJI_CHAR})`;
 

@@ -33,12 +33,13 @@ describe("isEmoji", () => {
     ],
     ["a ZWJ sequence with a gender sign", "\u{1F3C3}\u200D\u2642\uFE0F"],
     ["the rainbow flag", "\u{1F3F3}\uFE0F\u200D\u{1F308}"],
-    ["a minimally qualified rainbow flag", "\u{1F3F3}\u200D\u{1F308}"],
-    [
-      "a minimally qualified eye in a speech bubble",
-      "\u{1F441}\u200D\u{1F5E8}",
-    ],
-    ["an emoji newer than this runtime's Unicode", "\u{1FAEF}"],
+    ["an unqualified rainbow flag", "\u{1F3F3}\u200D\u{1F308}"],
+    ["an unqualified eye in a speech bubble", "\u{1F441}\u200D\u{1F5E8}"],
+    ["a minimally qualified man running", "\u{1F3C3}\u200D\u2642"],
+    ["a text-default emoji outside the BMP: detective", "\u{1F575}"],
+    ["a text-default emoji outside the BMP: white flag", "\u{1F3F3}"],
+    ["a text-default emoji outside the BMP: A button", "\u{1F170}"],
+    ["a code point reserved for emoji", "\u{1FC00}"],
   ])("is true for %s", (_, grapheme) => {
     expect(graphemes(grapheme)).toEqual([grapheme]);
     expect(isEmoji(grapheme)).toBe(true);
@@ -57,6 +58,7 @@ describe("isEmoji", () => {
     ["a heart without U+FE0F", "\u2764"],
     ["an emoji with U+FE0E", "\u231A\uFE0E"],
     ["a circled ideograph", "\u3299"],
+    ["a pictograph with no emoji form", "\u{1F322}"],
     ["a lone ZWJ", "\u200D"],
     ["a lone U+FE0F", "\uFE0F"],
     ["a letter and a ZWJ", "a\u200D"],

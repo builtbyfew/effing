@@ -8,6 +8,6 @@
 
 > **EmojiStyle** = `"twemoji"` \| `"openmoji"` \| `"blobmoji"` \| `"noto"` \| `"fluent"` \| `"fluentFlat"`
 
-Defined in: [canvas/src/jsx/emoji.ts:8](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/emoji.ts#L8)
+Defined in: [canvas/src/jsx/emoji.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/emoji.ts#L10)
 
 Emoji style options for rendering

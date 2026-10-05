@@ -2,6 +2,8 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
+import { UNASSIGNED_PICTOGRAPHIC } from "./language.ts";
+
 /**
  * Emoji style options for rendering
  */
@@ -15,8 +17,10 @@ const KEYCAP = 0x20e3;
 const EMOJI_CHAR = /[\p{Emoji}\p{Extended_Pictographic}]/u;
 // Presented as an emoji without U+FE0F: by default, or (unassigned in this
 // runtime's Unicode) as every emoji added since Unicode 9 is.
-const EMOJI_PRESENTATION =
-  /\p{Emoji_Presentation}|(?=\p{Cn})\p{Extended_Pictographic}/u;
+const EMOJI_PRESENTATION = new RegExp(
+  String.raw`\p{Emoji_Presentation}|${UNASSIGNED_PICTOGRAPHIC}`,
+  "u",
+);
 const EMOJI_MODIFIER = /\p{Emoji_Modifier}/u;
 
 /**
@@ -100,7 +104,7 @@ const emojiUrls: Record<EmojiStyle, (codePoints: number[]) => string> = {
 
 /**
  * The URL of an emoji's SVG image in a style. The emoji may be fully,
- * minimally or not qualified (🏳️‍🌈 or 🏳‍🌈): each style names its images
+ * minimally or not qualified (🏳️‍🌈, or the unqualified 🏳‍🌈): each style names its images
  * after the fully-qualified form, in its own way.
  *
  * @param style - The emoji style

@@ -244,10 +244,13 @@ describe("layoutText", () => {
       expect(result.segments[0]!.text).toBe(`a${family}b`);
     });
 
-    it("leaves a flag a box of its own", () => {
-      const flag = "\u{1F1E7}\u{1F1EA}";
-      const result = layoutText(`a${flag}b`, { fontSize: 16 }, 500, true);
-      expect(result.emoji.map((e) => [e.grapheme, e.x])).toEqual([[flag, 8]]);
+    it.each([
+      ["a flag", "\u{1F1E7}\u{1F1EA}"],
+      ["a text-default emoji outside the BMP", "\u{1F575}"],
+      ["the white flag, without U+FE0F", "\u{1F3F3}"],
+    ])("leaves %s a box of its own", (_, emoji) => {
+      const result = layoutText(`a${emoji}b`, { fontSize: 16 }, 500, true);
+      expect(result.emoji.map((e) => [e.grapheme, e.x])).toEqual([[emoji, 8]]);
       expect(result.width).toBe(2 * 8 + 16);
     });
 

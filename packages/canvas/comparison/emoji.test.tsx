@@ -105,6 +105,44 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
     expect(red![0]! > 200 && red![1]! < 100 && red![2]! < 100).toBe(true);
   });
 
+  // Text by default, but outside the BMP, where no text font covers them:
+  // Chrome draws them as emoji even without U+FE0F.
+  it("draws text-default emoji outside the BMP as images (twemoji)", async ({
+    skip,
+  }) => {
+    if (!networkAvailable) skip();
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          padding: 40,
+          backgroundColor: "white",
+          width: WIDTH,
+          height: HEIGHT,
+          fontFamily: "Liberation Sans",
+          fontSize: 80,
+        }}
+      >
+        {"\u{1F575} \u{1F3F3}"}
+      </div>
+    );
+    const png = PNG.sync.read(
+      await renderWithCanvas(element, WIDTH, HEIGHT, fonts, "twemoji"),
+    );
+    // Pixels close to a colour of twemoji's images.
+    const count = ([r, g, b]: number[]) => {
+      let n = 0;
+      for (let i = 0; i < png.data.length; i += 4) {
+        const near = (c: number, j: number) => Math.abs(png.data[i + j]! - c);
+        if (near(r!, 0) + near(g!, 1) + near(b!, 2) < 24) n++;
+      }
+      return n;
+    };
+    // The detective's face, #FFDC5D, and the white flag's cloth, #E1E8ED.
+    expect(count([0xff, 0xdc, 0x5d])).toBeGreaterThan(40);
+    expect(count([0xe1, 0xe8, 0xed])).toBeGreaterThan(1000);
+  });
+
   // A ZWJ or ZWNJ shapes the letters around it, and symbols that Unicode
   // presents as text by default stay text: none of them takes an emoji's box.
   it("lays text joined by a ZWJ, and text symbols, out as text", async () => {

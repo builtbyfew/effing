@@ -69,7 +69,8 @@ describe("emojiUrl", () => {
 
   it("qualifies an emoji before naming it", () => {
     // U+FE0F after each element that's text by default, unless a skin tone
-    // follows it.
+    // follows it. The rainbow flag is unqualified; the man running, minimally
+    // qualified; the bare detective, unqualified.
     expect(file("twemoji", "\u{1F3F3}\u200D\u{1F308}")).toBe(
       "1f3f3-fe0f-200d-1f308",
     );
@@ -77,6 +78,9 @@ describe("emojiUrl", () => {
       "1f3c3-200d-2642-fe0f",
     );
     expect(file("twemoji", "\u261D\u{1F3FD}")).toBe("261d-1f3fd");
+    expect(file("twemoji", "\u{1F575}")).toBe("1f575");
+    expect(file("openmoji", "\u{1F575}")).toBe("1F575");
+    expect(file("fluent", "\u{1F575}")).toBe("\u{1F575}\uFE0F");
     expect(file("openmoji", "1\u20E3")).toBe("0031-FE0F-20E3");
     expect(file("fluent", "\u{1F3F3}\u200D\u{1F308}")).toBe(RAINBOW);
   });

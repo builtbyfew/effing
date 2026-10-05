@@ -45,3 +45,33 @@ export async function loadFonts(): Promise<FontData[]> {
     ),
   );
 }
+
+/**
+ * Fonts for scripts written without spaces between words, which Skia breaks
+ * from ICU's dictionaries: Noto Sans subset to Thai, Lao and Myanmar (SIL
+ * Open Font License, see `fonts/OFL-Noto.txt`). Bundled so that tests of them
+ * don't depend on the system's fallback fonts. List them after the text's
+ * own font, in `SCRIPT_FONT_FAMILIES`.
+ */
+const SCRIPT_FONTS = [
+  ["Noto Sans Thai", "NotoSansThai-Regular.woff"],
+  ["Noto Sans Lao", "NotoSansLao-Regular.woff"],
+  ["Noto Sans Myanmar", "NotoSansMyanmar-Regular.woff"],
+] as const;
+
+export const SCRIPT_FONT_FAMILIES = SCRIPT_FONTS.map(([name]) => name).join(
+  ", ",
+);
+
+export async function loadScriptFonts(): Promise<FontData[]> {
+  return Promise.all(
+    SCRIPT_FONTS.map(([name, file]) =>
+      readFile(join(FONT_DIR, file)).then((data) => ({
+        name,
+        data,
+        weight: 400 as const,
+        style: "normal" as const,
+      })),
+    ),
+  );
+}

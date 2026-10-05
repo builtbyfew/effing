@@ -184,11 +184,22 @@ describe("layoutText", () => {
     },
   );
 
-  it("falls back for empty text, which keeps one empty line box", () => {
-    const result = layoutText("", { fontSize: 16, lineHeight: 20 }, 500);
-    expect(result.paragraph).toBeUndefined();
-    expect(result.segments).toHaveLength(1);
-    expect(result.height).toBe(20);
+  it("keeps one empty line box for empty text, like the TypeScript layout", () => {
+    for (const lineHeight of [20, undefined]) {
+      const style = { fontSize: 16, lineHeight };
+      const result = layoutText("", style, 500);
+      expect(result.paragraph).toBeDefined();
+      expect(result.segments).toHaveLength(1);
+      const fallback = layoutTextFallback("", style, 500);
+      expect(result.segments[0]).toMatchObject({
+        text: "",
+        x: 0,
+        width: 0,
+        y: fallback.segments[0]!.y,
+        height: fallback.segments[0]!.height,
+      });
+      expect(result.height).toBe(fallback.height);
+    }
   });
 });
 

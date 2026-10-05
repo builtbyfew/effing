@@ -17,8 +17,15 @@ import {
 } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
-import { createTextMeasureFunc } from "./text/index.ts";
-import { createYogaNode, freeYogaNode, FlexDirection } from "./yoga.ts";
+import { TextMeasure } from "./text/index.ts";
+import type { TextLayoutResult } from "./text/index.ts";
+import {
+  createTextYogaNode,
+  createYogaNode,
+  freeYogaNode,
+  FlexDirection,
+  MeasureMode,
+} from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
 /**
@@ -29,6 +36,8 @@ export type LayoutNode = {
   style: ComputedStyle;
   children: LayoutNode[];
   textContent?: string;
+  /** The text laid out at the node's width, for drawing. */
+  textLayout?: TextLayoutResult;
   props: Record<string, unknown>;
   x: number;
   y: number;
@@ -61,7 +70,10 @@ export async function buildLayoutTree(
     imageCache: new Map(),
     debug: false,
   };
-  const elementYogaNode = createYogaNode();
+  const rootElement = renderComponents(element);
+  const elementYogaNode = isText(rootElement)
+    ? createTextYogaNode()
+    : createYogaNode();
 
   // Set font families as default on root style so all nodes inherit them
   const rootStyle = fontFamilies?.length
@@ -70,7 +82,7 @@ export async function buildLayoutTree(
 
   // Build the tree
   const elementNode = await buildNode(
-    element,
+    rootElement,
     rootStyle,
     elementYogaNode,
     containerWidth,
@@ -90,6 +102,11 @@ export async function buildLayoutTree(
   rootYogaNode.insertChild(elementYogaNode, 0);
 
   rootYogaNode.calculateLayout(containerWidth, containerHeight);
+  settleText(
+    elementNode,
+    () => rootYogaNode.calculateLayout(containerWidth, containerHeight),
+    renderContext.debug,
+  );
 
   const elementLayout = extractLayout(elementNode, elementYogaNode);
   freeYogaNode(rootYogaNode);
@@ -107,6 +124,11 @@ export async function buildLayoutTree(
   return { tree, imageCache: renderContext.imageCache };
 }
 
+/**
+ * Build the node for `element` on `yogaNode`. Function components must be
+ * rendered first (`renderComponents`), so the caller can make text a text
+ * node (`createTextYogaNode`).
+ */
 async function buildNode(
   element: ReactNode,
   parentStyle: ComputedStyle,
@@ -139,40 +161,23 @@ async function buildNode(
     const style = resolveStyle(undefined, parentStyle);
 
     // Set up text measurement
-    const measureFunc = createTextMeasureFunc(text, style, ctx, emojiEnabled);
-    yogaNode.setMeasureFunc(measureFunc);
+    const textMeasure = new TextMeasure(text, style, ctx, emojiEnabled);
+    setTextMeasure(yogaNode, textMeasure);
 
     return {
       type: "text",
       style,
       children: [],
       textContent: text,
+      textMeasure,
       props: {},
       yogaNode,
     };
   }
 
-  // Handle React elements
+  // Handle React elements (host elements: components are rendered already)
   const el = element as ReactElement<Record<string, unknown>>;
   const type = el.type;
-
-  // Expand function/class components
-  if (typeof type === "function") {
-    const rendered = (type as (props: Record<string, unknown>) => ReactNode)(
-      el.props ?? {},
-    );
-    return await buildNode(
-      rendered,
-      parentStyle,
-      yogaNode,
-      viewportWidth,
-      viewportHeight,
-      ctx,
-      emojiEnabled,
-      fontFamilies,
-      context,
-    );
-  }
 
   const props = (el.props ?? {}) as Record<string, unknown>;
   const rawStyle = (props.style ?? {}) as Record<string, unknown>;
@@ -307,14 +312,14 @@ async function buildNode(
   // when a parent uses alignItems: "baseline".
   if (textContent !== undefined && !hasElementChildren(props.children)) {
     const childStyle = resolveStyle(undefined, style);
-    const childYogaNode = createYogaNode();
-    const measureFunc = createTextMeasureFunc(
+    const childYogaNode = createTextYogaNode();
+    const textMeasure = new TextMeasure(
       textContent,
       childStyle,
       ctx,
       emojiEnabled,
     );
-    childYogaNode.setMeasureFunc(measureFunc);
+    setTextMeasure(childYogaNode, textMeasure);
     const jc = style.justifyContent;
     if (!jc || jc === "flex-start") {
       childYogaNode.setFlexGrow(1);
@@ -338,6 +343,7 @@ async function buildNode(
           style: childStyle,
           children: [],
           textContent,
+          textMeasure,
           props: {},
           yogaNode: childYogaNode,
         },
@@ -376,11 +382,15 @@ async function buildNode(
 
       prevWasBr = isBrElement(child);
 
-      const childYogaNode = createYogaNode();
+      // Rendered first, so that text gets a text node.
+      const rendered = renderComponents(processedChild);
+      const childYogaNode = isText(rendered)
+        ? createTextYogaNode()
+        : createYogaNode();
       yogaNode.insertChild(childYogaNode, children.length);
       children.push(
         await buildNode(
-          processedChild,
+          rendered,
           style,
           childYogaNode,
           viewportWidth,
@@ -408,12 +418,111 @@ type IntermediateNode = {
   style: ComputedStyle;
   children: IntermediateNode[];
   textContent?: string;
+  /** Set on text nodes, which Yoga measures. */
+  textMeasure?: TextMeasure;
   props: Record<string, unknown>;
   yogaNode: YogaNode;
 };
 
+/**
+ * How many times the layout is computed again for text that Yoga sized at
+ * another width than it's drawn at (see `TextMeasure`). One normally settles
+ * it; the bound is for layouts where a node's width depends on its height
+ * (wrapping columns, aspect ratios), which could otherwise keep changing.
+ */
+const MAX_TEXT_RELAYOUTS = 2;
+
+/**
+ * Lay every text node out at its final width, and compute the layout again
+ * while Yoga sized one from a different height.
+ */
+function settleText(
+  root: IntermediateNode,
+  relayout: () => void,
+  debug: boolean,
+): void {
+  const textNodes: IntermediateNode[] = [];
+  const collect = (node: IntermediateNode) => {
+    // Nothing under `display: none` is laid out or drawn.
+    if (node.style.display === "none") return;
+    if (node.textMeasure) textNodes.push(node);
+    node.children.forEach(collect);
+  };
+  collect(root);
+  // Text nodes have no padding or border: their width is the content's.
+  const settle = (node: IntermediateNode, pin: boolean) =>
+    node.textMeasure!.settle(node.yogaNode.getComputedWidth(), pin);
+
+  for (let pass = 0; pass < MAX_TEXT_RELAYOUTS; pass++) {
+    let unsettled = false;
+    for (const node of textNodes) {
+      if (settle(node, true)) {
+        node.yogaNode.markDirty();
+        unsettled = true;
+      }
+    }
+    if (!unsettled) return;
+    relayout();
+  }
+  if (!textNodes.some((node) => settle(node, false))) return;
+
+  // Each pin moved the layout on to widths the drawn heights don't fit. Go
+  // back to Yoga's own layout, as without the pins, and draw the text at the
+  // widths it gives.
+  for (const node of textNodes) {
+    if (node.textMeasure!.unpin()) node.yogaNode.markDirty();
+  }
+  relayout();
+  const unsettled = textNodes.filter((node) => settle(node, false)).length;
+  if (debug && unsettled > 0) {
+    console.warn(
+      `[@effing/canvas] ${unsettled} text node(s) sized for other lines ` +
+        `than drawn: the layout didn't settle in ${MAX_TEXT_RELAYOUTS} relayouts`,
+    );
+  }
+}
+
+/** Measure `yogaNode` with `textMeasure`. */
+function setTextMeasure(yogaNode: YogaNode, textMeasure: TextMeasure): void {
+  yogaNode.setMeasureFunc((width, widthMode) =>
+    textMeasure.measure(
+      widthMode === MeasureMode.Undefined || Number.isNaN(width)
+        ? Infinity
+        : width,
+    ),
+  );
+}
+
+const isText = (node: ReactNode): node is string | number =>
+  typeof node === "string" || typeof node === "number";
+
+/** Render function components until something else is left. */
+function renderComponents(node: ReactNode): ReactNode {
+  while (
+    node !== null &&
+    typeof node === "object" &&
+    "type" in node &&
+    typeof node.type === "function"
+  ) {
+    const el = node as ReactElement<Record<string, unknown>>;
+    node = (el.type as (props: Record<string, unknown>) => ReactNode)(
+      el.props ?? {},
+    );
+  }
+  return node;
+}
+
+/** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
+function floorToPixel(value: number): number {
+  const rounded = Math.round(value);
+  return Math.abs(value - rounded) < 1e-4 ? rounded : Math.floor(value);
+}
+
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();
+  // Yoga leaves text nodes unrounded (see `createTextYogaNode`) for their
+  // width; they're placed on whole pixels, floored as Yoga rounds text.
+  const place = node.textMeasure ? floorToPixel : (v: number) => v;
 
   return {
     type: node.type,
@@ -423,9 +532,10 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
       return extractLayout(child, childYoga);
     }),
     textContent: node.textContent,
+    textLayout: node.textMeasure?.layout,
     props: node.props,
-    x: layout.left,
-    y: layout.top,
+    x: place(layout.left),
+    y: place(layout.top),
     width: layout.width,
     height: layout.height,
   };

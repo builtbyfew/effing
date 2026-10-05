@@ -79,6 +79,29 @@ describe("collapseWhiteSpace", () => {
   });
 });
 
+describe("collapseWhiteSpace: separators and control characters", () => {
+  const ALL = ["normal", "nowrap", "pre-line", "pre", "pre-wrap"] as const;
+
+  it.each(ALL)(
+    "sets a separator as a no-break space and a break under %s",
+    (ws) => {
+      expect(collapseWhiteSpace("a\u2028b", ws)).toBe("a\u00a0\u200bb");
+      expect(collapseWhiteSpace("a\u2029b", ws)).toBe("a\u00a0\u200bb");
+      // Neither collapsed with the spaces around it nor removed at the end.
+      expect(collapseWhiteSpace("a \u2028", ws)).toBe("a \u00a0\u200b");
+    },
+  );
+
+  it.each(ALL)("removes form feeds and vertical tabs under %s", (ws) => {
+    expect(collapseWhiteSpace("a\fb\vc", ws)).toBe("abc");
+  });
+
+  it("collapses the spaces around a removed form feed", () => {
+    expect(collapseWhiteSpace("a \f b", "normal")).toBe("a b");
+    expect(collapseWhiteSpace("a \f b", "pre")).toBe("a  b");
+  });
+});
+
 describe("isWhiteSpaceOnly", () => {
   it.each([
     ["", true],
@@ -86,6 +109,8 @@ describe("isWhiteSpaceOnly", () => {
     ["\n  \t\r\n", true],
     ["\u00a0", false],
     [" a ", false],
+    ["\f", true],
+    ["\u2028", false],
   ])("%j: %s", (text, expected) => {
     expect(isWhiteSpaceOnly(text)).toBe(expected);
   });

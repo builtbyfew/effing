@@ -1,5 +1,5 @@
 ---
-"@effing/canvas": patch
+"@effing/canvas": minor
 ---
 
 Collapse white space as CSS does
@@ -15,16 +15,28 @@ now has its white space processed as CSS Text 3 §4.1 has it, before
   of spaces collapses to one.
 - Spaces at the start and end of the text are removed.
 
-Under every `whiteSpace` value, a newline that ends the text no longer starts
-an empty line, as in Chrome.
+Under every `whiteSpace` value, as in Chrome:
+
+- A newline that ends the text no longer starts an empty line.
+- A line or paragraph separator (U+2028, U+2029) is a space with a break
+  opportunity after it, no longer a line break, and a form feed or vertical
+  tab no longer breaks the line.
 
 `findLargestUsableFontSize` with `whiteSpace: "nowrap"` now fits the text on
-one line, newlines and all, as it's drawn; use `"pre"` to fit each
-newline-separated paragraph on a line of its own.
+one line, newlines and all, as it's drawn, so text with newlines can get a
+smaller size than before; use `"pre"` to fit each newline-separated paragraph
+on a line of its own.
 
-In a container with elements, adjacent strings (as `Hello {name}` gives) are
-now laid out as one run of text, as the browser does, instead of each on its
-own. A run of nothing but white space between elements, such as `{" "}`, is
-no longer rendered, as CSS has it for flex containers, so it no longer adds a
-line to a column or a gap to a row. The leading white space after a `<br />`
-is removed by the general rule.
+Children are now laid out as the DOM has them: fragments, arrays and function
+components are unwrapped, so adjacent strings (as `Hello {name}` gives, or
+text across a fragment or component) are one run of text, and the content of
+a component that returns an array is no longer dropped. Each run of text
+between elements is a flex item of its own, as browsers lay out text in a flex
+container:
+
+- An empty or white-space-only run between elements no longer holds a line
+  box, so `{" "}` between two elements no longer adds a line to a column or a
+  `gap` to a row.
+- An element whose only text is empty or white space has no line box either:
+  it's 0px tall unless its style gives it a size.
+- The leading white space after a `<br />` is removed by the general rule.

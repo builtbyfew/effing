@@ -85,8 +85,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
       x: [expect.closeTo(201.06, 1)],
     });
     // A no-break space doesn't collapse.
-    expect(lines("a   b", whiteSpace)).toEqual({
-      text: ["a   b"],
+    expect(lines("a\u00a0\u00a0 b", whiteSpace)).toEqual({
+      text: ["a\u00a0\u00a0 b"],
       x: [expect.closeTo(261.08, 1)],
     });
   });
@@ -255,7 +255,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
 
     it("renders a run of no-break spaces", async () => {
       const column = await layOut(
-        [<span key="a">a</span>, " ", <span key="b">b</span>],
+        [<span key="a">a</span>, "\u00a0", <span key="b">b</span>],
         { flexDirection: "column" },
       );
       expect(column.children.map((c) => c.y)).toEqual([0, 23, 46]);
@@ -304,5 +304,161 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
         ["third line", 0, 46],
       ]);
     });
+
+    // The DOM has no fragments or components: their content is the parent's.
+    it("merges text across fragments, arrays and components", async () => {
+      const World = () => "World";
+      const Content = () => [
+        "Hello ",
+        <React.Fragment key="w">
+          <World />
+        </React.Fragment>,
+      ];
+      for (const content of [
+        ["Hello ", <React.Fragment key="w">World</React.Fragment>],
+        ["Hello ", ["World"]],
+        <Content key="c" />,
+      ]) {
+        const row = await layOut(
+          [<span key="a">a</span>, content, <span key="b">b</span>],
+          {},
+        );
+        expect(describeChildren(row)).toEqual([
+          expect.objectContaining({ type: "span", x: 0 }),
+          expect.objectContaining({ type: "text", text: ["Hello World"] }),
+          expect.objectContaining({ type: "span" }),
+        ]);
+        expect(row.children[2]!.x).toBeCloseTo(114.14, 0);
+      }
+    });
+
+    it("keeps the elements a component returns in an array", async () => {
+      const Pair = () => [<span key="a">a</span>, <span key="b">b</span>];
+      const column = await layOut(<Pair />, { flexDirection: "column" });
+      expect(describeChildren(column)).toEqual([
+        expect.objectContaining({ type: "span", y: 0 }),
+        expect.objectContaining({ type: "span", y: 23 }),
+      ]);
+    });
+
+    it("doesn't render a fragment of nothing but white space", async () => {
+      const column = await layOut(
+        [
+          <span key="a">a</span>,
+          <React.Fragment key="f"> </React.Fragment>,
+          <span key="b">b</span>,
+        ],
+        { flexDirection: "column" },
+      );
+      expect(column.children.map((c) => [c.type, c.y])).toEqual([
+        ["span", 0],
+        ["span", 23],
+      ]);
+    });
+  });
+
+  // An element is a flex container, and text of nothing but white space in
+  // one no flex item: Chrome gives the element no line box, whatever its
+  // `white-space` or `line-height`.
+  describe("an element of nothing but white space", () => {
+    async function box(
+      text: string,
+      style: React.CSSProperties = {},
+    ): Promise<LayoutNode> {
+      const { tree } = await buildLayoutTree(
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            fontFamily: "Liberation Sans",
+            fontSize: 20,
+          }}
+        >
+          <div style={style}>{text}</div>
+        </div>,
+        400,
+        400,
+      );
+      return tree.children[0]!.children[0]!;
+    }
+
+    it.each([
+      ["  ", {}],
+      ["", {}],
+      ["\n", { whiteSpace: "pre-line" }],
+      ["\n", { whiteSpace: "pre" }],
+      ["  ", { whiteSpace: "pre" }],
+      [" ", { whiteSpace: "pre-wrap" }],
+      ["  ", { lineHeight: "30px" }],
+      ["\f", {}],
+    ] as const)("has no line box for %j in %j", async (text, style) => {
+      const node = await box(text, style);
+      expect(node.children).toHaveLength(0);
+      expect([node.width, node.height]).toEqual([0, 0]);
+    });
+
+    it("still takes the size its style gives it", async () => {
+      expect((await box("  ", { minHeight: 10 })).height).toBe(10);
+      expect((await box("  ", { height: 17 })).height).toBe(17);
+      const padded = await box("  ", { padding: 5 });
+      expect([padded.width, padded.height]).toEqual([10, 10]);
+    });
+
+    it.each(["\u00a0", "\u2028"])(
+      "has a line box for %j, as Chrome does",
+      async (text) => {
+        const node = await box(text);
+        expect(node.height).toBe(23);
+        expect(node.width).toBeCloseTo(5.5625, 0);
+      },
+    );
+  });
+
+  // Chrome sets a line or paragraph separator as a space that neither
+  // collapses nor hangs, and breaks the line at neither, nor at a form feed
+  // or vertical tab, under any `white-space`.
+  describe("separators and control characters", () => {
+    const ALL = ["normal", "nowrap", "pre-line", "pre", "pre-wrap"] as const;
+
+    it.each(ALL)("sets a separator as a space under %s", (whiteSpace) => {
+      for (const separator of ["\u2028", "\u2029"]) {
+        const at = (text: string, width = 300) =>
+          lines(text.replace("|", separator), whiteSpace, width).x;
+        expect(at("a|b")).toEqual([expect.closeTo(272.19, 1)]);
+        expect(at("a | b")).toEqual([expect.closeTo(261.08, 1)]);
+        expect(at("a|")).toEqual([expect.closeTo(283.31, 1)]);
+        const wraps = whiteSpace !== "nowrap" && whiteSpace !== "pre";
+        expect(at("aaaa|bbbb", 60)).toEqual(
+          wraps
+            ? [expect.closeTo(9.94, 1), expect.closeTo(15.5, 1)]
+            : [expect.closeTo(0, 1)],
+        );
+      }
+    });
+
+    it.each(ALL)(
+      "doesn't break at a form feed or vertical tab under %s",
+      (whiteSpace) => {
+        for (const control of ["\f", "\v"]) {
+          expect(lines(`aaaa${control}bbbb`, whiteSpace, 60).text).toEqual([
+            "aaaabbbb",
+          ]);
+        }
+      },
+    );
+
+    // Chrome draws a form feed as nothing under pre and pre-wrap.
+    it.each(["pre", "pre-wrap"] as const)(
+      "draws a form feed as nothing under %s",
+      (whiteSpace) => {
+        expect(lines("a\fb", whiteSpace).x).toEqual([
+          expect.closeTo(277.75, 1),
+        ]);
+        expect(lines("a \f b", whiteSpace).x).toEqual([
+          expect.closeTo(266.63, 1),
+        ]);
+      },
+    );
   });
 });

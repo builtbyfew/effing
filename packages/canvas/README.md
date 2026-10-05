@@ -87,7 +87,7 @@ Emoji characters are automatically rendered as images from CDNs. Supported style
 | `fluent`     | Microsoft Fluent Emoji (color) |
 | `fluentFlat` | Microsoft Fluent Emoji (flat)  |
 
-Each emoji takes an inline box of 1em on its line, with its bottom 0.1em below the baseline, about where browsers draw an emoji glyph. Pass `emoji: "none"` to disable emoji image rendering; emoji are then drawn as text, so they need a font that covers them among the fonts given to `renderReactElement`.
+Each emoji takes an inline box of 1em on its line, with its bottom 0.1em below the baseline, about where browsers draw an emoji glyph. Pass `emoji: "none"` to disable emoji image rendering. An emoji drawn without an image — with `emoji: "none"`, one the style has no image for (such as `✓`), or one whose image failed to load — is drawn as text, so it needs a font that covers it among the text's font families (every font given to `renderReactElement` is one).
 
 ## Fit Text
 

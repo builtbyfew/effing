@@ -374,6 +374,18 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     },
   );
 
+  it("gives text of no font size line boxes of no height, as Chrome does", () => {
+    for (const fontSize of [0, -3]) {
+      const result = layoutText("Hello world", style({ fontSize }), 100);
+      expect(result.height).toBe(0);
+      expect(result.width).toBeLessThan(0.01);
+    }
+    // An explicit line height still gives the line its box.
+    expect(
+      layoutText("Hello", style({ fontSize: 0, lineHeight: 30 }), 100).height,
+    ).toBe(30);
+  });
+
   it("collapses the line boxes for a line height of 0, as Chrome does", () => {
     const result = layoutText(
       "Hello world again",
@@ -415,6 +427,9 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       expect(emoji!.y + 48).toBeCloseTo(baseline + 4.8, 4);
     });
 
+    // The line fits "🎉! ok" either way, so this doesn't cover where an emoji
+    // meets punctuation: the paragraph allows a break between them ("🎉|!"),
+    // where Chrome doesn't.
     it("breaks around an emoji as Chrome does", () => {
       const result = layoutText(
         "Done 🎉! ok",

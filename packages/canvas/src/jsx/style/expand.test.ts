@@ -321,3 +321,19 @@ describe("expandStyle – vendor-prefixed clipPath / backdropFilter", () => {
     expect(style.backdropFilter).toBe("blur(1px)");
   });
 });
+
+describe("expandStyle – wordWrap", () => {
+  it("maps the legacy wordWrap to overflowWrap", () => {
+    const style = expandStyle({ wordWrap: "break-word" });
+    expect(style.overflowWrap).toBe("break-word");
+    expect("wordWrap" in style).toBe(false);
+  });
+
+  it("does not override overflowWrap", () => {
+    const style = expandStyle({
+      overflowWrap: "normal",
+      wordWrap: "break-word",
+    });
+    expect(style.overflowWrap).toBe("normal");
+  });
+});

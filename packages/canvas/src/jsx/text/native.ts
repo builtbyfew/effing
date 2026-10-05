@@ -63,7 +63,8 @@ function toWordBreak(style: ComputedStyle): ParagraphStyle["wordBreak"] {
 /**
  * CSS `overflow-wrap`, as the paragraph's `overflowWrap`. The deprecated
  * `word-break: break-word` is `overflow-wrap: anywhere`, which breaks an
- * overlong word as `break-word` does (it only adds to min-content).
+ * overlong word as `break-word` does (it only adds to min-content). The
+ * legacy `word-wrap` arrives as `overflowWrap` (see `expandStyle`).
  */
 function toOverflowWrap(style: ComputedStyle): ParagraphStyle["overflowWrap"] {
   const { overflowWrap, wordBreak } = style;
@@ -307,9 +308,12 @@ export function layoutTextNative(
   });
 
   let height = lines.length * layout.lineHeight;
-  // Round auto line-height boxes up so Yoga's integer rounding never clips a
-  // descender.
-  if (lineHeight === undefined) height = Math.ceil(height);
+  if (lineHeight === undefined) {
+    // Round auto line-height boxes up so Yoga's integer rounding never clips
+    // a descender. Text of no font size, laid out at MIN_FONT_SIZE, has line
+    // boxes of no height, as in CSS.
+    height = styledFontSize > 0 ? Math.ceil(height) : 0;
+  }
 
   let paragraphOffsetY = 0;
   const textBoxTrim = style.textBoxTrim;

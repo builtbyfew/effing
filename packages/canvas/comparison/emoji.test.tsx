@@ -105,11 +105,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
     expect(red![0]! > 200 && red![1]! < 100 && red![2]! < 100).toBe(true);
   });
 
-  // Text by default, but outside the BMP, where no text font covers them:
-  // Chrome draws them as emoji even without U+FE0F.
-  it("draws text-default emoji outside the BMP as images (twemoji)", async ({
-    skip,
-  }) => {
+  // Text by default, but drawn as images even without U+FE0F.
+  it("draws text-default emoji as images (twemoji)", async ({ skip }) => {
     if (!networkAvailable) skip();
     const element = (
       <div
@@ -123,7 +120,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
           fontSize: 80,
         }}
       >
-        {"\u{1F575} \u{1F3F3}"}
+        {"\u{1F575} \u{1F3F3} \u2764"}
       </div>
     );
     const png = PNG.sync.read(
@@ -138,13 +135,15 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
       }
       return n;
     };
-    // The detective's face, #FFDC5D, and the white flag's cloth, #E1E8ED.
+    // The detective's face, #FFDC5D, the white flag's cloth, #E1E8ED, and
+    // the red heart, #DD2E44.
     expect(count([0xff, 0xdc, 0x5d])).toBeGreaterThan(40);
     expect(count([0xe1, 0xe8, 0xed])).toBeGreaterThan(1000);
+    expect(count([0xdd, 0x2e, 0x44])).toBeGreaterThan(1000);
   });
 
-  // A ZWJ or ZWNJ shapes the letters around it, and symbols that Unicode
-  // presents as text by default stay text: none of them takes an emoji's box.
+  // A ZWJ or ZWNJ shapes the letters around it, and ©, ®, ™, digits, # and
+  // symbols with no emoji form stay text: none of them takes an emoji's box.
   it("lays text joined by a ZWJ, and text symbols, out as text", async () => {
     const element = (
       <div
@@ -163,7 +162,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
         <div>{"a\u200Db a\u200Cb"}</div>
         <div>{"\u0644\u200D \u0628\u200D\u0628"}</div>
         <div>{"\u0915\u094D\u200D\u0937 \u0915\u094D\u200C\u0937"}</div>
-        <div>{"\u00A9 \u2713 \u25CF \u260E 1"}</div>
+        <div>{"\u00A9 \u00AE \u2122 \u2713 \u25CF 1 #"}</div>
       </div>
     );
     const [withEmoji, withoutEmoji] = await Promise.all([

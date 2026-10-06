@@ -16,6 +16,7 @@ type MockPlaceholder = {
   width: number;
   height: number;
   baselineOffset?: number | null;
+  lineBreak?: "box" | "emoji" | null;
 };
 
 /**

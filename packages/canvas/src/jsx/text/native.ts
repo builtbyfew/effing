@@ -168,6 +168,10 @@ function splitEmoji(
       height: fontSize,
       verticalAlign: "baseline",
       baselineOffset: fontSize * (1 - EMOJI_DROP),
+      // Lines break around it as around an emoji, not an inline-block: it
+      // stays with the punctuation next to it, so "Hi 🎉! ok" breaks as
+      // "Hi | 🎉! | ok" and "(🎉)" stays whole, as in browsers.
+      lineBreak: "emoji",
     });
     emoji.push(segment);
     marks.push([paragraphIndex, textIndex]);

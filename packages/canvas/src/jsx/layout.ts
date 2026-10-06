@@ -17,6 +17,7 @@ import {
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { TextMeasure } from "./text/index.ts";
+import { isWhiteSpaceOnly } from "./text/white-space.ts";
 import type { TextLayoutResult } from "./text/index.ts";
 import {
   createTextYogaNode,
@@ -43,8 +44,6 @@ export type LayoutNode = {
   width: number;
   height: number;
 };
-
-type ElementChild = string | number | ReactElement | null | undefined | boolean;
 
 /**
  * Build a layout tree from a React element tree.
@@ -298,14 +297,18 @@ async function buildNode(
     };
   }
 
-  // Collect text content from direct string children
-  const textContent = extractTextContent(props.children);
+  // The children as the DOM has them: components rendered, fragments and
+  // arrays unwrapped, and adjacent text one run.
+  const items = flattenChildren(props.children as ReactNode);
 
   // If this node has only text content, create a child text node.
   // Using a child node (instead of setMeasureFunc on this node directly)
   // ensures Yoga's baseline calculation accounts for this node's padding/border
-  // when a parent uses alignItems: "baseline".
-  if (textContent !== undefined && !hasElementChildren(props.children)) {
+  // when a parent uses alignItems: "baseline". Text of nothing but white space
+  // is no flex item at all (see below), so the node has no line box.
+  const onlyText = items.length === 1 && isText(items[0]) ? items[0] : null;
+  if (onlyText !== null && !isWhiteSpaceOnly(String(onlyText))) {
+    const textContent = String(onlyText);
     const childStyle = resolveStyle(undefined, style);
     const childYogaNode = createTextYogaNode();
     const textMeasure = new TextMeasure(textContent, childStyle, emojiEnabled);
@@ -343,54 +346,30 @@ async function buildNode(
     };
   }
 
-  // Process children
+  // Process children. Each run of text between elements is a flex item of
+  // its own (CSS Flexbox §4), its white space collapsed as its box's text
+  // (see `layoutText`): the spaces at its start and end, after a <br> say,
+  // are removed. A run of nothing but white space isn't rendered at all,
+  // whatever its `white-space`.
   const children: IntermediateNode[] = [];
-  const rawChildren = props.children;
-
-  if (rawChildren !== undefined && rawChildren !== null) {
-    const childArray = Array.isArray(rawChildren)
-      ? rawChildren.flat(Infinity)
-      : [rawChildren];
-
-    // CSS Text 3 §4.1.1: collapse leading whitespace after a forced break
-    const ws = style.whiteSpace;
-    const collapsesWhitespace =
-      ws === undefined ||
-      ws === "normal" ||
-      ws === "nowrap" ||
-      ws === "pre-line";
-    let prevWasBr = false;
-
-    for (const child of childArray as ElementChild[]) {
-      if (child === null || child === undefined || typeof child === "boolean")
-        continue;
-
-      let processedChild: ElementChild = child;
-      if (prevWasBr && collapsesWhitespace && typeof child === "string") {
-        processedChild = child.trimStart();
-      }
-
-      prevWasBr = isBrElement(child);
-
-      // Rendered first, so that text gets a text node.
-      const rendered = renderComponents(processedChild);
-      const childYogaNode = isText(rendered)
-        ? createTextYogaNode()
-        : createYogaNode();
-      yogaNode.insertChild(childYogaNode, children.length);
-      children.push(
-        await buildNode(
-          rendered,
-          style,
-          childYogaNode,
-          viewportWidth,
-          viewportHeight,
-          emojiEnabled,
-          fontFamilies,
-          context,
-        ),
-      );
-    }
+  for (const rendered of items) {
+    if (typeof rendered === "string" && isWhiteSpaceOnly(rendered)) continue;
+    const childYogaNode = isText(rendered)
+      ? createTextYogaNode()
+      : createYogaNode();
+    yogaNode.insertChild(childYogaNode, children.length);
+    children.push(
+      await buildNode(
+        rendered,
+        style,
+        childYogaNode,
+        viewportWidth,
+        viewportHeight,
+        emojiEnabled,
+        fontFamilies,
+        context,
+      ),
+    );
   }
 
   return {
@@ -501,6 +480,40 @@ function renderComponents(node: ReactNode): ReactNode {
   return node;
 }
 
+/**
+ * The children as the DOM has them: function components rendered, fragments
+ * and arrays unwrapped, null, undefined and booleans left out, and adjacent
+ * text, as `Hello {name}` or a fragment of text gives, merged into one run.
+ */
+function flattenChildren(
+  node: ReactNode,
+  items: ReactNode[] = [],
+): ReactNode[] {
+  const rendered = renderComponents(node);
+  if (
+    rendered === null ||
+    rendered === undefined ||
+    typeof rendered === "boolean"
+  ) {
+    return items;
+  }
+  if (Array.isArray(rendered)) {
+    for (const child of rendered as ReactNode[]) flattenChildren(child, items);
+    return items;
+  }
+  const el = rendered as ReactElement<{ children?: ReactNode }>;
+  if (typeof rendered === "object" && (el.type as unknown) === REACT_FRAGMENT) {
+    return flattenChildren(el.props?.children, items);
+  }
+  const last = items[items.length - 1];
+  if (isText(rendered) && items.length > 0 && isText(last)) {
+    items[items.length - 1] = `${last}${rendered}`;
+  } else {
+    items.push(rendered);
+  }
+  return items;
+}
+
 /** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
 function floorToPixel(value: number): number {
   const rounded = Math.round(value);
@@ -528,41 +541,6 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
     width: layout.width,
     height: layout.height,
   };
-}
-
-/**
- * Extract plain text content from children if they are all strings/numbers.
- */
-function isBrElement(child: unknown): boolean {
-  if (child === null || child === undefined || typeof child !== "object")
-    return false;
-  return (child as ReactElement).type === "br";
-}
-
-function extractTextContent(children: unknown): string | undefined {
-  if (children === undefined || children === null) return undefined;
-  if (typeof children === "string") return children;
-  if (typeof children === "number") return String(children);
-
-  if (Array.isArray(children)) {
-    const parts: string[] = [];
-    for (const child of children) {
-      if (typeof child === "string") {
-        parts.push(child);
-      } else if (typeof child === "number") {
-        parts.push(String(child));
-      } else if (
-        child !== null &&
-        child !== undefined &&
-        typeof child !== "boolean"
-      ) {
-        return undefined; // Mixed content — not pure text
-      }
-    }
-    return parts.join("");
-  }
-
-  return undefined;
 }
 
 /**
@@ -625,32 +603,4 @@ function resolveSvgTree(node: ReactNode): ReactNode {
     }
   }
   return el;
-}
-
-/**
- * Check if children contains any React elements (not just strings/numbers).
- */
-function hasElementChildren(children: unknown): boolean {
-  if (
-    children === undefined ||
-    children === null ||
-    typeof children === "boolean"
-  )
-    return false;
-  if (typeof children === "string" || typeof children === "number")
-    return false;
-
-  if (Array.isArray(children)) {
-    return children.some(
-      (child) =>
-        child !== null &&
-        child !== undefined &&
-        typeof child !== "boolean" &&
-        typeof child !== "string" &&
-        typeof child !== "number",
-    );
-  }
-
-  // Single React element
-  return typeof children === "object";
 }

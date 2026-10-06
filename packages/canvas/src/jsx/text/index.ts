@@ -6,6 +6,7 @@ import type { ComputedStyle } from "../style/compute.ts";
 import { resolveUnit } from "../style/compute.ts";
 import { layoutTextNative } from "./native.ts";
 import type { NativeParagraph } from "./native.ts";
+import { collapseWhiteSpace } from "./white-space.ts";
 
 export type TextSegment = {
   text: string;
@@ -56,7 +57,8 @@ export type PlacedEmoji = {
 
 /**
  * Lay out text content into positioned lines, as one native paragraph that
- * Skia breaks, shapes and paints (see `./native.ts`).
+ * Skia breaks, shapes and paints (see `./native.ts`). White space collapses
+ * as `white-space` has it, before `text-transform` applies, as in CSS.
  *
  * @param text - The text to lay out
  * @param style - Computed style
@@ -73,7 +75,7 @@ export function layoutText(
 ): TextLayoutResult {
   const fontSize = style.fontSize ?? 16;
   const result = layoutTextNative(
-    applyTextTransform(text, style),
+    applyTextTransform(collapseWhiteSpace(text, style.whiteSpace), style),
     style,
     maxWidth,
     resolveLineHeight(style.lineHeight, fontSize),

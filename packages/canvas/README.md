@@ -104,7 +104,7 @@ const fontSize = findLargestUsableFontSize({
 });
 ```
 
-By default the text wraps to `maxWidth` and is fit into the `maxWidth` × `maxHeight` box. Pass `whiteSpace: "nowrap"` to fit the text on one line (per newline-separated paragraph) instead, where `maxWidth` constrains the full line width:
+By default the text wraps to `maxWidth` and is fit into the `maxWidth` × `maxHeight` box. Pass `whiteSpace: "nowrap"` to fit the text on one line instead (or `"pre"` for one line per newline-separated paragraph), where `maxWidth` constrains the full line width:
 
 ```typescript
 const fontSize = findLargestUsableFontSize({
@@ -116,7 +116,7 @@ const fontSize = findLargestUsableFontSize({
 });
 ```
 
-Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `whiteSpace` (`"normal"` by default; `"nowrap"`/`"pre"` for one line per paragraph), `minFontSize` (default 1), and `maxFontSize` (default 1000).
+Supports optional `lineHeight` (`"normal"` or a numeric multiplier), `whiteSpace` (`"normal"` by default; `"nowrap"` for one line, `"pre"` for one line per paragraph), `minFontSize` (default 1), and `maxFontSize` (default 1000).
 
 ## Inline SVG
 
@@ -268,7 +268,7 @@ const png = canvas.encodeSync("png");
 | `WebkitTextStrokeWidth` | CSS length (inherited)                                         |
 | `WebkitTextStrokeColor` | Any CSS color (inherited)                                      |
 
-¹ `pre` and `pre-wrap` keep the spaces before a line break in the line's width and alignment, as browsers do; a tab is one space wide.
+¹ White space is processed as in CSS: under `normal`, `nowrap` and `pre-line`, a run of spaces and tabs collapses to one space, the spaces at the start and end of the text and around a newline are removed, and a newline becomes a space (`pre-line` keeps it as a line break). Adjacent strings, as `Hello {name}` gives, are one run of text, and each run of text between elements is laid out as a flex item of its own, as browsers lay out text in a flex container: a run of nothing but white space, such as `{" "}` between two elements, isn't rendered, and an element whose only text is empty or white space has no line box. Fragments, arrays and function components are unwrapped first, as the DOM has no trace of them. A `<br />` is an item of its own, not a forced break inside a run of text: in a column it puts the text after it on the next line, but in a row (the default `flexDirection`) the text either side of it sits side by side, where browsers stack it. A line or paragraph separator (U+2028, U+2029) is a space with a break opportunity after it, as in browsers, but with `letterSpacing` it gets the spacing twice where browsers add it once. `pre` and `pre-wrap` keep the spaces before a line break in the line's width and alignment, as browsers do; a tab is one space wide.
 
 ² A word wider than its line overflows it, as in CSS, unless `overflowWrap` is `break-word` or `anywhere` (or `wordBreak` the deprecated `break-word`): the word then starts a line of its own and is broken between grapheme clusters where that line is full. `anywhere` breaks as `break-word` does.
 

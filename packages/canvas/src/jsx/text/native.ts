@@ -352,6 +352,7 @@ export function layoutTextNative(
     width: segments.reduce((w, s) => Math.max(w, s.width), 0),
     height,
     maxContentWidth: layout.maxIntrinsicWidth,
+    minContentWidth: layout.minIntrinsicWidth,
     paragraph,
     paragraphOffsetY,
     emoji,

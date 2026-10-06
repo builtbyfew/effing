@@ -541,6 +541,16 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
       return nodes;
     }
 
+    // The text's box shrinks below the text's widest word only with no
+    // minimum width (`min-width: auto` keeps it at the word, as in CSS), and
+    // the text with it only in a column, where it isn't a flex item in the
+    // box's row (whose minimum would keep it at the word too).
+    const squeezable: React.CSSProperties = {
+      fontSize: 20,
+      minWidth: 0,
+      flexDirection: "column",
+    };
+
     it.each([
       // The issue's example: measured at 300px (the flex basis), where every
       // word fits, and drawn at 80px, where one doesn't.
@@ -551,7 +561,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     ])("sizes shrunk text for its final width: %s", async (text, lines) => {
       const [node] = await layOut(
         <div style={{ display: "flex", width: 300 }}>
-          <div style={{ fontSize: 20 }}>{text}</div>
+          <div style={squeezable}>{text}</div>
           <div style={{ width: 220, height: 20, flexShrink: 0 }} />
         </div>,
       );
@@ -587,7 +597,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
     it("sizes text squeezed to no width by every line drawn", async () => {
       const [node] = await layOut(
         <div style={{ display: "flex", width: 100 }}>
-          <div style={{ fontSize: 20 }}>A quick brown fox</div>
+          <div style={squeezable}>A quick brown fox</div>
           <div style={{ width: 100, height: 20, flexShrink: 0 }} />
         </div>,
       );

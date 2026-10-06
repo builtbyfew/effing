@@ -38,6 +38,13 @@ export type TextLayoutResult = {
    */
   maxContentWidth: number;
   /**
+   * The width of the widest run of text that can't break: a word, or a line
+   * that doesn't wrap (CSS min-content). An `overflow-wrap: break-word` that
+   * breaks a word doesn't count, as in CSS; `anywhere` does, but the
+   * paragraph knows it as `break-word` (see `TextMeasure.minContentWidth`).
+   */
+  minContentWidth: number;
+  /**
    * The paragraph to paint. The segments describe its lines, for
    * decorations.
    */
@@ -137,6 +144,19 @@ function resolveLineHeight(
 }
 
 /**
+ * Round a text width for Yoga up to 1/64px, as Chrome does: it lays out in
+ * units of 1/64px, and rounds the width of text up to them. That also keeps
+ * Yoga's sums exact. It shrinks flex items in float32, and when every item
+ * that shrinks in a line is held at its minimum width, the shrink factors it
+ * sums and takes away again can leave a rounding error behind, which it then
+ * divides by: the items grow to millions of pixels. Rounding up keeps the
+ * text on the lines it was measured with.
+ */
+function toLayoutGrid(width: number): number {
+  return Math.ceil(width * 64) / 64;
+}
+
+/**
  * Sizes a text node for Yoga, and lays its text out for drawing at the width
  * Yoga finally gives it.
  *
@@ -157,6 +177,9 @@ export class TextMeasure {
   private readonly reported = new Set<number>();
   private pinnedHeight: number | undefined;
   private settled: { width: number; result: TextLayoutResult } | undefined;
+  private minContent: number | undefined;
+  /** The text laid out with no width limit, for both of its widths. */
+  private unbounded: TextLayoutResult | undefined;
   private readonly measureStyle: ComputedStyle;
 
   constructor(
@@ -178,30 +201,79 @@ export class TextMeasure {
   measure(maxWidth: number): { width: number; height: number } {
     let size = this.sizes.get(maxWidth);
     if (!size) {
-      const result = layoutText(
-        this.text,
-        this.measureStyle,
-        maxWidth,
-        this.emojiEnabled,
-      );
-      // When text wraps, report the constraint width (like CSS block layout),
-      // so that the node is drawn at the width its lines were broken at.
-      // Text that only breaks where it's forced to is as wide as its widest
-      // line (CSS fit-content), without the ellipsis a line clamp adds: the
-      // clamped line is truncated to fit that width when it's drawn, as in
-      // Chrome.
-      const wrapped = result.maxContentWidth > maxWidth;
-      size = {
-        width: wrapped
-          ? maxWidth
-          : Math.min(result.width, result.maxContentWidth, maxWidth),
-        height: result.height,
-      };
+      let result = this.layOut(maxWidth);
+      // Text is as wide as CSS fit-content makes it. When it wraps, that's
+      // the constraint width (like CSS block layout), so that the node is
+      // drawn at the width its lines were broken at, unless a run that can't
+      // break is wider: then it's as wide as that run (its min-content), and
+      // laid out at that width, as it will be drawn. Text that only breaks
+      // where it's forced to is as wide as its widest line (max-content),
+      // without the ellipsis a line clamp adds: the clamped line is truncated
+      // to fit that width when it's drawn, as in Chrome.
+      let width: number;
+      if (result.maxContentWidth > maxWidth) {
+        width = Math.max(maxWidth, this.minContentWidth);
+        if (width > maxWidth) result = this.layOut(width);
+      } else {
+        width = Math.min(
+          toLayoutGrid(Math.min(result.width, result.maxContentWidth)),
+          maxWidth,
+        );
+      }
+      size = { width, height: result.height };
       this.sizes.set(maxWidth, size);
     }
     const height = this.pinnedHeight ?? size.height;
     this.reported.add(height);
     return { width: size.width, height };
+  }
+
+  /**
+   * The text's min-content width: as narrow as it gets, each run of it that
+   * can't break on a line of its own. As CSS has it, that's the widest word,
+   * or the widest line for text that doesn't wrap, and under
+   * `overflow-wrap: anywhere` (or `word-break: break-word`) and
+   * `word-break: break-all` the widest letter. Text truncated with an
+   * ellipsis (`text-overflow: ellipsis` without wrapping, or a line clamp)
+   * has none: it's drawn at whatever width it has, which CSS gives it in
+   * the `overflow: hidden` box an ellipsis needs.
+   *
+   * Never wider than the text's widest line, and on the layout grid (see
+   * `toLayoutGrid`), as the widths `measure` reports are.
+   */
+  get minContentWidth(): number {
+    this.minContent ??= this.measureMinContent();
+    return this.minContent;
+  }
+
+  private measureMinContent(): number {
+    const { style } = this;
+    const noWrap = style.whiteSpace === "nowrap" || style.whiteSpace === "pre";
+    if (
+      (style.lineClamp !== undefined && style.lineClamp >= 1) ||
+      (noWrap && style.textOverflow === "ellipsis")
+    ) {
+      return 0;
+    }
+    // The paragraph breaks a word under `anywhere` as under `break-word`,
+    // which a word's min-content doesn't count. Laid out with no room at all,
+    // every line is a run that can't break.
+    const anywhere =
+      style.overflowWrap === "anywhere" || style.wordBreak === "break-word";
+    const result = this.layOut(anywhere ? 0 : Infinity);
+    // For text that doesn't wrap, the paragraph's min-content is its
+    // max-content, rounded up to 0.01px: its widest line is what's drawn.
+    return toLayoutGrid(
+      anywhere ? result.width : Math.min(result.minContentWidth, result.width),
+    );
+  }
+
+  private layOut(width: number): TextLayoutResult {
+    const layOut = () =>
+      layoutText(this.text, this.measureStyle, width, this.emojiEnabled);
+    if (width !== Infinity) return layOut();
+    this.unbounded ??= layOut();
+    return this.unbounded;
   }
 
   /**

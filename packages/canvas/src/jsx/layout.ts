@@ -318,6 +318,8 @@ async function buildNode(
     if (style.flexShrink === undefined) {
       yogaNode.setFlexShrink(1);
     }
+    // But no narrower than their text, as CSS has it.
+    setAutoMinWidth(yogaNode, style, parentStyle, child.textMeasure!);
 
     return {
       type: tagName,
@@ -441,6 +443,11 @@ function buildTextNode(
   const style = resolveStyle(undefined, parentStyle);
   const textMeasure = new TextMeasure(text, style, emojiEnabled);
   setTextMeasure(yogaNode, textMeasure);
+  // An anonymous flex item, whose minimum width is its min-content width in a
+  // row (CSS `min-width: auto`).
+  if (isRow(parentStyle) && textMeasure.minContentWidth > 0) {
+    yogaNode.setMinWidth(textMeasure.minContentWidth);
+  }
   return {
     type: "text",
     style,
@@ -450,6 +457,63 @@ function buildTextNode(
     props: {},
     yogaNode,
   };
+}
+
+/** Whether a flex container lays its items out in a row. */
+const isRow = (style: ComputedStyle) =>
+  style.flexDirection === undefined ||
+  style.flexDirection === "row" ||
+  style.flexDirection === "row-reverse";
+
+/**
+ * Give a flex item that holds nothing but text the minimum width CSS's
+ * `min-width: auto` gives it in a row: as wide as its text's min-content
+ * width, padding and borders included, so it never shrinks below a word, or
+ * a line that can't wrap. That keeps text that doesn't fit centred in a
+ * centring parent, overflowing it on both sides, as in Chrome. A width or a
+ * max width caps it. A scroll container (`overflow: hidden`, `scroll` or
+ * `auto`) has none, as in CSS, nor has an item positioned absolutely or one
+ * with a `min-width` of its own.
+ */
+function setAutoMinWidth(
+  yogaNode: YogaNode,
+  style: ComputedStyle,
+  parentStyle: ComputedStyle,
+  textMeasure: TextMeasure,
+): void {
+  if (
+    !isRow(parentStyle) ||
+    style.position === "absolute" ||
+    (style.minWidth !== undefined && style.minWidth !== "auto") ||
+    [style.overflow, style.overflowX, style.overflowY].some(
+      (overflow) =>
+        overflow === "hidden" || overflow === "scroll" || overflow === "auto",
+    )
+  ) {
+    return;
+  }
+  // A percentage isn't known here: leave the item as it was.
+  const length = (value: number | string | undefined, auto: number) =>
+    value === undefined || value === "auto"
+      ? auto
+      : typeof value === "number"
+        ? value
+        : undefined;
+  const width = length(style.width, Infinity);
+  const maxWidth = length(style.maxWidth, Infinity);
+  if (width === undefined || maxWidth === undefined) return;
+  const edges = [
+    style.paddingLeft,
+    style.paddingRight,
+    style.borderLeftWidth,
+    style.borderRightWidth,
+  ].reduce<number>((sum, edge) => sum + (length(edge, 0) ?? 0), 0);
+  const minWidth = Math.min(
+    textMeasure.minContentWidth + edges,
+    width,
+    maxWidth,
+  );
+  if (minWidth > 0) yogaNode.setMinWidth(minWidth);
 }
 
 /** Measure `yogaNode` with `textMeasure`. */

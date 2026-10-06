@@ -187,10 +187,14 @@ export class TextMeasure {
       // When text wraps, report the constraint width (like CSS block layout),
       // so that the node is drawn at the width its lines were broken at.
       // Text that only breaks where it's forced to is as wide as its widest
-      // line (CSS fit-content).
+      // line (CSS fit-content), without the ellipsis a line clamp adds: the
+      // clamped line is truncated to fit that width when it's drawn, as in
+      // Chrome.
       const wrapped = result.maxContentWidth > maxWidth;
       size = {
-        width: wrapped ? maxWidth : Math.min(result.width, maxWidth),
+        width: wrapped
+          ? maxWidth
+          : Math.min(result.width, result.maxContentWidth, maxWidth),
         height: result.height,
       };
       this.sizes.set(maxWidth, size);

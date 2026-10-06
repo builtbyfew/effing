@@ -594,6 +594,38 @@ describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
       );
     });
 
+    // Chrome sizes the clamped item to its widest line, 155.67px, without
+    // the ellipsis, and truncates that line to fit it: "A longer line h…".
+    it.each([
+      [
+        "<br>s",
+        [
+          "Short",
+          <br key="1" />,
+          "A longer line here",
+          <br key="2" />,
+          "Mid one",
+        ],
+        "normal",
+      ],
+      ["newlines", ["Short\nA longer line here\nMid one"], "pre-line"],
+    ] as const)(
+      "sizes clamped lines with %s to the widest, without its ellipsis",
+      async (_, children, whiteSpace) => {
+        const column = await layOut(
+          <div style={{ lineClamp: 2, whiteSpace }}>{children}</div>,
+          { flexDirection: "column" },
+        );
+        const clampedBox = column.children[0]!;
+        expect(clampedBox.width).toBeCloseTo(155.67, 0);
+        const { segments } = clampedBox.children[0]!.textLayout!;
+        expect(segments.map((seg) => [seg.text, round(seg.width)])).toEqual([
+          ["Short", expect.closeTo(47.81, 1)],
+          ["A longer line h", expect.closeTo(146.77, 1)],
+        ]);
+      },
+    );
+
     it("truncates each line between <br>s under nowrap", () => {
       expect(
         clamped(

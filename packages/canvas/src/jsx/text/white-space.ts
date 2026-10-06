@@ -1,12 +1,22 @@
 // White space processing, CSS Text 3 §4.1: the collapsing of phase I and the
 // removal of collapsible spaces at the start and end of a line of phase II,
 // for the `white-space` values that collapse spaces. Canvas lays out each run
-// of text between elements as a flex item of its own, as a flex container
-// has it, so the text of one text node is all there is to collapse across.
+// of text and `<br>`s between other elements as a flex item of its own, as a
+// flex container has it, so the text of one text node is all there is to
+// collapse across.
 
 import type { ComputedStyle } from "../style/compute.ts";
 
 type WhiteSpace = NonNullable<ComputedStyle["whiteSpace"]>;
+
+/**
+ * The text of a text node: a string, or, for text with `<br>`s in it, the
+ * pieces of text between them, each `<br>` a forced line break. The breaks
+ * are kept apart from the text, as no character in it can stand for one: a
+ * newline is a space under `normal` and `nowrap`, and a line separator
+ * (U+2028) is a space with a break opportunity after it, as in Chrome.
+ */
+export type TextContent = string | readonly string[];
 
 /**
  * Whether `text` is nothing but white space: spaces, tabs, segment breaks,
@@ -20,8 +30,10 @@ export function isWhiteSpaceOnly(text: string): boolean {
 
 /**
  * Process the white space of a text box's text as CSS does, before it's
- * transformed and laid out (CSS Text 3 §1.3). Under `normal`, `nowrap` and
- * `pre-line`:
+ * transformed and laid out (CSS Text 3 §1.3). Each piece of text between two
+ * `<br>`s is processed on its own, as the lines a `<br>` ends and starts, and
+ * every `<br>` is a forced break (a newline) under every `white-space`, as in
+ * Chrome; `nowrap` included. Under `normal`, `nowrap` and `pre-line`:
  *
  * - a CRLF is one segment break, and a lone CR a space, as Chrome has them;
  * - tabs are spaces;
@@ -30,7 +42,7 @@ export function isWhiteSpaceOnly(text: string): boolean {
  *   `pre-line` keeps each one as a forced break;
  * - a run of spaces is one space;
  * - the spaces at the start and end of the text, which start and end a line,
- *   are removed.
+ *   are removed, and so are those before and after a `<br>`.
  *
  * The paragraph hangs the space at a line's soft wrap, as CSS does, so the
  * spaces at the start and end of the other lines take care of themselves.
@@ -42,11 +54,14 @@ export function isWhiteSpaceOnly(text: string): boolean {
  * break, as in Chrome (the paragraph would keep the CR in the line too, and
  * draw it before an ellipsis), and:
  *
- * - A segment break at the very end of the text ends the last line, rather
- *   than starting an empty one, as in Chrome. This relies on the paragraph
- *   (`@effing/skia`'s `Paragraph`) starting an empty line after a hard break
- *   that ends its text: only one final break is removed, so that "a\n\n"
- *   keeps the one that gives it its second, empty line, as in Chrome.
+ * - A segment break or a `<br>` at the very end of the text ends the last
+ *   line, rather than starting an empty one, as in Chrome. This relies on
+ *   the paragraph (`@effing/skia`'s `Paragraph`) starting an empty line after
+ *   a hard break that ends its text: only one final break is removed, so
+ *   that "a\n\n" or "a<br><br>" keeps the one that gives it its second,
+ *   empty line, as in Chrome. A newline before a `<br>` is a break of its
+ *   own under `pre`, `pre-wrap` and `pre-line`: "a\n<br>b" has an empty line
+ *   between "a" and "b", as in Chrome.
  * - The paragraph breaks the line at a line or paragraph separator (U+2028,
  *   U+2029), a form feed or a vertical tab, where Chrome doesn't. Chrome sets
  *   a separator as a space that neither collapses nor hangs, with a break
@@ -57,6 +72,20 @@ export function isWhiteSpaceOnly(text: string): boolean {
  *   control character, which this leaves out.
  */
 export function collapseWhiteSpace(
+  text: TextContent,
+  whiteSpace: WhiteSpace | undefined,
+): string {
+  const pieces = typeof text === "string" ? [text] : text;
+  // Once collapsed, the only newlines left are forced breaks.
+  return pieces
+    .map((piece) => collapsePiece(piece, whiteSpace))
+    .join("\n")
+    .replace(FINAL_BREAK, "")
+    .replace(SEPARATORS, SEPARATOR_SPACE);
+}
+
+/** Process the white space of text that a forced break or nothing ends. */
+function collapsePiece(
   text: string,
   whiteSpace: WhiteSpace | undefined,
 ): string {
@@ -70,7 +99,7 @@ export function collapseWhiteSpace(
     if (whiteSpace !== "pre-line") result = result.replace(/\n+/g, " ");
     result = result.replace(/ {2,}/g, " ").replace(/^ | $/g, "");
   }
-  return result.replace(FINAL_BREAK, "").replace(SEPARATORS, SEPARATOR_SPACE);
+  return result;
 }
 
 const FINAL_BREAK = /\n$/;

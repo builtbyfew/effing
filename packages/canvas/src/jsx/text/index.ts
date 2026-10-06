@@ -7,6 +7,7 @@ import { resolveUnit } from "../style/compute.ts";
 import { layoutTextNative } from "./native.ts";
 import type { NativeParagraph } from "./native.ts";
 import { collapseWhiteSpace } from "./white-space.ts";
+import type { TextContent } from "./white-space.ts";
 
 export type TextSegment = {
   text: string;
@@ -31,6 +32,11 @@ export type TextLayoutResult = {
   segments: TextSegment[];
   width: number;
   height: number;
+  /**
+   * The width of the widest line between forced breaks, were no line to wrap
+   * (CSS max-content).
+   */
+  maxContentWidth: number;
   /**
    * The paragraph to paint. The segments describe its lines, for
    * decorations.
@@ -60,7 +66,7 @@ export type PlacedEmoji = {
  * Skia breaks, shapes and paints (see `./native.ts`). White space collapses
  * as `white-space` has it, before `text-transform` applies, as in CSS.
  *
- * @param text - The text to lay out
+ * @param text - The text to lay out, or the pieces of it between its `<br>`s
  * @param style - Computed style
  * @param maxWidth - Maximum width for wrapping
  * @param emojiEnabled - Whether emoji are drawn as images
@@ -68,7 +74,7 @@ export type PlacedEmoji = {
  *   paragraph to paint
  */
 export function layoutText(
-  text: string,
+  text: TextContent,
   style: ComputedStyle,
   maxWidth: number,
   emojiEnabled?: boolean,
@@ -154,7 +160,7 @@ export class TextMeasure {
   private readonly measureStyle: ComputedStyle;
 
   constructor(
-    private readonly text: string,
+    private readonly text: TextContent,
     private readonly style: ComputedStyle,
     private readonly emojiEnabled?: boolean,
   ) {
@@ -178,12 +184,17 @@ export class TextMeasure {
         maxWidth,
         this.emojiEnabled,
       );
-      // When text wraps to multiple lines, report the constraint width (like
-      // CSS block layout), so that the node is drawn at the width its lines
-      // were broken at.
-      const wrapped = result.segments.length > 1 && maxWidth < Infinity;
+      // When text wraps, report the constraint width (like CSS block layout),
+      // so that the node is drawn at the width its lines were broken at.
+      // Text that only breaks where it's forced to is as wide as its widest
+      // line (CSS fit-content), without the ellipsis a line clamp adds: the
+      // clamped line is truncated to fit that width when it's drawn, as in
+      // Chrome.
+      const wrapped = result.maxContentWidth > maxWidth;
       size = {
-        width: wrapped ? maxWidth : Math.min(result.width, maxWidth),
+        width: wrapped
+          ? maxWidth
+          : Math.min(result.width, result.maxContentWidth, maxWidth),
         height: result.height,
       };
       this.sizes.set(maxWidth, size);

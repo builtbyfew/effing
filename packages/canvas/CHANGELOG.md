@@ -1,5 +1,136 @@
 # @effing/canvas
 
+## 0.43.0
+
+### Minor Changes
+
+- 62feb35: Lay out all text natively, and support `word-break` and `overflow-wrap`
+
+  All text is now laid out as one `@effing/skia` paragraph. The TypeScript
+  layout that text the paragraph couldn't express used to fall back to is gone,
+  so a text node is measured and drawn by the same layout, whatever its width.
+  What changes:
+
+  - A word wider than its line overflows it by default, as in CSS;
+    `overflowWrap` (below) breaks it instead.
+  - `wordBreak: "break-all"` breaks between any two letters, and
+    `wordBreak: "keep-all"` doesn't break between CJK letters, as in CSS. Both
+    used to break much as `normal` does.
+  - `overflowWrap` (or the legacy `wordWrap`) is supported: `break-word` and
+    `anywhere` break a word wider than its line between grapheme clusters, as
+    the deprecated `wordBreak: "break-word"` does.
+  - Emoji drawn as images sit as CSS `vertical-align: -0.1em` places a 1em
+    image: their bottom 0.1em below the baseline, about where Chrome draws an
+    emoji glyph. They used to sit in the middle of the line box, which put them
+    below the text under a tall `lineHeight`.
+  - `whiteSpace: "pre-wrap"` keeps the spaces before a line break in the line,
+    as `pre` does.
+  - `lineClamp` is rounded down to a whole number of lines.
+  - A negative `lineHeight` is ignored, as CSS ignores it, and text with a
+    `fontSize` of 0 has line boxes of no height.
+  - `@effing/skia` is now 1.0.10-effing.3, and the `linebreak` dependency is
+    dropped.
+
+- ef08805: Collapse white space as CSS does
+
+  Text under `whiteSpace: "normal"` (the default), `"nowrap"` and `"pre-line"`
+  now has its white space processed as CSS Text 3 §4.1 has it, before
+  `textTransform` applies:
+
+  - A newline (or CRLF) becomes a space under `normal` and `nowrap`, so
+    `"a\nb"` is one line, "a b", as in Chrome. `pre-line` keeps each newline as
+    a line break.
+  - Spaces and tabs around a newline are removed, tabs become spaces, and a run
+    of spaces collapses to one.
+  - Spaces at the start and end of the text are removed.
+
+  Under every `whiteSpace` value, as in Chrome:
+
+  - A newline that ends the text no longer starts an empty line.
+  - A line or paragraph separator (U+2028, U+2029) is a space with a break
+    opportunity after it, no longer a line break, and a form feed or vertical
+    tab no longer breaks the line.
+
+  `findLargestUsableFontSize` with `whiteSpace: "nowrap"` now fits the text on
+  one line, newlines and all, as it's drawn, so text with newlines can get a
+  smaller size than before; use `"pre"` to fit each newline-separated paragraph
+  on a line of its own.
+
+  Children are now laid out as the DOM has them: fragments, arrays and function
+  components are unwrapped, so adjacent strings (as `Hello {name}` gives, or
+  text across a fragment or component) are one run of text, and the content of
+  a component that returns an array is no longer dropped. Each run of text
+  between elements is a flex item of its own, as browsers lay out text in a flex
+  container:
+
+  - An empty or white-space-only run between elements no longer holds a line
+    box, so `{" "}` between two elements no longer adds a line to a column or a
+    `gap` to a row.
+  - An element whose only text is empty or white space has no line box either:
+    it's 0px tall unless its style gives it a size.
+  - The leading white space after a `<br />` is removed by the general rule.
+
+### Patch Changes
+
+- d5b4fca: Detect emoji by grapheme, so flags are drawn and ZWJ text shapes
+
+  - Flags such as 🇧🇪 are drawn as images; they used to be laid out as text.
+  - A ZWJ between letters (`a‍b`, or the joiner in Arabic and Indic text) no
+    longer turns the letter before it into an emoji box, so the text shapes as
+    it should.
+  - Symbols with no emoji form, such as `✓` and `●`, are text. So are `©`, `®`
+    and `™` unless U+FE0F follows them, and digits, `#` and `*` unless a keycap
+    follows them, as browsers draw them. Every other emoji character is drawn
+    as an image, with or without U+FE0F (`❤`, `☎`, `🕵`); browsers draw
+    text-default ones in the BMP such as `❤` as monochrome text through system
+    font fallback, which canvas lacks.
+  - Keycaps and `©️` load their images in the `openmoji`, `blobmoji` and `noto`
+    styles, ZWJ sequences and keycaps in `fluent` and `fluentFlat`, and emoji
+    typed without their U+FE0F (`🏳‍🌈`) in every style.
+
+- 2c4b457: Keep emoji with their punctuation, and clamp lines as Chrome does
+
+  `@effing/skia` is now 1.0.10-effing.4.
+
+  - An emoji drawn as an image stays with the punctuation next to it, as in
+    Chrome: `Hi 🎉! ok` breaks as `Hi | 🎉! | ok` where the "!" doesn't fit
+    after the emoji, and `(🎉)` is never split.
+  - A `lineClamp` line that ends at a newline under `whiteSpace: "pre-line"` or
+    `"pre-wrap"` now ends in an ellipsis, as in Chrome (`"ab\ncd"` clamped to
+    one line is "ab…"), and an empty clamped line is the ellipsis alone. Under
+    `"pre"` such a line still has no ellipsis, where Chrome adds one.
+  - The last line `lineClamp` shows is its own text with the ellipsis after it,
+    cut by grapheme cluster until the two fit, as in Chrome: it no longer takes
+    in the start of the next line's text ("ab cd…", not "ab cd e…"), and no
+    longer keeps the space before the ellipsis ("aaaa bb…", not "aaaa bb …").
+    `pre-wrap` keeps those spaces, as Chrome does.
+  - Under `whiteSpace: "pre"` and `"pre-wrap"`, a CRLF is a newline and a lone
+    CR is drawn as nothing, as in Chrome. A CR used to be drawn as a missing
+    glyph's box, before the ellipsis of a clamped line too.
+
+- 83e9b60: Size text boxes for the lines drawn in them.
+
+  Yoga measures a text node at whatever widths its layout needs, and the text
+  is drawn at the node's final width. When the two differed, a box could be a
+  line taller or shorter than its text. Text is now laid out once more at its
+  final width during layout, the node sized again where that changes its
+  height, and the same layout drawn. Text squeezed to no width is also measured
+  at that width, not as unbounded.
+
+  Text boxes also keep the fractional width their text was measured at, where
+  Yoga used to round them out to whole pixels, so text breaks where Chrome
+  breaks it: three equal 98.33px columns wrap "Hello world" (98.93px) to two
+  lines, as Chrome does, instead of drawing it on one line in a box sized for
+  two. Text is still placed on whole pixels.
+
+  `wordBreak: "break-word"` now breaks a word that is wider than its line, as
+  in CSS, where it used to leave it overflowing like `normal`. `break-all`
+  breaks such words wherever they are on a line (it missed one that followed
+  other words), and still doesn't break between any two characters.
+
+  A last word wider than its box overflows unbroken like any other, where it
+  was broken mid-word. Empty text is laid out natively.
+
 ## 0.42.0
 
 ### Minor Changes

@@ -57,21 +57,24 @@ export function setFont(
  * Measure how many pixels to trim from the top (overTrim) and bottom
  * (underTrim) of a line box based on `text-box-edge` keywords.
  *
- * The trim amount is the difference between the full line-height half-leading
- * and the target metric for each edge.
+ * The trim amount is the distance from the line box's edge to the target
+ * metric for each edge, as the `text` edge the font's ascent and descent.
  *
- * @param fontAscent - The font's hhea ascent in px
- * @param fontDescent - The font's hhea descent in px
+ * @param line - The line box, its baseline, and the font's ascent and
+ *   descent in px, as the line box is built from them
  */
 export function measureTrimMetrics(
   fontSize: number,
   fontFamily: string,
   fontWeight: number | string,
   fontStyle: string,
-  lineHeight: number,
+  line: {
+    lineHeight: number;
+    baseline: number;
+    ascent: number;
+    descent: number;
+  },
   edge: string,
-  fontAscent: number,
-  fontDescent: number,
 ): { overTrim: number; underTrim: number } {
   const c = getScratchCtx();
   // Unhinted, as text is laid out and drawn.
@@ -108,7 +111,7 @@ export function measureTrimMetrics(
     case "ideographic-ink":
     case "text":
     default:
-      targetAscent = fontAscent;
+      targetAscent = line.ascent;
       break;
   }
 
@@ -122,13 +125,12 @@ export function measureTrimMetrics(
     case "ideographic-ink":
     case "text":
     default:
-      targetDescent = fontDescent;
+      targetDescent = line.descent;
       break;
   }
 
-  const halfLeading = (lineHeight - (fontAscent + fontDescent)) / 2;
-  const overTrim = halfLeading + (fontAscent - targetAscent);
-  const underTrim = halfLeading + (fontDescent - targetDescent);
+  const overTrim = line.baseline - targetAscent;
+  const underTrim = line.lineHeight - line.baseline - targetDescent;
 
   return {
     overTrim: Math.max(0, overTrim),

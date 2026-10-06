@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
 import { GlobalFonts } from "@effing/skia";
 
 import type { FontData } from "../types.ts";
+import {
+  _resetFontMetricsForTest,
+  registerFontMetrics,
+} from "./font-metrics.ts";
 
 const registeredFonts = new Set<string>();
 
@@ -9,6 +14,7 @@ const registeredFonts = new Set<string>();
  */
 export function _resetForTest(): void {
   registeredFonts.clear();
+  _resetFontMetricsForTest();
 }
 
 /**
@@ -26,6 +32,7 @@ export function registerFont(font: FontData): void {
     : Buffer.from(font.data);
 
   GlobalFonts.register(buffer, font.name);
+  registerFontMetrics(font.name, buffer);
 
   registeredFonts.add(key);
 }
@@ -38,6 +45,13 @@ export function registerFont(font: FontData): void {
  */
 export function registerFontFromPath(path: string, nameAlias?: string): void {
   GlobalFonts.registerFromPath(path, nameAlias ?? "");
+  let data: Buffer | undefined;
+  try {
+    data = readFileSync(path);
+  } catch {
+    // Skia couldn't read it either.
+  }
+  if (data) registerFontMetrics(nameAlias ?? "", data);
 }
 
 /**

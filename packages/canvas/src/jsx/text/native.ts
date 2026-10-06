@@ -3,7 +3,7 @@
 // it word by word across the native boundary. The paragraph follows the CSS
 // line model (every line box exactly `lineHeight` tall, baseline placed by
 // half-leading from the font's hhea metrics) and paints unhinted, unsnapped
-// glyphs.
+// glyphs. `line-height: normal` line boxes are Chrome's (see `normalLineBox`).
 
 import { Paragraph } from "@effing/skia/extensions";
 import type {
@@ -15,6 +15,7 @@ import type {
 import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
+import { fontGeneration, fontLineGap } from "../font-metrics.ts";
 import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
 import type { PlacedEmoji, TextLayoutResult, TextSegment } from "./index.ts";
 
@@ -121,6 +122,82 @@ export async function releaseParagraphs(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
+/**
+ * A line box's height, the baseline in it, and the font's ascent and descent
+ * it's built from, in px.
+ */
+type LineBox = {
+  lineHeight: number;
+  baseline: number;
+  ascent: number;
+  descent: number;
+};
+
+/**
+ * A `line-height: normal` line box, as Chrome lays it out on macOS (Blink's
+ * `SimpleFontData::PlatformInit` and the inline layout's half-leading): the
+ * font's hhea ascent, descent and line gap each rounded to whole pixels, the
+ * line box their sum, and the line gap split over its top and bottom with the
+ * odd pixel at the bottom. For Liberation Sans at 20px (ascent 18.1, descent
+ * 4.24, line gap 0.65) that's a 23px line box with its baseline at 18px.
+ *
+ * Chrome on Linux and Android moves a pixel from the ascent to the descent
+ * when it rounds the descent down, which puts the baseline a pixel higher
+ * there; renders here are the same on every platform, and follow macOS.
+ *
+ * @param ascent - The font's hhea ascent in px
+ * @param descent - Its hhea descent in px, positive below the baseline
+ * @param lineGap - Its hhea line gap in px; a negative one counts as none
+ */
+export function normalLineBox(
+  ascent: number,
+  descent: number,
+  lineGap: number,
+): LineBox {
+  // Rounding half up, as Skia's SkScalarRoundToScalar.
+  const a = Math.round(ascent);
+  const d = Math.round(descent);
+  const gap = Math.round(Math.max(0, lineGap));
+  return {
+    lineHeight: a + d + gap,
+    baseline: a + Math.floor(gap / 2),
+    ascent: a,
+    descent: d,
+  };
+}
+
+// Normal line boxes by font and size, valid for one font generation.
+const MAX_NORMAL_LINE_BOXES = 1000;
+const normalLineBoxes = new Map<string, LineBox>();
+let normalLineBoxesGeneration = -1;
+
+/**
+ * The `line-height: normal` line box of text in a font, from the hhea ascent
+ * and descent Skia's paragraph finds for it and the line gap of that font.
+ */
+function normalLineBoxFor(style: ParagraphStyle): LineBox {
+  if (normalLineBoxesGeneration !== fontGeneration()) {
+    normalLineBoxes.clear();
+    normalLineBoxesGeneration = fontGeneration();
+  }
+  const { fontFamily, fontSize, fontWeight, fontStyle } = style;
+  const key = `${fontFamily}|${fontWeight}|${fontStyle}|${fontSize}`;
+  let box = normalLineBoxes.get(key);
+  if (!box) {
+    const probe = new Paragraph("", style);
+    countParagraph();
+    const { ascent, descent } = probe.layout(0);
+    box = normalLineBox(
+      ascent,
+      descent,
+      fontLineGap(fontFamily, fontSize, ascent, descent),
+    );
+    if (normalLineBoxes.size >= MAX_NORMAL_LINE_BOXES) normalLineBoxes.clear();
+    normalLineBoxes.set(key, box);
+  }
+  return box;
+}
+
 const graphemeSegmenter = new Intl.Segmenter(undefined, {
   granularity: "grapheme",
 });
@@ -198,8 +275,9 @@ function splitEmoji(
 
 /**
  * Lay out already-transformed text natively: one segment per line, CSS
- * half-leading line boxes from the font's hhea metrics, an ellipsis for
- * nowrap + text-overflow and for line-clamp, and text-box-trim.
+ * half-leading line boxes from the font's hhea metrics (Chrome's for
+ * `line-height: normal`), an ellipsis for nowrap + text-overflow and for
+ * line-clamp, and text-box-trim.
  *
  * @param lineHeight - Line box height in px, or undefined for `normal`
  * @param emojiEnabled - Whether emoji are drawn as images, each in an inline
@@ -243,13 +321,18 @@ export function layoutTextNative(
   // Skia keeps its own cache of shaped text, so building a paragraph for text
   // it has seen (the next frame of a video, or Yoga measuring a node again)
   // only breaks the lines anew.
-  const paragraph = new Paragraph(content.items, {
+  const fontStyles = {
     fontFamily: quoteFontFamilies(fontFamily),
     fontSize,
     fontWeight: toWeight(fontWeight),
     fontStyle: toFontStyle(fontStyle),
+  };
+  const normal =
+    lineHeight === undefined ? normalLineBoxFor(fontStyles) : undefined;
+  const paragraph = new Paragraph(content.items, {
+    ...fontStyles,
     letterSpacing,
-    lineHeight,
+    lineHeight: normal?.lineHeight ?? lineHeight,
     textAlign: toTextAlign(style.textAlign),
     noWrap,
     maxLines: lineClamp,
@@ -262,6 +345,18 @@ export function layoutTextNative(
   countParagraph();
   const layout = paragraph.layout(width);
 
+  // The paragraph places each baseline by half-leading in its line box. A
+  // normal line box has it where Chrome does, and the text moves there.
+  const paragraphBaseline =
+    (layout.lineHeight + layout.ascent - layout.descent) / 2;
+  const box: LineBox = normal ?? {
+    lineHeight: layout.lineHeight,
+    baseline: paragraphBaseline,
+    ascent: layout.ascent,
+    descent: layout.descent,
+  };
+  const shift = box.baseline - paragraphBaseline;
+
   // An empty paragraph has no lines, where CSS keeps one empty line box.
   const lines: ParagraphLine[] =
     layout.lines.length > 0
@@ -270,8 +365,7 @@ export function layoutTextNative(
           {
             left: 0,
             width: 0,
-            // As Skia places a baseline: by half-leading in the line box.
-            baseline: (layout.lineHeight + layout.ascent - layout.descent) / 2,
+            baseline: paragraphBaseline,
             startIndex: 0,
             endIndex: 0,
             hardBreak: true,
@@ -284,7 +378,7 @@ export function layoutTextNative(
       .slice(toTextIndex(line.startIndex), toTextIndex(line.endIndex))
       .replace(/\n/g, ""),
     x: line.left,
-    y: line.baseline,
+    y: line.baseline + shift,
     width: line.width,
     height: layout.lineHeight,
     fontSize,
@@ -299,28 +393,23 @@ export function layoutTextNative(
   }));
 
   const emoji: PlacedEmoji[] = [];
-  layout.placeholders.forEach((box, i) => {
+  layout.placeholders.forEach((placed, i) => {
     // A placeholder that line-clamp or an ellipsis cut off has no box.
-    if (!box) return;
+    if (!placed) return;
     emoji.push({
       grapheme: content.emoji[i]!,
-      x: box.x,
-      y: box.y,
+      x: placed.x,
+      y: placed.y + shift,
       size: fontSize,
-      baseline: lines[box.line]!.baseline,
+      baseline: lines[placed.line]!.baseline + shift,
     });
   });
 
+  // Normal line boxes are whole pixels tall; text of no font size, laid out
+  // at MIN_FONT_SIZE, has them of no height, as in CSS.
   let height = lines.length * layout.lineHeight;
-  if (lineHeight === undefined) {
-    // Round auto line-height boxes up so Yoga's integer rounding never clips
-    // a descender. Text of no font size, laid out at MIN_FONT_SIZE, has line
-    // boxes of no height, as in CSS.
-    const noFontSize = Number.isFinite(styledFontSize) && styledFontSize <= 0;
-    height = noFontSize ? 0 : Math.ceil(height);
-  }
 
-  let paragraphOffsetY = 0;
+  let paragraphOffsetY = shift;
   const textBoxTrim = style.textBoxTrim;
   if (textBoxTrim && textBoxTrim !== "none") {
     const trim = measureTrimMetrics(
@@ -328,10 +417,8 @@ export function layoutTextNative(
       fontFamily,
       fontWeight,
       fontStyle,
-      layout.lineHeight,
+      box,
       style.textBoxEdge ?? "text",
-      layout.ascent,
-      layout.descent,
     );
     if (textBoxTrim === "trim-start" || textBoxTrim === "trim-both") {
       for (const seg of segments) seg.y -= trim.overTrim;
@@ -340,7 +427,7 @@ export function layoutTextNative(
         e.baseline -= trim.overTrim;
       }
       height -= trim.overTrim;
-      paragraphOffsetY = -trim.overTrim;
+      paragraphOffsetY -= trim.overTrim;
     }
     if (textBoxTrim === "trim-end" || textBoxTrim === "trim-both") {
       height -= trim.underTrim;

@@ -36,7 +36,11 @@ export function isWhiteSpaceOnly(text: string): boolean {
  * spaces at the start and end of the other lines take care of themselves.
  * Only ASCII white space collapses: a no-break space, say, is kept.
  *
- * `pre` and `pre-wrap` keep the spaces and tabs. Under every value:
+ * `pre` and `pre-wrap` keep the spaces and tabs. They drop a lone CR, which
+ * Chrome lays out with no width and no break opportunity, where the paragraph
+ * would draw a missing glyph for it. Under every value, a CRLF is one segment
+ * break, as in Chrome (the paragraph would keep the CR in the line too, and
+ * draw it before an ellipsis), and:
  *
  * - A segment break at the very end of the text ends the last line, rather
  *   than starting an empty one, as in Chrome. This relies on the paragraph
@@ -56,25 +60,20 @@ export function collapseWhiteSpace(
   text: string,
   whiteSpace: WhiteSpace | undefined,
 ): string {
-  let result = text.replace(/[\v\f]/g, "");
-  // Nothing to collapse in most text: no tab, newline, CR, or space that
-  // could be leading, trailing or doubled.
-  if (
-    whiteSpace !== "pre" &&
-    whiteSpace !== "pre-wrap" &&
-    /[\t\n\r]| {2}|^ | $/.test(result)
-  ) {
-    result = result
-      .replace(/\r\n/g, "\n")
-      .replace(/[\t\r]/g, " ")
-      .replace(/ *\n */g, "\n");
+  let result = text.replace(/[\v\f]/g, "").replace(/\r\n/g, "\n");
+  if (whiteSpace === "pre" || whiteSpace === "pre-wrap") {
+    result = result.replace(/\r/g, "");
+  } else if (/[\t\n\r]| {2}|^ | $/.test(result)) {
+    // Most text has nothing to collapse: no tab, newline, CR, or space that
+    // could be leading, trailing or doubled.
+    result = result.replace(/[\t\r]/g, " ").replace(/ *\n */g, "\n");
     if (whiteSpace !== "pre-line") result = result.replace(/\n+/g, " ");
     result = result.replace(/ {2,}/g, " ").replace(/^ | $/g, "");
   }
   return result.replace(FINAL_BREAK, "").replace(SEPARATORS, SEPARATOR_SPACE);
 }
 
-const FINAL_BREAK = /\r?\n$/;
+const FINAL_BREAK = /\n$/;
 
 const SEPARATORS = /[\u2028\u2029]/g;
 

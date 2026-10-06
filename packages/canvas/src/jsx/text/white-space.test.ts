@@ -42,10 +42,22 @@ describe("collapseWhiteSpace", () => {
   });
 
   it.each(["pre", "pre-wrap"] as const)("keeps the text under %s", (ws) => {
-    for (const text of ["a  \n  b", " a\tb ", "a\r\nb", "a \n "]) {
+    for (const text of ["a  \n  b", " a\tb ", "a \n "]) {
       expect(collapseWhiteSpace(text, ws)).toBe(text);
     }
   });
+
+  // Chrome breaks the line at a CRLF as at a newline, and lays a lone CR out
+  // with no width and no break opportunity.
+  it.each(["pre", "pre-wrap"] as const)(
+    "makes a CRLF a newline and drops a lone CR under %s",
+    (ws) => {
+      expect(collapseWhiteSpace("a  \r\n  b", ws)).toBe("a  \n  b");
+      expect(collapseWhiteSpace("a\rb", ws)).toBe("ab");
+      expect(collapseWhiteSpace("a\r\rb\r", ws)).toBe("ab");
+      expect(collapseWhiteSpace("a\r\r\nb", ws)).toBe("a\nb");
+    },
+  );
 
   // Chrome gives "a\n" one line, and "a\n\n" two.
   it.each(["pre", "pre-wrap"] as const)(

@@ -143,6 +143,19 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
     });
   });
 
+  // Chrome lays a lone CR out with no width and no break opportunity under
+  // `pre` and `pre-wrap`, where the paragraph would draw a missing glyph.
+  it.each(["pre", "pre-wrap"] as const)(
+    "draws a lone CR as nothing under %s",
+    (whiteSpace) => {
+      const result = layoutText("a\rb", style({ whiteSpace }), 300);
+      expect(result.segments.map((s) => s.text)).toEqual(["ab"]);
+      expect(result.width).toBeCloseTo(22.25, 1);
+      const wrapped = layoutText("aaaa\rbbbb", style({ whiteSpace }), 50);
+      expect(wrapped.segments.map((s) => s.text)).toEqual(["aaaabbbb"]);
+    },
+  );
+
   // A newline that ends the text ends its last line, rather than starting an
   // empty one; Chrome gives "a\n" one line and "a\n\n" two.
   it.each(["pre-line", "pre", "pre-wrap"] as const)(
@@ -196,6 +209,9 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
       // An empty clamped line is the ellipsis alone.
       ["ab\n\ncd", "pre-line", 2, ["ab", ""], [22.25, 20]],
       ["ab\n\ncd", "pre-wrap", 2, ["ab", ""], [22.25, 20]],
+      // A CRLF is a newline: the CR isn't drawn before the ellipsis.
+      ["ab\r\ncd", "pre-wrap", 1, ["ab"], [42.25]],
+      ["ab\r\ncd\r\nef", "pre-wrap", 2, ["ab", "cd"], [22.25, 41.13]],
     ] as const)(
       "ends %j under %s clamped to %s lines in an ellipsis, as Chrome does",
       (text, whiteSpace, lineClamp, expectedLines, widths) => {
@@ -206,6 +222,30 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
         );
       },
     );
+
+    it("ends a clamped line with an emoji at a CRLF in an ellipsis", () => {
+      const result = layoutText(
+        "ab 🎉\r\ncd",
+        style({ whiteSpace: "pre-wrap", lineClamp: 1 }),
+        300,
+        true,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual(["ab 🎉"]);
+      // "ab ", the emoji's 1em box and the ellipsis.
+      expect(result.segments[0]!.width).toBeCloseTo(27.81 + 20 + 20, 1);
+    });
+
+    // Chrome gives "ab…" here; the paragraph ellipsizes `pre` (noWrap) text
+    // only where a line overflows.
+    it("puts no ellipsis after a forced break under pre", () => {
+      const result = layoutText(
+        "ab\r\ncd",
+        style({ whiteSpace: "pre", lineClamp: 1 }),
+        300,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual(["ab"]);
+      expect(result.segments[0]!.width).toBeCloseTo(22.25, 1);
+    });
 
     it("truncates nowrap text on one line, as Chrome does", () => {
       const result = layoutText(

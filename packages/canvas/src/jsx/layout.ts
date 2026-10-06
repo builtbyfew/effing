@@ -18,6 +18,7 @@ import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga } from "./style/properties.ts";
 import { TextMeasure } from "./text/index.ts";
 import { isWhiteSpaceOnly } from "./text/white-space.ts";
+import type { TextContent } from "./text/white-space.ts";
 import type { TextLayoutResult } from "./text/index.ts";
 import {
   createTextYogaNode,
@@ -35,7 +36,7 @@ export type LayoutNode = {
   type: string;
   style: ComputedStyle;
   children: LayoutNode[];
-  textContent?: string;
+  textContent?: TextContent;
   /** The text laid out at the node's width, for drawing. */
   textLayout?: TextLayoutResult;
   props: Record<string, unknown>;
@@ -125,7 +126,7 @@ export async function buildLayoutTree(
  * node (`createTextYogaNode`).
  */
 async function buildNode(
-  element: ReactNode,
+  element: ReactNode | TextRun,
   parentStyle: ComputedStyle,
   yogaNode: YogaNode,
   viewportWidth: number,
@@ -149,24 +150,10 @@ async function buildNode(
     };
   }
 
-  // Handle text/number primitives
-  if (typeof element === "string" || typeof element === "number") {
-    const text = String(element);
-    const style = resolveStyle(undefined, parentStyle);
-
-    // Set up text measurement
-    const textMeasure = new TextMeasure(text, style, emojiEnabled);
-    setTextMeasure(yogaNode, textMeasure);
-
-    return {
-      type: "text",
-      style,
-      children: [],
-      textContent: text,
-      textMeasure,
-      props: {},
-      yogaNode,
-    };
+  // Handle text/number primitives, and runs of text
+  if (isText(element) || isTextRun(element)) {
+    const text = isTextRun(element) ? textContentOf(element) : String(element);
+    return buildTextNode(text, parentStyle, yogaNode, emojiEnabled);
   }
 
   // Handle React elements (host elements: components are rendered already)
@@ -298,21 +285,26 @@ async function buildNode(
   }
 
   // The children as the DOM has them: components rendered, fragments and
-  // arrays unwrapped, and adjacent text one run.
-  const items = flattenChildren(props.children as ReactNode);
+  // arrays unwrapped, and adjacent text and <br>s one run. Text of nothing but
+  // white space is no flex item at all (see below).
+  const items = flattenChildren(props.children as ReactNode).filter(
+    (item) => !isTextRun(item) || !isBlankRun(item),
+  );
 
   // If this node has only text content, create a child text node.
   // Using a child node (instead of setMeasureFunc on this node directly)
   // ensures Yoga's baseline calculation accounts for this node's padding/border
-  // when a parent uses alignItems: "baseline". Text of nothing but white space
-  // is no flex item at all (see below), so the node has no line box.
-  const onlyText = items.length === 1 && isText(items[0]) ? items[0] : null;
-  if (onlyText !== null && !isWhiteSpaceOnly(String(onlyText))) {
-    const textContent = String(onlyText);
-    const childStyle = resolveStyle(undefined, style);
+  // when a parent uses alignItems: "baseline". A node whose only text is white
+  // space has no line box.
+  const onlyText = items.length === 1 && isTextRun(items[0]) ? items[0] : null;
+  if (onlyText !== null) {
     const childYogaNode = createTextYogaNode();
-    const textMeasure = new TextMeasure(textContent, childStyle, emojiEnabled);
-    setTextMeasure(childYogaNode, textMeasure);
+    const child = buildTextNode(
+      textContentOf(onlyText),
+      style,
+      childYogaNode,
+      emojiEnabled,
+    );
     const jc = style.justifyContent;
     if (!jc || jc === "flex-start") {
       childYogaNode.setFlexGrow(1);
@@ -330,31 +322,20 @@ async function buildNode(
     return {
       type: tagName,
       style,
-      children: [
-        {
-          type: "text",
-          style: childStyle,
-          children: [],
-          textContent,
-          textMeasure,
-          props: {},
-          yogaNode: childYogaNode,
-        },
-      ],
+      children: [child],
       props,
       yogaNode,
     };
   }
 
-  // Process children. Each run of text between elements is a flex item of
-  // its own (CSS Flexbox §4), its white space collapsed as its box's text
-  // (see `layoutText`): the spaces at its start and end, after a <br> say,
-  // are removed. A run of nothing but white space isn't rendered at all,
-  // whatever its `white-space`.
+  // Process children. Each run of text and <br>s between other elements is a
+  // flex item of its own (CSS Flexbox §4), its white space collapsed as its
+  // box's text (see `layoutText`): the spaces at its start and end, and
+  // around a <br>, are removed. A run of nothing but white space isn't
+  // rendered at all, whatever its `white-space`.
   const children: IntermediateNode[] = [];
   for (const rendered of items) {
-    if (typeof rendered === "string" && isWhiteSpaceOnly(rendered)) continue;
-    const childYogaNode = isText(rendered)
+    const childYogaNode = isTextRun(rendered)
       ? createTextYogaNode()
       : createYogaNode();
     yogaNode.insertChild(childYogaNode, children.length);
@@ -385,7 +366,7 @@ type IntermediateNode = {
   type: string;
   style: ComputedStyle;
   children: IntermediateNode[];
-  textContent?: string;
+  textContent?: TextContent;
   /** Set on text nodes, which Yoga measures. */
   textMeasure?: TextMeasure;
   props: Record<string, unknown>;
@@ -450,6 +431,27 @@ function settleText(
   }
 }
 
+/** Build a text node for `text` on `yogaNode`, which Yoga measures. */
+function buildTextNode(
+  text: TextContent,
+  parentStyle: ComputedStyle,
+  yogaNode: YogaNode,
+  emojiEnabled?: boolean,
+): IntermediateNode {
+  const style = resolveStyle(undefined, parentStyle);
+  const textMeasure = new TextMeasure(text, style, emojiEnabled);
+  setTextMeasure(yogaNode, textMeasure);
+  return {
+    type: "text",
+    style,
+    children: [],
+    textContent: text,
+    textMeasure,
+    props: {},
+    yogaNode,
+  };
+}
+
 /** Measure `yogaNode` with `textMeasure`. */
 function setTextMeasure(yogaNode: YogaNode, textMeasure: TextMeasure): void {
   yogaNode.setMeasureFunc((width, widthMode) =>
@@ -461,7 +463,7 @@ function setTextMeasure(yogaNode: YogaNode, textMeasure: TextMeasure): void {
   );
 }
 
-const isText = (node: ReactNode): node is string | number =>
+const isText = (node: unknown): node is string | number =>
   typeof node === "string" || typeof node === "number";
 
 /** Render function components until something else is left. */
@@ -481,14 +483,39 @@ function renderComponents(node: ReactNode): ReactNode {
 }
 
 /**
+ * A run of adjacent text and `<br>`s, which a browser lays out as one
+ * anonymous flex item: the pieces of text between the `<br>`s, one more than
+ * there are `<br>`s.
+ */
+class TextRun {
+  readonly pieces: string[];
+
+  constructor(...pieces: string[]) {
+    this.pieces = pieces;
+  }
+}
+
+const isTextRun = (node: unknown): node is TextRun => node instanceof TextRun;
+
+/** A run's text, as a string when there's no `<br>` in it. */
+const textContentOf = (run: TextRun): TextContent =>
+  run.pieces.length === 1 ? run.pieces[0]! : run.pieces;
+
+/** Whether a run is nothing but white space, with no `<br>` either. */
+const isBlankRun = (run: TextRun): boolean =>
+  run.pieces.length === 1 && isWhiteSpaceOnly(run.pieces[0]!);
+
+/** A child as the DOM has it: an element, or a run of text. */
+type Item = ReactNode | TextRun;
+
+/**
  * The children as the DOM has them: function components rendered, fragments
  * and arrays unwrapped, null, undefined and booleans left out, and adjacent
- * text, as `Hello {name}` or a fragment of text gives, merged into one run.
+ * text, as `Hello {name}` or a fragment of text gives, merged into one run,
+ * with the `<br>`s between it, which are forced breaks in that run, as in
+ * the browser. A `<br>` that isn't displayed is left out.
  */
-function flattenChildren(
-  node: ReactNode,
-  items: ReactNode[] = [],
-): ReactNode[] {
+function flattenChildren(node: ReactNode, items: Item[] = []): Item[] {
   const rendered = renderComponents(node);
   if (
     rendered === null ||
@@ -506,13 +533,28 @@ function flattenChildren(
     return flattenChildren(el.props?.children, items);
   }
   const last = items[items.length - 1];
-  if (isText(rendered) && items.length > 0 && isText(last)) {
-    items[items.length - 1] = `${last}${rendered}`;
-  } else {
+  if (isText(rendered)) {
+    if (isTextRun(last)) {
+      last.pieces[last.pieces.length - 1] += String(rendered);
+    } else {
+      items.push(new TextRun(String(rendered)));
+    }
+  } else if (!isBreak(rendered)) {
     items.push(rendered);
+  } else if (!isHidden(rendered)) {
+    if (isTextRun(last)) last.pieces.push("");
+    else items.push(new TextRun("", ""));
   }
   return items;
 }
+
+const isBreak = (node: ReactNode): node is ReactElement<{ style?: unknown }> =>
+  typeof node === "object" &&
+  node !== null &&
+  (node as ReactElement).type === "br";
+
+const isHidden = (el: ReactElement<{ style?: unknown }>): boolean =>
+  (el.props.style as { display?: unknown } | undefined)?.display === "none";
 
 /** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
 function floorToPixel(value: number): number {

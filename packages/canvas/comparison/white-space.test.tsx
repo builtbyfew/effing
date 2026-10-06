@@ -372,25 +372,43 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
       expect(row.children[2]!.x).toBeCloseTo(56.7, 0);
     });
 
+    // A <br> is a forced break in the run around it (see br.test.tsx).
     it("removes the spaces around a <br />", async () => {
-      const column = await layOut(
-        [
-          "First line ",
-          <br key="1" />,
-          " second line ",
-          <br key="2" />,
-          " third line",
-        ],
-        { flexDirection: "column" },
+      for (const flexDirection of ["row", "column"] as const) {
+        const node = await layOut(
+          [
+            "First line ",
+            <br key="1" />,
+            " second line ",
+            <br key="2" />,
+            " third line",
+          ],
+          { flexDirection },
+        );
+        expect(describeChildren(node)).toEqual([
+          {
+            type: "text",
+            text: ["First line", "second line", "third line"],
+            x: 0,
+            y: 0,
+          },
+        ]);
+      }
+    });
+
+    // Chrome sizes the run to its widest line (fit-content), where it has no
+    // soft wrap: "y" follows it at 21.13px.
+    it("sizes a run with forced breaks to its widest line", async () => {
+      const row = await layOut(
+        [<span key="x">x</span>, "a\nb", <span key="y">y</span>],
+        { whiteSpace: "pre-line" },
       );
-      const texts = column.children.filter((c) => c.type === "text");
-      expect(
-        texts.map((c) => [c.textLayout!.segments[0]!.text, c.x, c.y]),
-      ).toEqual([
-        ["First line", 0, 0],
-        ["second line", 0, 23],
-        ["third line", 0, 46],
+      expect(describeChildren(row)).toEqual([
+        expect.objectContaining({ type: "span", x: 0 }),
+        expect.objectContaining({ type: "text", text: ["a", "b"], x: 10 }),
+        expect.objectContaining({ type: "span" }),
       ]);
+      expect(row.children[2]!.x).toBeCloseTo(21.13, 0);
     });
 
     // The DOM has no fragments or components: their content is the parent's.

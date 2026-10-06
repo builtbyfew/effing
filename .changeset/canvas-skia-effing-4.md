@@ -11,7 +11,8 @@ Keep emoji with their punctuation, and clamp lines as Chrome does
   after the emoji, and `(🎉)` is never split.
 - A `lineClamp` line that ends at a newline under `whiteSpace: "pre-line"` or
   `"pre-wrap"` now ends in an ellipsis, as in Chrome (`"ab\ncd"` clamped to
-  one line is "ab…"), and an empty clamped line is the ellipsis alone.
+  one line is "ab…"), and an empty clamped line is the ellipsis alone. Under
+  `"pre"` such a line still has no ellipsis, where Chrome adds one.
 - The last line `lineClamp` shows is its own text with the ellipsis after it,
   cut by grapheme cluster until the two fit, as in Chrome: it no longer takes
   in the start of the next line's text ("ab cd…", not "ab cd e…"), and no

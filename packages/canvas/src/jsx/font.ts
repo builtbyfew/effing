@@ -4,19 +4,12 @@ import type { FontData } from "../types.ts";
 
 const registeredFonts = new Set<string>();
 
-let generation = 0;
-
-/**
- * Bumped whenever the registered fonts change, which can change the font a
- * family list resolves to: a cache of anything derived from fonts keys on it.
- */
-export function fontGeneration(): number {
-  return generation;
-}
-
 // Fonts can be registered through `GlobalFonts` itself, which this package
 // re-exports, as well as through the functions below: every method of it that
-// changes the fonts starts a new generation.
+// changes the fonts is wrapped to start a new font generation. The wrappers
+// and the generation live on the shared `GlobalFonts` object, so that every
+// copy of this module (one per bundle, or per test file) finds and counts the
+// same ones, and a change is counted once.
 const FONT_MUTATORS = [
   "register",
   "registerFromPath",
@@ -25,19 +18,44 @@ const FONT_MUTATORS = [
   "removeAll",
   "setAlias",
   "loadFontsFromDir",
+  // An own method of `GlobalFonts` that its typings leave out.
   "loadSystemFonts",
-] as const;
-const fonts = GlobalFonts as unknown as Record<string, unknown>;
-for (const name of FONT_MUTATORS) {
-  const method = fonts[name];
-  if (typeof method !== "function") continue;
-  fonts[name] = function (this: unknown, ...args: unknown[]): unknown {
-    try {
-      return method.apply(this, args);
-    } finally {
-      generation++;
-    }
-  };
+] as const satisfies readonly (keyof typeof GlobalFonts | "loadSystemFonts")[];
+
+const FONT_GENERATION = Symbol.for("@effing/canvas.fontGeneration");
+
+type FontGeneration = { generation: number };
+
+function trackFontChanges(): FontGeneration {
+  const fonts = GlobalFonts as unknown as Record<PropertyKey, unknown>;
+  const existing = fonts[FONT_GENERATION] as FontGeneration | undefined;
+  if (existing) return existing;
+  const state: FontGeneration = { generation: 0 };
+  for (const name of FONT_MUTATORS) {
+    const method = fonts[name];
+    if (typeof method !== "function") continue;
+    const wrapper = function (this: unknown, ...args: unknown[]): unknown {
+      try {
+        return method.apply(this, args);
+      } finally {
+        state.generation++;
+      }
+    };
+    Object.defineProperty(wrapper, "name", { value: method.name || name });
+    fonts[name] = wrapper;
+  }
+  Object.defineProperty(fonts, FONT_GENERATION, { value: state });
+  return state;
+}
+
+const fontChanges = trackFontChanges();
+
+/**
+ * Bumped whenever the registered fonts change, which can change the font a
+ * family list resolves to: a cache of anything derived from fonts keys on it.
+ */
+export function fontGeneration(): number {
+  return fontChanges.generation;
 }
 
 /**

@@ -13,6 +13,17 @@ import type { YogaNode } from "../yoga.ts";
 import type { ComputedStyle } from "./compute.ts";
 
 /**
+ * A length in px, truncated to 1/64px, as Chrome lays lengths out (in
+ * units of 1/64px). It also keeps the sums Yoga shrinks flex items with
+ * exact (see `TextMeasure`).
+ */
+export function toLayoutUnit(px: number): number {
+  if (!Number.isFinite(px)) return px;
+  // Rounded first, so that 2.3 * 64 = 147.19999… still counts as 147.2.
+  return Math.trunc(Math.round(px * 64 * 1e6) / 1e6) / 64;
+}
+
+/**
  * Apply computed CSS styles to a Yoga node.
  */
 export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
@@ -114,14 +125,14 @@ export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
   node.setFlexShrink(style.flexShrink ?? 0);
   if (style.flexBasis !== undefined) {
     if (typeof style.flexBasis === "number") {
-      node.setFlexBasis(style.flexBasis);
+      node.setFlexBasis(toLayoutUnit(style.flexBasis));
     } else if (String(style.flexBasis).endsWith("%")) {
       node.setFlexBasis(String(style.flexBasis) as `${number}%`);
     } else if (style.flexBasis === "auto") {
       node.setFlexBasis("auto");
     } else {
       const n = parseFloat(String(style.flexBasis));
-      if (!isNaN(n)) node.setFlexBasis(n);
+      if (!isNaN(n)) node.setFlexBasis(toLayoutUnit(n));
     }
   }
 
@@ -160,18 +171,22 @@ export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
 
   // Border width (resolved to numbers by resolveUnits before this point)
   if (style.borderTopWidth !== undefined)
-    node.setBorder(Edge.Top, style.borderTopWidth as number);
+    node.setBorder(Edge.Top, toLayoutUnit(style.borderTopWidth as number));
   if (style.borderRightWidth !== undefined)
-    node.setBorder(Edge.Right, style.borderRightWidth as number);
+    node.setBorder(Edge.Right, toLayoutUnit(style.borderRightWidth as number));
   if (style.borderBottomWidth !== undefined)
-    node.setBorder(Edge.Bottom, style.borderBottomWidth as number);
+    node.setBorder(
+      Edge.Bottom,
+      toLayoutUnit(style.borderBottomWidth as number),
+    );
   if (style.borderLeftWidth !== undefined)
-    node.setBorder(Edge.Left, style.borderLeftWidth as number);
+    node.setBorder(Edge.Left, toLayoutUnit(style.borderLeftWidth as number));
 
   // Gap
-  if (style.rowGap !== undefined) node.setGap(Gutter.Row, style.rowGap);
+  if (style.rowGap !== undefined)
+    node.setGap(Gutter.Row, toLayoutUnit(style.rowGap));
   if (style.columnGap !== undefined)
-    node.setGap(Gutter.Column, style.columnGap);
+    node.setGap(Gutter.Column, toLayoutUnit(style.columnGap));
 
   // Overflow
   if (
@@ -204,7 +219,7 @@ function applyDimension(
     return;
   }
   if (typeof value === "number") {
-    node[setter](value);
+    node[setter](toLayoutUnit(value));
     return;
   }
   const s = String(value);
@@ -212,7 +227,7 @@ function applyDimension(
     node[setter](s as `${number}%`);
   } else {
     const n = parseFloat(s);
-    if (!isNaN(n)) node[setter](n);
+    if (!isNaN(n)) node[setter](toLayoutUnit(n));
   }
 }
 
@@ -228,7 +243,7 @@ function applyEdgeValue(
     return;
   }
   if (typeof value === "number") {
-    node[setter](edge, value);
+    node[setter](edge, toLayoutUnit(value));
     return;
   }
   const s = String(value);
@@ -236,6 +251,6 @@ function applyEdgeValue(
     node[setter](edge, s as `${number}%`);
   } else {
     const n = parseFloat(s);
-    if (!isNaN(n)) node[setter](edge, n);
+    if (!isNaN(n)) node[setter](edge, toLayoutUnit(n));
   }
 }

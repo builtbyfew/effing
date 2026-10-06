@@ -8,6 +8,7 @@ import Yoga, {
   MeasureMode,
   Overflow,
   PositionType,
+  Unit,
   Wrap,
 } from "yoga-layout";
 import type { Node as YogaNode } from "yoga-layout";
@@ -25,6 +26,7 @@ export {
   MeasureMode,
   Overflow,
   PositionType,
+  Unit,
   Wrap,
 };
 

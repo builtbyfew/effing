@@ -1,5 +1,5 @@
 ---
-"@effing/canvas": patch
+"@effing/canvas": minor
 ---
 
 Don't shrink text below its min-content width, so text too wide for its box stays centred
@@ -15,9 +15,9 @@ both sides. Canvas now does the same.
 - In a row, an element that holds only text, and a run of text between
   elements, are at least as wide as the text's widest word, or its widest
   line where it doesn't wrap, padding and borders included. A `width` or
-  `maxWidth` caps that, and there is no minimum with a `minWidth` of the
-  element's own, with `overflow: "hidden"` (or `scroll` or `auto`), or for an
-  absolutely positioned element, as in CSS.
+  `maxWidth` caps that, percentages included. There is no minimum with a
+  `minWidth` of the element's own, with `overflow: "hidden"` (or `scroll` or
+  `auto`), or for an absolutely positioned element, as in CSS.
 - Text truncated with an ellipsis (`textOverflow: "ellipsis"` without
   wrapping, or `lineClamp`) still shrinks to its box and is truncated there.
 - Under `overflowWrap: "anywhere"`, `wordBreak: "break-all"` and
@@ -26,9 +26,13 @@ both sides. Canvas now does the same.
   in CSS: a word only breaks where the box can't grow to it.
 - Across a column (`alignItems: "center"` and the like), text that can't fit
   is as wide as its widest word or line, rather than the width available.
-- Text widths are now rounded up to 1/64px, as Chrome lays them out. Boxes
-  sized by text can come out a pixel wider where that rounding crosses half
-  a pixel, as in Chrome.
+- Lengths are laid out in units of 1/64px, as in Chrome: text widths are
+  rounded up to them, and lengths in px (widths, padding, borders, margins,
+  gaps, flex bases and positions) truncated. Boxes can come out a pixel
+  wider or narrower where that crosses half a pixel, as in Chrome.
+- Rows whose items are all held at their minimums are laid out as in CSS.
+  Yoga could size such items at millions of pixels, and now pins them at
+  their minimums instead, also in rows that ran away before.
 
 Layouts that relied on text shrinking below its words change: a row of text
 items that can't fit now overflows its container, as in Chrome. Give an item

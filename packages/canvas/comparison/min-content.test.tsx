@@ -2,6 +2,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import React from "react";
 import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import { buildLayoutTree } from "../src/jsx/layout.ts";
+import { DEFAULT_STYLE, resolveStyle } from "../src/jsx/style/compute.ts";
+import { TextMeasure, layoutText } from "../src/jsx/text/index.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
 import { HAS_NATIVE_DEPS, loadFonts } from "./_helpers/setup.ts";
 
@@ -58,6 +60,14 @@ describe.skipIf(!HAS_NATIVE_DEPS)("min-content width", () => {
       600,
       120,
     );
+    return boxesIn(tree);
+  }
+
+  /**
+   * Every element with an `id` in `tree`: its left edge and width, and its
+   * lines' left edges and text.
+   */
+  function boxesIn(tree: LayoutNode): Record<string, Box> {
     const found: Record<string, Box> = {};
     const lines = (node: LayoutNode, x: number): [number, string][] => [
       ...(node.textLayout?.segments ?? []).map((s): [number, string] => [
@@ -444,6 +454,256 @@ describe.skipIf(!HAS_NATIVE_DEPS)("min-content width", () => {
       );
       expectBox(a, 150, 143.14, [150, 150, 150]);
       expectBox(b, 293.14, 156.86, [293.14, 293.14]);
+    });
+  });
+
+  // Rows of items held at their minimums, with lengths off Chrome's grid of
+  // 1/64px, where Yoga used to lose its sums. Each row is a flex row of
+  // Liberation Sans in a 500px frame; the expectations are Chrome's left
+  // edges and widths of its items.
+  describe("holds items at their minimums in rows of any lengths", () => {
+    async function layOutRow(
+      box: React.CSSProperties,
+      items: [React.CSSProperties, string][],
+      spacer?: number,
+    ): Promise<Box[]> {
+      const { tree } = await buildLayoutTree(
+        <div style={{ display: "flex", width: 500, height: 120 }}>
+          {spacer !== undefined && <div style={{ width: spacer }} />}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              fontFamily: "Liberation Sans",
+              fontWeight: 400,
+              ...box,
+            }}
+          >
+            {items.map(([style, content], i) => (
+              <div key={i} id={`item${i}`} style={style}>
+                {content}
+              </div>
+            ))}
+          </div>
+        </div>,
+        500,
+        120,
+      );
+      const found = boxesIn(tree);
+      return items.map((_, i) => found[`item${i}`]!);
+    }
+
+    const expectItems = (boxes: Box[], expected: [number, number][]) =>
+      expected.forEach(([x, width], i) => expectEdges(boxes[i], x, width));
+
+    it("with fractional padding", async () => {
+      const items = await layOutRow({ width: 300 }, [
+        [
+          { fontSize: 20, whiteSpace: "nowrap", paddingLeft: 3.3 },
+          "Hello wonderful world",
+        ],
+        [{ fontSize: 20, whiteSpace: "nowrap" }, "Another item"],
+      ]);
+      expectItems(items, [
+        [0, 194.5],
+        [194.5, 113.39],
+      ]);
+    });
+
+    it("capped at a percentage width", async () => {
+      // The minimum is the smaller of the width and the text's.
+      const style: React.CSSProperties = {
+        fontSize: 20,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        width: "60%",
+      };
+      const items = await layOutRow({ width: 300 }, [
+        [style, "Hello wonderful world"],
+        [style, "Another item"],
+      ]);
+      expectItems(items, [
+        [0, 180],
+        [180, 123.34],
+      ]);
+    });
+
+    it("with percentage padding", async () => {
+      const items = await layOutRow(
+        { width: 300, justifyContent: "center" },
+        [
+          [
+            {
+              fontSize: 40,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              paddingLeft: "10%",
+            },
+            NOWRAP,
+          ],
+        ],
+        150,
+      );
+      expectItems(items, [[-11.73, 623.48]]);
+    });
+
+    it("capped at a percentage max width", async () => {
+      const items = await layOutRow({ width: 300 }, [
+        [
+          {
+            fontSize: 40,
+            fontWeight: 700,
+            whiteSpace: "nowrap",
+            maxWidth: "80%",
+          },
+          NOWRAP,
+        ],
+        [{ width: 100, height: 20, flexShrink: 0 }, ""],
+      ]);
+      expectItems(items, [
+        [0, 240],
+        [240, 100],
+      ]);
+    });
+
+    it("all of them, at percentages and fractions", async () => {
+      const items = await layOutRow(
+        { width: 183.191, columnGap: 6.542, justifyContent: "center" },
+        [
+          [
+            { fontSize: 17, paddingLeft: 3.307, textAlign: "center" },
+            "layout world",
+          ],
+          [
+            {
+              fontSize: 11,
+              whiteSpace: "nowrap",
+              paddingLeft: 6.243,
+              borderLeftWidth: 2,
+              borderStyle: "solid",
+              width: "46.094%",
+            },
+            "layout Hi",
+          ],
+          [
+            {
+              fontSize: 19,
+              paddingRight: 7.619,
+              width: 156.345,
+              textAlign: "center",
+            },
+            "BMW Hi world",
+          ],
+          [{ fontSize: 14, flex: 1 }, "world world"],
+        ],
+      );
+      expectItems(items, [
+        [-11.81, 48.67],
+        [43.39, 51.03],
+        [100.95, 54.05],
+        [161.53, 33.47],
+      ]);
+    });
+
+    it("with words wider than the row", async () => {
+      const items = await layOutRow({ width: 120.37 }, [
+        [{ fontSize: 20, paddingLeft: 3.3 }, "Hi Supercalifragilistic"],
+        [
+          { fontSize: 20, paddingLeft: "2.7%", paddingRight: 1.9 },
+          "wonderful Sportpakket",
+        ],
+      ]);
+      expectItems(items, [
+        [0, 164.47],
+        [164.47, 111.86],
+      ]);
+    });
+
+    // Yoga sized these out of all proportion, at millions of pixels.
+    it("in a row a few pixels wide", async () => {
+      const items = await layOutRow({ width: "1.16%" }, [
+        [
+          { fontSize: 33, whiteSpace: "nowrap", paddingLeft: 7.91 },
+          "item item",
+        ],
+        [
+          {
+            fontSize: 37,
+            whiteSpace: "nowrap",
+            flex: 1,
+            paddingLeft: "7.418%",
+          },
+          "world layout item",
+        ],
+      ]);
+      expectItems(items, [
+        [0, 141.77],
+        [141.77, 278.03],
+      ]);
+    });
+
+    it("that shrink by fractions", async () => {
+      // This row ran away before automatic minimums too.
+      const items = await layOutRow({ width: 14.626, columnGap: 1.928 }, [
+        [
+          {
+            fontSize: 39,
+            paddingLeft: "0.971%",
+            paddingRight: 4.052,
+            flexShrink: 1.977,
+          },
+          "a world X5",
+        ],
+        [
+          { fontSize: 12, paddingLeft: "8.805%", paddingRight: 7.338 },
+          "wonderful Another",
+        ],
+        [
+          {
+            fontSize: 38,
+            whiteSpace: "nowrap",
+            paddingLeft: 4.283,
+            paddingRight: 8.245,
+          },
+          "a",
+        ],
+        [
+          {
+            fontSize: 30,
+            whiteSpace: "nowrap",
+            paddingLeft: 3.394,
+            borderLeftWidth: 3,
+            borderStyle: "solid",
+            marginLeft: 1.357,
+            width: 168.697,
+          },
+          "Hi item Sportpakket Supercalifragilistic",
+        ],
+      ]);
+      expectItems(items, [
+        [0, 97.39],
+        [99.31, 60.64],
+        [161.88, 33.66],
+        [198.8, 168.69],
+      ]);
+    });
+  });
+
+  it("measures text at exactly a width for its height there", () => {
+    // A stretched item is as wide as its box, whatever its text: Yoga asks
+    // for the height at that width, which isn't the text's min-content.
+    const style = resolveStyle(
+      { fontFamily: "Liberation Sans", fontSize: 20 },
+      DEFAULT_STYLE,
+    );
+    const content = `${WORD} and more`;
+    const measure = new TextMeasure(content, style);
+    const atMost = measure.measure(100);
+    const exactly = measure.measure(100, true);
+    expect(atMost.width).toBeGreaterThan(100);
+    expect(exactly).toEqual({
+      width: 100,
+      height: layoutText(content, style, 100).height,
     });
   });
 });

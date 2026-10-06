@@ -15,7 +15,7 @@ import {
   DEFAULT_STYLE,
 } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
-import { applyStylesToYoga } from "./style/properties.ts";
+import { applyStylesToYoga, toLayoutUnit } from "./style/properties.ts";
 import { TextMeasure } from "./text/index.ts";
 import { isWhiteSpaceOnly } from "./text/white-space.ts";
 import type { TextContent } from "./text/white-space.ts";
@@ -24,8 +24,11 @@ import {
   createTextYogaNode,
   createYogaNode,
   freeYogaNode,
+  Edge,
   FlexDirection,
   MeasureMode,
+  Unit,
+  Wrap,
 } from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
@@ -97,12 +100,52 @@ export async function buildLayoutTree(
   rootYogaNode.setFlexDirection(FlexDirection.Row);
   rootYogaNode.insertChild(elementYogaNode, 0);
 
-  rootYogaNode.calculateLayout(containerWidth, containerHeight);
-  settleText(
-    elementNode,
-    () => rootYogaNode.calculateLayout(containerWidth, containerHeight),
-    renderContext.debug,
-  );
+  // Text items get their automatic minimum widths where the layout squeezes
+  // them below their text, which takes another layout, and their text is
+  // laid out at the widths they end up with.
+  const autoMinimums = collectAutoMinimums(elementNode);
+  const layOut = () => {
+    rootYogaNode.calculateLayout(containerWidth, containerHeight);
+    for (
+      let pass = 0;
+      pass < MAX_AUTO_MINIMUM_RELAYOUTS && enforceAutoMinimums(autoMinimums);
+      pass++
+    ) {
+      rootYogaNode.calculateLayout(containerWidth, containerHeight);
+    }
+  };
+  layOut();
+  settleText(elementNode, layOut, renderContext.debug);
+
+  // Yoga can lose its sums and size flex items out of all proportion (see
+  // `pinRunawayItems`): pin them at their minimums, as CSS sizes them, or
+  // failing that, lay the text out without its automatic minimums.
+  const limit = RUNAWAY_SIZE * Math.max(containerWidth, containerHeight);
+  for (
+    let pass = 0;
+    pass < MAX_RUNAWAY_RELAYOUTS &&
+    hasRunawaySize(elementNode, limit) &&
+    pinRunawayItems(elementNode, limit);
+    pass++
+  ) {
+    layOut();
+    settleText(elementNode, layOut, renderContext.debug);
+  }
+  if (hasRunawaySize(elementNode, limit)) {
+    const lifted = autoMinimums.filter((node) => liftAutoMinimum(node));
+    if (lifted.length > 0) {
+      const plain = () =>
+        rootYogaNode.calculateLayout(containerWidth, containerHeight);
+      plain();
+      settleText(elementNode, plain, renderContext.debug);
+    }
+    if (renderContext.debug) {
+      console.warn(
+        "[@effing/canvas] Yoga sized flex items out of all proportion" +
+          (lifted.length > 0 ? ": laid their text out without minimums" : ""),
+      );
+    }
+  }
 
   const elementLayout = extractLayout(elementNode, elementYogaNode);
   freeYogaNode(rootYogaNode);
@@ -318,8 +361,11 @@ async function buildNode(
     if (style.flexShrink === undefined) {
       yogaNode.setFlexShrink(1);
     }
-    // But no narrower than their text, as CSS has it.
-    setAutoMinWidth(yogaNode, style, parentStyle, child.textMeasure!);
+    // But no narrower than their text, as CSS has it: an element in a row,
+    // and its text in the element's own row.
+    if (isRow(style)) {
+      child.autoMinimum = { textMeasure: child.textMeasure! };
+    }
 
     return {
       type: tagName,
@@ -327,6 +373,9 @@ async function buildNode(
       children: [child],
       props,
       yogaNode,
+      autoMinimum: hasAutoMinimum(style, parentStyle)
+        ? { textMeasure: child.textMeasure!, style }
+        : undefined,
     };
   }
 
@@ -371,6 +420,11 @@ type IntermediateNode = {
   textContent?: TextContent;
   /** Set on text nodes, which Yoga measures. */
   textMeasure?: TextMeasure;
+  /**
+   * Set on a flex item that CSS gives an automatic minimum width (see
+   * `enforceAutoMinimums`).
+   */
+  autoMinimum?: AutoMinimum;
   props: Record<string, unknown>;
   yogaNode: YogaNode;
 };
@@ -443,11 +497,6 @@ function buildTextNode(
   const style = resolveStyle(undefined, parentStyle);
   const textMeasure = new TextMeasure(text, style, emojiEnabled);
   setTextMeasure(yogaNode, textMeasure);
-  // An anonymous flex item, whose minimum width is its min-content width in a
-  // row (CSS `min-width: auto`).
-  if (isRow(parentStyle) && textMeasure.minContentWidth > 0) {
-    yogaNode.setMinWidth(textMeasure.minContentWidth);
-  }
   return {
     type: "text",
     style,
@@ -466,64 +515,327 @@ const isRow = (style: ComputedStyle) =>
   style.flexDirection === "row-reverse";
 
 /**
- * Give a flex item that holds nothing but text the minimum width CSS's
- * `min-width: auto` gives it in a row: as wide as its text's min-content
- * width, padding and borders included, so it never shrinks below a word, or
- * a line that can't wrap. That keeps text that doesn't fit centred in a
- * centring parent, overflowing it on both sides, as in Chrome. A width or a
- * max width caps it. A scroll container (`overflow: hidden`, `scroll` or
- * `auto`) has none, as in CSS, nor has an item positioned absolutely or one
- * with a `min-width` of its own.
+ * A flex item in a row that holds nothing but text, which CSS's
+ * `min-width: auto` keeps from shrinking below its text's min-content width:
+ * a word, or a line that can't wrap. That keeps text that doesn't fit
+ * centred in a centring parent, overflowing it on both sides, as in Chrome.
+ * The text of such an element is an item in the element's own row, with a
+ * minimum of its own.
  */
-function setAutoMinWidth(
-  yogaNode: YogaNode,
+type AutoMinimum = {
+  textMeasure: TextMeasure;
+  /** The element's style; none for its text. */
+  style?: ComputedStyle;
+  /** Takes back the minimum given to Yoga, once it was. */
+  lift?: () => void;
+};
+
+/**
+ * Whether an element that holds nothing but text has an automatic minimum
+ * width. A scroll container (`overflow: hidden`, `scroll` or `auto`) has
+ * none, as in CSS, nor has an item positioned absolutely or one with a
+ * `min-width` of its own.
+ */
+function hasAutoMinimum(
   style: ComputedStyle,
   parentStyle: ComputedStyle,
-  textMeasure: TextMeasure,
-): void {
-  if (
-    !isRow(parentStyle) ||
-    style.position === "absolute" ||
-    (style.minWidth !== undefined && style.minWidth !== "auto") ||
-    [style.overflow, style.overflowX, style.overflowY].some(
+): boolean {
+  return (
+    isRow(parentStyle) &&
+    style.position !== "absolute" &&
+    (style.minWidth === undefined || style.minWidth === "auto") &&
+    ![style.overflow, style.overflowX, style.overflowY].some(
       (overflow) =>
         overflow === "hidden" || overflow === "scroll" || overflow === "auto",
     )
-  ) {
-    return;
+  );
+}
+
+/**
+ * How many times the layout is computed again for items squeezed below
+ * their automatic minimum width. Each minimum given can squeeze the items
+ * next to it in turn.
+ */
+const MAX_AUTO_MINIMUM_RELAYOUTS = 4;
+
+/** The nodes with an automatic minimum width, but under `display: none`. */
+function collectAutoMinimums(root: IntermediateNode): IntermediateNode[] {
+  const nodes: IntermediateNode[] = [];
+  const collect = (node: IntermediateNode) => {
+    if (node.style.display === "none") return;
+    if (node.autoMinimum) nodes.push(node);
+    node.children.forEach(collect);
+  };
+  collect(root);
+  return nodes;
+}
+
+/**
+ * Hold each item Yoga laid out narrower than its automatic minimum width at
+ * that minimum (see `holdAtMinimum`), for the caller to compute the layout
+ * again.
+ *
+ * Only the items that need it are held: a minimum Yoga doesn't hold an item
+ * to doesn't change the layout, and these are the items CSS freezes at their
+ * minimums. Holding them can squeeze the items next to them below theirs in
+ * turn, as CSS freezes items in rounds.
+ *
+ * @returns Whether any item was held
+ */
+function enforceAutoMinimums(nodes: IntermediateNode[]): boolean {
+  let enforced = false;
+  for (const node of nodes) {
+    const autoMinimum = node.autoMinimum!;
+    if (autoMinimum.lift) continue;
+    const { yogaNode } = node;
+    const { textMeasure, style } = autoMinimum;
+    const width = yogaNode.getComputedWidth();
+    // Yoga puts elements on whole pixels; text it leaves as measured.
+    const tolerance = style ? 1 : 1e-3;
+    // As wide as a bound on its minimum: not squeezed.
+    const edges = style ? horizontalEdges(yogaNode, style) : 0;
+    if (width + tolerance >= textMeasure.minContentBound + edges) continue;
+    const minimum = autoMinimumWidth(node);
+    if (minimum === undefined || width + tolerance >= minimum) continue;
+    autoMinimum.lift = holdAtMinimum(yogaNode, minimum, () => {
+      const auto = (value: number | string | undefined) =>
+        value === undefined || value === "auto";
+      return (
+        textMeasure.unbreakable &&
+        (!style || (auto(style.width) && auto(style.flexBasis)))
+      );
+    });
+    enforced = true;
   }
-  // A percentage isn't known here: leave the item as it was.
-  const length = (value: number | string | undefined, auto: number) =>
-    value === undefined || value === "auto"
-      ? auto
-      : typeof value === "number"
-        ? value
-        : undefined;
-  const width = length(style.width, Infinity);
-  const maxWidth = length(style.maxWidth, Infinity);
-  if (width === undefined || maxWidth === undefined) return;
-  const edges = [
+  return enforced;
+}
+
+/**
+ * A node's padding and borders on the left and right, as Yoga has them, or
+ * as its style has them where they're lengths.
+ */
+function horizontalEdges(yogaNode: YogaNode, style?: ComputedStyle): number {
+  const lengths = style && [
     style.paddingLeft,
     style.paddingRight,
     style.borderLeftWidth,
     style.borderRightWidth,
-  ].reduce<number>((sum, edge) => sum + (length(edge, 0) ?? 0), 0);
-  const minWidth = Math.min(
-    textMeasure.minContentWidth + edges,
-    width,
-    maxWidth,
+  ];
+  if (lengths?.every((v) => v === undefined || typeof v === "number")) {
+    return lengths.reduce<number>(
+      (sum, v) => sum + toLayoutUnit((v as number | undefined) ?? 0),
+      0,
+    );
+  }
+  return (
+    yogaNode.getComputedPadding(Edge.Left) +
+    yogaNode.getComputedPadding(Edge.Right) +
+    yogaNode.getComputedBorder(Edge.Left) +
+    yogaNode.getComputedBorder(Edge.Right)
   );
-  if (minWidth > 0) yogaNode.setMinWidth(minWidth);
+}
+
+/**
+ * A node's automatic minimum width: its text's min-content width, and an
+ * element's padding and borders, capped at its width and max width as CSS
+ * does, a percentage of its parent's content box.
+ *
+ * @returns The minimum, or undefined where a width can't be resolved
+ */
+function autoMinimumWidth(node: IntermediateNode): number | undefined {
+  const { yogaNode } = node;
+  const { textMeasure, style } = node.autoMinimum!;
+  if (!style) return textMeasure.minContentWidth;
+  let minimum = textMeasure.minContentWidth + horizontalEdges(yogaNode, style);
+  const parent = yogaNode.getParent();
+  const parentContentWidth = parent
+    ? parent.getComputedWidth() - horizontalEdges(parent)
+    : NaN;
+  for (const value of [style.width, style.maxWidth]) {
+    if (value === undefined || value === "auto") continue;
+    let cap: number;
+    if (typeof value === "number") {
+      cap = toLayoutUnit(value);
+    } else if (value.endsWith("%") && Number.isFinite(parentContentWidth)) {
+      cap = (parseFloat(value) / 100) * parentContentWidth;
+    } else {
+      return undefined;
+    }
+    if (!Number.isFinite(cap)) return undefined;
+    minimum = Math.min(minimum, cap);
+  }
+  return minimum;
+}
+
+/**
+ * Hold a flex item Yoga squeezed below its automatic minimum width at that
+ * minimum, as CSS does: it freezes an item at its minimum when it would
+ * shrink below it, and lays the others out in the space left.
+ *
+ * In a line that doesn't wrap, the item is pinned there (a flex basis of
+ * its minimum, and neither growing nor shrinking), which leaves it out of
+ * the items Yoga flexes. A min width would keep it in, and when every item
+ * Yoga shrinks in a line is held at its minimum, Yoga can lose its sums (see
+ * `pinRunawayItems`), or size them from their flex bases. An item whose flex
+ * basis is its minimum already (`isAtBasis`) only stops shrinking. In a line
+ * that wraps, where an item's flex basis decides which line it's on, it
+ * gets a min width.
+ *
+ * @returns A function that takes the minimum back
+ */
+function holdAtMinimum(
+  yogaNode: YogaNode,
+  minimum: number,
+  isAtBasis: () => boolean,
+): () => void {
+  const flexShrink = yogaNode.getFlexShrink();
+  if (isAtBasis()) {
+    yogaNode.setFlexShrink(0);
+    return () => yogaNode.setFlexShrink(flexShrink);
+  }
+  const wraps = yogaNode.getParent()?.getFlexWrap() !== Wrap.NoWrap;
+  if (wraps) {
+    yogaNode.setMinWidth(minimum);
+    return () => yogaNode.setMinWidth(undefined);
+  }
+  const flexGrow = yogaNode.getFlexGrow();
+  const flexBasis = yogaNode.getFlexBasis();
+  yogaNode.setFlexBasis(minimum);
+  yogaNode.setFlexShrink(0);
+  yogaNode.setFlexGrow(0);
+  return () => {
+    yogaNode.setFlexShrink(flexShrink);
+    yogaNode.setFlexGrow(flexGrow);
+    if (flexBasis.unit === Unit.Point) yogaNode.setFlexBasis(flexBasis.value);
+    else if (flexBasis.unit === Unit.Percent)
+      yogaNode.setFlexBasis(`${flexBasis.value}%`);
+    else yogaNode.setFlexBasis("auto");
+  };
+}
+
+/**
+ * Take back the automatic minimum width given to Yoga.
+ *
+ * @returns Whether there was one
+ */
+function liftAutoMinimum(node: IntermediateNode): boolean {
+  const autoMinimum = node.autoMinimum!;
+  const { lift } = autoMinimum;
+  lift?.();
+  autoMinimum.lift = undefined;
+  return lift !== undefined;
+}
+
+/**
+ * A node this many times as wide or tall as the canvas is taken for one
+ * Yoga lost its sums for.
+ */
+const RUNAWAY_SIZE = 100;
+
+/** How many times runaway flex items are pinned, and the layout computed. */
+const MAX_RUNAWAY_RELAYOUTS = 2;
+
+const isRunaway = (size: number, limit: number) => !(Math.abs(size) <= limit);
+
+/** Whether Yoga made any node wider or taller than `limit`, or NaN. */
+function hasRunawaySize(root: IntermediateNode, limit: number): boolean {
+  const runaway = (node: IntermediateNode): boolean =>
+    node.style.display !== "none" &&
+    (isRunaway(node.yogaNode.getComputedWidth(), limit) ||
+      isRunaway(node.yogaNode.getComputedHeight(), limit) ||
+      node.children.some(runaway));
+  return runaway(root);
+}
+
+/**
+ * Pin each flex item Yoga shrank to a runaway size at its minimum, for the
+ * caller to compute the layout again.
+ *
+ * Yoga shrinks flex items in float32. When every item it shrinks in a line
+ * is held at its minimum (its min width, or its padding and borders), the
+ * shrink factors it sums and takes away again can leave a rounding error
+ * behind, which it then divides by: the items grow to millions of pixels.
+ * Lengths and text widths on a grid of 1/64px keep those sums exact, but
+ * percentages, shares of free space and fractional `flexShrink`s aren't.
+ * CSS holds every such item at its minimum, which pinning does: a flex basis
+ * of the minimum, and no shrinking.
+ *
+ * @returns Whether any item was pinned
+ */
+function pinRunawayItems(root: IntermediateNode, limit: number): boolean {
+  let pinned = false;
+  const visit = (node: IntermediateNode, parent?: YogaNode) => {
+    if (node.style.display === "none") return;
+    const { yogaNode } = node;
+    const row =
+      parent !== undefined &&
+      [FlexDirection.Row, FlexDirection.RowReverse].includes(
+        parent.getFlexDirection(),
+      );
+    const size = row
+      ? yogaNode.getComputedWidth()
+      : yogaNode.getComputedHeight();
+    const parentSize = parent
+      ? row
+        ? parent.getComputedWidth()
+        : parent.getComputedHeight()
+      : 0;
+    if (
+      parent &&
+      isRunaway(size, limit) &&
+      !isRunaway(parentSize, limit) &&
+      yogaNode.getFlexShrink() > 0
+    ) {
+      // Its automatic minimum too, which Yoga may not have yet.
+      const auto = row && node.autoMinimum ? autoMinimumWidth(node) : 0;
+      yogaNode.setFlexBasis(
+        Math.max(minimumSize(yogaNode, parent, row), auto ?? 0),
+      );
+      yogaNode.setFlexShrink(0);
+      pinned = true;
+      // Its children follow it.
+      return;
+    }
+    for (const child of node.children) visit(child, yogaNode);
+  };
+  visit(root);
+  return pinned;
+}
+
+/**
+ * The size a flex item can't shrink below along its parent's main axis: its
+ * min width or height, and its padding and borders.
+ */
+function minimumSize(
+  yogaNode: YogaNode,
+  parent: YogaNode,
+  row: boolean,
+): number {
+  const [start, end] = row ? [Edge.Left, Edge.Right] : [Edge.Top, Edge.Bottom];
+  const edges = (node: YogaNode) =>
+    node.getComputedPadding(start) +
+    node.getComputedPadding(end) +
+    node.getComputedBorder(start) +
+    node.getComputedBorder(end);
+  const min = row ? yogaNode.getMinWidth() : yogaNode.getMinHeight();
+  let minimum = 0;
+  if (min.unit === Unit.Point) {
+    minimum = min.value;
+  } else if (min.unit === Unit.Percent) {
+    const parentSize = row
+      ? parent.getComputedWidth()
+      : parent.getComputedHeight();
+    minimum = (min.value / 100) * (parentSize - edges(parent));
+  }
+  return Math.max(minimum, edges(yogaNode));
 }
 
 /** Measure `yogaNode` with `textMeasure`. */
 function setTextMeasure(yogaNode: YogaNode, textMeasure: TextMeasure): void {
   yogaNode.setMeasureFunc((width, widthMode) =>
-    textMeasure.measure(
-      widthMode === MeasureMode.Undefined || Number.isNaN(width)
-        ? Infinity
-        : width,
-    ),
+    widthMode === MeasureMode.Undefined || Number.isNaN(width)
+      ? textMeasure.measure(Infinity)
+      : textMeasure.measure(width, widthMode === MeasureMode.Exactly),
   );
 }
 

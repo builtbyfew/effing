@@ -56,8 +56,9 @@ describe("collapseWhiteSpace", () => {
       expect(collapseWhiteSpace("a  \r\n  b", ws)).toBe("a  \n  b");
       expect(collapseWhiteSpace("a\rb", ws)).toBe("a\rb");
       expect(collapseWhiteSpace("a\r\rb\r", ws)).toBe("a\r\rb\r");
-      // A lone CR, then a CRLF.
-      expect(collapseWhiteSpace("a\r\r\nb", ws)).toBe("a\r\nb");
+      // A lone CR, then a CRLF: the CR goes with the newline after it, which
+      // it would end at no width anyway.
+      expect(collapseWhiteSpace("a\r\r\nb", ws)).toBe("a\nb");
     },
   );
 
@@ -91,6 +92,71 @@ describe("collapseWhiteSpace", () => {
     const text = "The quick brown fox";
     expect(collapseWhiteSpace(text, "normal")).toBe(text);
   });
+});
+
+// The pieces of text between <br>s, each <br> a forced break.
+describe("collapseWhiteSpace: <br>", () => {
+  const ALL = ["normal", "nowrap", "pre-line", "pre", "pre-wrap"] as const;
+
+  it.each(ALL)("breaks at every <br> under %s", (ws) => {
+    expect(collapseWhiteSpace(["a", "b"], ws)).toBe("a\nb");
+    expect(collapseWhiteSpace(["a", "", "b"], ws)).toBe("a\n\nb");
+    expect(collapseWhiteSpace(["", "a"], ws)).toBe("\na");
+    expect(collapseWhiteSpace(["a"], ws)).toBe("a");
+  });
+
+  // Only one break that ends the text is dropped, as for a newline.
+  it.each(ALL)("starts no line after a final <br> under %s", (ws) => {
+    expect(collapseWhiteSpace(["a", ""], ws)).toBe("a");
+    expect(collapseWhiteSpace(["a", "", ""], ws)).toBe("a\n");
+    expect(collapseWhiteSpace(["", ""], ws)).toBe("");
+  });
+
+  it.each(["normal", "nowrap", "pre-line"] as const)(
+    "removes the spaces around a <br> under %s",
+    (ws) => {
+      expect(collapseWhiteSpace(["a \t", " \tb "], ws)).toBe("a\nb");
+      expect(collapseWhiteSpace([" ", " "], ws)).toBe("");
+    },
+  );
+
+  it.each(["normal", "nowrap"] as const)(
+    "removes the newlines around a <br> under %s",
+    (ws) => {
+      expect(collapseWhiteSpace(["a\n", "\nb"], ws)).toBe("a\nb");
+      expect(collapseWhiteSpace(["a \n b", "c"], ws)).toBe("a b\nc");
+    },
+  );
+
+  // Chrome gives "a\n<br>b" an empty line between "a" and "b".
+  it.each(["pre-line", "pre", "pre-wrap"] as const)(
+    "keeps a newline next to a <br> a break of its own under %s",
+    (ws) => {
+      expect(collapseWhiteSpace(["a\n", "b"], ws)).toBe("a\n\nb");
+      expect(collapseWhiteSpace(["a", "\nb"], ws)).toBe("a\n\nb");
+      expect(collapseWhiteSpace(["a\n", ""], ws)).toBe("a\n");
+    },
+  );
+
+  it.each(["pre", "pre-wrap"] as const)(
+    "keeps the spaces around a <br> under %s",
+    (ws) => {
+      expect(collapseWhiteSpace(["a ", " b"], ws)).toBe("a \n b");
+    },
+  );
+
+  // Dropped, or a space removed at the end of the line: never a CRLF with
+  // the <br>, nor a missing glyph.
+  it.each(ALL)("drops a CR before a <br> under %s", (ws) => {
+    expect(collapseWhiteSpace(["a\r", "b"], ws)).toBe("a\nb");
+  });
+
+  it.each(ALL)(
+    "keeps a line separator a space next to a <br> under %s",
+    (ws) => {
+      expect(collapseWhiteSpace(["a\u2028", "b"], ws)).toBe("a\u00a0\u200b\nb");
+    },
+  );
 });
 
 describe("collapseWhiteSpace: separators and control characters", () => {

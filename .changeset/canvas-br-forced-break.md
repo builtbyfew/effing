@@ -19,6 +19,19 @@ side, where browsers stack them.
   a break of its own, as in browsers.
 - A `<br />` between two elements is an item of one empty line, and one with
   `display: none` is left out.
-- Text that only breaks where it's forced to (at a `<br />`, or at a newline
-  under `pre`, `pre-wrap` or `pre-line`) is now as wide as its widest line,
-  rather than the width available, so the items after it follow it.
+- Text with more than one line that only breaks where it's forced to (at a
+  `<br />`, or at a newline under `pre`, `pre-wrap` or `pre-line`) is now as
+  wide as its widest line, rather than the full width available, so the
+  items after it follow it and a background drawn behind it fits it. With
+  `lineClamp`, that width leaves out the ellipsis, and the clamped line is
+  truncated to fit it, as in Chrome.
+
+Layouts that relied on the old behaviour change:
+
+- `gap` no longer applies between the lines either side of a `<br />`: they
+  are one item now, as in Chrome.
+- In a column, the lines either side of a `<br />` used to be separate items,
+  each 23px tall with Liberation Sans at 20px. They are now lines of one
+  run, spaced at the `normal` line height that canvas gives any wrapped
+  text: 22.34px with that font, where Chrome adds the font's line gap
+  for 23px.

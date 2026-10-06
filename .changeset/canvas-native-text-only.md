@@ -20,9 +20,7 @@ What changes:
 - Emoji drawn as images sit as CSS `vertical-align: -0.1em` places a 1em
   image: their bottom 0.1em below the baseline, about where Chrome draws an
   emoji glyph. They used to sit in the middle of the line box, which put them
-  below the text under a tall `lineHeight`. One known difference from Chrome:
-  a line can break between an emoji and punctuation right after it ("🎉" |
-  "!"), where Chrome keeps them together.
+  below the text under a tall `lineHeight`.
 - `whiteSpace: "pre-wrap"` keeps the spaces before a line break in the line,
   as `pre` does.
 - `lineClamp` is rounded down to a whole number of lines.

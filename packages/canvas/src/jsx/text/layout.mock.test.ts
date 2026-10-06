@@ -237,6 +237,19 @@ describe("layoutText", () => {
       expect(result.width).toBe(6 * 8 + 16);
     });
 
+    it("breaks lines around each box as around an emoji", () => {
+      const result = layoutText(
+        "\u{1F389}! \u{1F30D}",
+        { fontSize: 16 },
+        500,
+        true,
+      );
+      const { placeholders } = result.paragraph as unknown as {
+        placeholders: { lineBreak?: string }[];
+      };
+      expect(placeholders.map((p) => p.lineBreak)).toEqual(["emoji", "emoji"]);
+    });
+
     it("keeps an emoji's grapheme cluster whole", () => {
       const family = "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}";
       const result = layoutText(`a${family}b`, { fontSize: 16 }, 500, true);

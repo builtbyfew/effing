@@ -114,6 +114,29 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     expect(clipped.x).toBe(0);
   });
 
+  // The clamped line is its own text with the ellipsis after it, cut by
+  // grapheme cluster until the two fit, without the space that hangs at its
+  // end unless `pre-wrap` keeps it. The widths are Chrome's for the line
+  // with its "…" (20px Liberation Sans), whose screenshots show these lines.
+  it.each([
+    ["ab cd efgh ij", "normal", 90, "ab cd", 68.94],
+    ["aaaa bb cccc", "normal", 100, "aaaa bb", 92.3],
+    ["aaaa bb cccc", "normal", 110, "aaaa bb", 92.3],
+    ["aaaa bb   cccc", "pre-wrap", 100, "aaaa bb ", 97.86],
+    ["aaaa bb   cccc", "pre-wrap", 120, "aaaa bb   ", 108.97],
+  ] as const)(
+    "truncates %j (%s) clamped to a line at %spx as Chrome does",
+    (text, whiteSpace, width, line, lineWidth) => {
+      const result = layoutText(
+        text,
+        style({ fontSize: 20, lineClamp: 1, whiteSpace }),
+        width,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual([line]);
+      expect(result.segments[0]!.width).toBeCloseTo(lineWidth, 1);
+    },
+  );
+
   it("puts letter spacing after each glyph, as CSS does", () => {
     const plain = layoutText("Hello", style({ fontSize: 20 }), 10_000);
     const spaced = layoutText(
@@ -437,9 +460,6 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       expect(emoji!.y + 48).toBeCloseTo(baseline + 4.8, 4);
     });
 
-    // The line fits "🎉! ok" either way, so this doesn't cover where an emoji
-    // meets punctuation: the paragraph allows a break between them ("🎉|!"),
-    // where Chrome doesn't.
     it("breaks around an emoji as Chrome does", () => {
       const result = layoutText(
         "Done 🎉! ok",
@@ -449,6 +469,26 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       );
       expect(result.segments.map((s) => s.text)).toEqual(["Done", "🎉! ok"]);
     });
+
+    // Chrome's lines, at a width where the emoji fits after "Hi " but the
+    // "!" after it doesn't. Chrome draws 🎉 22px wide at 20px (Apple Color
+    // Emoji) where canvas gives it 1em, so the widths are canvas's for the
+    // same fit: "Hi 🎉" is 44.44px here, "Hi 🎉!" 50px, "ab (🎉" 54.46px.
+    it.each([
+      ["Hi 🎉! ok", 45, ["Hi", "🎉!", "ok"]],
+      ["Hi 🎉! ok", 50, ["Hi 🎉!", "ok"]],
+      ["(🎉)", 10, ["(🎉)"]],
+      ["ab (🎉) cd", 55, ["ab", "(🎉)", "cd"]],
+    ] as const)(
+      "keeps an emoji with its punctuation: %j at %spx, as Chrome does",
+      (text, width, expected) => {
+        const result = layoutText(text, style({ fontSize: 20 }), width, true);
+        expect(result.segments.map((s) => s.text)).toEqual(expected);
+        // The emoji's box is on the line its text is on.
+        const line = expected.findIndex((l) => l.includes("🎉"));
+        expect(result.emoji[0]!.baseline).toBe(result.segments[line]!.y);
+      },
+    );
   });
 });
 

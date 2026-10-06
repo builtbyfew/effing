@@ -129,6 +129,20 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
     },
   );
 
+  // `pre-wrap` keeps the spaces that start a line: Chrome puts the spaces of
+  // "  ab cd" on a line of their own at 30px, where "  ab" doesn't fit, and
+  // keeps them before "cd" after a newline. They hang at the soft wrap, so
+  // the first line has no text of its own.
+  it("keeps the spaces that start a line under pre-wrap", () => {
+    expect(
+      lines("  ab cd", "pre-wrap", 30, { textAlign: "left" }).text,
+    ).toEqual(["", "ab", "cd"]);
+    expect(lines("ab\n  cd ef", "pre-wrap")).toEqual({
+      text: ["ab", "  cd ef"],
+      x: [expect.closeTo(277.75, 1), expect.closeTo(245.52, 1)],
+    });
+  });
+
   // A newline that ends the text ends its last line, rather than starting an
   // empty one; Chrome gives "a\n" one line and "a\n\n" two.
   it.each(["pre-line", "pre", "pre-wrap"] as const)(
@@ -158,6 +172,40 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
         "again and mor",
       ]);
     });
+
+    // Chrome puts the ellipsis after a clamped line that ends at a forced
+    // break too; the widths are Chrome's for the line with its "…".
+    it("clamps pre-line text after a forced break, as Chrome does", () => {
+      const result = layoutText(
+        text,
+        style({ whiteSpace: "pre-line", lineClamp: 2 }),
+        150,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual([
+        "Hello world",
+        "again and mor",
+      ]);
+      expect(result.segments[1]!.width).toBeCloseTo(147.88, 1);
+    });
+
+    it.each([
+      ["ab\ncd", "pre-line", 1, ["ab"], [42.25]],
+      ["ab\ncd", "pre-wrap", 1, ["ab"], [42.25]],
+      // `pre-wrap` keeps the spaces before the ellipsis.
+      ["ab  \ncd", "pre-wrap", 1, ["ab  "], [53.36]],
+      // An empty clamped line is the ellipsis alone.
+      ["ab\n\ncd", "pre-line", 2, ["ab", ""], [22.25, 20]],
+      ["ab\n\ncd", "pre-wrap", 2, ["ab", ""], [22.25, 20]],
+    ] as const)(
+      "ends %j under %s clamped to %s lines in an ellipsis, as Chrome does",
+      (text, whiteSpace, lineClamp, expectedLines, widths) => {
+        const result = layoutText(text, style({ whiteSpace, lineClamp }), 300);
+        expect(result.segments.map((s) => s.text)).toEqual(expectedLines);
+        result.segments.forEach((seg, i) =>
+          expect(seg.width).toBeCloseTo(widths[i]!, 1),
+        );
+      },
+    );
 
     it("truncates nowrap text on one line, as Chrome does", () => {
       const result = layoutText(

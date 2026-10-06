@@ -687,6 +687,87 @@ describe.skipIf(!HAS_NATIVE_DEPS)("min-content width", () => {
         [198.8, 168.69],
       ]);
     });
+
+    // The element has no automatic minimum, but its text does, in the
+    // element's own row: it overflows the element. Holding it there leaves
+    // the element's flex basis as it was. Chrome makes the element 167.86px
+    // (165.27px next to 290px), as it takes its flex basis from the text's
+    // max-content, where Yoga takes it at the width available: Yoga shares
+    // the shrinking out by that as it did before.
+    it.each<[string, React.CSSProperties, number, number]>([
+      ["hides what overflows it", { overflow: "hidden" }, 280, 155],
+      ["has no min width", { minWidth: 0 }, 280, 155],
+      [
+        "hides what overflows it, next to more",
+        { overflow: "hidden" },
+        290,
+        153,
+      ],
+      ["has no min width, next to more", { minWidth: 0 }, 290, 153],
+    ])(
+      "shrinks an element that %s by its flex basis",
+      async (_, style, sibling, width) => {
+        const items = await layOutRow({ width: 300 }, [
+          [
+            { fontSize: 20, ...style },
+            "Supercalifragilistic and more words here",
+          ],
+          [{ width: sibling, height: 10, flexShrink: 1 }, ""],
+        ]);
+        expectItems(items, [
+          [0, width],
+          [width, 300 - width],
+        ]);
+        // Its text starts at its start, as wide as its widest word.
+        expect(items[0]!.lines[0]).toEqual(near(0));
+        expect(items[0]!.texts).toContain("Supercalifragilistic");
+      },
+    );
+
+    it("leaves a wide item that doesn't shrink as wide as it is", async () => {
+      // An item that wide elsewhere takes nothing from the automatic minimum
+      // of text that doesn't fit.
+      const { tree } = await buildLayoutTree(
+        <div style={{ display: "flex", flexDirection: "column", width: 500 }}>
+          <div style={{ display: "flex", width: 500 }}>
+            <div
+              id="strip"
+              style={{ width: 70_000, height: 10, flexShrink: 0 }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              width: 300,
+              justifyContent: "center",
+              fontFamily: "Liberation Sans",
+              fontSize: 40,
+              fontWeight: 700,
+            }}
+          >
+            <div id="text" style={{ whiteSpace: "nowrap" }}>
+              {NOWRAP}
+            </div>
+          </div>
+        </div>,
+        500,
+        300,
+      );
+      const found = boxesIn(tree);
+      expectEdges(found.strip, 0, 70_000);
+      expectEdges(found.text, -146.73, 593.48);
+    });
+
+    it("keeps text far wider than the canvas as wide as its line", async () => {
+      const ticker = "Ticker headline number one and more news ".repeat(600);
+      const [item] = await layOutRow({ width: 500 }, [
+        [{ fontSize: 20, whiteSpace: "nowrap" }, ticker],
+      ]);
+      // Chrome makes it 236,795.59px, which Skia's advances come to within
+      // 0.01%.
+      expect(item!.x).toBe(0);
+      expect(item!.width / 236_795.59).toBeCloseTo(1, 3);
+    });
   });
 
   it("measures text at exactly a width for its height there", () => {

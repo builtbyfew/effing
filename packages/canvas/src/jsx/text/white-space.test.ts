@@ -47,15 +47,17 @@ describe("collapseWhiteSpace", () => {
     }
   });
 
-  // Chrome breaks the line at a CRLF as at a newline, and lays a lone CR out
-  // with no width and no break opportunity.
+  // Chrome breaks the line at a CRLF as at a newline. It lays a lone CR out
+  // with no width and no break opportunity, as the paragraph does, but the
+  // letters either side of it don't kern, so it's kept.
   it.each(["pre", "pre-wrap"] as const)(
-    "makes a CRLF a newline and drops a lone CR under %s",
+    "makes a CRLF a newline and keeps a lone CR under %s",
     (ws) => {
       expect(collapseWhiteSpace("a  \r\n  b", ws)).toBe("a  \n  b");
-      expect(collapseWhiteSpace("a\rb", ws)).toBe("ab");
-      expect(collapseWhiteSpace("a\r\rb\r", ws)).toBe("ab");
-      expect(collapseWhiteSpace("a\r\r\nb", ws)).toBe("a\nb");
+      expect(collapseWhiteSpace("a\rb", ws)).toBe("a\rb");
+      expect(collapseWhiteSpace("a\r\rb\r", ws)).toBe("a\r\rb\r");
+      // A lone CR, then a CRLF.
+      expect(collapseWhiteSpace("a\r\r\nb", ws)).toBe("a\r\nb");
     },
   );
 

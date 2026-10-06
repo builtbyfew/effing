@@ -2,7 +2,7 @@
 "@effing/canvas": patch
 ---
 
-Size `line-height: normal` line boxes as Chrome does, line gap included
+Size `line-height: normal` line boxes as Chrome does, line gap included (@effing/skia 1.0.10-effing.5)
 
 A `normal` line box is now the font's hhea ascent, descent and line gap, each
 rounded to whole pixels, with the baseline at the rounded ascent plus half the
@@ -19,8 +19,19 @@ baseline, by up to about a pixel; `text-box-trim` trims to the rounded ascent
 and descent; and `findLargestUsableFontSize` can pick a smaller size where the
 taller lines no longer fit. Explicit line heights don't change.
 
-The line gap is read from the fonts registered with their data
-(`renderReactElement`'s `fonts`, `registerFont`, `registerFontFromPath`); a
-system font counts as having none. Chrome on Linux puts the baseline a pixel
-higher for fonts whose descent it rounds down; renders follow macOS on every
-platform.
+The metrics are those of the first available font in the `fontFamily` list,
+system fonts and fonts registered through `GlobalFonts` included. Chrome also
+grows a line for a fallback font that draws some of its text, which canvas
+doesn't yet. Chrome on Linux puts the baseline a pixel higher for fonts whose
+descent it rounds down; renders follow macOS on every platform.
+
+With @effing/skia 1.0.10-effing.5, text also matches Chrome in three more
+places:
+
+- Under `pre` and `pre-wrap`, a lone CR is kept instead of dropped. It is
+  still drawn as nothing and doesn't break the line, but the letters either
+  side of it no longer kern or join: `"A\rV"` is as wide as in Chrome.
+- A line or paragraph separator (U+2028, U+2029) gets `letterSpacing` once,
+  not twice.
+- Under `pre`, a clamped line that ends at a newline now gets an ellipsis
+  ("ab…"), as under `pre-line` and `pre-wrap`.

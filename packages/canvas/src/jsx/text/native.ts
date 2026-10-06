@@ -15,7 +15,7 @@ import type {
 import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
-import { fontGeneration, fontLineGap } from "../font-metrics.ts";
+import { fontGeneration } from "../font.ts";
 import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
 import type { PlacedEmoji, TextLayoutResult, TextSegment } from "./index.ts";
 
@@ -141,6 +141,11 @@ type LineBox = {
  * odd pixel at the bottom. For Liberation Sans at 20px (ascent 18.1, descent
  * 4.24, line gap 0.65) that's a 23px line box with its baseline at 18px.
  *
+ * The metrics are those of the first font in the family list that's
+ * available, as the paragraph reports them, and only those: Chrome also
+ * grows a normal line box to fit the metrics of any fallback font that draws
+ * some of its text, which this doesn't (effing#181).
+ *
  * Chrome on Linux and Android moves a pixel from the ascent to the descent
  * when it rounds the descent down, which puts the baseline a pixel higher
  * there; renders here are the same on every platform, and follow macOS.
@@ -172,8 +177,8 @@ const normalLineBoxes = new Map<string, LineBox>();
 let normalLineBoxesGeneration = -1;
 
 /**
- * The `line-height: normal` line box of text in a font, from the hhea ascent
- * and descent Skia's paragraph finds for it and the line gap of that font.
+ * The `line-height: normal` line box of text in a font, from the hhea ascent,
+ * descent and line gap of the font Skia's paragraph finds for it.
  */
 function normalLineBoxFor(style: ParagraphStyle): LineBox {
   if (normalLineBoxesGeneration !== fontGeneration()) {
@@ -186,12 +191,8 @@ function normalLineBoxFor(style: ParagraphStyle): LineBox {
   if (!box) {
     const probe = new Paragraph("", style);
     countParagraph();
-    const { ascent, descent } = probe.layout(0);
-    box = normalLineBox(
-      ascent,
-      descent,
-      fontLineGap(fontFamily, fontSize, ascent, descent),
-    );
+    const { ascent, descent, lineGap } = probe.layout(0);
+    box = normalLineBox(ascent, descent, lineGap);
     if (normalLineBoxes.size >= MAX_NORMAL_LINE_BOXES) normalLineBoxes.clear();
     normalLineBoxes.set(key, box);
   }

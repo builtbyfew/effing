@@ -613,6 +613,42 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       expect(result.emoji[0]!.y).toBeCloseTo(0, 4);
     });
 
+    it("follows fonts registered through GlobalFonts after a first layout", async () => {
+      const { GlobalFonts } = await import("@effing/skia");
+      const { readFile } = await import("node:fs/promises");
+      const font = (file: string) =>
+        readFile(new URL(`./_helpers/fonts/${file}`, import.meta.url));
+      const family = "Registered Late";
+      const box = () => {
+        const result = layoutText(
+          "Hg",
+          style({ fontFamily: family, fontSize: 20 }),
+          1000,
+        );
+        return [result.height, Math.round(result.segments[0]!.y * 1e4) / 1e4];
+      };
+      box(); // A fallback font's.
+      const key = GlobalFonts.register(
+        await font("LiberationSans-Regular.woff"),
+        family,
+      );
+      try {
+        expect(box()).toEqual([23, 18]);
+        GlobalFonts.remove(key!);
+        const other = GlobalFonts.register(
+          await font("NotoSansMyanmar-Regular.woff"),
+          family,
+        );
+        try {
+          expect(box()).toEqual([43, 26]);
+        } finally {
+          GlobalFonts.remove(other!);
+        }
+      } finally {
+        GlobalFonts.remove(key!);
+      }
+    });
+
     it("fits text to Chrome's line boxes", () => {
       // Three lines are 69px at 20px, 66px at 19px.
       for (const [maxHeight, fontSize] of [

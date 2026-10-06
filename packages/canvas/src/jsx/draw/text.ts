@@ -5,7 +5,7 @@ import { fillParagraph, strokeParagraph } from "@effing/skia/extensions";
 import parseCssColor from "parse-css-color";
 
 import type { EmojiStyle } from "../emoji.ts";
-import { getEmojiCode, loadEmoji } from "../emoji.ts";
+import { emojiUrl, loadEmoji } from "../emoji.ts";
 import type {
   PlacedEmoji,
   TextLayoutResult,
@@ -17,13 +17,12 @@ const emojiImageCache = new Map<string, Promise<Image | null>>();
 
 function loadEmojiImage(
   style: EmojiStyle,
-  char: string,
+  emoji: string,
 ): Promise<Image | null> {
-  const code = getEmojiCode(char);
-  const key = style + ":" + code;
+  const key = emojiUrl(style, emoji);
   let cached = emojiImageCache.get(key);
   if (!cached) {
-    cached = loadEmoji(style, code)
+    cached = loadEmoji(style, emoji)
       .then((svgText) => {
         if (!svgText || !svgText.includes("<svg")) return null;
         const dataUri =

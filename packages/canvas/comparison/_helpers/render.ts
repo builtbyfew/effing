@@ -30,12 +30,11 @@ export async function renderWithSatori(
   const { Resvg } = await import("@resvg/resvg-js");
   const opts: Parameters<typeof satori>[1] = { width, height, fonts };
   if (emoji && emoji !== "none") {
-    const { loadEmoji, getEmojiCode } = await import("../../src/jsx/emoji.ts");
+    const { loadEmoji } = await import("../../src/jsx/emoji.ts");
     opts.loadAdditionalAsset = async (code: string, segment: string) => {
       if (code === "emoji") {
         return (
-          "data:image/svg+xml;base64," +
-          btoa(await loadEmoji(emoji, getEmojiCode(segment)))
+          "data:image/svg+xml;base64," + btoa(await loadEmoji(emoji, segment))
         );
       }
       return segment;

@@ -133,6 +133,12 @@ export type ChromeFixture = {
    * its comparison is then expected to fail, and fails once it doesn't.
    */
   knownDifference?: string;
+  /**
+   * Where canvas lays the fixture out as Chrome does but paints it
+   * otherwise, why: its pixel comparison is then expected to fail, and fails
+   * once it doesn't.
+   */
+  knownPaintDifference?: string;
 };
 
 export type FixtureModule = {

@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildLayoutTree } from "../../src/jsx/layout.ts";
 import type { LayoutNode } from "../../src/jsx/layout.ts";
+import { layoutText } from "../../src/jsx/text/index.ts";
 import { DEFAULT_TOLERANCE, REFERENCES, hashOf } from "./fixture.ts";
 import type {
   Box,
@@ -78,11 +79,15 @@ function linesIn(node: LayoutNode, x: number, y: number): Line[] {
   if (node.style.display === "none") return [];
   const left = x + node.x;
   const top = y + node.y;
+  const baseline = trimmedBaseline(node);
   const own = (node.textLayout?.segments ?? []).map((seg): Line => ({
     text: seg.text,
     x: left + seg.x,
     width: seg.width,
-    top: top + seg.lineIndex * seg.height,
+    top:
+      baseline === undefined
+        ? top + seg.lineIndex * seg.height
+        : top + seg.y - baseline,
     height: seg.height,
     baseline: top + seg.y,
   }));
@@ -90,6 +95,23 @@ function linesIn(node: LayoutNode, x: number, y: number): Line[] {
     ...own,
     ...node.children.flatMap((child) => linesIn(child, left, top)),
   ];
+}
+
+/**
+ * Where the baseline is in a line box of a node whose text `textBoxTrim`
+ * trims at the start, if it does: the trim moves the text up, line boxes and
+ * all, as in Chrome, where the first line box starts above the element.
+ */
+function trimmedBaseline(node: LayoutNode): number | undefined {
+  const { textBoxTrim } = node.style;
+  if (textBoxTrim !== "trim-start" && textBoxTrim !== "trim-both") return;
+  if (node.textContent === undefined) return;
+  const untrimmed = layoutText(
+    node.textContent,
+    { ...node.style, textBoxTrim: "none" },
+    node.width,
+  );
+  return untrimmed.segments[0]?.y;
 }
 
 /**

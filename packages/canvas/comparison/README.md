@@ -26,7 +26,7 @@ For a fixture with `screenshot: true`, it also stores a PNG of the frame (on a t
 - that the references hold the `transcribed` numbers to 0.01px, and the `transcribedPixels`;
 - that canvas lays each fixture out as Chrome did, within the fixture's tolerance (`DEFAULT_TOLERANCE` in `chrome/fixture.ts`: 1px for boxes and the start and top of a line, as Yoga puts boxes on whole pixels; 0.1px for a line's width; 0.01px for line boxes and baselines; 1% of pixels at pixelmatch's 0.1 threshold for screenshots). Texts are compared without trailing spaces or control characters.
 
-A fixture with a `knownDifference` documents where canvas doesn't match Chrome, and why: its test is expected to fail, and fails once it passes, so that the note goes when the difference does.
+A fixture with a `knownDifference` documents where canvas doesn't match Chrome, and why: its tests are expected to fail, and fail once they pass, so that the note goes when the difference does. A `knownPaintDifference` does the same for a fixture that canvas lays out as Chrome does but paints otherwise: only its pixel comparison is expected to fail.
 
 ### Regenerating
 
@@ -61,7 +61,7 @@ Generate them on macOS. Chrome rounds `line-height: normal` line boxes different
    Give every element whose box or lines should be compared an `id`. `paragraph()` puts text in a box of its own width, as `layoutText` lays it out. Set the font: canvas defaults to Helvetica, which Chrome has as a system font.
 
 2. Run `pnpm --filter @effing/canvas comparison:chrome <module>`, look at what Chrome made of it (the JSON, the PNG), and run `pnpm --filter @effing/canvas test:comparison`.
-3. Where canvas differs, fix canvas, or set a `tolerance` or a `knownDifference` with the reason.
+3. Where canvas differs, fix canvas, or set a `tolerance` or a `knownDifference` (`knownPaintDifference` where only its pixels differ) with the reason. A tolerance for pixels is what canvas was measured to differ by, with room to spare, and says why it differs: text, for one, is rasterised heavier by Chrome on macOS, and differs most where it's small and on a frame cut to it.
 
 Write fixtures so that CSS and canvas read them alike:
 

@@ -119,7 +119,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("canvas against Chrome", () => {
         });
 
         if (fixture.screenshot) {
-          test(`paints ${fixture.name}`, async () => {
+          const paints = fixture.knownPaintDifference ? it.fails : test;
+          paints(`paints ${fixture.name}`, async () => {
             expect(staleness(fixture, reference)).toBeUndefined();
             const chromePng = readFileSync(
               join(REFERENCES, reference!.screenshot!),

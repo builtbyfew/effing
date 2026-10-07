@@ -333,8 +333,8 @@ const fixtures: ChromeFixture[] = [
         screenshot: true,
         width: 320,
         height: height + 10,
-        // Their glyphs anti-alias apart at 16px and 20px: 1.5% and 2.9%
-        // measured, where the ellipsis's end is checked on its own.
+        // Their glyphs anti-alias apart: 2.9% measured at 16px and 1.5% at
+        // 20px, where the ellipsis's end is checked on its own.
         tolerance: { pixels: fontSize === 16 ? 6 : 3 },
       },
     ),

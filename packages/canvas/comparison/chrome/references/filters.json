@@ -1,0 +1,240 @@
+{
+  "chrome": "154.0.8037.98",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "filters by grayscale(1)": {
+      "hash": "09d2591334bc29f9",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-1.png"
+    },
+    "filters by grayscale(0.5)": {
+      "hash": "84f2b812d949c214",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-0-5.png"
+    },
+    "filters by sepia(1)": {
+      "hash": "6ae2e1fffe5bc723",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-sepia-1.png"
+    },
+    "filters by saturate(2.5)": {
+      "hash": "64efe068cf80f22e",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-saturate-2-5.png"
+    },
+    "filters by saturate(0.3)": {
+      "hash": "1aa059b40a9861c0",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-saturate-0-3.png"
+    },
+    "filters by hue-rotate(90deg)": {
+      "hash": "15cf1413d3fca9f3",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-hue-rotate-90deg.png"
+    },
+    "filters by hue-rotate(200deg)": {
+      "hash": "970ca0ab155a7002",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-hue-rotate-200deg.png"
+    },
+    "filters by contrast(1.8)": {
+      "hash": "c63659979feecb13",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-contrast-1-8.png"
+    },
+    "filters by contrast(0.4)": {
+      "hash": "7435284187f886dd",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-contrast-0-4.png"
+    },
+    "filters by brightness(1.3)": {
+      "hash": "b7dc94d1c708ee0a",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-brightness-1-3.png"
+    },
+    "filters by invert(0.8)": {
+      "hash": "b44f83863e97e3be",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-invert-0-8.png"
+    },
+    "filters by opacity(0.4)": {
+      "hash": "2b4fb568e94e3693",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-opacity-0-4.png"
+    },
+    "filters by sepia(0.6) hue-rotate(120deg) saturate(2)": {
+      "hash": "d41169525591e646",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-sepia-0-6-hue-rotate-120deg-saturate-2.png"
+    },
+    "filters by grayscale(1) contrast(2) brightness(0.8)": {
+      "hash": "6d88728bf94653a2",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-1-contrast-2-brightness-0-8.png"
+    },
+    "casts a blurred drop shadow": {
+      "hash": "5a0d51909f61aef0",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 100, "height": 50, "lines": [] }
+      },
+      "screenshot": "filters/casts-a-blurred-drop-shadow.png"
+    },
+    "casts a sharp drop shadow of a circle and a square": {
+      "hash": "15849a58ccda35c6",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 120, "height": 50, "lines": [] }
+      },
+      "screenshot": "filters/casts-a-sharp-drop-shadow-of-a-circle-and-a-square.png"
+    },
+    "filters text by grayscale": {
+      "hash": "0452543cfe1e4893",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 104.9375,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Grayed",
+              "x": 10,
+              "width": 104.9375,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/filters-text-by-grayscale.png"
+    },
+    "casts a drop shadow of text": {
+      "hash": "62217e1d54f8c7a0",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 122.75,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Dropped",
+              "x": 10,
+              "width": 122.75,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/casts-a-drop-shadow-of-text.png"
+    },
+    "blurs text": {
+      "hash": "021a686f49e085df",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 103.1563,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Blurred",
+              "x": 10,
+              "width": 103.1563,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/blurs-text.png"
+    },
+    "filters the backdrop by grayscale(1)": {
+      "hash": "50edf651dd6b8dc2",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-grayscale-1.png"
+    },
+    "filters the backdrop by sepia(1)": {
+      "hash": "3303046eecbc8ef6",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-sepia-1.png"
+    },
+    "filters the backdrop by saturate(3)": {
+      "hash": "9a062f40068faf95",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-saturate-3.png"
+    },
+    "filters the backdrop by hue-rotate(180deg)": {
+      "hash": "5f499b76ab64999e",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-hue-rotate-180deg.png"
+    },
+    "filters the backdrop by contrast(2)": {
+      "hash": "a714716888ff2d5b",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-contrast-2.png"
+    },
+    "filters the backdrop by opacity(0.5)": {
+      "hash": "9934c6fe22feaa13",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-opacity-0-5.png"
+    },
+    "filters the backdrop by grayscale(0.5) blur(2px)": {
+      "hash": "fe52106449d786dc",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-grayscale-0-5-blur-2px.png"
+    }
+  }
+}

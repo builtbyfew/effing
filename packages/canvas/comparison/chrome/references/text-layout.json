@@ -1,0 +1,1385 @@
+{
+  "chrome": "154.0.8037.98",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "justifies the lines but the last": {
+      "hash": "6918cf8615d3ba07",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 115,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 200,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 200,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 200,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "with five dozen liquor",
+              "x": 0,
+              "width": 200,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "doesn't justify a line of a single word": {
+      "hash": "768801c7e3d1e313",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 210,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Supercalifragilistic is a",
+              "x": 0,
+              "width": 210,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "word too long to share",
+              "x": 0,
+              "width": 210,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "a line",
+              "x": 0,
+              "width": 47.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "doesn't justify a line that ends at a forced break": {
+      "hash": "e7e41ca5ea2ee557",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 250,
+          "height": 69,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 178.9844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy dog",
+              "x": 0,
+              "width": 250,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "again and again",
+              "x": 0,
+              "width": 142.3594,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "justifies letter-spaced lines": {
+      "hash": "100c4c6e6f11bb39",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 220,
+          "height": 115,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 220,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 220,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 220,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "with five dozen",
+              "x": 0,
+              "width": 220,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "liquor jugs.",
+              "x": 0,
+              "width": 120.7188,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "wraps Hebrew": {
+      "hash": "e63fd8939fdd01b0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 81,
+          "lines": [
+            {
+              "text": "שלום עולם, מה",
+              "x": 0,
+              "width": 128.6406,
+              "top": 0,
+              "height": 27,
+              "baseline": 21
+            },
+            {
+              "text": "שלומך היום? הכל",
+              "x": 0,
+              "width": 148.3125,
+              "top": 27,
+              "height": 27,
+              "baseline": 48
+            },
+            {
+              "text": "טוב מאוד",
+              "x": 0,
+              "width": 78.125,
+              "top": 54,
+              "height": 27,
+              "baseline": 75
+            }
+          ]
+        }
+      }
+    },
+    "right-aligns Hebrew": {
+      "hash": "2783dd6d39c7f953",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 81,
+          "lines": [
+            {
+              "text": "שלום עולם, מה",
+              "x": 21.3594,
+              "width": 128.6406,
+              "top": 0,
+              "height": 27,
+              "baseline": 21
+            },
+            {
+              "text": "שלומך היום? הכל",
+              "x": 1.6875,
+              "width": 148.3125,
+              "top": 27,
+              "height": 27,
+              "baseline": 48
+            },
+            {
+              "text": "טוב מאוד",
+              "x": 71.875,
+              "width": 78.125,
+              "top": 54,
+              "height": 27,
+              "baseline": 75
+            }
+          ]
+        }
+      }
+    },
+    "wraps Hebrew mixed with Latin and digits": {
+      "hash": "24b57a2959963845",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 170,
+          "height": 108,
+          "lines": [
+            {
+              "text": "Hello שלום עולם",
+              "x": 0,
+              "width": 142.9375,
+              "top": 0,
+              "height": 27,
+              "baseline": 21
+            },
+            {
+              "text": "and 123 more",
+              "x": 0,
+              "width": 123.1094,
+              "top": 27,
+              "height": 27,
+              "baseline": 48
+            },
+            {
+              "text": "words בעברית 456",
+              "x": 0,
+              "width": 161.4375,
+              "top": 54,
+              "height": 27,
+              "baseline": 75
+            },
+            {
+              "text": "end",
+              "x": 0,
+              "width": 33.375,
+              "top": 81,
+              "height": 27,
+              "baseline": 102
+            }
+          ]
+        }
+      }
+    },
+    "truncates Hebrew with an ellipsis": {
+      "hash": "12970f077f79bded",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 27,
+          "lines": [
+            {
+              "text": "שלום עולם, מה שלומך היום? הכל טוב מאוד",
+              "x": 0,
+              "width": 365.875,
+              "top": 0,
+              "height": 27,
+              "baseline": 21,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/truncates-hebrew-with-an-ellipsis.png"
+    },
+    "clamps Hebrew to two lines": {
+      "hash": "bba6155a2a9fec75",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 50,
+          "lines": [
+            {
+              "text": "שלום עולם,",
+              "x": 0,
+              "width": 97.5,
+              "top": 0,
+              "height": 27,
+              "baseline": 21
+            },
+            {
+              "text": "מה שלומך",
+              "x": 0,
+              "width": 86.3125,
+              "top": 27,
+              "height": 27,
+              "baseline": 48,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-hebrew-to-two-lines.png"
+    },
+    "puts tabs at tab stops under pre": {
+      "hash": "bd574a3352b78f38",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a\tbc\tdef\tg",
+              "x": 0,
+              "width": 144.4844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "abcdefghij\tk",
+              "x": 0,
+              "width": 143.3594,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "puts tabs at tab stops under pre-wrap": {
+      "hash": "0b2bc303754110df",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a\tbc\tdef\tg",
+              "x": 0,
+              "width": 144.4844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "abcdefghij\tk",
+              "x": 0,
+              "width": 143.3594,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "draws an unbroken soft hyphen as nothing": {
+      "hash": "249a32aa058cfdbe",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "super­cali­fragilistic",
+              "x": 0,
+              "width": 157.8438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks a line at a soft hyphen": {
+      "hash": "7c087ee139e20698",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 130,
+          "height": 69,
+          "lines": [
+            {
+              "text": "super­cali­",
+              "x": 0,
+              "width": 86.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "fragilistic­",
+              "x": 0,
+              "width": 84.4688,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "expiali­docious",
+              "x": 0,
+              "width": 125.6406,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/breaks-a-line-at-a-soft-hyphen.png"
+    },
+    "transforms \"Hello world, straße\" to uppercase": {
+      "hash": "15450fa983cab4eb",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "HELLO WORLD, STRASSE",
+              "x": 0,
+              "width": 250.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "transforms \"HELLO World ΣΑΣ\" to lowercase": {
+      "hash": "b7d8e40942aaa44a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "hello world σας",
+              "x": 0,
+              "width": 134.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "transforms \"hello wide world of text\" to capitalize": {
+      "hash": "a6aa9631728801d0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello Wide World Of Text",
+              "x": 0,
+              "width": 222.6719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "transforms \"it's o'neil's x-ray, élan and 3d\" to capitalize": {
+      "hash": "0aef78009ed8ad69",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "It's O'neil's X-Ray, Élan And 3d",
+              "x": 0,
+              "width": 273.4375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "wraps uppercased text": {
+      "hash": "36e7d8ae09e1c923",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 92,
+          "lines": [
+            {
+              "text": "HELLO WORLD,",
+              "x": 0,
+              "width": 151.1563,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "PACK MY BOX WITH",
+              "x": 0,
+              "width": 192.625,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "FIVE DOZEN",
+              "x": 0,
+              "width": 120.0156,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "LIQUOR JUGS NOW",
+              "x": 0,
+              "width": 190.0156,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "measures a line that starts after a space it kerns with": {
+      "hash": "1145e6c93cdb924d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 92,
+          "lines": [
+            {
+              "text": "Over",
+              "x": 0,
+              "width": 43.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Away",
+              "x": 0,
+              "width": 48.5469,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "Yes",
+              "x": 0,
+              "width": 32.6406,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Tea",
+              "x": 0,
+              "width": 32.25,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "clamps letter-spaced text to two lines": {
+      "hash": "9e9696cd43a2f0c4",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown",
+              "x": 0,
+              "width": 191.75,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "fox jumps over",
+              "x": 0,
+              "width": 172.0625,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-letter-spaced-text-to-two-lines.png"
+    },
+    "clamps uppercased text to two lines": {
+      "hash": "bdf8fd18d261444e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "THE QUICK BROWN",
+              "x": 0,
+              "width": 191.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "FOX JUMPS OVER",
+              "x": 0,
+              "width": 176.7031,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-uppercased-text-to-two-lines.png"
+    },
+    "clamps centred text to two lines": {
+      "hash": "220917573345d4f5",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 10.5,
+              "width": 178.9844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 13.8438,
+              "width": 172.2969,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-centred-text-to-two-lines.png"
+    },
+    "clamps right-aligned text to two lines": {
+      "hash": "02155ea9e767319e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 21.0156,
+              "width": 178.9844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 27.7031,
+              "width": 172.2969,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-right-aligned-text-to-two-lines.png"
+    },
+    "clamps justified text to two lines": {
+      "hash": "d11b6d54ad2718f1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 200,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 200,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/clamps-justified-text-to-two-lines.png"
+    },
+    "trims to text alphabetic, normal lines": {
+      "hash": "e7964307aea82a9b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 41,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "trims to cap alphabetic, normal lines": {
+      "hash": "39b4895cac689eb6",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 36.7656,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": -4.2344,
+              "height": 23,
+              "baseline": 13.7656
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 18.7656,
+              "height": 23,
+              "baseline": 36.7656
+            }
+          ]
+        }
+      }
+    },
+    "trims to ex alphabetic, normal lines": {
+      "hash": "0ddccd4810e83d91",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 33.5625,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": -7.4375,
+              "height": 23,
+              "baseline": 10.5625
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 15.5625,
+              "height": 23,
+              "baseline": 33.5625
+            }
+          ]
+        }
+      }
+    },
+    "trims to text (trim-both), 30px lines": {
+      "hash": "b9aa2d766b124f40",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 52,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": -4,
+              "height": 30,
+              "baseline": 18
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 26,
+              "height": 30,
+              "baseline": 48
+            }
+          ]
+        }
+      }
+    },
+    "trims to cap alphabetic (trim-both), 30px lines": {
+      "hash": "36c70c422a4996e7",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 43.7656,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": -8.2344,
+              "height": 30,
+              "baseline": 13.7656
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 21.7656,
+              "height": 30,
+              "baseline": 43.7656
+            }
+          ]
+        }
+      }
+    },
+    "trims to cap alphabetic (trim-start), 30px lines": {
+      "hash": "8d7019053e362d6f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 51.7656,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": -8.2344,
+              "height": 30,
+              "baseline": 13.7656
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 21.7656,
+              "height": 30,
+              "baseline": 43.7656
+            }
+          ]
+        }
+      }
+    },
+    "trims to ex alphabetic (trim-end), 30px lines": {
+      "hash": "bb37f03d81ad807c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 52,
+          "lines": [
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 0,
+              "height": 30,
+              "baseline": 22
+            },
+            {
+              "text": "Hxg",
+              "x": 0,
+              "width": 35.5781,
+              "top": 30,
+              "height": 30,
+              "baseline": 52
+            }
+          ]
+        }
+      }
+    },
+    "lays out italic text": {
+      "hash": "6790f04823aaffd0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 115,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 178.9844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 172.2969,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 158.9688,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "with five dozen liquor",
+              "x": 0,
+              "width": 186.7813,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "lays out bold text": {
+      "hash": "d2451f0898f8816d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 115,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 194.4531,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 185.625,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 170.0625,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "with five dozen",
+              "x": 0,
+              "width": 143.3438,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "liquor jugs.",
+              "x": 0,
+              "width": 107.7813,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "lays out bold italic text, which no face is": {
+      "hash": "7fec1d88606a9a21",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 115,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 178.9844,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 172.2969,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 158.9688,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "with five dozen liquor",
+              "x": 0,
+              "width": 186.7813,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/lays-out-bold-italic-text-which-no-face-is.png"
+    },
+    "synthesizes bold where there's no bold face": {
+      "hash": "08bc9fb8c708ec71",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Synthetic bold text here",
+              "x": 0,
+              "width": 235,
+              "top": 0,
+              "height": 30,
+              "baseline": 22
+            }
+          ]
+        }
+      }
+    },
+    "synthesizes italic where there's no italic face": {
+      "hash": "0c70f93e595ccd3a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Synthetic italic text here",
+              "x": 0,
+              "width": 237.9531,
+              "top": 0,
+              "height": 30,
+              "baseline": 22
+            }
+          ]
+        }
+      },
+      "screenshot": "text-layout/synthesizes-italic-where-there-s-no-italic-face.png"
+    },
+    "grows a normal line box for a fallback font (Hebrew)": {
+      "hash": "edb50c4b2916fefd",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 27,
+          "lines": [
+            {
+              "text": "Hello שלום world",
+              "x": 0,
+              "width": 149.0469,
+              "top": 3,
+              "height": 23,
+              "baseline": 21
+            }
+          ]
+        }
+      }
+    },
+    "grows a normal line box for a fallback font (Thai)": {
+      "hash": "644519f3a427c075",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Hello สวัสดี world",
+              "x": 0,
+              "width": 149.5313,
+              "top": 3,
+              "height": 23,
+              "baseline": 21
+            }
+          ]
+        }
+      }
+    },
+    "keeps a normal line box for a fallback font that fits in it": {
+      "hash": "3f6de5c229f17ba2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 27,
+          "lines": [
+            {
+              "text": "שלום Hello world",
+              "x": 0,
+              "width": 148.7188,
+              "top": 0,
+              "height": 27,
+              "baseline": 21
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Poppins at 13.5px": {
+      "hash": "0d46058ccb89e088",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 81,
+          "height": 60,
+          "lines": [
+            {
+              "text": "Hello wide",
+              "x": 0,
+              "width": 68.5,
+              "top": 0,
+              "height": 20,
+              "baseline": 14
+            },
+            {
+              "text": "world of",
+              "x": 0,
+              "width": 53.8906,
+              "top": 20,
+              "height": 20,
+              "baseline": 34
+            },
+            {
+              "text": "text",
+              "x": 0,
+              "width": 24.6719,
+              "top": 40,
+              "height": 20,
+              "baseline": 54
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Poppins at 20px": {
+      "hash": "c1dc4477b102ac7f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Hello wide",
+              "x": 0,
+              "width": 101.4688,
+              "top": 0,
+              "height": 30,
+              "baseline": 22
+            },
+            {
+              "text": "world of",
+              "x": 0,
+              "width": 79.8281,
+              "top": 30,
+              "height": 30,
+              "baseline": 52
+            },
+            {
+              "text": "text",
+              "x": 0,
+              "width": 36.5469,
+              "top": 60,
+              "height": 30,
+              "baseline": 82
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Poppins at 33px": {
+      "hash": "e94c5887226edd74",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 198,
+          "height": 150,
+          "lines": [
+            {
+              "text": "Hello wide",
+              "x": 0,
+              "width": 167.4219,
+              "top": 0,
+              "height": 50,
+              "baseline": 36
+            },
+            {
+              "text": "world of",
+              "x": 0,
+              "width": 131.7031,
+              "top": 50,
+              "height": 50,
+              "baseline": 86
+            },
+            {
+              "text": "text",
+              "x": 0,
+              "width": 60.2969,
+              "top": 100,
+              "height": 50,
+              "baseline": 136
+            }
+          ]
+        }
+      }
+    }
+  }
+}

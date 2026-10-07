@@ -24,11 +24,21 @@ const FONT_VARIANTS = [
   },
 ] as const;
 
-export async function loadFonts(): Promise<FontData[]> {
+/**
+ * The bundled Liberation Sans under a family name no system font has. A
+ * Liberation Sans installed on the system (as fonts-liberation is on Ubuntu)
+ * shadows fonts registered under its own name (effing-skia#29), so tests
+ * that must lay text out in the bundled fonts, whatever the machine, load
+ * them under this name: `loadFonts(BUNDLED_SANS)`.
+ */
+export const BUNDLED_SANS = "Bundled Liberation Sans";
+
+/** The bundled Liberation Sans faces, registered as `name`. */
+export async function loadFonts(name = "Liberation Sans"): Promise<FontData[]> {
   return Promise.all(
     FONT_VARIANTS.map(({ file, weight, style }) =>
       readFile(join(FONT_DIR, file)).then((data) => ({
-        name: "Liberation Sans",
+        name,
         data,
         weight,
         style,

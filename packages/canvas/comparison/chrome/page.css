@@ -1,0 +1,34 @@
+/* The page `generate.tsx` lays fixtures out on (with the fonts as
+   @font-face rules before this). */
+html,
+body {
+  margin: 0;
+  background: transparent;
+}
+/* The canvas, in which canvas lays the element out: a row. */
+#__frame {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  overflow: hidden;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: normal;
+  color: black;
+}
+/* Every element is a flex container in border-box sizing, positioned for
+   what it holds, with no styles of the browser's own. */
+#__frame *:not(br, svg, svg *) {
+  display: flex;
+  position: relative;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+  font: inherit;
+  color: inherit;
+  text-decoration: inherit;
+  list-style: none;
+}

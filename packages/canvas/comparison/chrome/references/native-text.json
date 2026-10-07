@@ -1,0 +1,2573 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "4e7c6bf3df581255",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "leaves a word wider than the box unbroken: A supercalifragilisticexpialidocious word here at 80px": {
+      "hash": "41df441184bbe656",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 92,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercalifragilisticexpialidocious",
+              "x": 0,
+              "width": 283.4688,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "word",
+              "x": 0,
+              "width": 43.3594,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "leaves a word wider than the box unbroken: A supercalifragilisticexpialidocious word here at 120px": {
+      "hash": "5c2117be5903ebae",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 69,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercalifragilisticexpialidocious",
+              "x": 0,
+              "width": 283.4688,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "word here",
+              "x": 0,
+              "width": 88.9375,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "leaves a word wider than the box unbroken: over lazy here at 39px": {
+      "hash": "74b0ab495831a07d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 39,
+          "height": 69,
+          "lines": [
+            {
+              "text": "over",
+              "x": 0,
+              "width": 38.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "lazy",
+              "x": 0,
+              "width": 35.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under word-break: break-word: A supercalifragilisticexpialidocious word here at 80px": {
+      "hash": "ff09a85b63f17301",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 161,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercal",
+              "x": 0,
+              "width": 75.6094,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "ifragilisti",
+              "x": 0,
+              "width": 72.25,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "cexpialid",
+              "x": 0,
+              "width": 77.8281,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "ocious",
+              "x": 0,
+              "width": 57.8125,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "word",
+              "x": 0,
+              "width": 43.3594,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under overflow-wrap: break-word: A supercalifragilisticexpialidocious word here at 80px": {
+      "hash": "78ac63703347324b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 161,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercal",
+              "x": 0,
+              "width": 75.6094,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "ifragilisti",
+              "x": 0,
+              "width": 72.25,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "cexpialid",
+              "x": 0,
+              "width": 77.8281,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "ocious",
+              "x": 0,
+              "width": 57.8125,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "word",
+              "x": 0,
+              "width": 43.3594,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under word-break: break-word: A supercalifragilisticexpialidocious word here at 120px": {
+      "hash": "3b2f51cff023ff75",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 115,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercalifragi",
+              "x": 0,
+              "width": 118.9531,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "listicexpialido",
+              "x": 0,
+              "width": 117.8438,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "cious word",
+              "x": 0,
+              "width": 95.6094,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under overflow-wrap: break-word: A supercalifragilisticexpialidocious word here at 120px": {
+      "hash": "8abc9a37d161e417",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 115,
+          "lines": [
+            {
+              "text": "A",
+              "x": 0,
+              "width": 12.7969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "supercalifragi",
+              "x": 0,
+              "width": 118.9531,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "listicexpialido",
+              "x": 0,
+              "width": 117.8438,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "cious word",
+              "x": 0,
+              "width": 95.6094,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under word-break: break-word: over lazy here at 39px": {
+      "hash": "09c1e65d95d2bf9f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 39,
+          "height": 92,
+          "lines": [
+            {
+              "text": "over",
+              "x": 0,
+              "width": 38.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "lazy",
+              "x": 0,
+              "width": 35.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "her",
+              "x": 0,
+              "width": 28.9063,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "e",
+              "x": 0,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under overflow-wrap: break-word: over lazy here at 39px": {
+      "hash": "764ded040b0a0a2e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 39,
+          "height": 92,
+          "lines": [
+            {
+              "text": "over",
+              "x": 0,
+              "width": 38.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "lazy",
+              "x": 0,
+              "width": 35.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "her",
+              "x": 0,
+              "width": 28.9063,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "e",
+              "x": 0,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under word-break: break-word: supercalifragilisticexpialidocious at 100px": {
+      "hash": "0ec7dc6ea96ef818",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 69,
+          "lines": [
+            {
+              "text": "supercalifr",
+              "x": 0,
+              "width": 92.2656,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "agilisticexp",
+              "x": 0,
+              "width": 97.8281,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "ialidocious",
+              "x": 0,
+              "width": 93.3906,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under overflow-wrap: break-word: supercalifragilisticexpialidocious at 100px": {
+      "hash": "afaffcccefa754e2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 69,
+          "lines": [
+            {
+              "text": "supercalifr",
+              "x": 0,
+              "width": 92.2656,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "agilisticexp",
+              "x": 0,
+              "width": 97.8281,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "ialidocious",
+              "x": 0,
+              "width": 93.3906,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under word-break: break-word: The quick brown fox at 30px": {
+      "hash": "403979b92dddd9bd",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 30,
+          "height": 161,
+          "lines": [
+            {
+              "text": "Th",
+              "x": 0,
+              "width": 23.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "e",
+              "x": 0,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "qui",
+              "x": 0,
+              "width": 26.7031,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "ck",
+              "x": 0,
+              "width": 20,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "bro",
+              "x": 0,
+              "width": 28.9063,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "wn",
+              "x": 0,
+              "width": 25.5781,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "fox",
+              "x": 0,
+              "width": 26.6875,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word wider than the box under overflow-wrap: break-word: The quick brown fox at 30px": {
+      "hash": "96f1762f8a020e24",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 30,
+          "height": 161,
+          "lines": [
+            {
+              "text": "Th",
+              "x": 0,
+              "width": 23.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "e",
+              "x": 0,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "qui",
+              "x": 0,
+              "width": 26.7031,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "ck",
+              "x": 0,
+              "width": 20,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "bro",
+              "x": 0,
+              "width": 28.9063,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "wn",
+              "x": 0,
+              "width": 25.5781,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "fox",
+              "x": 0,
+              "width": 26.6875,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            }
+          ]
+        }
+      }
+    },
+    "breaks between any two letters under break-all 1, at 69px": {
+      "hash": "361f447e2da2fe02",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 69,
+          "height": 276,
+          "lines": [
+            {
+              "text": "The qui",
+              "x": 0,
+              "width": 66.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "ck brow",
+              "x": 0,
+              "width": 68.9063,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "n fox ju",
+              "x": 0,
+              "width": 64.4844,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "mps ov",
+              "x": 0,
+              "width": 64.4688,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "er the l",
+              "x": 0,
+              "width": 61.1563,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "azy do",
+              "x": 0,
+              "width": 58.9375,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "g. Pack",
+              "x": 0,
+              "width": 66.7031,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            },
+            {
+              "text": "my box",
+              "x": 0,
+              "width": 64.4688,
+              "top": 161,
+              "height": 23,
+              "baseline": 179
+            },
+            {
+              "text": "with fiv",
+              "x": 0,
+              "width": 61.125,
+              "top": 184,
+              "height": 23,
+              "baseline": 202
+            },
+            {
+              "text": "e doze",
+              "x": 0,
+              "width": 60.0625,
+              "top": 207,
+              "height": 23,
+              "baseline": 225
+            },
+            {
+              "text": "n liquor",
+              "x": 0,
+              "width": 65.6094,
+              "top": 230,
+              "height": 23,
+              "baseline": 248
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 253,
+              "height": 23,
+              "baseline": 271
+            }
+          ]
+        }
+      }
+    },
+    "breaks between any two letters under break-all 2, at 105px": {
+      "hash": "eb376092ea0c79fc",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 105,
+          "height": 184,
+          "lines": [
+            {
+              "text": "The quick b",
+              "x": 0,
+              "width": 103.3906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "rown fox ju",
+              "x": 0,
+              "width": 96.7188,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "mps over th",
+              "x": 0,
+              "width": 104.4844,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "e lazy dog.",
+              "x": 0,
+              "width": 96.7344,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "Pack my bo",
+              "x": 0,
+              "width": 104.4844,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "x with five d",
+              "x": 0,
+              "width": 104.4844,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            },
+            {
+              "text": "ozen liquor",
+              "x": 0,
+              "width": 97.8438,
+              "top": 138,
+              "height": 23,
+              "baseline": 156
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 161,
+              "height": 23,
+              "baseline": 179
+            }
+          ]
+        }
+      }
+    },
+    "breaks between any two letters under break-all 3, at 150px": {
+      "hash": "6c6b57881f0ea638",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 138,
+          "lines": [
+            {
+              "text": "The quick brown",
+              "x": 0,
+              "width": 146.75,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "fox jumps over t",
+              "x": 0,
+              "width": 141.1719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "he lazy dog. Pac",
+              "x": 0,
+              "width": 147.875,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "k my box with fiv",
+              "x": 0,
+              "width": 146.7031,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "e dozen liquor ju",
+              "x": 0,
+              "width": 146.7813,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "gs.",
+              "x": 0,
+              "width": 26.6875,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            }
+          ]
+        }
+      }
+    },
+    "breaks between any two letters under break-all 4, at 100px": {
+      "hash": "d3dbd6efb39f1415",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 115,
+          "lines": [
+            {
+              "text": "A supercali",
+              "x": 0,
+              "width": 97.8438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "fragilisticex",
+              "x": 0,
+              "width": 98.9219,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "pialidociou",
+              "x": 0,
+              "width": 94.5156,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "s word her",
+              "x": 0,
+              "width": 93.375,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "e",
+              "x": 0,
+              "width": 11.125,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            }
+          ]
+        }
+      }
+    },
+    "keeps the trailing spaces of white-space: pre in the line": {
+      "hash": "a2eac72d4ea0c5c3",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hello   ",
+              "x": 237.75,
+              "width": 62.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "ab",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps the trailing spaces of white-space: pre-wrap in the line": {
+      "hash": "c3c722886457077f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hello   ",
+              "x": 237.75,
+              "width": 62.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "ab",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "start-aligns a line that overflows: An overflowing title, center": {
+      "hash": "16597c78a142b0c5",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "An overflowing title",
+              "x": 0,
+              "width": 167.875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "start-aligns a line that overflows: An overflowing title, right": {
+      "hash": "47ab5e9e8c301716",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "An overflowing title",
+              "x": 0,
+              "width": 167.875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "start-aligns a line that overflows: Supercalifragilistic, center": {
+      "hash": "82463822ef465a1e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "start-aligns a line that overflows: Supercalifragilistic, right": {
+      "hash": "dc533b5d5e7e9394",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after each glyph": {
+      "hash": "41c59f6efc7f779a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after each glyph, 3px of it": {
+      "hash": "6db6e19f6bea50ed",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 60.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "places lines on half-leading baselines": {
+      "hash": "46581bf622d3cac4",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 150,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 0,
+              "width": 178.9844,
+              "top": 0,
+              "height": 30,
+              "baseline": 22
+            },
+            {
+              "text": "jumps over the lazy",
+              "x": 0,
+              "width": 172.2969,
+              "top": 30,
+              "height": 30,
+              "baseline": 52
+            },
+            {
+              "text": "dog. Pack my box",
+              "x": 0,
+              "width": 158.9688,
+              "top": 60,
+              "height": 30,
+              "baseline": 82
+            },
+            {
+              "text": "with five dozen liquor",
+              "x": 0,
+              "width": 186.7813,
+              "top": 90,
+              "height": 30,
+              "baseline": 112
+            },
+            {
+              "text": "jugs.",
+              "x": 0,
+              "width": 42.25,
+              "top": 120,
+              "height": 30,
+              "baseline": 142
+            }
+          ]
+        }
+      }
+    },
+    "collapses the line boxes for a line height of 0": {
+      "hash": "e1a2b8233d379fbc",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 80,
+          "height": 0,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 45.5781,
+              "top": 0,
+              "height": 0,
+              "baseline": 7
+            },
+            {
+              "text": "world",
+              "x": 0,
+              "width": 47.7969,
+              "top": 0,
+              "height": 0,
+              "baseline": 7
+            },
+            {
+              "text": "again",
+              "x": 0,
+              "width": 48.9375,
+              "top": 0,
+              "height": 0,
+              "baseline": 7
+            }
+          ]
+        }
+      }
+    },
+    "gives text of no font size no line boxes": {
+      "hash": "897836e3a90b0255",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 0,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 0,
+              "baseline": 0
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 11px": {
+      "hash": "7f95e92a30ca1f79",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 36,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 14.0625,
+              "top": 0,
+              "height": 12,
+              "baseline": 10
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 14.0625,
+              "top": 12,
+              "height": 12,
+              "baseline": 22
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 14.0625,
+              "top": 24,
+              "height": 12,
+              "baseline": 34
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 13.5px": {
+      "hash": "cb97ce94a496caa9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 17.2656,
+              "top": 0,
+              "height": 15,
+              "baseline": 12
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 17.2656,
+              "top": 15,
+              "height": 15,
+              "baseline": 27
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 17.2656,
+              "top": 30,
+              "height": 15,
+              "baseline": 42
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 16px": {
+      "hash": "a128d45099bb8fc2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 54,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 20.4531,
+              "top": 0,
+              "height": 18,
+              "baseline": 14
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 20.4531,
+              "top": 18,
+              "height": 18,
+              "baseline": 32
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 20.4531,
+              "top": 36,
+              "height": 18,
+              "baseline": 50
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 20px": {
+      "hash": "cdca4cac884080e6",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 33px": {
+      "hash": "6a46e79a565d74be",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 114,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 42.1875,
+              "top": 0,
+              "height": 38,
+              "baseline": 30
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 42.1875,
+              "top": 38,
+              "height": 38,
+              "baseline": 68
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 42.1875,
+              "top": 76,
+              "height": 38,
+              "baseline": 106
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Liberation Sans at 48px": {
+      "hash": "1c8930d9abd171c0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 165,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 61.3594,
+              "top": 0,
+              "height": 55,
+              "baseline": 44
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 61.3594,
+              "top": 55,
+              "height": 55,
+              "baseline": 99
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 61.3594,
+              "top": 110,
+              "height": 55,
+              "baseline": 154
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 11px": {
+      "hash": "71b92014a9987401",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 51,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 0,
+              "height": 17,
+              "baseline": 12
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 17,
+              "height": 17,
+              "baseline": 29
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 34,
+              "height": 17,
+              "baseline": 46
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 13.5px": {
+      "hash": "957efdb4e02583c3",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 60,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 0,
+              "height": 20,
+              "baseline": 14
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 20,
+              "height": 20,
+              "baseline": 34
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 40,
+              "height": 20,
+              "baseline": 54
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 16px": {
+      "hash": "4790ff91b75bfcfd",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 72,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 0,
+              "height": 24,
+              "baseline": 17
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 24,
+              "height": 24,
+              "baseline": 41
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 48,
+              "height": 24,
+              "baseline": 65
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 20px": {
+      "hash": "742740e3eacfd760",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 0,
+              "height": 30,
+              "baseline": 21
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 30,
+              "height": 30,
+              "baseline": 51
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 60,
+              "height": 30,
+              "baseline": 81
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 33px": {
+      "hash": "d6f94742a9fd521b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 150,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 0,
+              "height": 50,
+              "baseline": 35
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 50,
+              "height": 50,
+              "baseline": 85
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 100,
+              "height": 50,
+              "baseline": 135
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Thai at 48px": {
+      "hash": "9b6d23f138a942d6",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 219,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 0,
+              "height": 73,
+              "baseline": 51
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 73,
+              "height": 73,
+              "baseline": 124
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 146,
+              "height": 73,
+              "baseline": 197
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 11px": {
+      "hash": "39b109ede639a379",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 54,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 0,
+              "height": 18,
+              "baseline": 13
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 18,
+              "height": 18,
+              "baseline": 31
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 36,
+              "height": 18,
+              "baseline": 49
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 13.5px": {
+      "hash": "8a9f5d9f07911d10",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 66,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 0,
+              "height": 22,
+              "baseline": 16
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 22,
+              "height": 22,
+              "baseline": 38
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 44,
+              "height": 22,
+              "baseline": 60
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 16px": {
+      "hash": "3fff5a57c14ca17f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 78,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 0,
+              "height": 26,
+              "baseline": 19
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 26,
+              "height": 26,
+              "baseline": 45
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 52,
+              "height": 26,
+              "baseline": 71
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 20px": {
+      "hash": "3c2ff8fe44059de9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 99,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 0,
+              "height": 33,
+              "baseline": 24
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 33,
+              "height": 33,
+              "baseline": 57
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 66,
+              "height": 33,
+              "baseline": 90
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 33px": {
+      "hash": "b7d36787a4027c88",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 162,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 0,
+              "height": 54,
+              "baseline": 39
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 54,
+              "height": 54,
+              "baseline": 93
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 108,
+              "height": 54,
+              "baseline": 147
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Lao at 48px": {
+      "hash": "56b7016b2241309d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 237,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 0,
+              "height": 79,
+              "baseline": 57
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 79,
+              "height": 79,
+              "baseline": 136
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 158,
+              "height": 79,
+              "baseline": 215
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 11px": {
+      "hash": "e1a6d629ca1ddc7a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 72,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 0,
+              "height": 24,
+              "baseline": 15
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 24,
+              "height": 24,
+              "baseline": 39
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 13.4531,
+              "top": 48,
+              "height": 24,
+              "baseline": 63
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 13.5px": {
+      "hash": "7ac986ed7c64bde8",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 0,
+              "height": 30,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 30,
+              "height": 30,
+              "baseline": 48
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 16.5,
+              "top": 60,
+              "height": 30,
+              "baseline": 78
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 16px": {
+      "hash": "5c80bdb96e223dab",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 105,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 0,
+              "height": 35,
+              "baseline": 21
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 35,
+              "height": 35,
+              "baseline": 56
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 19.5625,
+              "top": 70,
+              "height": 35,
+              "baseline": 91
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 20px": {
+      "hash": "3cfe6846f8791048",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 129,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 0,
+              "height": 43,
+              "baseline": 26
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 43,
+              "height": 43,
+              "baseline": 69
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 24.4531,
+              "top": 86,
+              "height": 43,
+              "baseline": 112
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 33px": {
+      "hash": "d1eea031963f67d4",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 216,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 0,
+              "height": 72,
+              "baseline": 44
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 72,
+              "height": 72,
+              "baseline": 116
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 40.3438,
+              "top": 144,
+              "height": 72,
+              "baseline": 188
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, Noto Sans Myanmar at 48px": {
+      "hash": "39499cf7db5706bb",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 315,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 0,
+              "height": 105,
+              "baseline": 64
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 105,
+              "height": 105,
+              "baseline": 169
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 58.6719,
+              "top": 210,
+              "height": 105,
+              "baseline": 274
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, three lines of Liberation Sans at 20px": {
+      "hash": "de69d0b58fbbf4bf",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, a bold face": {
+      "hash": "8bbc83d88bd3ebdc",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 55,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 63.9844,
+              "top": 0,
+              "height": 55,
+              "baseline": 44
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, clamped to whole line boxes": {
+      "hash": "cb11ea699a136193",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox jumps over",
+              "x": 0,
+              "width": 282.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "the lazy dog. Pack my box with",
+              "x": 0,
+              "width": 274.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, trims two lines at 13.5px (trim-both)": {
+      "hash": "d5c2259d2eefd3bd",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 17.2656,
+              "top": 0,
+              "height": 15,
+              "baseline": 12
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 17.2656,
+              "top": 15,
+              "height": 15,
+              "baseline": 27
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, trims two lines at 20px (trim-start)": {
+      "hash": "73dc8c182e52abb1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, trims two lines at 20px (trim-end)": {
+      "hash": "309d7e4666913b57",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, trims two lines at 20px (trim-both)": {
+      "hash": "6163f126a56d9df7",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 25.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "line-height: normal, trims two lines at 33px (trim-both)": {
+      "hash": "ff303765f0da7430",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 75,
+          "lines": [
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 42.1875,
+              "top": 0,
+              "height": 38,
+              "baseline": 30
+            },
+            {
+              "text": "Hg",
+              "x": 0,
+              "width": 42.1875,
+              "top": 38,
+              "height": 38,
+              "baseline": 68
+            }
+          ]
+        }
+      }
+    },
+    "truncates \"ab cd efgh ij\" (normal) clamped to a line at 90px": {
+      "hash": "198b827fef40a09a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 90,
+          "height": 23,
+          "lines": [
+            {
+              "text": "ab cd",
+              "x": 0,
+              "width": 48.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/truncates-ab-cd-efgh-ij-normal-clamped-to-a-line-at-90px.png"
+    },
+    "truncates \"aaaa bb cccc\" (normal) clamped to a line at 100px": {
+      "hash": "c4606a89f50eda50",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bb",
+              "x": 0,
+              "width": 72.2969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-normal-clamped-to-a-line-at-100px.png"
+    },
+    "truncates \"aaaa bb cccc\" (normal) clamped to a line at 110px": {
+      "hash": "75dd5383ef1b552c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 110,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bb",
+              "x": 0,
+              "width": 72.2969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-normal-clamped-to-a-line-at-110px.png"
+    },
+    "truncates \"aaaa bb   cccc\" (pre-wrap) clamped to a line at 100px": {
+      "hash": "8c898679e4f2b216",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bb",
+              "x": 0,
+              "width": 72.2969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-pre-wrap-clamped-to-a-line-at-100px.png"
+    },
+    "truncates \"aaaa bb   cccc\" (pre-wrap) clamped to a line at 120px": {
+      "hash": "92f5ce0511ee9cb7",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bb",
+              "x": 0,
+              "width": 72.2969,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-pre-wrap-clamped-to-a-line-at-120px.png"
+    },
+    "clamps a 20px paragraph to 2 lines": {
+      "hash": "fd4d548007b7527f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox jumps over",
+              "x": 0,
+              "width": 282.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "the lazy dog. Pack my box with",
+              "x": 0,
+              "width": 274.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/clamps-a-20px-paragraph-to-2-lines.png"
+    },
+    "clamps a 16px paragraph to 3 lines": {
+      "hash": "73b51d50fc404678",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 54,
+          "lines": [
+            {
+              "text": "The quick brown fox jumps over the lazy",
+              "x": 0,
+              "width": 285.4688,
+              "top": 0,
+              "height": 18,
+              "baseline": 14
+            },
+            {
+              "text": "dog. Pack my box with five dozen liquor",
+              "x": 0,
+              "width": 281.0313,
+              "top": 18,
+              "height": 18,
+              "baseline": 32
+            },
+            {
+              "text": "jugs. How vexingly quick daft zebras",
+              "x": 0,
+              "width": 257.9063,
+              "top": 36,
+              "height": 18,
+              "baseline": 50,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/clamps-a-16px-paragraph-to-3-lines.png"
+    }
+  }
+}

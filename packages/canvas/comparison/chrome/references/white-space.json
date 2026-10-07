@@ -1,0 +1,3208 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "4e7c6bf3df581255",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "breaks \"a\\nb\" under normal": {
+      "hash": "8a8e30a6985ca886",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\nb\" under nowrap": {
+      "hash": "c46adf0165c044d0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\nb\" under pre-line": {
+      "hash": "18ce7b4ed24f332f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a  \\n  b\" under normal": {
+      "hash": "2584d7dd6f48e9d9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a  \\n  b\" under nowrap": {
+      "hash": "db5a72628602c5c7",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a  \\n  b\" under pre-line": {
+      "hash": "017ba44e2ba3f87c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\r\\nb\" under normal": {
+      "hash": "6cf192b03558bd1a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\r\\nb\" under pre-line": {
+      "hash": "fd9d5bad58a8c557",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\rb\" under pre-line": {
+      "hash": "d9928b1a870ec663",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\n\\n\\nb\" under normal": {
+      "hash": "83973fb917de3d71",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"a\\n\\n\\nb\" under pre-line": {
+      "hash": "1bcac19d1458dfa7",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 92,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 300,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "",
+              "x": 300,
+              "width": 0,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "breaks \"Hello \\n \" under pre-line": {
+      "hash": "14b9df358a79e453",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 254.4219,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\tb\\t\\tc\" under normal": {
+      "hash": "b87f99aff06bc744",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b c",
+              "x": 256.6406,
+              "width": 43.3594,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a     b\" under normal": {
+      "hash": "41bfe4243475f887",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"   Hello world   \" under normal": {
+      "hash": "ee711e12043edb5b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 201.0625,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\u00a0\\u00a0 b\" under normal": {
+      "hash": "e700338c0aee7e20",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\tb\\t\\tc\" under nowrap": {
+      "hash": "d4e6bb13c1382f6f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b c",
+              "x": 256.6406,
+              "width": 43.3594,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a     b\" under nowrap": {
+      "hash": "a325c6328d330395",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"   Hello world   \" under nowrap": {
+      "hash": "9a5c79c47f3ef49b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 201.0625,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\u00a0\\u00a0 b\" under nowrap": {
+      "hash": "037acecbccf1e7d9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\tb\\t\\tc\" under pre-line": {
+      "hash": "a880c14e22880af5",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b c",
+              "x": 256.6406,
+              "width": 43.3594,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a     b\" under pre-line": {
+      "hash": "a61d36c67c13c27e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"   Hello world   \" under pre-line": {
+      "hash": "4d2fdc63c12ad171",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 201.0625,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "collapses \"a\\u00a0\\u00a0 b\" under pre-line": {
+      "hash": "63ce1e3603ded3c8",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "wraps collapsed text under normal, hanging the space at each wrap": {
+      "hash": "f0e3106b7f08d796",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 51.0625,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "again and more",
+              "x": 11.0156,
+              "width": 138.9844,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "words here",
+              "x": 51.0625,
+              "width": 98.9375,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "wraps collapsed text under pre-line, hanging the space at each wrap": {
+      "hash": "4c26040134867b19",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 51.0625,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "again and more",
+              "x": 11.0156,
+              "width": 138.9844,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "words here",
+              "x": 51.0625,
+              "width": 98.9375,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "doesn't wrap collapsed text under nowrap": {
+      "hash": "846d4b7d32c5b1c6",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello world again and more words here",
+              "x": 0,
+              "width": 347.9688,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"a  \\n  b\" under pre": {
+      "hash": "f6fd1faea20ea67d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a  ",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "  b",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"a     b\" under pre": {
+      "hash": "e9ce989917c8eef4",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a     b",
+              "x": 249.9688,
+              "width": 50.0313,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"   Hello world   \" under pre": {
+      "hash": "a31cc5eba65336b1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "   Hello world   ",
+              "x": 167.7344,
+              "width": 132.2656,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"a  \\n  b\" under pre-wrap": {
+      "hash": "91441b7a460edbb1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a  ",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "  b",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"a     b\" under pre-wrap": {
+      "hash": "d658406807eafc4e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a     b",
+              "x": 249.9688,
+              "width": 50.0313,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "keeps \"   Hello world   \" under pre-wrap": {
+      "hash": "345752f6426e5756",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "   Hello world   ",
+              "x": 167.7188,
+              "width": 132.2813,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "keeps the spaces that start a line under pre-wrap, at a soft wrap": {
+      "hash": "60377d1217c7cec0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 30,
+          "height": 69,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "ab",
+              "x": 0,
+              "width": 22.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "cd",
+              "x": 0,
+              "width": 21.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "keeps the spaces that start a line under pre-wrap, after a newline": {
+      "hash": "ab9f35cc7795c00d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "ab",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "  cd ef",
+              "x": 245.5156,
+              "width": 54.4844,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "draws a lone CR as nothing under pre": {
+      "hash": "699ee14cf2281a40",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a\rb",
+              "x": 0,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre: \"AV\"": {
+      "hash": "e2f578be6b7d494e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "AV",
+              "x": 0,
+              "width": 50.3906,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre: \"A\\rV\"": {
+      "hash": "9cd106ca3b2a1c62",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "A\rV",
+              "x": 0,
+              "width": 53.375,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre: \"T\\ro\"": {
+      "hash": "59d832fa26720a05",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "T\ro",
+              "x": 0,
+              "width": 46.6875,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "draws a lone CR as nothing under pre-wrap": {
+      "hash": "446a3439bc1a2043",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a\rb",
+              "x": 0,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre-wrap: \"AV\"": {
+      "hash": "7cc0e1f5c2349f1a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "AV",
+              "x": 0,
+              "width": 50.3906,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre-wrap: \"A\\rV\"": {
+      "hash": "2c5a93558f231248",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "A\rV",
+              "x": 0,
+              "width": 53.375,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "breaks the kerning at a lone CR under pre-wrap: \"T\\ro\"": {
+      "hash": "79dee9f99dddf13c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 1000,
+          "height": 45,
+          "lines": [
+            {
+              "text": "T\ro",
+              "x": 0,
+              "width": 46.6875,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"Hello\\n\" under pre-line": {
+      "hash": "fea82750b739cb14",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\r\\n\" under pre-line": {
+      "hash": "5023d73bd9e03748",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\n\\n\" under pre-line": {
+      "hash": "25824d880fa329dc",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"Hello\\n\" under pre": {
+      "hash": "2c0e53ef67cac8e9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\r\\n\" under pre": {
+      "hash": "0f2a25608f8d2a34",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\n\\n\" under pre": {
+      "hash": "8b37714724396e7f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"Hello\\n\" under pre-wrap": {
+      "hash": "836151d9d2ba6e47",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 0,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\r\\n\" under pre-wrap": {
+      "hash": "6620e10151de60bb",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts no line after a newline that ends \"a\\n\\n\" under pre-wrap": {
+      "hash": "2f9b909d95069c4d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "clamps the collapsed lines": {
+      "hash": "d894bf47a1c6644d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 0,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "again and more",
+              "x": 0,
+              "width": 138.9844,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "white-space/clamps-the-collapsed-lines.png"
+    },
+    "truncates nowrap text on one line": {
+      "hash": "ec585dd7850bf62b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello world again and more words here",
+              "x": 0,
+              "width": 347.9688,
+              "top": 0,
+              "height": 23,
+              "baseline": 18,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "white-space/truncates-nowrap-text-on-one-line.png"
+    },
+    "collapses before text-transform": {
+      "hash": "e46872c9870692e1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello World",
+              "x": 0,
+              "width": 103,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "doesn't render a run of nothing but white space": {
+      "hash": "affefe3406d4a57e",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 400,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 21.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 21.125,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "b",
+              "x": 21.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "renders a run of no-break spaces": {
+      "hash": "372916723e54d8e1",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 400,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": " ",
+              "x": 0,
+              "width": 5.5625,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 0,
+          "y": 46,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays adjacent text out as one run": {
+      "hash": "dbde2c4b8cf4571d",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 400,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hello World",
+              "x": 11.125,
+              "width": 103,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 114.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 114.125,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "b",
+              "x": 114.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "removes the spaces at the start and end of a run": {
+      "hash": "cfb3674b80817712",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 400,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Hello",
+              "x": 11.125,
+              "width": 45.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 56.7031,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 56.7031,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "b",
+              "x": 56.7031,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sizes a run with forced breaks to its widest line": {
+      "hash": "8f0b9e65400a93a5",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 400,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "a",
+              "x": 10,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 10,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "y",
+              "x": 21.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "y": {
+          "x": 21.125,
+          "y": 0,
+          "width": 10,
+          "height": 23,
+          "lines": [
+            {
+              "text": "y",
+              "x": 21.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "has no line box for \"  \" in {}": {
+      "hash": "7109fe9908a97caa",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"\" in {}": {
+      "hash": "fa85f0b6ee526169",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"\\n\" in {\"whiteSpace\":\"pre-line\"}": {
+      "hash": "a24577e0ce7e5dc5",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"\\n\" in {\"whiteSpace\":\"pre\"}": {
+      "hash": "34b9eeaa41fb6f8b",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"  \" in {\"whiteSpace\":\"pre\"}": {
+      "hash": "21d0c38ecd4c51c7",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \" \" in {\"whiteSpace\":\"pre-wrap\"}": {
+      "hash": "cd092127ffafc4b0",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"  \" in {\"lineHeight\":\"30px\"}": {
+      "hash": "3a050d1b24a93823",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"\\f\" in {}": {
+      "hash": "72fe46ce3a8a2acf",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has no line box for \"\\u000b\" in {}": {
+      "hash": "72f4859c28de55de",
+      "elements": {
+        "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
+      }
+    },
+    "has a line box for \"\\u00a0\"": {
+      "hash": "83b2379273ec3545",
+      "elements": {
+        "e": {
+          "x": 0,
+          "y": 0,
+          "width": 5.5625,
+          "height": 23,
+          "lines": [
+            {
+              "text": " ",
+              "x": 0,
+              "width": 5.5625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "has a line box for \"\\u2028\"": {
+      "hash": "9839f1cfe1b5cf3c",
+      "elements": {
+        "e": {
+          "x": 0,
+          "y": 0,
+          "width": 5.5625,
+          "height": 23,
+          "lines": [
+            {
+              "text": " ",
+              "x": 0,
+              "width": 5.5625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2028\" under normal": {
+      "hash": "7cbf291f0ec2581b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2028\" under normal": {
+      "hash": "3b2b09695e6abcd9",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2028\" under normal": {
+      "hash": "7283585dbb775405",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2028\" under normal": {
+      "hash": "ebf91a48c887f258",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2029\" under normal": {
+      "hash": "5cde7e8a6b37fe78",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2029\" under normal": {
+      "hash": "bb1711f6d83c43cb",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2029\" under normal": {
+      "hash": "d759a51abefe403d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2029\" under normal": {
+      "hash": "defbb0e2d206aabc",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2028\" under nowrap": {
+      "hash": "00708968f9d79c7d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2028\" under nowrap": {
+      "hash": "f6a3804735f31bf0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2028\" under nowrap": {
+      "hash": "7765965179ad0dec",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2028\" under nowrap": {
+      "hash": "fb705e33765f1661",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bbbb",
+              "x": 0,
+              "width": 94.5469,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2029\" under nowrap": {
+      "hash": "30f3bea10627c076",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2029\" under nowrap": {
+      "hash": "a26477b04cfaa0ad",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2029\" under nowrap": {
+      "hash": "9f68c737714b78d2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2029\" under nowrap": {
+      "hash": "23164cb80bd76762",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bbbb",
+              "x": 0,
+              "width": 94.5469,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2028\" under pre-line": {
+      "hash": "cdede70142738381",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2028\" under pre-line": {
+      "hash": "1483d0bcb71ac77d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2028\" under pre-line": {
+      "hash": "4ce68ac7cdd4c27c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre-line": {
+      "hash": "d4d0d873685c5bd5",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2029\" under pre-line": {
+      "hash": "c70d9ce06921d133",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2029\" under pre-line": {
+      "hash": "3243f22c6de68a36",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2029\" under pre-line": {
+      "hash": "7293400925b03fe5",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre-line": {
+      "hash": "222b2c6d25266604",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2028\" under pre": {
+      "hash": "3bf97f21363e5f60",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2028\" under pre": {
+      "hash": "ccef229210986c1d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2028\" under pre": {
+      "hash": "234b2d0b13281881",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre": {
+      "hash": "9d18460c6735f2c0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bbbb",
+              "x": 0,
+              "width": 94.5469,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2029\" under pre": {
+      "hash": "eb879d960ac83e0e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2029\" under pre": {
+      "hash": "35e309f6de975f83",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2029\" under pre": {
+      "hash": "58f9b107f62ce3b8",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre": {
+      "hash": "e46ef8ee101acf63",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa bbbb",
+              "x": 0,
+              "width": 94.5469,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2028\" under pre-wrap": {
+      "hash": "533a912b726f4139",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2028\" under pre-wrap": {
+      "hash": "094ae11cc543119d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2028\" under pre-wrap": {
+      "hash": "669467b3ea69cd84",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre-wrap": {
+      "hash": "c7c5e1f79b84a030",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|b, \"\\u2029\" under pre-wrap": {
+      "hash": "065cfdf8ba336bba",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 272.1875,
+              "width": 27.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a | b, \"\\u2029\" under pre-wrap": {
+      "hash": "4359ca2d45249257",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a   b",
+              "x": 261.0781,
+              "width": 38.9219,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "sets a separator as a space: a|, \"\\u2029\" under pre-wrap": {
+      "hash": "eb788c3c908d1c40",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre-wrap": {
+      "hash": "b22d1e43ae14d1cf",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 46,
+          "lines": [
+            {
+              "text": "aaaa ",
+              "x": 9.9375,
+              "width": 50.0625,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbbb",
+              "x": 15.5,
+              "width": 44.5,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a b\" under normal": {
+      "hash": "6a5deed82f430a0e",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2028b\" under normal": {
+      "hash": "19a6500fce24c0f2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2029b\" under normal": {
+      "hash": "7d36e6582edead84",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a b\" under nowrap": {
+      "hash": "b1c932ae7d606523",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2028b\" under nowrap": {
+      "hash": "f014058842bf8edf",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2029b\" under nowrap": {
+      "hash": "7649e7c3a053f431",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a b\" under pre-line": {
+      "hash": "fed8831688c3a563",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2028b\" under pre-line": {
+      "hash": "c75ee853429d2ae4",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2029b\" under pre-line": {
+      "hash": "6104f9c35c310c0c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a b\" under pre": {
+      "hash": "f452b7010217c971",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2028b\" under pre": {
+      "hash": "69a84dd05001a62c",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2029b\" under pre": {
+      "hash": "95a29258ad4ce82b",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a b\" under pre-wrap": {
+      "hash": "bf6822dcf09d156d",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2028b\" under pre-wrap": {
+      "hash": "9bfb42cc208174c0",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "puts letter spacing after a separator once: \"a\\u2029b\" under pre-wrap": {
+      "hash": "83dfb146049d4df1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a b",
+              "x": 0,
+              "width": 42.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\f\" under normal": {
+      "hash": "7732e058f74d5ea2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\fbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\u000b\" under normal": {
+      "hash": "01fb1d14acc2bb04",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\u000bbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\f\" under nowrap": {
+      "hash": "2e4d131472fd2cfb",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\fbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\u000b\" under nowrap": {
+      "hash": "c469064d3e734975",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\u000bbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\f\" under pre-line": {
+      "hash": "1997d4798961fdc6",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\fbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\u000b\" under pre-line": {
+      "hash": "0a8d4b8ee0444a3a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\u000bbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\f\" under pre": {
+      "hash": "3ec40f90755bc981",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa\fbbbb",
+              "x": 0,
+              "width": 89,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\u000b\" under pre": {
+      "hash": "868f78ed61d5f84f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\u000bbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\f\" under pre-wrap": {
+      "hash": "ecab84e2251d84be",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 23,
+          "lines": [
+            {
+              "text": "aaaa\fbbbb",
+              "x": 0,
+              "width": 89,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "doesn't break at \"\\u000b\" under pre-wrap": {
+      "hash": "0e90704ab65811e2",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 30,
+          "lines": [
+            {
+              "text": "aaaa\u000bbbbb",
+              "x": 0,
+              "width": 95.6563,
+              "top": 5,
+              "height": 23,
+              "baseline": 23
+            }
+          ]
+        }
+      }
+    },
+    "draws a form feed as nothing under pre": {
+      "hash": "67f7148cce258208",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a\fb",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "draws a form feed between spaces as nothing under pre": {
+      "hash": "f09b2a72d35395a1",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a \f b",
+              "x": 266.625,
+              "width": 33.375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "draws a form feed as nothing under pre-wrap": {
+      "hash": "d5ac02cb2971fa77",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a\fb",
+              "x": 277.75,
+              "width": 22.25,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "draws a form feed between spaces as nothing under pre-wrap": {
+      "hash": "5a1e712701a8e15a",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a \f b",
+              "x": 266.625,
+              "width": 33.375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

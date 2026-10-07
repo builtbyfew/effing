@@ -5,14 +5,14 @@ import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import { buildLayoutTree } from "../src/jsx/layout.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
 import { layoutText } from "../src/jsx/text/index.ts";
-import { HAS_NATIVE_DEPS, loadFonts } from "./_helpers/setup.ts";
+import { loadFonts } from "./_helpers/setup.ts";
 
 // A <br> is a forced line break in the run of text around it, which a flex
 // container lays out as one anonymous flex item (#175). The expectations are
 // Chrome's, for 20px Liberation Sans (23px lines) in a 300px flex container
 // with `align-items: flex-start`: the lines' text, where each starts and its
 // top, and the container's height.
-describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
+describe("<br>", () => {
   beforeAll(async () => {
     ensureFontsRegistered(await loadFonts());
   });

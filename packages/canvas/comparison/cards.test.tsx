@@ -2,7 +2,6 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -36,6 +35,7 @@ import type {
 const propertyCases: {
   label: string;
   props: Omit<PropertyCardProps, "width" | "height">;
+  maxDiff: number;
 }[] = [
   {
     label: "new apartment with many features",
@@ -55,6 +55,8 @@ const propertyCases: {
         "Fenced Yard",
       ],
     },
+    // 1.51% measured.
+    maxDiff: 2.3,
   },
   {
     label: "sold house with few features",
@@ -67,6 +69,8 @@ const propertyCases: {
       sqft: "960",
       features: ["Parking", "Balcony"],
     },
+    // 0.38% measured.
+    maxDiff: 0.6,
   },
 ];
 
@@ -89,7 +93,8 @@ const pricingCases: {
       ],
       highlighted: true,
     },
-    maxDiff: 2.5,
+    // 1.01% measured.
+    maxDiff: 1.6,
   },
   {
     label: "plain Starter plan without yearly",
@@ -99,7 +104,8 @@ const pricingCases: {
       features: ["5 projects", "Community support", "Basic analytics"],
       highlighted: false,
     },
-    maxDiff: 1.3,
+    // 0.71% measured.
+    maxDiff: 1.1,
   },
 ];
 
@@ -162,7 +168,22 @@ const statsBarCases: {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
+// Smoke checks against satori, a loose reference: they catch a card that
+// breaks outright, not a regression in its text. Where canvas and satori
+// differ, Chrome is authoritative, and the tests that pin Chrome's numbers
+// are what catch regressions in layout and text. Mutation experiments showed
+// that these can't catch small content changes: canvas and satori already
+// differ by 0.25–1.5% here, so most cards stay under their thresholds with a
+// word or a chip dropped, and all but MetricsDashboard and BannerStrip with
+// any one letter or digit changed. Some changes even bring canvas closer to
+// satori.
+//
+// Each threshold is about 1.5 times what's measured (logged as
+// "[comparison]"; macOS arm64 and CI's ubuntu x64 agree within 0.02%). The
+// cards set `lineHeight: 1`: satori's `normal` line height leaves out the
+// font's line gap, which canvas includes, as Chrome does (#180), and line
+// boxes a whole number of pixels tall are placed alike by both.
+describe("visual comparison: cards (satori smoke checks)", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
@@ -171,7 +192,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
 
   it.each(propertyCases)(
     "renders PropertyCard — $label",
-    async ({ label, props }) => {
+    async ({ label, props, maxDiff }) => {
       const element = <PropertyCard width={WIDTH} height={HEIGHT} {...props} />;
 
       const [canvasPng, satoriPng] = await Promise.all([
@@ -184,12 +205,13 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
         `property-${label}`,
       );
 
-      // Satori's `normal` line boxes leave out the font's line gap, and both
-      // align the header's baselines by the bottoms of its text boxes (Yoga
-      // has no text baselines), where Chrome aligns the text's baselines
-      // (effing#179): with Chrome's line boxes, the header is a pixel taller
-      // than satori's.
-      expect(percentage).toBeLessThan(2.8);
+      // A known difference from Chrome (effing#179) that this can't see:
+      // canvas and satori both align the header's baselines by the bottoms
+      // of its text boxes (Yoga has no text baselines), where Chrome aligns
+      // the text's baselines. With `lineHeight: 1`, Chrome makes the header
+      // 24px tall with the badge 9px down; canvas makes it 28px with the
+      // badge 11px down.
+      expect(percentage).toBeLessThan(maxDiff);
     },
   );
 
@@ -208,7 +230,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "status-badge",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.022% measured.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it.each(pricingCases)(
@@ -226,8 +249,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
         `pricing-${label}`,
       );
 
-      const threshold = maxDiff;
-      expect(percentage).toBeLessThan(threshold);
+      expect(percentage).toBeLessThan(maxDiff);
     },
   );
 
@@ -246,7 +268,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
         `tags-${label}`,
       );
 
-      expect(percentage).toBeLessThan(1);
+      // 0.70% and 0.67% measured.
+      expect(percentage).toBeLessThan(1.1);
     },
   );
 
@@ -265,7 +288,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
         `stats-${label}`,
       );
 
-      expect(percentage).toBeLessThan(1);
+      // 0.40% and 0.35% measured.
+      expect(percentage).toBeLessThan(0.6);
     },
   );
 
@@ -282,7 +306,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "listing-overlay-card",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.55% measured.
+    expect(percentage).toBeLessThan(0.85);
   });
 
   it("renders GradientHeroCard — angled gradients with flexBasis and transforms", async () => {
@@ -298,7 +323,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "gradient-hero-card",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.46% measured.
+    expect(percentage).toBeLessThan(0.7);
   });
 
   it("renders JobPostCard — wordBreak, boxShadow, tight lineHeight", async () => {
@@ -314,7 +340,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "job-post-card",
     );
 
-    expect(percentage).toBeLessThan(0.85);
+    // 0.33% measured.
+    expect(percentage).toBeLessThan(0.5);
   });
 
   it("renders MetricsDashboard — negative margins, maxWidth, pre-wrap, underline", async () => {
@@ -330,7 +357,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "metrics-dashboard",
     );
 
-    expect(percentage).toBeLessThan(2.5);
+    // 0.25% measured.
+    expect(percentage).toBeLessThan(0.4);
   });
 
   it("renders BannerStrip — rotation, gradient with transparent, asymmetric radii", async () => {
@@ -346,6 +374,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: cards", () => {
       "banner-strip",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.24% measured.
+    expect(percentage).toBeLessThan(0.4);
   });
 });

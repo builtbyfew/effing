@@ -2,16 +2,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import React from "react";
 import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
-import {
-  HAS_NATIVE_DEPS,
-  loadFonts,
-  renderWithCanvas,
-} from "./_helpers/setup.ts";
+import { loadFonts, renderWithCanvas } from "./_helpers/setup.ts";
 
 // An element's opacity and filter apply to it and its descendants as one
 // compositing group, as in CSS, rather than to each draw. Every case here
 // comes out differently when they are applied per draw.
-describe.skipIf(!HAS_NATIVE_DEPS)("compositing groups", () => {
+describe("compositing groups", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {

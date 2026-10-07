@@ -2,7 +2,6 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -11,7 +10,7 @@ import {
   HEIGHT,
 } from "./_helpers/setup.ts";
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG filter", () => {
+describe("visual comparison: SVG filter", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();

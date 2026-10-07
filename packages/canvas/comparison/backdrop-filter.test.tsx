@@ -2,11 +2,7 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
-import {
-  HAS_NATIVE_DEPS,
-  loadFonts,
-  renderWithCanvas,
-} from "./_helpers/setup.ts";
+import { loadFonts, renderWithCanvas } from "./_helpers/setup.ts";
 
 const WIDTH = 400;
 const HEIGHT = 200;
@@ -62,7 +58,7 @@ async function render(element: React.ReactNode, fonts: FontData[]) {
   return PNG.sync.read(await renderWithCanvas(element, WIDTH, HEIGHT, fonts));
 }
 
-describe.skipIf(!HAS_NATIVE_DEPS)("backdrop-filter rendering", () => {
+describe("backdrop-filter rendering", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();

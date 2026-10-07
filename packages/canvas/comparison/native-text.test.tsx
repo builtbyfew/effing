@@ -8,7 +8,6 @@ import type { LayoutNode } from "../src/jsx/layout.ts";
 import { layoutText } from "../src/jsx/text/index.ts";
 import { findLargestUsableFontSize } from "../src/fit-text.ts";
 import {
-  HAS_NATIVE_DEPS,
   compareImages,
   loadFonts,
   loadScriptFonts,
@@ -22,7 +21,7 @@ const TEXT =
 
 // Text laid out as one native paragraph (@effing/skia's `Paragraph`), which
 // Skia breaks, shapes and paints.
-describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
+describe("native paragraph layout", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
@@ -147,6 +146,42 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       );
       expect(result.segments.map((s) => s.text)).toEqual([line]);
       expect(result.segments[0]!.width).toBeCloseTo(lineWidth, 1);
+    },
+  );
+
+  // A paragraph clamped after a few of its lines, as Chrome 154 lays it out
+  // and paints it ("…" after the last line's last word) in a 300px-wide
+  // -webkit-box. The widths are the last line's with its "…".
+  it.each([
+    [
+      20,
+      2,
+      ["The quick brown fox jumps over", "the lazy dog. Pack my box with"],
+      294.58,
+      46,
+    ],
+    [
+      16,
+      3,
+      [
+        "The quick brown fox jumps over the lazy",
+        "dog. Pack my box with five dozen liquor",
+        "jugs. How vexingly quick daft zebras",
+      ],
+      273.91,
+      54,
+    ],
+  ])(
+    "clamps a %spx paragraph to %s lines as Chrome does",
+    (fontSize, lineClamp, lines, lastWidth, height) => {
+      const result = layoutText(
+        `${TEXT} How vexingly quick daft zebras jump.`,
+        style({ fontSize, lineClamp }),
+        300,
+      );
+      expect(result.segments.map((s) => s.text)).toEqual(lines);
+      expect(result.segments.at(-1)!.width).toBeCloseTo(lastWidth, 1);
+      expect(result.height).toBe(height);
     },
   );
 
@@ -281,16 +316,43 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
 
   // Thai, Lao and Burmese are written without spaces between words; Skia
   // breaks them between dictionary words, which UAX #14 alone can't find.
-  // They're set in bundled Noto fonts, not whatever the system falls back to.
+  // They're set in bundled Noto fonts, not whatever the system falls back
+  // to, and the lines are Chrome 154's in the same fonts (loaded with
+  // @font-face), at 20px in 150px.
   it.each([
     [
       "Thai",
       "ภาษาไทยเป็นภาษาที่มีระดับเสียงของคำแน่นอนหรือวรรณยุกต์เช่นเดียวกับภาษาจีน",
+      [
+        "ภาษาไทยเป็นภาษา",
+        "ที่มีระดับเสียงของ",
+        "คำแน่นอนหรือ",
+        "วรรณยุกต์เช่น",
+        "เดียวกับภาษาจีน",
+      ],
     ],
-    ["Lao", "ພາສາລາວເປັນພາສາທີ່ມີວັນນະຍຸດເຊັ່ນດຽວກັບພາສາໄທ"],
-    ["Burmese", "မြန်မာဘာသာစကားသည် မြန်မာနိုင်ငံ၏ ရုံးသုံးဘာသာစကား ဖြစ်သည်"],
-    ["Thai among English", "Hello ภาษาไทยเป็นภาษาที่มีระดับเสียง world"],
-  ])("wraps %s between words", (_, text) => {
+    [
+      "Lao",
+      "ພາສາລາວເປັນພາສາທີ່ມີວັນນະຍຸດເຊັ່ນດຽວກັບພາສາໄທ",
+      ["ພາສາລາວເປັນພາສາ", "ທີ່ມີວັນນະຍຸດເຊັ່ນ", "ດຽວກັບພາສາໄທ"],
+    ],
+    [
+      "Burmese",
+      "မြန်မာဘာသာစကားသည် မြန်မာနိုင်ငံ၏ ရုံးသုံးဘာသာစကား ဖြစ်သည်",
+      [
+        "မြန်မာဘာသာ",
+        "စကားသည်",
+        "မြန်မာနိုင်ငံ၏",
+        "ရုံးသုံးဘာသာ",
+        "စကား ဖြစ်သည်",
+      ],
+    ],
+    [
+      "Thai among English",
+      "Hello ภาษาไทยเป็นภาษาที่มีระดับเสียง world",
+      ["Hello ภาษาไทย", "เป็นภาษาที่มีระดับ", "เสียง world"],
+    ],
+  ])("wraps %s between words as Chrome does", (_, text, lines) => {
     const result = layoutText(
       text,
       style({
@@ -299,10 +361,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
       }),
       150,
     );
-    expect(result.segments.length).toBeGreaterThan(2);
-    for (const seg of result.segments) {
-      expect(seg.width).toBeLessThanOrEqual(150);
-    }
+    expect(result.segments.map((s) => s.text)).toEqual(lines);
   });
 
   // Chrome fits three of these characters on a line in the 70px it was given
@@ -672,178 +731,173 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
 // Yoga measures a text node at whatever widths its algorithm needs, while the
 // text is drawn at the node's final width; the node must be as tall as the
 // lines drawn (#166).
-describe.skipIf(!HAS_NATIVE_DEPS)(
-  "text measured and drawn at one width",
-  () => {
-    beforeAll(async () => {
-      ensureFontsRegistered(await loadFonts());
-    });
+describe("text measured and drawn at one width", () => {
+  beforeAll(async () => {
+    ensureFontsRegistered(await loadFonts());
+  });
 
-    const textNodes = (node: LayoutNode): LayoutNode[] =>
-      node.type === "text" ? [node] : node.children.flatMap(textNodes);
+  const textNodes = (node: LayoutNode): LayoutNode[] =>
+    node.type === "text" ? [node] : node.children.flatMap(textNodes);
 
-    /** Lay `element` out, and check every text node against its drawn lines. */
-    async function layOut(element: React.ReactElement) {
-      const { tree } = await buildLayoutTree(
-        // A column that doesn't stretch its children, so that boxes keep the
-        // height their text gives them.
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            fontFamily: "Liberation Sans",
-          }}
-        >
-          {element}
-        </div>,
-        400,
-        400,
-        false,
-        ["Liberation Sans"],
+  /** Lay `element` out, and check every text node against its drawn lines. */
+  async function layOut(element: React.ReactElement) {
+    const { tree } = await buildLayoutTree(
+      // A column that doesn't stretch its children, so that boxes keep the
+      // height their text gives them.
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          fontFamily: "Liberation Sans",
+        }}
+      >
+        {element}
+      </div>,
+      400,
+      400,
+      false,
+      ["Liberation Sans"],
+    );
+    const nodes = textNodes(tree);
+    for (const node of nodes) {
+      // What drawing lays out: the text at the node's width.
+      const drawn = layoutText(node.textContent!, node.style, node.width);
+      expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
+        drawn.segments.map((s) => s.text),
       );
-      const nodes = textNodes(tree);
-      for (const node of nodes) {
-        // What drawing lays out: the text at the node's width.
-        const drawn = layoutText(node.textContent!, node.style, node.width);
-        expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
-          drawn.segments.map((s) => s.text),
-        );
-        const lineHeight = drawn.segments[0]!.height;
-        expect(drawn.height).toBe(
-          Math.ceil(drawn.segments.length * lineHeight),
-        );
-        expect(node.height).toBe(drawn.height);
-      }
-      return nodes;
+      const lineHeight = drawn.segments[0]!.height;
+      expect(drawn.height).toBe(Math.ceil(drawn.segments.length * lineHeight));
+      expect(node.height).toBe(drawn.height);
     }
+    return nodes;
+  }
 
-    // The text's box shrinks below the text's widest word only with no
-    // minimum width (`min-width: auto` keeps it at the word, as in CSS), and
-    // the text with it only in a column, where it isn't a flex item in the
-    // box's row (whose minimum would keep it at the word too).
-    const squeezable: React.CSSProperties = {
-      fontSize: 20,
-      minWidth: 0,
-      flexDirection: "column",
-    };
+  // The text's box shrinks below the text's widest word only with no
+  // minimum width (`min-width: auto` keeps it at the word, as in CSS), and
+  // the text with it only in a column, where it isn't a flex item in the
+  // box's row (whose minimum would keep it at the word too).
+  const squeezable: React.CSSProperties = {
+    fontSize: 20,
+    minWidth: 0,
+    flexDirection: "column",
+  };
 
-    it.each([
-      // The issue's example: measured at 300px (the flex basis), where every
-      // word fits, and drawn at 80px, where one doesn't.
-      ["A supercalifragilisticexpialidocious word here", 4],
-      // The same with words that fit at both widths, so both lay the text out
-      // natively.
-      ["A quick brown fox jumps over here", 6],
-    ])("sizes shrunk text for its final width: %s", async (text, lines) => {
-      const [node] = await layOut(
-        <div style={{ display: "flex", width: 300 }}>
-          <div style={squeezable}>{text}</div>
-          <div style={{ width: 220, height: 20, flexShrink: 0 }} />
-        </div>,
-      );
-      expect(node!.width).toBe(80);
-      expect(node!.textLayout!.segments).toHaveLength(lines);
-    });
+  it.each([
+    // The issue's example: measured at 300px (the flex basis), where every
+    // word fits, and drawn at 80px, where one doesn't.
+    ["A supercalifragilisticexpialidocious word here", 4],
+    // The same with words that fit at both widths, so both lay the text out
+    // natively.
+    ["A quick brown fox jumps over here", 6],
+  ])("sizes shrunk text for its final width: %s", async (text, lines) => {
+    const [node] = await layOut(
+      <div style={{ display: "flex", width: 300 }}>
+        <div style={squeezable}>{text}</div>
+        <div style={{ width: 220, height: 20, flexShrink: 0 }} />
+      </div>,
+    );
+    expect(node!.width).toBe(80);
+    expect(node!.textLayout!.segments).toHaveLength(lines);
+  });
 
-    it("breaks text at the fractional width Yoga gives it, as Chrome does", async () => {
-      // Three columns of 98.33px, too narrow for "Hello world" (98.93px):
-      // Chrome wraps it to two lines. Yoga rounds boxes to whole pixels, and
-      // a text box out to 99px, where the text would fit on one; text boxes
-      // keep the width the text was measured at instead.
-      const nodes = await layOut(
-        <div style={{ display: "flex", width: 295, alignItems: "flex-start" }}>
-          {[0, 1, 2].map((i) => (
-            <div key={i} style={{ fontSize: 20, flexGrow: 1, flexBasis: 0 }}>
-              Hello world
-            </div>
-          ))}
-        </div>,
-      );
-      for (const node of nodes) {
-        expect(node.width).toBeCloseTo(295 / 3, 4);
-        expect(node.textLayout!.segments.map((s) => s.text)).toEqual([
-          "Hello",
-          "world",
-        ]);
-      }
-      // Text is still placed on whole pixels, as before.
-      expect(nodes.map((node) => node.x)).toEqual([0, 0, 0]);
-    });
+  it("breaks text at the fractional width Yoga gives it, as Chrome does", async () => {
+    // Three columns of 98.33px, too narrow for "Hello world" (98.93px):
+    // Chrome wraps it to two lines. Yoga rounds boxes to whole pixels, and
+    // a text box out to 99px, where the text would fit on one; text boxes
+    // keep the width the text was measured at instead.
+    const nodes = await layOut(
+      <div style={{ display: "flex", width: 295, alignItems: "flex-start" }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{ fontSize: 20, flexGrow: 1, flexBasis: 0 }}>
+            Hello world
+          </div>
+        ))}
+      </div>,
+    );
+    for (const node of nodes) {
+      expect(node.width).toBeCloseTo(295 / 3, 4);
+      expect(node.textLayout!.segments.map((s) => s.text)).toEqual([
+        "Hello",
+        "world",
+      ]);
+    }
+    // Text is still placed on whole pixels, as before.
+    expect(nodes.map((node) => node.x)).toEqual([0, 0, 0]);
+  });
 
-    it("sizes text squeezed to no width by every line drawn", async () => {
-      const [node] = await layOut(
-        <div style={{ display: "flex", width: 100 }}>
-          <div style={squeezable}>A quick brown fox</div>
-          <div style={{ width: 100, height: 20, flexShrink: 0 }} />
-        </div>,
-      );
-      expect(node!.width).toBe(0);
-      expect(node!.textLayout!.segments).toHaveLength(4);
-    });
+  it("sizes text squeezed to no width by every line drawn", async () => {
+    const [node] = await layOut(
+      <div style={{ display: "flex", width: 100 }}>
+        <div style={squeezable}>A quick brown fox</div>
+        <div style={{ width: 100, height: 20, flexShrink: 0 }} />
+      </div>,
+    );
+    expect(node!.width).toBe(0);
+    expect(node!.textLayout!.segments).toHaveLength(4);
+  });
 
-    it("falls back to Yoga's own layout when the text doesn't settle", async () => {
-      // In a wrapping column of fixed height, a text's height decides which
-      // column the next item goes in, and with it the widths: each height
-      // drawn moves the layout on to widths it doesn't fit.
-      // (A half of the column around it, which has no width of its own.)
-      const element = (
+  it("falls back to Yoga's own layout when the text doesn't settle", async () => {
+    // In a wrapping column of fixed height, a text's height decides which
+    // column the next item goes in, and with it the widths: each height
+    // drawn moves the layout on to widths it doesn't fit.
+    // (A half of the column around it, which has no width of its own.)
+    const element = (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          fontFamily: "Liberation Sans",
+        }}
+      >
         <div
           style={{
             display: "flex",
             flexDirection: "column",
+            flexWrap: "wrap",
+            height: 40,
+            width: "50%",
             alignItems: "flex-start",
-            fontFamily: "Liberation Sans",
           }}
         >
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              flexWrap: "wrap",
-              height: 40,
-              width: "50%",
-              alignItems: "flex-start",
+              width: 200,
+              fontSize: 20,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                width: 200,
-                fontSize: 20,
-              }}
-            >
-              dog word word here
-            </div>
-            <div style={{ display: "flex", flexGrow: 1, fontSize: 14 }}>
-              jumps quick quick quick A quick
-            </div>
+            dog word word here
+          </div>
+          <div style={{ display: "flex", flexGrow: 1, fontSize: 14 }}>
+            jumps quick quick quick A quick
           </div>
         </div>
-      );
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
-        const layOutWith = (debug: boolean) =>
-          buildLayoutTree(element, 400, 400, false, ["Liberation Sans"], {
-            imageCache: new Map(),
-            debug,
-          });
-        const { tree } = await layOutWith(false);
-        expect(warn).not.toHaveBeenCalled();
-        await layOutWith(true);
-        expect(warn).toHaveBeenCalledTimes(1);
-        // Whatever the boxes, the text is drawn as laid out at their widths.
-        for (const node of textNodes(tree)) {
-          expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
-            layoutText(node.textContent!, node.style, node.width).segments.map(
-              (s) => s.text,
-            ),
-          );
-        }
-      } finally {
-        warn.mockRestore();
+      </div>
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const layOutWith = (debug: boolean) =>
+        buildLayoutTree(element, 400, 400, false, ["Liberation Sans"], {
+          imageCache: new Map(),
+          debug,
+        });
+      const { tree } = await layOutWith(false);
+      expect(warn).not.toHaveBeenCalled();
+      await layOutWith(true);
+      expect(warn).toHaveBeenCalledTimes(1);
+      // Whatever the boxes, the text is drawn as laid out at their widths.
+      for (const node of textNodes(tree)) {
+        expect(node.textLayout?.segments.map((s) => s.text)).toEqual(
+          layoutText(node.textContent!, node.style, node.width).segments.map(
+            (s) => s.text,
+          ),
+        );
       }
-    });
-  },
-);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});

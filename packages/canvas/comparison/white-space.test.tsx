@@ -5,12 +5,12 @@ import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import { buildLayoutTree } from "../src/jsx/layout.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
 import { layoutText } from "../src/jsx/text/index.ts";
-import { HAS_NATIVE_DEPS, loadFonts } from "./_helpers/setup.ts";
+import { loadFonts } from "./_helpers/setup.ts";
 
 // White space processing as CSS Text 3 §4.1 has it (#173). The expectations
 // are Chrome's, for 20px Liberation Sans in a 300px box: the lines, and where
 // a right-aligned line starts.
-describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
+describe("white space", () => {
   beforeAll(async () => {
     ensureFontsRegistered(await loadFonts());
   });

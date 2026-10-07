@@ -3,7 +3,6 @@ import React from "react";
 import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -26,22 +25,18 @@ const backgroundImageCases: {
   label: string;
   backgroundSize?: string;
   backgroundRepeat?: string;
-  // Override the loose file-default 1% for cases where Satori parity should
-  // be near-pixel-perfect, so a future regression isn't absorbed by slack.
-  threshold?: number;
 }[] = [
   { label: "default tiling" },
   { label: "cover", backgroundSize: "cover" },
   { label: "contain", backgroundSize: "contain" },
-  { label: "repeat", backgroundRepeat: "repeat", threshold: 0.1 },
-  { label: "no-repeat", backgroundRepeat: "no-repeat", threshold: 0.1 },
-  { label: "repeat-x", backgroundRepeat: "repeat-x", threshold: 0.1 },
-  { label: "repeat-y", backgroundRepeat: "repeat-y", threshold: 0.1 },
+  { label: "repeat", backgroundRepeat: "repeat" },
+  { label: "no-repeat", backgroundRepeat: "no-repeat" },
+  { label: "repeat-x", backgroundRepeat: "repeat-x" },
+  { label: "repeat-y", backgroundRepeat: "repeat-y" },
   {
     label: "contain + no-repeat",
     backgroundSize: "contain",
     backgroundRepeat: "no-repeat",
-    threshold: 0.1,
   },
 ];
 
@@ -49,7 +44,7 @@ const backgroundImageCases: {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
+describe("visual comparison: image", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
@@ -92,7 +87,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       boxHalf(satoriPng),
       "blur-showcase",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
 
     // What Chrome 154 paints for this card across the image's right edge
     // (x = 384), across its top edge (y = 16) and past its bottom right
@@ -190,7 +186,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
 
   it.each(backgroundImageCases)(
     "renders backgroundImage — $label",
-    async ({ label, backgroundSize, backgroundRepeat, threshold }) => {
+    async ({ label, backgroundSize, backgroundRepeat }) => {
       const imageDataUri = await makeTestImage(160, 80); // landscape image
       const element = (
         <BackgroundImageCard
@@ -209,7 +205,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       const slug = `backgroundimage-${label.replace(/\s+/g, "-")}`;
       const { percentage } = await compareImages(canvasPng, satoriPng, slug);
 
-      expect(percentage).toBeLessThan(threshold ?? 1);
+      // 0.006–0.018% measured.
+      expect(percentage).toBeLessThan(0.05);
     },
   );
 
@@ -236,7 +233,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: image", () => {
       "viewport-units-100vw-100vh",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders img with only height set — derives width from intrinsic aspect ratio", async () => {

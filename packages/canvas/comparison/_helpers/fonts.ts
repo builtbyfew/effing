@@ -3,15 +3,6 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FontData } from "../../src/types.ts";
 
-export const HAS_NATIVE_DEPS = (() => {
-  try {
-    require.resolve("@effing/skia");
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FONT_DIR = join(__dirname, "fonts");
 

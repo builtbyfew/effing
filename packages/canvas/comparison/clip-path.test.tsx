@@ -3,7 +3,6 @@ import React from "react";
 import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -52,7 +51,7 @@ function frame(style: React.CSSProperties, children?: React.ReactNode) {
   );
 }
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: clip-path", () => {
+describe("visual comparison: clip-path", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();
@@ -79,12 +78,13 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: clip-path", () => {
         satoriPng,
         `clip-path-${name}`,
       );
-      expect(percentage).toBeLessThan(1);
+      // 0.000% measured; a floor for anti-aliasing.
+      expect(percentage).toBeLessThan(0.05);
     });
   }
 });
 
-describe.skipIf(!HAS_NATIVE_DEPS)("clip-path rendering", () => {
+describe("clip-path rendering", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();

@@ -1,6 +1,6 @@
 {
   "chrome": "154.0.8037.98",
-  "generator": "088224c3b37e2dbd",
+  "generator": "f32f11b2d18ab952",
   "platform": "darwin-arm64",
   "fixtures": {
     "justifies the lines but the last": {
@@ -548,6 +548,48 @@
               "text": "It's O'neil's X-Ray, Élan And 3d",
               "x": 0,
               "width": 273.4375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "transforms \"hello ﬁsh, straße\" to uppercase": {
+      "hash": "85728e0f619b7d59",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "HELLO FISH, STRASSE",
+              "x": 0,
+              "width": 221.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "capitalizes a word across two strings": {
+      "hash": "0b9ca12ca2171512",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 380,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello World Again",
+              "x": 0,
+              "width": 158.6094,
               "top": 0,
               "height": 23,
               "baseline": 18

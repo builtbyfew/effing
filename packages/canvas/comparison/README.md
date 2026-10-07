@@ -28,7 +28,7 @@ For a fixture with `screenshot: true`, it also stores a PNG of the frame (on a t
 - that the references hold the `transcribed` numbers to 0.01px, and the `transcribedPixels`;
 - that canvas lays each fixture out as Chrome did, within the fixture's tolerance (`DEFAULT_TOLERANCE` in `chrome/fixture.ts`: 1px for boxes and the start and top of a line, as Yoga puts boxes on whole pixels; 0.1px for a line's width; 0.01px for line boxes and baselines; 1% of pixels at pixelmatch's 0.1 threshold for screenshots). Texts are compared without trailing spaces or control characters. A truncated line must start as Chrome's does, end in its element's box, and, where Chrome's line fits the box, keep all of it but its last word.
 
-A fixture with a `knownDifference` documents where canvas doesn't match Chrome, and why: its test passes while canvas's layout differs from Chrome's, and fails once it doesn't, so that the note goes when the difference does. A `knownPaintDifference` does the same for a fixture that canvas lays out as Chrome does but paints otherwise: its pixel comparison passes while canvas's pixels (or an ellipsis's end) differ from Chrome's.
+A fixture with a `knownDifference` documents where canvas doesn't lay it out as Chrome does: why (with the issue to fix it), and what differs, as the subjects of the differences found (`"#p line 1 width"`) or RegExps of them. The differences found must be those, and no others, and the test fails once there are none, so that the note goes when the difference does. A `knownPaintDifference` does the same for a fixture that canvas lays out as Chrome does but paints otherwise: the share of its pixels that differ must be within the range measured (beyond its tolerance), and the ellipses that end elsewhere than Chrome's those it names.
 
 ### Regenerating
 
@@ -70,6 +70,6 @@ Fixtures set their text in `SANS` (from `chrome/fixture.ts`): the bundled Libera
 Write fixtures so that CSS and canvas read them alike:
 
 - Give line heights in px (`"30px"`): a number is a multiple of the font size in CSS, but px above 5 in canvas. The generator refuses one.
-- Align text in a box with `flexDirection: "column"` on the box. This is a known difference between canvas and CSS, which is yet to be decided on: in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it.
+- Align text in a box with `flexDirection: "column"` on the box. This is a known difference between canvas and CSS, which is yet to be decided on: in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it ([effing#196](https://github.com/builtbyfew/effing/issues/196)).
 - Set `flexShrink` where an item should shrink: canvas defaults it to 0 (as Satori does), except for an element of nothing but text; the generator sets it the same way.
 - `text-overflow: ellipsis` needs `overflow: hidden` in Chrome.

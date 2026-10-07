@@ -18,6 +18,7 @@ import {
   staleness,
   toleranceOf,
   transcriptionDifferences,
+  unexpected,
 } from "./chrome/compare.ts";
 import { REFERENCES, SANS, generatorHash } from "./chrome/fixture.ts";
 import { modules } from "./chrome/fixtures/index.ts";
@@ -122,12 +123,14 @@ describe("canvas against Chrome", () => {
           expect(staleness(fixture, reference)).toBeUndefined();
           const canvas = await layOutWithCanvas(fixture);
           const found = differences(canvas, reference!.elements, tolerance);
-          if (fixture.knownDifference) {
+          const known = fixture.knownDifference;
+          if (known) {
             // Until canvas matches Chrome, when the note must go.
             expect(
               found,
-              `canvas now lays it out as Chrome does: drop its knownDifference ("${fixture.knownDifference}")`,
+              `canvas now lays it out as Chrome does: drop its knownDifference ("${known.why}")`,
             ).not.toEqual([]);
+            expect(unexpected(found, known.differs)).toEqual([]);
           } else {
             expect(found).toEqual([]);
           }
@@ -151,12 +154,6 @@ describe("canvas against Chrome", () => {
               `chrome-${module.name}-${fixture.name}`,
               tolerance.pixelThreshold,
             );
-            const found: string[] = [];
-            if (percentage > tolerance.pixels) {
-              found.push(
-                `${percentage.toFixed(3)}% of pixels differ (±${tolerance.pixels}%)`,
-              );
-            }
             // Each ellipsis ends where Chrome's does.
             const chrome = ellipsisEnds(
               PNG.sync.read(chromePng),
@@ -166,24 +163,35 @@ describe("canvas against Chrome", () => {
               PNG.sync.read(canvasPng),
               reference!.elements,
             );
+            const ellipses: string[] = [];
             chrome.forEach(({ what, end }, i) => {
               expect(end, `${what}: Chrome's ellipsis`).toBeDefined();
               const ends = canvas[i]!.end;
               if (!(Math.abs(ends! - end!) <= tolerance.line)) {
-                found.push(
+                ellipses.push(
                   `${what}: canvas's ink ends at ${ends}, Chrome's at ${end} (±${tolerance.line})`,
                 );
               }
             });
-            if (fixture.knownPaintDifference) {
+            const known = fixture.knownPaintDifference;
+            if (known) {
               // Until canvas paints it as Chrome does, when the note must go.
               expect(
-                found,
-                `canvas now paints it as Chrome does: drop its knownPaintDifference ("${fixture.knownPaintDifference}")`,
-              ).not.toEqual([]);
+                percentage > tolerance.pixels || ellipses.length > 0,
+                `canvas now paints it as Chrome does: drop its knownPaintDifference ("${known.why}")`,
+              ).toBe(true);
+              expect(unexpected(ellipses, known.ellipses ?? [])).toEqual([]);
             } else {
-              expect(found).toEqual([]);
+              expect(ellipses).toEqual([]);
             }
+            const [from, to] = known?.pixels ?? [0, tolerance.pixels];
+            expect(
+              percentage,
+              "% of pixels that differ",
+            ).toBeGreaterThanOrEqual(from);
+            expect(percentage, "% of pixels that differ").toBeLessThanOrEqual(
+              to,
+            );
           });
         }
       }

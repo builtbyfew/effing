@@ -49,7 +49,7 @@ const UNDERLINED = "Underlined lines of text in a narrow box and more besides";
  * under the fill, which covers that half.
  */
 const STROKE_UNDER_FILL =
-  "canvas paints the stroke under the fill, which hides its inner half; Chrome paints it over the fill";
+  "effing#191: canvas paints the stroke under the fill, which hides its inner half; Chrome paints it over the fill";
 
 const fixtures: ChromeFixture[] = [
   // Decorations.
@@ -71,8 +71,10 @@ const fixtures: ChromeFixture[] = [
     {
       // As "underlines text" is held: the gaps are 0.6% of the frame.
       tolerance: { pixels: 0.2 },
-      knownPaintDifference:
-        "canvas underlines through the descenders of y, p and g; Chrome skips them (text-decoration-skip-ink: auto)",
+      knownPaintDifference: {
+        why: "effing#189: canvas underlines through the descenders of y, p and g; Chrome skips them (text-decoration-skip-ink: auto)",
+        pixels: [0.45, 1.05],
+      },
     },
   ),
   painted(
@@ -89,8 +91,10 @@ const fixtures: ChromeFixture[] = [
     { fontSize: 40, textDecoration: "overline" },
     "Overlined",
     {
-      knownPaintDifference:
-        "canvas draws the overline 0.85em above the baseline (rows 10–13 here); Chrome at the font's ascent, 4px higher at 40px (rows 6–9)",
+      knownPaintDifference: {
+        why: "effing#190: canvas centres the overline 0.85em above the baseline (rows 10–13 here); Chrome paints it above the content area, its bottom at the ascent (rows 6–9), 4px higher at 40px: y = baseline − ascent − thickness / 2 for its centre",
+        pixels: [6.5, 14.5],
+      },
     },
   ),
   painted(
@@ -100,8 +104,10 @@ const fixtures: ChromeFixture[] = [
     { width: 150, textDecoration: "underline" },
     UNDERLINED.slice(0, 33),
     {
-      knownPaintDifference:
-        "canvas doesn't snap an underline to whole pixels: at 20px it's 2px thick from 0.73px below the baseline, across three rows, where Chrome fills the two rows from 1px below it",
+      knownPaintDifference: {
+        why: "effing#190: canvas doesn't snap an underline to whole pixels: at 20px it's 2px thick from 0.73px below the baseline, across three rows, where Chrome fills the two rows from 1px below it",
+        pixels: [1.2, 2.6],
+      },
     },
   ),
   painted(
@@ -123,8 +129,11 @@ const fixtures: ChromeFixture[] = [
     },
     UNDERLINED,
     {
-      knownPaintDifference:
-        "canvas underlines the ellipsis of a clamped line; Chrome doesn't",
+      knownPaintDifference: {
+        why: "effing#190: canvas underlines the ellipsis of a clamped line; Chrome doesn't",
+        pixels: [1.8, 4],
+        ellipses: ["#t line 2"],
+      },
     },
   ),
 
@@ -152,7 +161,7 @@ const fixtures: ChromeFixture[] = [
     70,
     { fontSize: 40, WebkitTextStroke: "2px #ef4444" },
     "Stroked",
-    { knownPaintDifference: STROKE_UNDER_FILL },
+    { knownPaintDifference: { why: STROKE_UNDER_FILL, pixels: [6.5, 14] } },
   ),
   painted(
     "casts a shadow of stroked text",
@@ -165,7 +174,10 @@ const fixtures: ChromeFixture[] = [
     },
     "Stroked",
     {
-      knownPaintDifference: `${STROKE_UNDER_FILL}; and canvas casts the shadow of the fill alone, Chrome of the stroke too`,
+      knownPaintDifference: {
+        why: `${STROKE_UNDER_FILL}; and canvas casts the shadow of the fill alone, Chrome of the stroke too`,
+        pixels: [6.5, 14],
+      },
     },
   ),
 

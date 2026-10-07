@@ -225,30 +225,48 @@
     };
     const collapsed = metrics.height < 1;
 
+    // The run's text as drawn, transformed as a whole: a word can span text
+    // nodes ("hello w", "orld"). A piece of it, from one index of the DOM's
+    // text to another, is where the transform of the text before each puts
+    // them: a transform can change a letter's length ("ß" uppercased is
+    // "SS"), but not for what follows it.
+    const text = nodes.map((node) => (isBr(node) ? "\n" : node.data)).join("");
+    const drawn = transform(text);
+    const drawnAt =
+      drawn === text
+        ? (index) => index
+        : (index) => transform(text.slice(0, index)).length;
+    // Which Chrome must agree with, where the run is all the element's text.
+    const whole = itemsOf(parent).length === 1;
+    const normal = (value) => value.replace(/\s+/g, " ").trim();
+    if (whole && normal(drawn) !== normal(parent.innerText)) {
+      throw new Error(
+        `The text of <${parent.localName}> is drawn as ${JSON.stringify(parent.innerText)}, not ${JSON.stringify(drawn)}: text-transform it as Chrome does`,
+      );
+    }
+
     // Every grapheme cluster and <br>, with its boxes on the page. A space
     // that collapses has a box of no width, or none.
     const pieces = [];
+    let offset = 0;
     for (const node of nodes) {
       if (isBr(node)) {
         const rects = [...node.getClientRects()];
         if (rects.length > 0) pieces.push({ br: true, text: "", rects });
+        offset += 1;
         continue;
       }
-      // Where the transform changes the text's length (an "ß" uppercased
-      // to "SS"), each grapheme cluster is transformed on its own.
-      const drawn = transform(node.data);
-      const aligned = drawn.length === node.data.length;
       for (const { segment, index } of graphemes.segment(node.data)) {
         const range = document.createRange();
         range.setStart(node, index);
         range.setEnd(node, index + segment.length);
+        const start = offset + index;
         pieces.push({
-          text: aligned
-            ? drawn.slice(index, index + segment.length)
-            : transform(segment),
+          text: drawn.slice(drawnAt(start), drawnAt(start + segment.length)),
           rects: [...range.getClientRects()],
         });
       }
+      offset += node.data.length;
     }
 
     // Lines, from where each piece's last box is: a soft wrap's space is on

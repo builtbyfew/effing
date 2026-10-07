@@ -9,6 +9,7 @@ import type {
   ChromeFixture,
   ChromeReference,
   ChromeReferenceFile,
+  Expected,
   FixtureModule,
   Line,
   Tolerance,
@@ -214,6 +215,33 @@ export function differences(
     });
   }
   return found;
+}
+
+/** What `message` is about: all of it up to its first ": ". */
+const subjectOf = (message: string) => message.split(": ")[0]!;
+
+const matches = (message: string, expected: Expected) =>
+  typeof expected === "string"
+    ? subjectOf(message) === expected
+    : expected.test(message);
+
+/**
+ * Where the differences found aren't those expected, as a list of
+ * messages: a difference found that matches nothing expected, and what's
+ * expected that matches no difference found. None where they're the same.
+ */
+export function unexpected(
+  found: readonly string[],
+  expected: readonly Expected[],
+): string[] {
+  return [
+    ...found
+      .filter((message) => !expected.some((e) => matches(message, e)))
+      .map((message) => `unexpected: ${message}`),
+    ...expected
+      .filter((e) => !found.some((message) => matches(message, e)))
+      .map((e) => `expected, but not found: ${String(e)}`),
+  ];
 }
 
 /** The tolerance for `fixture`. */

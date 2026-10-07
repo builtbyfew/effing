@@ -101,14 +101,35 @@ const BACKDROP_FILTERS = [
 
 /**
  * Flat colours, filtered: canvas's are within 3 levels of Chrome's in every
- * channel (none differ at a pixelmatch threshold of 0.02), so they're held
- * to that, but for a few pixels.
+ * channel (none differ at a pixelmatch threshold of 0.01), so they're held
+ * to that, but for a few pixels: a hue 3° off, or a saturation 0.1 off,
+ * fails.
  */
-const COLOURS = { tolerance: { pixelThreshold: 0.02, pixels: 0.1 } };
+const COLOURS = { tolerance: { pixelThreshold: 0.01, pixels: 0.1 } };
+
+/** As `COLOURS`, for a chain that differs by 0.31% at 0.01 (none at 0.015). */
+const CHAINED_COLOURS = { tolerance: { pixelThreshold: 0.015, pixels: 0.1 } };
+
+/**
+ * Canvas blurs a drop shadow half as much as Chrome: Chrome takes
+ * drop-shadow()'s length as the blur's standard deviation (as blur() does),
+ * canvas as a blur radius, of twice the standard deviation (as box-shadow
+ * and text-shadow do). Canvas's `drop-shadow(… 12px …)` is Chrome's `6px`.
+ */
+const HALVED_BLUR =
+  "canvas blurs a drop shadow with half Chrome's standard deviation: it takes drop-shadow()'s length as a blur radius (as box-shadow does), Chrome as the standard deviation (as blur() does)";
 
 const fixtures: ChromeFixture[] = [
   ...FILTERS.map((filter) =>
-    frame(`filters by ${filter}`, 240, 80, swatches(filter), COLOURS),
+    frame(
+      `filters by ${filter}`,
+      240,
+      80,
+      swatches(filter),
+      filter === "grayscale(1) contrast(2) brightness(0.8)"
+        ? CHAINED_COLOURS
+        : COLOURS,
+    ),
   ),
 
   // Drop shadows, of the shape painted.
@@ -123,9 +144,17 @@ const fixtures: ChromeFixture[] = [
         height: 50,
         borderRadius: 16,
         backgroundColor: "#3b82f6",
-        filter: "drop-shadow(6px 8px 6px rgba(0, 0, 0, 0.5))",
+        filter: "drop-shadow(6px 8px 6px #1e293b)",
       }}
     />,
+    {
+      // Without the difference, none of its pixels differ (canvas's
+      // drop-shadow(6px 8px 12px) against Chrome's).
+      tolerance: { pixels: 0.2 },
+      // As measured (5.5%): a shadow 1px further off (6.2%), or blurred 1px
+      // more or less (2.4%, 9.3%), is out of it.
+      knownPaintDifference: { why: HALVED_BLUR, pixels: [5.2, 5.8] },
+    },
   ),
   frame(
     "casts a sharp drop shadow of a circle and a square",
@@ -149,6 +178,9 @@ const fixtures: ChromeFixture[] = [
       />
       <div style={{ width: 50, height: 50, backgroundColor: "#3b82f6" }} />
     </div>,
+    // 0.03% of pixels differ at 0.03: a shadow 1px further off, or blurred
+    // by 1px, differs by 0.37%.
+    { tolerance: { pixelThreshold: 0.03, pixels: 0.06 } },
   ),
 
   // Filters on text.
@@ -177,12 +209,15 @@ const fixtures: ChromeFixture[] = [
     >
       Dropped
     </div>,
-    // 3.3% on macOS: the shadow is where Chrome casts it (its centroid
-    // within 0.5px), but where its halo meets the edges of the glyphs, which
-    // Chrome rasterises heavier on macOS, they differ more than on white
-    // (the same text unfiltered differs by 0.2%, with a sharp shadow by
-    // 0.9%).
-    { tolerance: { pixels: 5 } },
+    {
+      // 0.43% of pixels differ where canvas blurs the shadow as Chrome does
+      // (drop-shadow(3px 3px 4px …)): a ring where the shadow's halo meets
+      // the glyphs' edges, which Chrome rasterises heavier on macOS.
+      tolerance: { pixels: 0.7 },
+      // As measured (3.3%): a shadow 1px further off (4.5%) is out of it,
+      // and the shapes' drop shadows hold its geometry.
+      knownPaintDifference: { why: HALVED_BLUR, pixels: [2.5, 4.2] },
+    },
   ),
   frame(
     "blurs text",

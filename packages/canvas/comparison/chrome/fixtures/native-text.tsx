@@ -1,4 +1,4 @@
-import { fixtureModule, quote } from "../fixture.ts";
+import { fixtureModule, quote, SANS } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 import { paragraph, texts } from "./paragraph.tsx";
 
@@ -56,12 +56,6 @@ const lineBoxes = (count: number, height: number, baseline: number) => ({
 const HALF_LEADING =
   "canvas puts the baseline in a line box of a set height 0.07px higher: half the leading from the unrounded ascent and descent, where Chrome rounds them";
 
-/**
- * "A" on a line of its own, before a wrap, is 12.8px in Chrome, and in
- * canvas on macOS; on Linux, canvas makes it 12.24px.
- */
-const A_ON_ITS_OWN = { lineWidth: 0.6 };
-
 const fixtures: ChromeFixture[] = [
   ...(
     [
@@ -76,7 +70,6 @@ const fixtures: ChromeFixture[] = [
       {},
       width,
       texts(lines),
-      text === LONG ? { tolerance: A_ON_ITS_OWN } : {},
     ),
   ),
   ...(
@@ -112,7 +105,6 @@ const fixtures: ChromeFixture[] = [
         style,
         width,
         texts(lines),
-        text === LONG ? { tolerance: A_ON_ITS_OWN } : {},
       ),
     ),
   ),
@@ -243,7 +235,10 @@ const fixtures: ChromeFixture[] = [
     paragraph(
       `line-height: normal, ${fontFamily} at ${fontSize}px`,
       "Hg Hg Hg",
-      { fontFamily, fontSize },
+      {
+        fontFamily: fontFamily === "Liberation Sans" ? SANS : fontFamily,
+        fontSize,
+      },
       1,
       lineBoxes(3, height, baseline),
       // The Noto fonts have no "H" or "g": Chrome draws them in a system
@@ -307,6 +302,41 @@ const fixtures: ChromeFixture[] = [
       text,
       { lineClamp: 1, whiteSpace, overflow: "hidden" },
       width,
+      undefined,
+      // A frame about the line, where the ellipsis is a share of it.
+      { screenshot: true, width: 160, height: 30 },
+    ),
+  ),
+  // native-text.test.tsx's paragraphs clamped after a few lines: Chrome
+  // paints "…" after the last line's last word that fits.
+  ...(
+    [
+      [20, 2, ["The quick brown fox jumps over"], 46],
+      [
+        16,
+        3,
+        [
+          "The quick brown fox jumps over the lazy",
+          "dog. Pack my box with five dozen liquor",
+        ],
+        54,
+      ],
+    ] as const
+  ).map(([fontSize, lineClamp, lines, height]) =>
+    paragraph(
+      `clamps a ${fontSize}px paragraph to ${lineClamp} lines`,
+      `${TEXT} How vexingly quick daft zebras jump.`,
+      { fontSize, lineClamp, overflow: "hidden" },
+      300,
+      { height, lines: [...lines.map((text) => ({ text })), {}] },
+      {
+        screenshot: true,
+        width: 320,
+        height: height + 10,
+        // Their glyphs anti-alias apart at 16px and 20px: 1.5% and 2.9%
+        // measured, where the ellipsis's end is checked on its own.
+        tolerance: { pixels: fontSize === 16 ? 6 : 3 },
+      },
     ),
   ),
 ];

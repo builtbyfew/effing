@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "6dd1ee1c41ec147f",
   "platform": "darwin-arm64",
   "fixtures": {
     "centred in its parent: nowrap, centred": {
-      "hash": "70a30b4b2a057fee",
+      "hash": "7c25a3760f092347",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -24,7 +25,7 @@
       }
     },
     "centred in its parent: nowrap": {
-      "hash": "16181c05e973e7fd",
+      "hash": "97e4cc06839cd9f4",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -45,7 +46,7 @@
       }
     },
     "centred in its parent: nowrap in a centring row": {
-      "hash": "4b607685c9988845",
+      "hash": "b3714a0493fb6d2f",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -66,7 +67,7 @@
       }
     },
     "centred in its parent: nowrap that doesn't shrink": {
-      "hash": "f034548b7a4cd966",
+      "hash": "d3127c47dea9a891",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -87,7 +88,7 @@
       }
     },
     "centred in its parent: nowrap, clipped": {
-      "hash": "434b0c0bc88f1680",
+      "hash": "e87764c87cfe2d2d",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -108,7 +109,7 @@
       }
     },
     "centres a word wider than the box": {
-      "hash": "4dbcc72197814bae",
+      "hash": "209ae114ab4823d4",
       "elements": {
         "text": {
           "x": -17.875,
@@ -129,7 +130,7 @@
       }
     },
     "centres words wider than the box, as wide as the widest": {
-      "hash": "6f04ff1af7073fd3",
+      "hash": "279574be7337c68f",
       "elements": {
         "text": {
           "x": -17.875,
@@ -158,7 +159,7 @@
       }
     },
     "doesn't count a break-word break in the min-content": {
-      "hash": "f3368c0e44fd3883",
+      "hash": "3ca33a193cb15c92",
       "elements": {
         "text": {
           "x": -17.875,
@@ -179,7 +180,7 @@
       }
     },
     "keeps preserved spaces in the min-content": {
-      "hash": "7c9a1fbf12995d0e",
+      "hash": "1fd4a042d1f91c86",
       "elements": {
         "text": {
           "x": -2.2969,
@@ -200,7 +201,7 @@
       }
     },
     "adds padding and borders": {
-      "hash": "df84033d12e90335",
+      "hash": "f0c6122464713636",
       "elements": {
         "text": {
           "x": -14.7344,
@@ -221,7 +222,7 @@
       }
     },
     "centres in a reversed row": {
-      "hash": "8db75f86a3f0c7e9",
+      "hash": "7ff7486ded869106",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -242,7 +243,7 @@
       }
     },
     "centres when its parent hides what overflows it": {
-      "hash": "83f3f0c33253ca8e",
+      "hash": "6eff8689fc683c67",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -263,7 +264,7 @@
       }
     },
     "centres across a column, as wide as its line": {
-      "hash": "374c7122813124b7",
+      "hash": "a1054ea13f6ae58a",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -284,7 +285,7 @@
       }
     },
     "centres across a column, words as wide as the widest": {
-      "hash": "6fa694718aa5aa8f",
+      "hash": "89686015e7b4833a",
       "elements": {
         "text": {
           "x": -17.875,
@@ -313,7 +314,7 @@
       }
     },
     "keeps the text as wide as its line in a box of its own column": {
-      "hash": "44ebbd19f5cfb754",
+      "hash": "397712457a9676f0",
       "elements": {
         "text": {
           "x": 3.2656,
@@ -334,7 +335,7 @@
       }
     },
     "grows from no flex basis no narrower than its line": {
-      "hash": "f63660e2f3ddacc4",
+      "hash": "8161257841764ecc",
       "elements": {
         "text": {
           "x": 150,
@@ -355,7 +356,7 @@
       }
     },
     "sizes an absolutely positioned box to its line": {
-      "hash": "a015bdb8e4293db3",
+      "hash": "5116a5ea4a910658",
       "elements": {
         "text": {
           "x": 150,
@@ -376,7 +377,7 @@
       }
     },
     "keeps a run of text next to an element as wide as its line": {
-      "hash": "bf5e32ee0d593e04",
+      "hash": "013e8fc2fefd3830",
       "elements": {
         "text": {
           "x": 150,
@@ -405,7 +406,7 @@
       }
     },
     "lets text that can't wrap overflow a row of them": {
-      "hash": "27ea88b7d9d41792",
+      "hash": "c5fe14ca13850148",
       "elements": {
         "a": {
           "x": 150,
@@ -442,7 +443,7 @@
       }
     },
     "wraps text that can't wrap to lines of its own in a wrapping row": {
-      "hash": "9a9628cd5101feb6",
+      "hash": "aee5e3807dcf9454",
       "elements": {
         "a": {
           "x": 143.3281,
@@ -479,7 +480,7 @@
       }
     },
     "keeps wrapping text next to a sibling as wide as its widest word": {
-      "hash": "0cf22b0cc5fa93d0",
+      "hash": "bd0ebd1eeb6620f9",
       "elements": {
         "text": {
           "x": 150,
@@ -508,7 +509,7 @@
       }
     },
     "shrinks text below its line that hides what overflows it": {
-      "hash": "6538a25ceca5c4bd",
+      "hash": "f7177f05a6d9ee36",
       "elements": {
         "text": {
           "x": 150,
@@ -529,7 +530,7 @@
       }
     },
     "shrinks text below its line with a min-width of its own": {
-      "hash": "e29fe3fd00a0e6c8",
+      "hash": "3df32d891bbe32e8",
       "elements": {
         "text": {
           "x": 150,
@@ -550,7 +551,7 @@
       }
     },
     "shrinks text below its line that hides what overflows it, centring its text": {
-      "hash": "cb178583e4095aef",
+      "hash": "76d854f2c7de67e1",
       "elements": {
         "text": {
           "x": 150,
@@ -571,7 +572,7 @@
       }
     },
     "shrinks text below its line to a width": {
-      "hash": "58a97c4f8ba6a87d",
+      "hash": "493d69dab1740738",
       "elements": {
         "text": {
           "x": 200,
@@ -592,7 +593,7 @@
       }
     },
     "shrinks text below its line to a width wider than the box": {
-      "hash": "4b78767ac01230f4",
+      "hash": "c0fd5be502fcd7a7",
       "elements": {
         "text": {
           "x": 100,
@@ -613,7 +614,7 @@
       }
     },
     "shrinks text below its line to a max width": {
-      "hash": "7e423e989d187871",
+      "hash": "b27ba0fde9bec5b2",
       "elements": {
         "text": {
           "x": 175,
@@ -634,7 +635,7 @@
       }
     },
     "shrinks text below its line to a max width wider than the box": {
-      "hash": "9ef158a4e2f32e8d",
+      "hash": "1a3b9f4f6814053c",
       "elements": {
         "text": {
           "x": 100,
@@ -655,7 +656,7 @@
       }
     },
     "shrinks text below its line to a percentage width": {
-      "hash": "63003a4b50aa0993",
+      "hash": "36a9ddbbadc609ee",
       "elements": {
         "text": {
           "x": 225,
@@ -676,7 +677,7 @@
       }
     },
     "shrinks text below its line to a percentage max width": {
-      "hash": "10435dd11dd358e8",
+      "hash": "f3abfc9bfe423ca3",
       "elements": {
         "text": {
           "x": 180,
@@ -697,7 +698,7 @@
       }
     },
     "shrinks text stretched across a column": {
-      "hash": "ea89f207b8831b93",
+      "hash": "7bb15c0e934a16dc",
       "elements": {
         "text": {
           "x": 150,
@@ -718,7 +719,7 @@
       }
     },
     "shrinks text stretched across a column, a break-word word whole": {
-      "hash": "e5c8f06c002ca949",
+      "hash": "ca6aa696b12d539a",
       "elements": {
         "text": {
           "x": 150,
@@ -739,7 +740,7 @@
       }
     },
     "breaks a word anywhere under overflow-wrap: anywhere": {
-      "hash": "b4fa1a523e3b01ad",
+      "hash": "f66e754de3da49a3",
       "elements": {
         "text": {
           "x": 150,
@@ -776,7 +777,7 @@
       }
     },
     "breaks a word anywhere under word-break: break-all": {
-      "hash": "8a47adddd2aee41c",
+      "hash": "c405b2aad301b8ce",
       "elements": {
         "text": {
           "x": 150,
@@ -813,7 +814,7 @@
       }
     },
     "breaks a word anywhere under word-break: break-word": {
-      "hash": "a91cc242a0d284e9",
+      "hash": "a3a5224d68ed8caf",
       "elements": {
         "text": {
           "x": 150,
@@ -850,7 +851,7 @@
       }
     },
     "truncates text with an ellipsis": {
-      "hash": "a2e012054b9d3d7f",
+      "hash": "2b2e68d3fcc945fa",
       "elements": {
         "text": {
           "x": 150,
@@ -869,10 +870,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "min-content/truncates-text-with-an-ellipsis.png"
     },
     "clamps its lines": {
-      "hash": "6b472d761d42059e",
+      "hash": "a754846ce881bde8",
       "elements": {
         "text": {
           "x": 150,
@@ -899,10 +901,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "min-content/clamps-its-lines.png"
     },
     "centres a word that fits": {
-      "hash": "77c36ca3a67fb261",
+      "hash": "004fb1205f883538",
       "elements": {
         "text": {
           "x": 251.0938,
@@ -923,7 +926,7 @@
       }
     },
     "wraps text that fits next to a sibling": {
-      "hash": "43aae12939a93ef4",
+      "hash": "a4c16824613c2703",
       "elements": {
         "text": {
           "x": 150,
@@ -952,7 +955,7 @@
       }
     },
     "shrinks two runs of text that wrap side by side": {
-      "hash": "4078bff3bc21abf0",
+      "hash": "3dd106a9846a95c5",
       "elements": {
         "a": {
           "x": 150,
@@ -1013,7 +1016,7 @@
       }
     },
     "holds items with fractional padding": {
-      "hash": "9116fce5eabac060",
+      "hash": "5e55ef5f9f98b912",
       "elements": {
         "item0": {
           "x": 0,
@@ -1050,7 +1053,7 @@
       }
     },
     "holds items capped at a percentage width": {
-      "hash": "fd9223fb5ab98264",
+      "hash": "44cf44216005f08b",
       "elements": {
         "item0": {
           "x": 0,
@@ -1087,7 +1090,7 @@
       }
     },
     "holds items with percentage padding": {
-      "hash": "287f763d010017c8",
+      "hash": "c0b7a57dbeeb6976",
       "elements": {
         "item0": {
           "x": -11.7344,
@@ -1108,7 +1111,7 @@
       }
     },
     "holds items capped at a percentage max width": {
-      "hash": "178402a66c7b444b",
+      "hash": "36e929a53a41ff7d",
       "elements": {
         "item0": {
           "x": 0,
@@ -1130,7 +1133,7 @@
       }
     },
     "holds items at percentages and fractions": {
-      "hash": "5540d50e7b01c2df",
+      "hash": "cfad5ceb54aa0bfa",
       "elements": {
         "item0": {
           "x": -11.8125,
@@ -1231,7 +1234,7 @@
       }
     },
     "holds items with words wider than the row": {
-      "hash": "86ce7eb2575bfe75",
+      "hash": "c2fd44d7df3ef292",
       "elements": {
         "item0": {
           "x": 0,
@@ -1284,7 +1287,7 @@
       }
     },
     "holds items in a row a few pixels wide": {
-      "hash": "b5027b0ce64f6979",
+      "hash": "3277a1c37a4f3a10",
       "elements": {
         "item0": {
           "x": 0,
@@ -1321,7 +1324,7 @@
       }
     },
     "holds items that shrink by fractions": {
-      "hash": "1992820a60d3143b",
+      "hash": "97fb6d8c4b419ccc",
       "elements": {
         "item0": {
           "x": 0,
@@ -1414,7 +1417,7 @@
       }
     },
     "shrinks an element that hides what overflows it by its flex basis": {
-      "hash": "d596e1fb5b9cec4c",
+      "hash": "ddea4786d081a4d3",
       "elements": {
         "item0": {
           "x": 0,
@@ -1458,7 +1461,7 @@
       }
     },
     "shrinks an element that has no min width by its flex basis": {
-      "hash": "390e57948bfc3871",
+      "hash": "c476bb6b15e96e7c",
       "elements": {
         "item0": {
           "x": 0,
@@ -1502,7 +1505,7 @@
       }
     },
     "shrinks an element that hides what overflows it, next to more by its flex basis": {
-      "hash": "3543f3ffcb101480",
+      "hash": "320f760f48d8e4a4",
       "elements": {
         "item0": {
           "x": 0,
@@ -1546,7 +1549,7 @@
       }
     },
     "shrinks an element that has no min width, next to more by its flex basis": {
-      "hash": "ab7fda6bf159b53c",
+      "hash": "20108b0f0988e41d",
       "elements": {
         "item0": {
           "x": 0,
@@ -1590,7 +1593,7 @@
       }
     },
     "leaves a wide item that doesn't shrink as wide as it is": {
-      "hash": "a6f46f9f491e2759",
+      "hash": "7d2c5c0715b9a540",
       "elements": {
         "strip": { "x": 0, "y": 0, "width": 70000, "height": 10, "lines": [] },
         "text": {

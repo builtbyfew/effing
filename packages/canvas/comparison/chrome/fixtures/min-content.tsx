@@ -1,5 +1,5 @@
 import type React from "react";
-import { fixtureModule } from "../fixture.ts";
+import { fixtureModule, SANS } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 
 // The cases of min-content.test.tsx that hold Chrome's numbers: 40px bold
@@ -22,7 +22,7 @@ const inBox = (children: React.ReactNode, box: React.CSSProperties = {}) => (
         height: 120,
         justifyContent: "center",
         alignItems: "center",
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontWeight: 700,
         fontSize: 40,
         ...box,
@@ -73,7 +73,7 @@ const row = (
       style={{
         display: "flex",
         alignItems: "flex-start",
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontWeight: 400,
         ...boxStyle,
       }}
@@ -349,12 +349,14 @@ export default fixtureModule("min-content", [
     }),
     {},
     { text: box(150, 300, [150]) },
+    { screenshot: true },
   ),
   inBoxFixture(
     "clamps its lines",
     text({ lineClamp: 2, overflow: "hidden" }, `${WORD} and more words here`),
     {},
     { text: { x: 150, width: 300, lines: [{ x: 150 }, {}] } },
+    { screenshot: true },
   ),
   inBoxFixture(
     "centres a word that fits",
@@ -626,7 +628,7 @@ export default fixtureModule("min-content", [
             display: "flex",
             width: 300,
             justifyContent: "center",
-            fontFamily: "Liberation Sans",
+            fontFamily: SANS,
             fontSize: 40,
             fontWeight: 700,
           }}

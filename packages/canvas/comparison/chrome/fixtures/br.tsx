@@ -1,5 +1,5 @@
 import React from "react";
-import { fixtureModule, quote } from "../fixture.ts";
+import { fixtureModule, quote, SANS } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 
 // Cases of br.test.tsx that hold Chrome's numbers: 20px Liberation Sans
@@ -25,7 +25,7 @@ const container = (
         alignItems: "flex-start",
         alignSelf: "flex-start",
         width: 300,
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontSize: 20,
         ...style,
       }}

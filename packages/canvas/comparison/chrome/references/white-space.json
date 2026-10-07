@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "6dd1ee1c41ec147f",
   "platform": "darwin-arm64",
   "fixtures": {
     "breaks \"a\\nb\" under normal": {
-      "hash": "665c3d45ed39e843",
+      "hash": "8a8e30a6985ca886",
       "elements": {
         "p": {
           "x": 0,
@@ -24,7 +25,7 @@
       }
     },
     "breaks \"a\\nb\" under nowrap": {
-      "hash": "56064f9c309bb52f",
+      "hash": "c46adf0165c044d0",
       "elements": {
         "p": {
           "x": 0,
@@ -45,7 +46,7 @@
       }
     },
     "breaks \"a\\nb\" under pre-line": {
-      "hash": "e3350403da481ee7",
+      "hash": "18ce7b4ed24f332f",
       "elements": {
         "p": {
           "x": 0,
@@ -74,7 +75,7 @@
       }
     },
     "breaks \"a  \\n  b\" under normal": {
-      "hash": "3c7cd2ba4deb2a92",
+      "hash": "2584d7dd6f48e9d9",
       "elements": {
         "p": {
           "x": 0,
@@ -95,7 +96,7 @@
       }
     },
     "breaks \"a  \\n  b\" under nowrap": {
-      "hash": "39772c6355457543",
+      "hash": "db5a72628602c5c7",
       "elements": {
         "p": {
           "x": 0,
@@ -116,7 +117,7 @@
       }
     },
     "breaks \"a  \\n  b\" under pre-line": {
-      "hash": "64e0e58f11f4b82d",
+      "hash": "017ba44e2ba3f87c",
       "elements": {
         "p": {
           "x": 0,
@@ -145,7 +146,7 @@
       }
     },
     "breaks \"a\\r\\nb\" under normal": {
-      "hash": "df471753cf437a78",
+      "hash": "6cf192b03558bd1a",
       "elements": {
         "p": {
           "x": 0,
@@ -166,7 +167,7 @@
       }
     },
     "breaks \"a\\r\\nb\" under pre-line": {
-      "hash": "ef023f713f9dd9de",
+      "hash": "fd9d5bad58a8c557",
       "elements": {
         "p": {
           "x": 0,
@@ -195,7 +196,7 @@
       }
     },
     "breaks \"a\\rb\" under pre-line": {
-      "hash": "bd6f1f1a2cc0a765",
+      "hash": "d9928b1a870ec663",
       "elements": {
         "p": {
           "x": 0,
@@ -216,7 +217,7 @@
       }
     },
     "breaks \"a\\n\\n\\nb\" under normal": {
-      "hash": "b01bf4dd7c1dea5a",
+      "hash": "83973fb917de3d71",
       "elements": {
         "p": {
           "x": 0,
@@ -237,7 +238,7 @@
       }
     },
     "breaks \"a\\n\\n\\nb\" under pre-line": {
-      "hash": "5d52138419749d8b",
+      "hash": "1bcac19d1458dfa7",
       "elements": {
         "p": {
           "x": 0,
@@ -282,7 +283,7 @@
       }
     },
     "breaks \"Hello \\n \" under pre-line": {
-      "hash": "545538f22b4caf1c",
+      "hash": "14b9df358a79e453",
       "elements": {
         "p": {
           "x": 0,
@@ -303,7 +304,7 @@
       }
     },
     "collapses \"a\\tb\\t\\tc\" under normal": {
-      "hash": "530c7b75265d686a",
+      "hash": "b87f99aff06bc744",
       "elements": {
         "p": {
           "x": 0,
@@ -324,7 +325,7 @@
       }
     },
     "collapses \"a     b\" under normal": {
-      "hash": "81c4ae12586ef3c2",
+      "hash": "41bfe4243475f887",
       "elements": {
         "p": {
           "x": 0,
@@ -345,7 +346,7 @@
       }
     },
     "collapses \"   Hello world   \" under normal": {
-      "hash": "3a816fe8b80d11d8",
+      "hash": "ee711e12043edb5b",
       "elements": {
         "p": {
           "x": 0,
@@ -366,7 +367,7 @@
       }
     },
     "collapses \"a\\u00a0\\u00a0 b\" under normal": {
-      "hash": "372548ec234fa02d",
+      "hash": "e700338c0aee7e20",
       "elements": {
         "p": {
           "x": 0,
@@ -387,7 +388,7 @@
       }
     },
     "collapses \"a\\tb\\t\\tc\" under nowrap": {
-      "hash": "fe11a148e2a2c88f",
+      "hash": "d4e6bb13c1382f6f",
       "elements": {
         "p": {
           "x": 0,
@@ -408,7 +409,7 @@
       }
     },
     "collapses \"a     b\" under nowrap": {
-      "hash": "5dd52e8ffed7931e",
+      "hash": "a325c6328d330395",
       "elements": {
         "p": {
           "x": 0,
@@ -429,7 +430,7 @@
       }
     },
     "collapses \"   Hello world   \" under nowrap": {
-      "hash": "31819dd22cfd8b1e",
+      "hash": "9a5c79c47f3ef49b",
       "elements": {
         "p": {
           "x": 0,
@@ -450,7 +451,7 @@
       }
     },
     "collapses \"a\\u00a0\\u00a0 b\" under nowrap": {
-      "hash": "5b95be0c6f14eebc",
+      "hash": "037acecbccf1e7d9",
       "elements": {
         "p": {
           "x": 0,
@@ -471,7 +472,7 @@
       }
     },
     "collapses \"a\\tb\\t\\tc\" under pre-line": {
-      "hash": "c6ae78e223597dc0",
+      "hash": "a880c14e22880af5",
       "elements": {
         "p": {
           "x": 0,
@@ -492,7 +493,7 @@
       }
     },
     "collapses \"a     b\" under pre-line": {
-      "hash": "6ea89c7d534a32f0",
+      "hash": "a61d36c67c13c27e",
       "elements": {
         "p": {
           "x": 0,
@@ -513,7 +514,7 @@
       }
     },
     "collapses \"   Hello world   \" under pre-line": {
-      "hash": "d09046a290d0d05b",
+      "hash": "4d2fdc63c12ad171",
       "elements": {
         "p": {
           "x": 0,
@@ -534,7 +535,7 @@
       }
     },
     "collapses \"a\\u00a0\\u00a0 b\" under pre-line": {
-      "hash": "561760b51cf794e9",
+      "hash": "63ce1e3603ded3c8",
       "elements": {
         "p": {
           "x": 0,
@@ -555,7 +556,7 @@
       }
     },
     "wraps collapsed text under normal, hanging the space at each wrap": {
-      "hash": "3d7f5c9b30bb26be",
+      "hash": "f0e3106b7f08d796",
       "elements": {
         "p": {
           "x": 0,
@@ -592,7 +593,7 @@
       }
     },
     "wraps collapsed text under pre-line, hanging the space at each wrap": {
-      "hash": "e32876d78c6d926e",
+      "hash": "4c26040134867b19",
       "elements": {
         "p": {
           "x": 0,
@@ -629,7 +630,7 @@
       }
     },
     "doesn't wrap collapsed text under nowrap": {
-      "hash": "cc631e1567cbcfa9",
+      "hash": "846d4b7d32c5b1c6",
       "elements": {
         "p": {
           "x": 0,
@@ -650,7 +651,7 @@
       }
     },
     "keeps \"a  \\n  b\" under pre": {
-      "hash": "ea632f738bd81293",
+      "hash": "f6fd1faea20ea67d",
       "elements": {
         "p": {
           "x": 0,
@@ -679,7 +680,7 @@
       }
     },
     "keeps \"a     b\" under pre": {
-      "hash": "fdde2c8164682871",
+      "hash": "e9ce989917c8eef4",
       "elements": {
         "p": {
           "x": 0,
@@ -700,7 +701,7 @@
       }
     },
     "keeps \"   Hello world   \" under pre": {
-      "hash": "cf5d08f6aff5e8fe",
+      "hash": "a31cc5eba65336b1",
       "elements": {
         "p": {
           "x": 0,
@@ -721,7 +722,7 @@
       }
     },
     "keeps \"a  \\n  b\" under pre-wrap": {
-      "hash": "0e0702d2246e643a",
+      "hash": "91441b7a460edbb1",
       "elements": {
         "p": {
           "x": 0,
@@ -750,7 +751,7 @@
       }
     },
     "keeps \"a     b\" under pre-wrap": {
-      "hash": "976063a9a1251cb0",
+      "hash": "d658406807eafc4e",
       "elements": {
         "p": {
           "x": 0,
@@ -771,7 +772,7 @@
       }
     },
     "keeps \"   Hello world   \" under pre-wrap": {
-      "hash": "0ca70c639272365f",
+      "hash": "345752f6426e5756",
       "elements": {
         "p": {
           "x": 0,
@@ -792,7 +793,7 @@
       }
     },
     "keeps the spaces that start a line under pre-wrap, at a soft wrap": {
-      "hash": "0ae6c2948963cae1",
+      "hash": "60377d1217c7cec0",
       "elements": {
         "p": {
           "x": 0,
@@ -829,7 +830,7 @@
       }
     },
     "keeps the spaces that start a line under pre-wrap, after a newline": {
-      "hash": "571396babff6aca2",
+      "hash": "ab9f35cc7795c00d",
       "elements": {
         "p": {
           "x": 0,
@@ -858,7 +859,7 @@
       }
     },
     "draws a lone CR as nothing under pre": {
-      "hash": "2a98838aac3df52f",
+      "hash": "699ee14cf2281a40",
       "elements": {
         "p": {
           "x": 0,
@@ -879,7 +880,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre: \"AV\"": {
-      "hash": "b64fe305bcc89361",
+      "hash": "e2f578be6b7d494e",
       "elements": {
         "p": {
           "x": 0,
@@ -900,7 +901,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre: \"A\\rV\"": {
-      "hash": "fc001011d6f50ad8",
+      "hash": "9cd106ca3b2a1c62",
       "elements": {
         "p": {
           "x": 0,
@@ -921,7 +922,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre: \"T\\ro\"": {
-      "hash": "92480da17f9cfba0",
+      "hash": "59d832fa26720a05",
       "elements": {
         "p": {
           "x": 0,
@@ -942,7 +943,7 @@
       }
     },
     "draws a lone CR as nothing under pre-wrap": {
-      "hash": "edf2be35a2e08df3",
+      "hash": "446a3439bc1a2043",
       "elements": {
         "p": {
           "x": 0,
@@ -963,7 +964,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre-wrap: \"AV\"": {
-      "hash": "61c53ed1f8486f2f",
+      "hash": "7cc0e1f5c2349f1a",
       "elements": {
         "p": {
           "x": 0,
@@ -984,7 +985,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre-wrap: \"A\\rV\"": {
-      "hash": "4339980c7a822e7b",
+      "hash": "2c5a93558f231248",
       "elements": {
         "p": {
           "x": 0,
@@ -1005,7 +1006,7 @@
       }
     },
     "breaks the kerning at a lone CR under pre-wrap: \"T\\ro\"": {
-      "hash": "4ae3407eea8355c5",
+      "hash": "79dee9f99dddf13c",
       "elements": {
         "p": {
           "x": 0,
@@ -1026,7 +1027,7 @@
       }
     },
     "starts no line after a newline that ends \"Hello\\n\" under pre-line": {
-      "hash": "ad7472fde264adff",
+      "hash": "fea82750b739cb14",
       "elements": {
         "p": {
           "x": 0,
@@ -1047,7 +1048,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\r\\n\" under pre-line": {
-      "hash": "b5f18e14a96dc2e5",
+      "hash": "5023d73bd9e03748",
       "elements": {
         "p": {
           "x": 0,
@@ -1068,7 +1069,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\n\\n\" under pre-line": {
-      "hash": "62b681bada7731e2",
+      "hash": "25824d880fa329dc",
       "elements": {
         "p": {
           "x": 0,
@@ -1097,7 +1098,7 @@
       }
     },
     "starts no line after a newline that ends \"Hello\\n\" under pre": {
-      "hash": "d80995012cb257fd",
+      "hash": "2c0e53ef67cac8e9",
       "elements": {
         "p": {
           "x": 0,
@@ -1118,7 +1119,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\r\\n\" under pre": {
-      "hash": "797d2650f3cecac3",
+      "hash": "0f2a25608f8d2a34",
       "elements": {
         "p": {
           "x": 0,
@@ -1139,7 +1140,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\n\\n\" under pre": {
-      "hash": "275a7cf728ed24f7",
+      "hash": "8b37714724396e7f",
       "elements": {
         "p": {
           "x": 0,
@@ -1168,7 +1169,7 @@
       }
     },
     "starts no line after a newline that ends \"Hello\\n\" under pre-wrap": {
-      "hash": "3d313dc7f246ba3d",
+      "hash": "836151d9d2ba6e47",
       "elements": {
         "p": {
           "x": 0,
@@ -1189,7 +1190,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\r\\n\" under pre-wrap": {
-      "hash": "ae4555664bf3cbb1",
+      "hash": "6620e10151de60bb",
       "elements": {
         "p": {
           "x": 0,
@@ -1210,7 +1211,7 @@
       }
     },
     "starts no line after a newline that ends \"a\\n\\n\" under pre-wrap": {
-      "hash": "275bc348859057a6",
+      "hash": "2f9b909d95069c4d",
       "elements": {
         "p": {
           "x": 0,
@@ -1239,7 +1240,7 @@
       }
     },
     "clamps the collapsed lines": {
-      "hash": "51bd27bc8c340898",
+      "hash": "d894bf47a1c6644d",
       "elements": {
         "p": {
           "x": 0,
@@ -1266,10 +1267,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "white-space/clamps-the-collapsed-lines.png"
     },
     "truncates nowrap text on one line": {
-      "hash": "bd260f910a715cfa",
+      "hash": "ec585dd7850bf62b",
       "elements": {
         "p": {
           "x": 0,
@@ -1288,10 +1290,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "white-space/truncates-nowrap-text-on-one-line.png"
     },
     "collapses before text-transform": {
-      "hash": "29914a1bb90ab7aa",
+      "hash": "e46872c9870692e1",
       "elements": {
         "p": {
           "x": 0,
@@ -1312,7 +1315,7 @@
       }
     },
     "doesn't render a run of nothing but white space": {
-      "hash": "c5c02eb384d09330",
+      "hash": "affefe3406d4a57e",
       "elements": {
         "c": {
           "x": 0,
@@ -1373,7 +1376,7 @@
       }
     },
     "renders a run of no-break spaces": {
-      "hash": "217cab9e4067edcc",
+      "hash": "372916723e54d8e1",
       "elements": {
         "c": {
           "x": 0,
@@ -1442,7 +1445,7 @@
       }
     },
     "lays adjacent text out as one run": {
-      "hash": "be0b88f6e15a8832",
+      "hash": "dbde2c4b8cf4571d",
       "elements": {
         "c": {
           "x": 0,
@@ -1495,7 +1498,7 @@
       }
     },
     "removes the spaces at the start and end of a run": {
-      "hash": "678783ac38ab4e78",
+      "hash": "cfb3674b80817712",
       "elements": {
         "c": {
           "x": 0,
@@ -1548,7 +1551,7 @@
       }
     },
     "sizes a run with forced breaks to its widest line": {
-      "hash": "65d2d6e7a2a08f75",
+      "hash": "8f0b9e65400a93a5",
       "elements": {
         "c": {
           "x": 0,
@@ -1609,61 +1612,61 @@
       }
     },
     "has no line box for \"  \" in {}": {
-      "hash": "2cac5b74d14cdb33",
+      "hash": "7109fe9908a97caa",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"\" in {}": {
-      "hash": "4f0465cc4949f0db",
+      "hash": "fa85f0b6ee526169",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"\\n\" in {\"whiteSpace\":\"pre-line\"}": {
-      "hash": "b2816be970bb03d9",
+      "hash": "a24577e0ce7e5dc5",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"\\n\" in {\"whiteSpace\":\"pre\"}": {
-      "hash": "8d1b21e3605ad3b2",
+      "hash": "34b9eeaa41fb6f8b",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"  \" in {\"whiteSpace\":\"pre\"}": {
-      "hash": "cf989a3e35809335",
+      "hash": "21d0c38ecd4c51c7",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \" \" in {\"whiteSpace\":\"pre-wrap\"}": {
-      "hash": "96579f45d8a9404f",
+      "hash": "cd092127ffafc4b0",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"  \" in {\"lineHeight\":\"30px\"}": {
-      "hash": "70297ab7c3b944bb",
+      "hash": "3a050d1b24a93823",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"\\f\" in {}": {
-      "hash": "97b5efe843284354",
+      "hash": "72fe46ce3a8a2acf",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has no line box for \"\\u000b\" in {}": {
-      "hash": "87b2c7480a804700",
+      "hash": "72f4859c28de55de",
       "elements": {
         "e": { "x": 0, "y": 0, "width": 0, "height": 0, "lines": [] }
       }
     },
     "has a line box for \"\\u00a0\"": {
-      "hash": "6b460f2df198f004",
+      "hash": "83b2379273ec3545",
       "elements": {
         "e": {
           "x": 0,
@@ -1684,7 +1687,7 @@
       }
     },
     "has a line box for \"\\u2028\"": {
-      "hash": "dbbaef6feee1b967",
+      "hash": "9839f1cfe1b5cf3c",
       "elements": {
         "e": {
           "x": 0,
@@ -1705,7 +1708,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2028\" under normal": {
-      "hash": "d9959cdf343e3cb9",
+      "hash": "7cbf291f0ec2581b",
       "elements": {
         "p": {
           "x": 0,
@@ -1726,7 +1729,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2028\" under normal": {
-      "hash": "b179dc26e50e8c6c",
+      "hash": "3b2b09695e6abcd9",
       "elements": {
         "p": {
           "x": 0,
@@ -1747,7 +1750,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2028\" under normal": {
-      "hash": "71cf6442d92c7a91",
+      "hash": "7283585dbb775405",
       "elements": {
         "p": {
           "x": 0,
@@ -1768,7 +1771,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2028\" under normal": {
-      "hash": "e8cd6a11c9c62a1e",
+      "hash": "ebf91a48c887f258",
       "elements": {
         "p": {
           "x": 0,
@@ -1797,7 +1800,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2029\" under normal": {
-      "hash": "666c5cd359bac2c8",
+      "hash": "5cde7e8a6b37fe78",
       "elements": {
         "p": {
           "x": 0,
@@ -1818,7 +1821,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2029\" under normal": {
-      "hash": "357bc5b678ea1f64",
+      "hash": "bb1711f6d83c43cb",
       "elements": {
         "p": {
           "x": 0,
@@ -1839,7 +1842,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2029\" under normal": {
-      "hash": "360e03fe80306377",
+      "hash": "d759a51abefe403d",
       "elements": {
         "p": {
           "x": 0,
@@ -1860,7 +1863,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2029\" under normal": {
-      "hash": "756f282ed4d21e86",
+      "hash": "defbb0e2d206aabc",
       "elements": {
         "p": {
           "x": 0,
@@ -1889,7 +1892,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2028\" under nowrap": {
-      "hash": "4f646ab604d867b5",
+      "hash": "00708968f9d79c7d",
       "elements": {
         "p": {
           "x": 0,
@@ -1910,7 +1913,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2028\" under nowrap": {
-      "hash": "32ee5021587dc68a",
+      "hash": "f6a3804735f31bf0",
       "elements": {
         "p": {
           "x": 0,
@@ -1931,7 +1934,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2028\" under nowrap": {
-      "hash": "9a898afa98bb3252",
+      "hash": "7765965179ad0dec",
       "elements": {
         "p": {
           "x": 0,
@@ -1952,7 +1955,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2028\" under nowrap": {
-      "hash": "92df00dd9bf9bb02",
+      "hash": "fb705e33765f1661",
       "elements": {
         "p": {
           "x": 0,
@@ -1973,7 +1976,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2029\" under nowrap": {
-      "hash": "667e056865249496",
+      "hash": "30f3bea10627c076",
       "elements": {
         "p": {
           "x": 0,
@@ -1994,7 +1997,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2029\" under nowrap": {
-      "hash": "8de741cf35cba09f",
+      "hash": "a26477b04cfaa0ad",
       "elements": {
         "p": {
           "x": 0,
@@ -2015,7 +2018,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2029\" under nowrap": {
-      "hash": "8f93b5f2a8ad1715",
+      "hash": "9f68c737714b78d2",
       "elements": {
         "p": {
           "x": 0,
@@ -2036,7 +2039,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2029\" under nowrap": {
-      "hash": "5a9a40f4ac65a41e",
+      "hash": "23164cb80bd76762",
       "elements": {
         "p": {
           "x": 0,
@@ -2057,7 +2060,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2028\" under pre-line": {
-      "hash": "452ed805e7f3e762",
+      "hash": "cdede70142738381",
       "elements": {
         "p": {
           "x": 0,
@@ -2078,7 +2081,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2028\" under pre-line": {
-      "hash": "0bede0ef05655d0f",
+      "hash": "1483d0bcb71ac77d",
       "elements": {
         "p": {
           "x": 0,
@@ -2099,7 +2102,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2028\" under pre-line": {
-      "hash": "4b0fe2b5e84b03a6",
+      "hash": "4ce68ac7cdd4c27c",
       "elements": {
         "p": {
           "x": 0,
@@ -2120,7 +2123,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre-line": {
-      "hash": "88a52092b1982a61",
+      "hash": "d4d0d873685c5bd5",
       "elements": {
         "p": {
           "x": 0,
@@ -2149,7 +2152,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2029\" under pre-line": {
-      "hash": "364e29fb25b35a26",
+      "hash": "c70d9ce06921d133",
       "elements": {
         "p": {
           "x": 0,
@@ -2170,7 +2173,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2029\" under pre-line": {
-      "hash": "54f559586ca0b31b",
+      "hash": "3243f22c6de68a36",
       "elements": {
         "p": {
           "x": 0,
@@ -2191,7 +2194,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2029\" under pre-line": {
-      "hash": "662dfe63952fa50f",
+      "hash": "7293400925b03fe5",
       "elements": {
         "p": {
           "x": 0,
@@ -2212,7 +2215,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre-line": {
-      "hash": "31e7a7664329e0f8",
+      "hash": "222b2c6d25266604",
       "elements": {
         "p": {
           "x": 0,
@@ -2241,7 +2244,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2028\" under pre": {
-      "hash": "7f21b987ff3dbc32",
+      "hash": "3bf97f21363e5f60",
       "elements": {
         "p": {
           "x": 0,
@@ -2262,7 +2265,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2028\" under pre": {
-      "hash": "c67a7fff6a34b71f",
+      "hash": "ccef229210986c1d",
       "elements": {
         "p": {
           "x": 0,
@@ -2283,7 +2286,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2028\" under pre": {
-      "hash": "8045e277f433629a",
+      "hash": "234b2d0b13281881",
       "elements": {
         "p": {
           "x": 0,
@@ -2304,7 +2307,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre": {
-      "hash": "912eb87412f16ae7",
+      "hash": "9d18460c6735f2c0",
       "elements": {
         "p": {
           "x": 0,
@@ -2325,7 +2328,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2029\" under pre": {
-      "hash": "d444d4f866df6258",
+      "hash": "eb879d960ac83e0e",
       "elements": {
         "p": {
           "x": 0,
@@ -2346,7 +2349,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2029\" under pre": {
-      "hash": "186a1c6ce6ee4297",
+      "hash": "35e309f6de975f83",
       "elements": {
         "p": {
           "x": 0,
@@ -2367,7 +2370,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2029\" under pre": {
-      "hash": "c15bd5f41ae96547",
+      "hash": "58f9b107f62ce3b8",
       "elements": {
         "p": {
           "x": 0,
@@ -2388,7 +2391,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre": {
-      "hash": "05075a1a79e0656b",
+      "hash": "e46ef8ee101acf63",
       "elements": {
         "p": {
           "x": 0,
@@ -2409,7 +2412,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2028\" under pre-wrap": {
-      "hash": "c90c3a7a9dbb00a4",
+      "hash": "533a912b726f4139",
       "elements": {
         "p": {
           "x": 0,
@@ -2430,7 +2433,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2028\" under pre-wrap": {
-      "hash": "befa19f08c505cb2",
+      "hash": "094ae11cc543119d",
       "elements": {
         "p": {
           "x": 0,
@@ -2451,7 +2454,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2028\" under pre-wrap": {
-      "hash": "4a8e36c76cc622bf",
+      "hash": "669467b3ea69cd84",
       "elements": {
         "p": {
           "x": 0,
@@ -2472,7 +2475,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2028\" under pre-wrap": {
-      "hash": "8428404fec6c949e",
+      "hash": "c7c5e1f79b84a030",
       "elements": {
         "p": {
           "x": 0,
@@ -2501,7 +2504,7 @@
       }
     },
     "sets a separator as a space: a|b, \"\\u2029\" under pre-wrap": {
-      "hash": "58b002e1b57705cd",
+      "hash": "065cfdf8ba336bba",
       "elements": {
         "p": {
           "x": 0,
@@ -2522,7 +2525,7 @@
       }
     },
     "sets a separator as a space: a | b, \"\\u2029\" under pre-wrap": {
-      "hash": "1665b64e1f304d01",
+      "hash": "4359ca2d45249257",
       "elements": {
         "p": {
           "x": 0,
@@ -2543,7 +2546,7 @@
       }
     },
     "sets a separator as a space: a|, \"\\u2029\" under pre-wrap": {
-      "hash": "2164a845d06d7c43",
+      "hash": "eb788c3c908d1c40",
       "elements": {
         "p": {
           "x": 0,
@@ -2564,7 +2567,7 @@
       }
     },
     "breaks after a separator: aaaa|bbbb, \"\\u2029\" under pre-wrap": {
-      "hash": "fe6332da54b381d2",
+      "hash": "b22d1e43ae14d1cf",
       "elements": {
         "p": {
           "x": 0,
@@ -2593,7 +2596,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a b\" under normal": {
-      "hash": "e6247519ca60038e",
+      "hash": "6a5deed82f430a0e",
       "elements": {
         "p": {
           "x": 0,
@@ -2614,7 +2617,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2028b\" under normal": {
-      "hash": "63fd0971620b3f7c",
+      "hash": "19a6500fce24c0f2",
       "elements": {
         "p": {
           "x": 0,
@@ -2635,7 +2638,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2029b\" under normal": {
-      "hash": "c6cd42a1fb92c83c",
+      "hash": "7d36e6582edead84",
       "elements": {
         "p": {
           "x": 0,
@@ -2656,7 +2659,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a b\" under nowrap": {
-      "hash": "cf432a51bef9d837",
+      "hash": "b1c932ae7d606523",
       "elements": {
         "p": {
           "x": 0,
@@ -2677,7 +2680,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2028b\" under nowrap": {
-      "hash": "44fd03348917ca1f",
+      "hash": "f014058842bf8edf",
       "elements": {
         "p": {
           "x": 0,
@@ -2698,7 +2701,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2029b\" under nowrap": {
-      "hash": "6f1d34573621edf1",
+      "hash": "7649e7c3a053f431",
       "elements": {
         "p": {
           "x": 0,
@@ -2719,7 +2722,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a b\" under pre-line": {
-      "hash": "3f46d8bc20299105",
+      "hash": "fed8831688c3a563",
       "elements": {
         "p": {
           "x": 0,
@@ -2740,7 +2743,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2028b\" under pre-line": {
-      "hash": "a5639da2c2d30a99",
+      "hash": "c75ee853429d2ae4",
       "elements": {
         "p": {
           "x": 0,
@@ -2761,7 +2764,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2029b\" under pre-line": {
-      "hash": "ed3a4befbdedb4eb",
+      "hash": "6104f9c35c310c0c",
       "elements": {
         "p": {
           "x": 0,
@@ -2782,7 +2785,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a b\" under pre": {
-      "hash": "50a239521b2f1abd",
+      "hash": "f452b7010217c971",
       "elements": {
         "p": {
           "x": 0,
@@ -2803,7 +2806,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2028b\" under pre": {
-      "hash": "31811475663f39ce",
+      "hash": "69a84dd05001a62c",
       "elements": {
         "p": {
           "x": 0,
@@ -2824,7 +2827,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2029b\" under pre": {
-      "hash": "3464d80338fb616a",
+      "hash": "95a29258ad4ce82b",
       "elements": {
         "p": {
           "x": 0,
@@ -2845,7 +2848,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a b\" under pre-wrap": {
-      "hash": "a26ba28739d226a1",
+      "hash": "bf6822dcf09d156d",
       "elements": {
         "p": {
           "x": 0,
@@ -2866,7 +2869,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2028b\" under pre-wrap": {
-      "hash": "fa048dac54fde8b6",
+      "hash": "9bfb42cc208174c0",
       "elements": {
         "p": {
           "x": 0,
@@ -2887,7 +2890,7 @@
       }
     },
     "puts letter spacing after a separator once: \"a\\u2029b\" under pre-wrap": {
-      "hash": "1eb6c62219023f72",
+      "hash": "83dfb146049d4df1",
       "elements": {
         "p": {
           "x": 0,
@@ -2908,7 +2911,7 @@
       }
     },
     "doesn't break at \"\\f\" under normal": {
-      "hash": "91fcc7fed1dffc5b",
+      "hash": "7732e058f74d5ea2",
       "elements": {
         "p": {
           "x": 0,
@@ -2929,7 +2932,7 @@
       }
     },
     "doesn't break at \"\\u000b\" under normal": {
-      "hash": "50ee3c55cacf097d",
+      "hash": "01fb1d14acc2bb04",
       "elements": {
         "p": {
           "x": 0,
@@ -2950,7 +2953,7 @@
       }
     },
     "doesn't break at \"\\f\" under nowrap": {
-      "hash": "6ef2c9abb000d226",
+      "hash": "2e4d131472fd2cfb",
       "elements": {
         "p": {
           "x": 0,
@@ -2971,7 +2974,7 @@
       }
     },
     "doesn't break at \"\\u000b\" under nowrap": {
-      "hash": "f2949e8496ce677c",
+      "hash": "c469064d3e734975",
       "elements": {
         "p": {
           "x": 0,
@@ -2992,7 +2995,7 @@
       }
     },
     "doesn't break at \"\\f\" under pre-line": {
-      "hash": "0f6b4c395087ec96",
+      "hash": "1997d4798961fdc6",
       "elements": {
         "p": {
           "x": 0,
@@ -3013,7 +3016,7 @@
       }
     },
     "doesn't break at \"\\u000b\" under pre-line": {
-      "hash": "2030c86c60f8bcf9",
+      "hash": "0a8d4b8ee0444a3a",
       "elements": {
         "p": {
           "x": 0,
@@ -3034,7 +3037,7 @@
       }
     },
     "doesn't break at \"\\f\" under pre": {
-      "hash": "9995de6af892ddfc",
+      "hash": "3ec40f90755bc981",
       "elements": {
         "p": {
           "x": 0,
@@ -3055,7 +3058,7 @@
       }
     },
     "doesn't break at \"\\u000b\" under pre": {
-      "hash": "360907459124e1e4",
+      "hash": "868f78ed61d5f84f",
       "elements": {
         "p": {
           "x": 0,
@@ -3076,7 +3079,7 @@
       }
     },
     "doesn't break at \"\\f\" under pre-wrap": {
-      "hash": "d54a116e1064c528",
+      "hash": "ecab84e2251d84be",
       "elements": {
         "p": {
           "x": 0,
@@ -3097,7 +3100,7 @@
       }
     },
     "doesn't break at \"\\u000b\" under pre-wrap": {
-      "hash": "95e736a315a1cef2",
+      "hash": "0e90704ab65811e2",
       "elements": {
         "p": {
           "x": 0,
@@ -3118,7 +3121,7 @@
       }
     },
     "draws a form feed as nothing under pre": {
-      "hash": "8ffce5dd4ce20941",
+      "hash": "67f7148cce258208",
       "elements": {
         "p": {
           "x": 0,
@@ -3139,7 +3142,7 @@
       }
     },
     "draws a form feed between spaces as nothing under pre": {
-      "hash": "3f8ff5063555e6e5",
+      "hash": "f09b2a72d35395a1",
       "elements": {
         "p": {
           "x": 0,
@@ -3160,7 +3163,7 @@
       }
     },
     "draws a form feed as nothing under pre-wrap": {
-      "hash": "040da5dddd329719",
+      "hash": "d5ac02cb2971fa77",
       "elements": {
         "p": {
           "x": 0,
@@ -3181,7 +3184,7 @@
       }
     },
     "draws a form feed between spaces as nothing under pre-wrap": {
-      "hash": "105ed04f9771c30a",
+      "hash": "5a1e712701a8e15a",
       "elements": {
         "p": {
           "x": 0,

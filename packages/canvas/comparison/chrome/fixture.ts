@@ -1,8 +1,16 @@
 import { createHash } from "node:crypto";
-import { dirname, join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { BUNDLED_SANS } from "../_helpers/fonts.ts";
+
+/**
+ * The family fixtures set their text in: the bundled Liberation Sans, under
+ * a name no system font has (see `BUNDLED_SANS`).
+ */
+export const SANS = BUNDLED_SANS;
 
 /** Where the references are: a JSON file per module, and screenshots. */
 export const REFERENCES = join(
@@ -61,6 +69,8 @@ export type ChromeReference = {
 export type ChromeReferenceFile = {
   /** Chrome's version, as it reports it. */
   chrome: string;
+  /** `generatorHash()` when they were generated. */
+  generator: string;
   /** The platform it ran on (`process.platform`-`process.arch`). */
   platform: string;
   fixtures: Record<string, ChromeReference>;
@@ -130,7 +140,8 @@ export type ChromeFixture = {
   };
   /**
    * Where canvas is known not to lay the fixture out as Chrome does, why:
-   * its comparison is then expected to fail, and fails once it doesn't.
+   * its layout must then differ from Chrome's, and the test fails once it
+   * doesn't, for the note to go.
    */
   knownDifference?: string;
 };
@@ -175,6 +186,31 @@ export function hashOf(fixture: ChromeFixture): string {
     .update(`${fixture.width}x${fixture.height}\n${markupOf(fixture)}`)
     .digest("hex")
     .slice(0, 16);
+}
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const FONTS = join(HERE, "..", "_helpers", "fonts");
+
+/**
+ * A hash of what makes the references besides the fixtures: the generator,
+ * the page it lays them out on, its measurements, and the fonts. The
+ * references are stale when it changes.
+ */
+export function generatorHash(): string {
+  const hash = createHash("sha256");
+  const files = [
+    ...["generate.tsx", "page.css", "measure.browser.js"].map((file) =>
+      join(HERE, file),
+    ),
+    ...readdirSync(FONTS)
+      .filter((file) => file.endsWith(".woff"))
+      .sort()
+      .map((file) => join(FONTS, file)),
+  ];
+  for (const file of files) {
+    hash.update(`${basename(file)}\n`).update(readFileSync(file));
+  }
+  return hash.digest("hex").slice(0, 16);
 }
 
 /** A file name for the fixture's screenshot. */

@@ -12,7 +12,14 @@ import { chromium } from "playwright-core";
 import type { Page } from "playwright-core";
 import * as prettier from "prettier";
 import { loadFonts, loadScriptFonts } from "../_helpers/fonts.ts";
-import { REFERENCES, hashOf, markupOf, slugOf } from "./fixture.ts";
+import {
+  REFERENCES,
+  SANS,
+  generatorHash,
+  hashOf,
+  markupOf,
+  slugOf,
+} from "./fixture.ts";
 import type {
   Box,
   ChromeFixture,
@@ -64,7 +71,7 @@ function findChrome(): string {
 async function pageHtml(): Promise<string> {
   const base64 = (data: Buffer | ArrayBuffer) =>
     (Buffer.isBuffer(data) ? data : Buffer.from(data)).toString("base64");
-  const fonts = [...(await loadFonts()), ...(await loadScriptFonts())];
+  const fonts = [...(await loadFonts(SANS)), ...(await loadScriptFonts())];
   const faces = fonts.map(
     (font) => `@font-face {
   font-family: "${font.name}";
@@ -79,34 +86,7 @@ async function pageHtml(): Promise<string> {
 <meta charset="utf-8">
 <style>
 ${faces.join("\n")}
-html, body { margin: 0; background: transparent; }
-/* The canvas, in which canvas lays the element out: a row. */
-#__frame {
-  display: flex;
-  flex-direction: row;
-  position: relative;
-  overflow: hidden;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  font-style: normal;
-  line-height: normal;
-  color: black;
-}
-/* Every element is a flex container in border-box sizing, positioned for
-   what it holds, with no styles of the browser's own. */
-#__frame *:not(br, svg, svg *) {
-  display: flex;
-  position: relative;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border: 0 solid;
-  font: inherit;
-  color: inherit;
-  text-decoration: inherit;
-  list-style: none;
-}
+${readFileSync(join(HERE, "page.css"), "utf8")}
 </style>
 <script>${readFileSync(join(HERE, "measure.browser.js"), "utf8")}</script>
 </head>
@@ -220,7 +200,12 @@ async function main() {
         }
         fixtures[fixture.name] = reference;
       }
-      const file: ChromeReferenceFile = { chrome, platform, fixtures };
+      const file: ChromeReferenceFile = {
+        chrome,
+        generator: generatorHash(),
+        platform,
+        fixtures,
+      };
       const path = join(REFERENCES, `${module.name}.json`);
       await writeFile(path, await format(path, JSON.stringify(file)));
       console.log(

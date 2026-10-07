@@ -1,12 +1,13 @@
 import type React from "react";
+import { SANS } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 
 /**
  * Text in a box `width` wide (`id="p"`), at the top left of a 400×400
- * frame, as `layoutText(text, style, width)` lays it out: 20px Liberation
- * Sans unless `style` says otherwise. The box is a column, across which
- * Chrome stretches the text's anonymous flex item, so that `textAlign`
- * aligns its lines in the box as canvas does.
+ * frame (unless `rest` sizes it), as `layoutText(text, style, width)` lays
+ * it out: 20px Liberation Sans unless `style` says otherwise. The box is a
+ * column, across which Chrome stretches the text's anonymous flex item, so
+ * that `textAlign` aligns its lines in the box as canvas does.
  */
 export function paragraph(
   name: string,
@@ -26,7 +27,7 @@ export function paragraph(
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
-          fontFamily: "Liberation Sans",
+          fontFamily: SANS,
           fontSize: 20,
         }}
       >

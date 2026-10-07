@@ -171,6 +171,23 @@ export function differences(
       // Canvas measures a truncated line with its ellipsis.
       if (!line.truncated) {
         near(`${what} width`, got.width, line.width, tolerance.lineWidth);
+        return;
+      }
+      // Its ellipsis is in the box, which the line, ellipsis and all, ends
+      // in. A line that fits the box without its ellipsis (a clamp's last)
+      // makes room for it at most from its last word.
+      const right = expected.x + expected.width;
+      if (got.x + got.width > right + tolerance.line) {
+        found.push(
+          `${what} ends at ${fmt(got.x + got.width)}, past the box at ${fmt(right)}`,
+        );
+      }
+      const fits = line.x + line.width <= right + tolerance.line;
+      const lastWord = chromeText!.lastIndexOf(" ");
+      if (fits && canvasText!.length < lastWord) {
+        found.push(
+          `${what}: canvas ${JSON.stringify(got.text)} cuts more than the last word of Chrome's ${JSON.stringify(line.text)}`,
+        );
       }
     });
   }
@@ -233,4 +250,37 @@ export function transcriptionDifferences(
     });
   }
   return found;
+}
+
+/**
+ * Where the ink of each truncated line ends, in a PNG of the fixture: its
+ * ellipsis's right edge, for a line that's left-aligned. The line's band is
+ * its line box, across its element's box.
+ */
+export function ellipsisEnds(
+  png: { width: number; height: number; data: Uint8Array },
+  elements: Record<string, Box>,
+): { what: string; end: number | undefined }[] {
+  const ends: { what: string; end: number | undefined }[] = [];
+  for (const [id, box] of Object.entries(elements)) {
+    box.lines.forEach((line, i) => {
+      if (!line.truncated) return;
+      const x0 = Math.max(0, Math.floor(box.x));
+      const x1 = Math.min(png.width, Math.ceil(box.x + box.width));
+      const y0 = Math.max(0, Math.floor(line.top));
+      const y1 = Math.min(png.height, Math.ceil(line.top + line.height));
+      let end: number | undefined;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x1 - 1; x >= x0 && (end === undefined || x >= end); x--) {
+          // Ink: at least half covered.
+          if (png.data[(y * png.width + x) * 4 + 3]! >= 128) {
+            end = x + 1;
+            break;
+          }
+        }
+      }
+      ends.push({ what: `#${id} line ${i + 1}`, end });
+    });
+  }
+  return ends;
 }

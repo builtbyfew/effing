@@ -2,7 +2,6 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -11,7 +10,7 @@ import {
   HEIGHT,
 } from "./_helpers/setup.ts";
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG shapes", () => {
+describe("visual comparison: SVG shapes", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();
@@ -50,7 +49,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG shapes", () => {
       satoriPng,
       "svg-rect-rx-rounded",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders SVG group transforms — nested <g> with translate", async () => {
@@ -99,6 +99,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG shapes", () => {
       satoriPng,
       "svg-group-transform",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 });

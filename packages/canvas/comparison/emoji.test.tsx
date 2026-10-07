@@ -4,7 +4,6 @@ import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
 import { emojiUrl } from "../src/jsx/emoji.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -17,7 +16,11 @@ import {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
+// The twemoji tests fetch images from its CDN, and skip, with a warning,
+// where it can't be reached.
+const OFFLINE = "The twemoji CDN is unreachable";
+
+describe("visual comparison: emoji", () => {
   let fonts: FontData[];
   let networkAvailable = true;
 
@@ -30,10 +33,11 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
     })
       .then((r) => r.ok)
       .catch(() => false);
+    if (!networkAvailable) console.warn(`${OFFLINE}: skipping its tests`);
   }, 5_000);
 
   it("renders emoji characters as images (twemoji)", async ({ skip }) => {
-    if (!networkAvailable) skip();
+    skip(!networkAvailable, OFFLINE);
     const element = (
       <div
         style={{
@@ -66,12 +70,12 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
       "emoji-twemoji",
     );
 
-    // Higher threshold due to SVG rasterization differences between Skia and resvg
-    expect(percentage).toBeLessThan(2.5);
+    // SVG rasterization differs between Skia and resvg: 0.73% measured.
+    expect(percentage).toBeLessThan(1.5);
   });
 
   it("draws a flag as an image (twemoji)", async ({ skip }) => {
-    if (!networkAvailable) skip();
+    skip(!networkAvailable, OFFLINE);
     // 🇧🇪 at 80px, its box's left edge at 40px and top at 40px.
     const element = (
       <div
@@ -107,7 +111,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: emoji", () => {
 
   // Text by default, but drawn as images even without U+FE0F.
   it("draws text-default emoji as images (twemoji)", async ({ skip }) => {
-    if (!networkAvailable) skip();
+    skip(!networkAvailable, OFFLINE);
     const element = (
       <div
         style={{

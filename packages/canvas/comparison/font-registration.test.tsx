@@ -4,17 +4,16 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FontData } from "../src/types.ts";
-import { HAS_NATIVE_DEPS } from "./_helpers/setup.ts";
 
 // ---------------------------------------------------------------------------
-// Fonts registered after a lookup must still be picked up. Before
-// @napi-rs/canvas 1.0.9, Skia's FontCollection cached the typefaces it picked
-// for each ctx.font (family list + weight + style) for the lifetime of the
-// process and registration never invalidated that cache, so a family or
-// weight looked up before its face existed stayed pinned to the old match
-// (https://github.com/Brooooooklyn/canvas/issues/1329, fixed in
-// https://github.com/Brooooooklyn/canvas/pull/1334). These tests guard the
-// backend version against that.
+// Fonts registered after a lookup must still be picked up. Skia's
+// FontCollection caches the typefaces it matches for each family list,
+// weight and style, and @effing/skia's font registration has to mark those
+// caches dirty: otherwise a family or weight looked up before its face
+// existed stays pinned to the old match for the life of the process (as it
+// did in @napi-rs/canvas before
+// https://github.com/Brooooooklyn/canvas/pull/1334, which @effing/skia is
+// forked from). These tests guard the backend against that.
 //
 // The cache is keyed on the family name, so every scenario registers the
 // fixtures under its own alias to start from a clean slate.
@@ -32,7 +31,7 @@ const H = 120;
 type Api = typeof import("../src/index.ts");
 type LayoutText = (typeof import("../src/jsx/text/index.ts"))["layoutText"];
 
-describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
+describe("font registration order", () => {
   let api: Api;
   let layoutText: LayoutText;
   let regularData: Buffer;
@@ -200,10 +199,17 @@ describe.skipIf(!HAS_NATIVE_DEPS)("font registration order", () => {
     expect(await renderDark(family, 400, [bold, regular])).toBe(regularDark);
   });
 
-  it("uses a family registered after it was looked up with no face at all", async () => {
+  it("uses a family registered after it was looked up with no face at all", async ({
+    skip,
+  }) => {
     const { family, regular } = faces();
-    // Resolves to the fallback font.
-    expect(rawMeasure(family, 400)).not.toBeCloseTo(regularWidth, 3);
+    // Resolves to the system's fallback font. Where that's Liberation Sans
+    // too, a stale match would measure the same as the registered face.
+    const fallbackWidth = rawMeasure(family, 400);
+    skip(
+      Math.abs(fallbackWidth - regularWidth) < 0.01,
+      "the system's fallback font measures as Liberation Sans Regular, so a stale fallback match can't be told from the registered face",
+    );
 
     api.registerFont(regular);
 

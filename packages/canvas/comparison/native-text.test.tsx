@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
+import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
 import type { ComputedStyle } from "../src/jsx/style/compute.ts";
 import { ensureFontsRegistered } from "../src/jsx/font.ts";
@@ -184,6 +185,52 @@ describe("native paragraph layout", () => {
       expect(result.height).toBe(height);
     },
   );
+
+  // The "…" is painted, not only measured: Chrome draws it after "with",
+  // from 274.58px to 294.58px on the second line (23px to 46px down).
+  it("paints the ellipsis after the last clamped line", async () => {
+    const png = PNG.sync.read(
+      await renderWithCanvas(
+        <div
+          style={{
+            width: 300,
+            height: 60,
+            display: "flex",
+            backgroundColor: "white",
+            fontFamily: "Liberation Sans",
+          }}
+        >
+          <div
+            style={{
+              display: "block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineClamp: 2,
+              fontSize: 20,
+              color: "black",
+            }}
+          >
+            {`${TEXT} How vexingly quick daft zebras jump.`}
+          </div>
+        </div>,
+        300,
+        60,
+        fonts,
+      ),
+    );
+    const ink = (x0: number, x1: number) => {
+      let n = 0;
+      for (let y = 23; y < 46; y++) {
+        for (let x = x0; x < x1; x++) {
+          if (png.data[(y * png.width + x) * 4]! < 192) n++;
+        }
+      }
+      return n;
+    };
+    // The ellipsis's three dots, each about 2px square, and nothing after it.
+    expect(ink(276, 295)).toBeGreaterThan(6);
+    expect(ink(296, 300)).toBe(0);
+  });
 
   it("puts letter spacing after each glyph, as CSS does", () => {
     const plain = layoutText("Hello", style({ fontSize: 20 }), 10_000);

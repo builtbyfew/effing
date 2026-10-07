@@ -262,9 +262,11 @@ describe("scaled text moves continuously across whole scales", () => {
     "%spx text doesn't jump from frame to frame as scale eases up from 1",
     async (fontSize) => {
       const STEP = 0.0005;
+      const FRAMES = 20;
       const deviations: Record<string, number> = {};
-      let previous = await centroid(fontSize);
-      for (let i = 1; i <= 20; i++) {
+      const first = await centroid(fontSize);
+      let previous = first;
+      for (let i = 1; i <= FRAMES; i++) {
         const scale = 1 + i * STEP;
         const c = await centroid(fontSize, scale);
         // Geometric motion from scaling about the left edge; the vertical
@@ -275,11 +277,20 @@ describe("scaled text moves continuously across whole scales", () => {
         previous = c;
       }
       const worst = Math.max(...Object.values(deviations));
-      console.log(
-        `[comparison] ${fontSize}px frame-to-frame jump: ${worst.toFixed(3)}px`,
+      // Over all the frames, the text moves as far as the scale takes it
+      // (≈0.3px to 1.2px across), so it doesn't drift or move at the wrong
+      // rate one frame's tolerance at a time: 0.03px to 0.16px off on macOS
+      // arm64, where text drifting by 0.3px over the frames is 0.33px off.
+      const drift = Math.abs(
+        previous.x - first.x - (first.x - LEFT) * FRAMES * STEP,
       );
-      // ≤0.114px on macOS arm64, ≤0.096px on CI's ubuntu x64.
-      expect(worst, JSON.stringify(deviations)).toBeLessThan(0.16);
+      console.log(
+        `[comparison] ${fontSize}px frame-to-frame jump: ${worst.toFixed(3)}px, drift over ${FRAMES} frames: ${drift.toFixed(3)}px`,
+      );
+      // ≤0.114px on macOS arm64, ≤0.096px on CI's ubuntu x64; snapped
+      // glyphs jumped by ≥0.49px.
+      expect(worst, JSON.stringify(deviations)).toBeLessThan(0.25);
+      expect(drift).toBeLessThan(0.25);
     },
   );
 });

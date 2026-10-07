@@ -73,8 +73,6 @@ export async function compareImages(
   const totalPixels = width * height;
   const percentage = (diffPixels / totalPixels) * 100;
 
-  // Always log the measured difference, so that thresholds can be set from
-  // what each platform (CI runs on ubuntu x64) actually measures.
   let where = "";
   if (debug && diff) {
     const debugDir = join(tmpdir(), "effing-comparison-debug");
@@ -85,6 +83,8 @@ export async function compareImages(
     writeFileSync(join(debugDir, `${slug}-diff.png`), PNG.sync.write(diff));
     where = ` — ${debugDir}/${slug}-*.png`;
   }
+  // Always log the measured difference, so that thresholds can be set from
+  // what each platform (CI runs on ubuntu x64) actually measures.
   console.log(
     `[comparison] ${label}: ${percentage.toFixed(3)}% diff (${diffPixels}/${totalPixels})${where}`,
   );

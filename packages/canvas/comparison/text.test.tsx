@@ -18,11 +18,12 @@ import {
 // 0.01%), with a floor of 0.05% for anti-aliasing.
 //
 // Satori's `normal` line height leaves out the font's line gap, which canvas
-// includes, as Chrome does (#180). Tests of more than one line, or of a line
-// placed by its box, set `lineHeight: 1` so both draw the same line boxes:
-// whole pixels tall at every font size here, which satori and canvas don't
-// round alike. A single line centred, or at the top, isn't moved by the line
-// gap, and keeps `normal`.
+// includes, as Chrome does (#180). The special-character, centred, <br> and
+// stroke tests set `lineHeight: 1` so both draw the same line boxes: whole
+// pixels tall at every font size here, which satori and canvas don't round
+// alike. The text-shadow tests and the short
+// clamped line keep `normal` because they measured closer with it: 0.005%,
+// 0.045% and 0.006%, against 0.048%, 0.473% and 0.008% with `lineHeight: 1`.
 describe("visual comparison: text (satori smoke checks)", () => {
   let fonts: FontData[];
 

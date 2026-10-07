@@ -208,8 +208,9 @@ describe("visual comparison: cards (satori smoke checks)", () => {
       // A known difference from Chrome (effing#179) that this can't see:
       // canvas and satori both align the header's baselines by the bottoms
       // of its text boxes (Yoga has no text baselines), where Chrome aligns
-      // the text's baselines, so Chrome's header is 28px tall where both
-      // make it 30px under `normal` line height.
+      // the text's baselines. With `lineHeight: 1`, Chrome makes the header
+      // 24px tall with the badge 9px down; canvas makes it 28px with the
+      // badge 11px down.
       expect(percentage).toBeLessThan(maxDiff);
     },
   );

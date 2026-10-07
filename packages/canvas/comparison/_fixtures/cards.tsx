@@ -37,6 +37,7 @@ export function PropertyCard({
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         border: "2px solid #E5E7EB",
@@ -202,6 +203,7 @@ export function StatusBadge({ width, height, label, color }: StatusBadgeProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         alignItems: "center",
@@ -259,6 +261,7 @@ export function PricingCard({
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         border: `2px solid ${accentColor}`,
@@ -407,6 +410,7 @@ export function TagCloud({ width, height, tags }: TagCloudProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         padding: 16,
@@ -463,6 +467,7 @@ export function StatsBar({ width, height, stats }: StatsBarProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         borderRadius: 12,
@@ -542,6 +547,7 @@ export function ListingOverlayCard({ width, height }: ListingOverlayCardProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         overflow: "hidden",
         borderRadius: 12,
@@ -699,6 +705,7 @@ export function GradientHeroCard({ width, height }: GradientHeroCardProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundImage: "linear-gradient(135deg, #667EEA, #764BA2)",
         borderRadius: 12,
@@ -809,6 +816,7 @@ export function JobPostCard({ width, height }: JobPostCardProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#FFFFFF",
         borderRadius: 12,
@@ -908,6 +916,7 @@ export function MetricsDashboard({ width, height }: MetricsDashboardProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#F9FAFB",
         padding: 20,
@@ -1114,6 +1123,7 @@ export function BannerStrip({ width, height }: BannerStripProps) {
         width,
         height,
         fontFamily: "Liberation Sans",
+        // Satori has no line gap in `normal`; Chrome-number tests pin that.
         lineHeight: 1,
         backgroundColor: "#1E293B",
         overflow: "hidden",

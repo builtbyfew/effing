@@ -5,7 +5,6 @@ import { PNG } from "pngjs";
 import type { FontData } from "../src/types.ts";
 import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import {
-  HAS_NATIVE_DEPS,
   compareImages,
   loadFonts,
   loadScriptFonts,
@@ -93,7 +92,7 @@ describe("Chrome references", () => {
   }
 });
 
-describe.skipIf(!HAS_NATIVE_DEPS)("canvas against Chrome", () => {
+describe("canvas against Chrome", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {

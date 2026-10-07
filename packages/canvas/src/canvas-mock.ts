@@ -22,7 +22,7 @@ type MockPlaceholder = {
 /**
  * Mock of `@effing/skia/extensions`, to pair with `createCanvasMock`. Its
  * `Paragraph` lays text out the way the canvas mock measures it: 8px per
- * character, ascent 12 and descent 4, breaking greedily at spaces and leaving
+ * character, ascent 12, descent 4 and no line gap, breaking greedily at spaces and leaving
  * a word wider than the line to overflow it. A placeholder is one character
  * (U+FFFC) of its own width, its baseline on the line's.
  */
@@ -149,6 +149,7 @@ export function createExtensionsMock() {
         lineHeight,
         ascent: 12,
         descent: 4,
+        lineGap: 0,
         lines,
         placeholders: boxes,
       };

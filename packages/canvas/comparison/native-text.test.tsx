@@ -6,6 +6,7 @@ import { ensureFontsRegistered } from "../src/jsx/font.ts";
 import { buildLayoutTree } from "../src/jsx/layout.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
 import { layoutText } from "../src/jsx/text/index.ts";
+import { findLargestUsableFontSize } from "../src/fit-text.ts";
 import {
   HAS_NATIVE_DEPS,
   compareImages,
@@ -55,7 +56,17 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
           fontFamily: "Liberation Sans",
         }}
       >
-        <div style={{ width: w, fontSize, color: "black", display: "block" }}>
+        {/* A set line height: satori's `normal` one leaves out the font's
+            line gap, which Chrome's and ours include. */}
+        <div
+          style={{
+            width: w,
+            fontSize,
+            lineHeight: 1.25,
+            color: "black",
+            display: "block",
+          }}
+        >
           {TEXT}
         </div>
       </div>
@@ -89,10 +100,12 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     expect(result.height).toBeCloseTo(result.segments.length * 30, 4);
   });
 
-  it("sizes `normal` line boxes from the hhea metrics, rounded up", () => {
+  it("sizes `normal` line boxes from the hhea metrics and line gap, each rounded, as Chrome does", () => {
     const result = layoutText("Hello", style({ fontSize: 20 }), 10_000);
-    // (1854 + 434) / 2048 * 20 = 22.34…
-    expect(result.segments[0]!.height).toBeCloseTo(22.3438, 3);
+    // Ascent 1854 / 2048 * 20 = 18.1, descent 434 / 2048 * 20 = 4.24 and line
+    // gap 67 / 2048 * 20 = 0.65, rounded: 18 + 4 + 1.
+    expect(result.segments[0]!.height).toBe(23);
+    expect(result.segments[0]!.y).toBe(18);
     expect(result.height).toBe(23);
   });
 
@@ -347,18 +360,16 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
     // Liberation Sans: hhea ascender 1854, descender -434, unitsPerEm 2048.
     const ascent = (1854 / 2048) * 20;
     const descent = (434 / 2048) * 20;
-    for (const [lineHeight, box, height] of [
-      [undefined, ascent + descent, 23],
-      [30, 30, 30],
+    for (const [lineHeight, height, baseline] of [
+      // Chrome's normal line box (see above).
+      [undefined, 23, 18],
+      [30, 30, (30 + ascent - descent) / 2],
     ]) {
       const result = layoutText("", style({ fontSize: 20, lineHeight }), 300);
       expect(result.height).toBe(height);
       expect(result.segments).toHaveLength(1);
-      expect(result.segments[0]!.height).toBeCloseTo(box!, 4);
-      expect(result.segments[0]!.y).toBeCloseTo(
-        (box! + ascent - descent) / 2,
-        4,
-      );
+      expect(result.segments[0]!.height).toBe(height);
+      expect(result.segments[0]!.y).toBeCloseTo(baseline!, 4);
     }
   });
 
@@ -489,6 +500,172 @@ describe.skipIf(!HAS_NATIVE_DEPS)("native paragraph layout", () => {
         expect(result.emoji[0]!.baseline).toBe(result.segments[line]!.y);
       },
     );
+  });
+
+  // `line-height: normal` as headless Chrome on macOS lays it out, with the
+  // bundled fonts as web fonts: the height of a line box, the baseline in it
+  // (an empty inline-block's bottom on it), and three lines of "Hg".
+  describe("`line-height: normal`, as Chrome lays it out", () => {
+    it.each([
+      ["Liberation Sans", 11, 12, 10],
+      ["Liberation Sans", 13.5, 15, 12],
+      ["Liberation Sans", 16, 18, 14],
+      ["Liberation Sans", 20, 23, 18],
+      ["Liberation Sans", 33, 38, 30],
+      ["Liberation Sans", 48, 55, 44],
+      ["Noto Sans Thai", 11, 17, 12],
+      ["Noto Sans Thai", 13.5, 20, 14],
+      ["Noto Sans Thai", 16, 24, 17],
+      ["Noto Sans Thai", 20, 30, 21],
+      ["Noto Sans Thai", 33, 50, 35],
+      ["Noto Sans Thai", 48, 73, 51],
+      ["Noto Sans Lao", 11, 18, 13],
+      ["Noto Sans Lao", 13.5, 22, 16],
+      ["Noto Sans Lao", 16, 26, 19],
+      ["Noto Sans Lao", 20, 33, 24],
+      ["Noto Sans Lao", 33, 54, 39],
+      ["Noto Sans Lao", 48, 79, 57],
+      ["Noto Sans Myanmar", 11, 24, 15],
+      ["Noto Sans Myanmar", 13.5, 30, 18],
+      ["Noto Sans Myanmar", 16, 35, 21],
+      ["Noto Sans Myanmar", 20, 43, 26],
+      ["Noto Sans Myanmar", 33, 72, 44],
+      ["Noto Sans Myanmar", 48, 105, 64],
+    ] as const)(
+      "%s at %spx: %spx line boxes, the baseline %spx down",
+      (fontFamily, fontSize, lineHeight, baseline) => {
+        const result = layoutText(
+          "Hg Hg Hg",
+          style({ fontFamily, fontSize }),
+          1,
+        );
+        expect(result.segments.map((s) => s.text)).toEqual(["Hg", "Hg", "Hg"]);
+        expect(result.height).toBe(3 * lineHeight);
+        result.segments.forEach((seg, i) => {
+          expect(seg.height).toBe(lineHeight);
+          expect(seg.y).toBeCloseTo(i * lineHeight + baseline, 4);
+        });
+        const empty = layoutText("", style({ fontFamily, fontSize }), 100);
+        expect(empty.height).toBe(lineHeight);
+        expect(empty.segments[0]!.y).toBeCloseTo(baseline, 4);
+      },
+    );
+
+    it("makes Liberation Sans at 20px 23px a line, 69px for three", () => {
+      const result = layoutText(
+        "Hg\nHg\nHg",
+        style({ fontSize: 20, whiteSpace: "pre" }),
+        1000,
+      );
+      expect(result.segments).toHaveLength(3);
+      expect(result.height).toBe(69);
+      expect(result.segments.map((s) => s.y)).toEqual([
+        expect.closeTo(18, 4),
+        expect.closeTo(41, 4),
+        expect.closeTo(64, 4),
+      ]);
+    });
+
+    it("is the same for a bold face", () => {
+      const result = layoutText(
+        "Hg",
+        style({ fontSize: 48, fontWeight: 700 }),
+        1000,
+      );
+      expect(result.height).toBe(55);
+      expect(result.segments[0]!.y).toBeCloseTo(44, 4);
+    });
+
+    it("clamps to whole line boxes", () => {
+      const result = layoutText(
+        TEXT,
+        style({ fontSize: 20, lineClamp: 2 }),
+        300,
+      );
+      expect(result.segments).toHaveLength(2);
+      expect(result.height).toBe(46);
+    });
+
+    // Chrome trims a normal line box to the rounded ascent and descent.
+    it.each([
+      [13.5, "trim-both", 30],
+      [20, "trim-start", 46],
+      [20, "trim-end", 45],
+      [20, "trim-both", 45],
+      [33, "trim-both", 75],
+    ] as const)(
+      "trims two lines at %spx (%s) to %spx",
+      (fontSize, textBoxTrim, height) => {
+        const result = layoutText(
+          "Hg\nHg",
+          style({ fontSize, whiteSpace: "pre", textBoxTrim }),
+          1000,
+        );
+        expect(result.height).toBe(height);
+      },
+    );
+
+    it("sets an emoji 0.1em below Chrome's baseline", () => {
+      const result = layoutText("Hi 🎉", style({ fontSize: 20 }), 1000, true);
+      expect(result.emoji).toHaveLength(1);
+      expect(result.emoji[0]!.baseline).toBeCloseTo(18, 4);
+      // Its 20px box's bottom 2px below the baseline.
+      expect(result.emoji[0]!.y).toBeCloseTo(0, 4);
+    });
+
+    it("follows fonts registered through GlobalFonts after a first layout", async () => {
+      const { GlobalFonts } = await import("@effing/skia");
+      const { readFile } = await import("node:fs/promises");
+      const font = (file: string) =>
+        readFile(new URL(`./_helpers/fonts/${file}`, import.meta.url));
+      const family = "Registered Late";
+      const box = () => {
+        const result = layoutText(
+          "Hg",
+          style({ fontFamily: family, fontSize: 20 }),
+          1000,
+        );
+        return [result.height, Math.round(result.segments[0]!.y * 1e4) / 1e4];
+      };
+      box(); // A fallback font's.
+      const key = GlobalFonts.register(
+        await font("LiberationSans-Regular.woff"),
+        family,
+      );
+      try {
+        expect(box()).toEqual([23, 18]);
+        GlobalFonts.remove(key!);
+        const other = GlobalFonts.register(
+          await font("NotoSansMyanmar-Regular.woff"),
+          family,
+        );
+        try {
+          expect(box()).toEqual([43, 26]);
+        } finally {
+          GlobalFonts.remove(other!);
+        }
+      } finally {
+        GlobalFonts.remove(key!);
+      }
+    });
+
+    it("fits text to Chrome's line boxes", () => {
+      // Three lines are 69px at 20px, 66px at 19px.
+      for (const [maxHeight, fontSize] of [
+        [69, 20],
+        [68, 19],
+      ]) {
+        expect(
+          findLargestUsableFontSize({
+            text: "Hg\nHg\nHg",
+            font: fonts[0]!,
+            maxWidth: 1000,
+            maxHeight: maxHeight!,
+            whiteSpace: "pre",
+          }),
+        ).toBe(fontSize);
+      }
+    });
   });
 });
 

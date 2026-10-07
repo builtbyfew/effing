@@ -281,11 +281,12 @@ describe.skipIf(!HAS_NATIVE_DEPS)(
             Math.sign(points[100]![axis] - points[0]![axis]) || 1;
           for (let i = 1; i < points.length; i++) {
             // Each frame is a fresh rasterization, so anti-aliasing adds up to
-            // ≈0.09px of noise on top of the ≈0.01px of geometric motion per
-            // 0.0001 of scale; snapped glyphs step by up to a whole pixel here.
+            // ≈0.1px of noise (0.103px for 60px text on x64) on top of the
+            // ≈0.01px of geometric motion per 0.0001 of scale; snapped glyphs
+            // step by up to a whole pixel here.
             const step = points[i]![axis] - points[i - 1]![axis];
-            expect(step * direction).toBeGreaterThan(-0.1);
-            expect(Math.abs(step)).toBeLessThan(0.1);
+            expect(step * direction).toBeGreaterThan(-0.12);
+            expect(Math.abs(step)).toBeLessThan(0.12);
           }
         }
       },

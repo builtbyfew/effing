@@ -44,13 +44,6 @@ describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
     return tree.children[0]!;
   }
 
-  // Canvas sizes `normal` line boxes from the font's hhea ascent and descent
-  // (22.34px), where Chrome adds its line gap (23px): the lines of one text
-  // node are 22.34px apart, those of separate items 23px (rounded up). So
-  // tops and heights are compared on Chrome's 23px grid of lines.
-  const LINE = 23;
-  const onGrid = (value: number) => Math.round(value / LINE) * LINE;
-
   /** Every line of text in `node`: its text, left edge and top. */
   function lines(node: LayoutNode, x = 0, y = 0): [string, number, number][] {
     const left = x + node.x;
@@ -59,7 +52,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
       (seg): [string, number, number] => [
         seg.text,
         left + seg.x,
-        onGrid(top + seg.lineIndex * seg.height),
+        round(top + seg.lineIndex * seg.height),
       ],
     );
     return [
@@ -84,9 +77,9 @@ describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
     );
   }
 
-  /** Expect `node` to be `height` tall, on Chrome's grid of lines. */
+  /** Expect `node` to be `height` tall, as in Chrome. */
   function expectHeight(node: LayoutNode, height: number) {
-    expect(onGrid(node.height)).toBe(height);
+    expect(round(node.height)).toBe(height);
   }
 
   describe("in a row", () => {
@@ -413,6 +406,24 @@ describe.skipIf(!HAS_NATIVE_DEPS)("<br>", () => {
             ["b", 0, 46],
           ]);
         }
+      },
+    );
+
+    // A lone CR is kept under pre and pre-wrap: drawn as nothing, but the
+    // letters either side of it don't kern ("A\rV" is 26.69px at 20px, where
+    // "AV" kerns to 25.2px). One before a <br> makes no line of its own.
+    it.each(["pre", "pre-wrap"] as const)(
+      "lays a CR before a <br> out as Chrome does under %s",
+      async (whiteSpace) => {
+        const column = await layOut(
+          ["A\rV\r", <br key="1" />, "b"],
+          rightAligned(whiteSpace),
+        );
+        expectHeight(column, 46);
+        expectLines(column, [
+          ["A\rV", 273.31, 0],
+          ["b", 288.88, 23],
+        ]);
       },
     );
 

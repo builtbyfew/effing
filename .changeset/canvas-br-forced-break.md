@@ -33,5 +33,5 @@ Layouts that relied on the old behaviour change:
 - In a column, the lines either side of a `<br />` used to be separate items,
   each 23px tall with Liberation Sans at 20px. They are now lines of one
   run, spaced at the `normal` line height that canvas gives any wrapped
-  text: 22.34px with that font, where Chrome adds the font's line gap
-  for 23px.
+  text: 23px with that font, as in Chrome, so the column is as tall as
+  before.

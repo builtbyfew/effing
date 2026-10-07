@@ -144,15 +144,21 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
   });
 
   // Chrome lays a lone CR out with no width and no break opportunity under
-  // `pre` and `pre-wrap`, where the paragraph would draw a missing glyph.
+  // `pre` and `pre-wrap`, but the letters either side of it don't kern: "AV"
+  // is 50.39px in 40px Liberation Sans, "A\rV" 53.38px and "T\ro" 46.69px.
   it.each(["pre", "pre-wrap"] as const)(
-    "draws a lone CR as nothing under %s",
+    "draws a lone CR as nothing, and breaks the kerning at it, under %s",
     (whiteSpace) => {
       const result = layoutText("a\rb", style({ whiteSpace }), 300);
-      expect(result.segments.map((s) => s.text)).toEqual(["ab"]);
+      expect(result.segments.map((s) => s.text)).toEqual(["a\rb"]);
       expect(result.width).toBeCloseTo(22.25, 1);
       const wrapped = layoutText("aaaa\rbbbb", style({ whiteSpace }), 50);
-      expect(wrapped.segments.map((s) => s.text)).toEqual(["aaaabbbb"]);
+      expect(wrapped.segments).toHaveLength(1);
+      const at40 = (text: string) =>
+        layoutText(text, style({ whiteSpace, fontSize: 40 }), 1000).width;
+      expect(at40("AV")).toBeCloseTo(50.39, 1);
+      expect(at40("A\rV")).toBeCloseTo(53.38, 1);
+      expect(at40("T\ro")).toBeCloseTo(46.69, 1);
     },
   );
 
@@ -235,17 +241,19 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
       expect(result.segments[0]!.width).toBeCloseTo(27.81 + 20 + 20, 1);
     });
 
-    // Chrome gives "ab…" here; the paragraph ellipsizes `pre` (noWrap) text
-    // only where a line overflows.
-    it("puts no ellipsis after a forced break under pre", () => {
-      const result = layoutText(
-        "ab\r\ncd",
-        style({ whiteSpace: "pre", lineClamp: 1 }),
-        300,
-      );
-      expect(result.segments.map((s) => s.text)).toEqual(["ab"]);
-      expect(result.segments[0]!.width).toBeCloseTo(22.25, 1);
-    });
+    // Chrome gives "ab…" under `pre` too.
+    it.each(["ab\ncd", "ab\r\ncd"])(
+      "puts an ellipsis after a forced break under pre (%j), as Chrome does",
+      (text) => {
+        const result = layoutText(
+          text,
+          style({ whiteSpace: "pre", lineClamp: 1 }),
+          300,
+        );
+        expect(result.segments.map((s) => s.text)).toEqual(["ab"]);
+        expect(result.segments[0]!.width).toBeCloseTo(42.25, 1);
+      },
+    );
 
     it("truncates nowrap text on one line, as Chrome does", () => {
       const result = layoutText(
@@ -543,6 +551,22 @@ describe.skipIf(!HAS_NATIVE_DEPS)("white space", () => {
         );
       }
     });
+
+    // With letter spacing, Chrome spaces a separator once, as a space: "a b"
+    // and "a\u2028b" are 42.81px with 5px of it, at 20px.
+    it.each(ALL)(
+      "puts letter spacing after a separator once under %s",
+      (whiteSpace) => {
+        for (const text of ["a b", "a\u2028b", "a\u2029b"]) {
+          const result = layoutText(
+            text,
+            style({ whiteSpace, letterSpacing: 5 }),
+            300,
+          );
+          expect(result.width).toBeCloseTo(42.81, 1);
+        }
+      },
+    );
 
     it.each(ALL)(
       "doesn't break at a form feed or vertical tab under %s",

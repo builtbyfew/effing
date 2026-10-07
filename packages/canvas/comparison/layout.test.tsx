@@ -2,7 +2,6 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -16,7 +15,7 @@ import { TranslateXCard } from "./_fixtures/layout-cards.tsx";
 // Tests
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
+describe("visual comparison: layout", () => {
   let fonts: FontData[];
 
   beforeAll(async () => {
@@ -55,7 +54,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
       satoriPng,
       "border-radius-50-percent",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders percentage translate — left 50% + translate(-50%) centering", async () => {
@@ -191,7 +191,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
       "layered-gradient-card",
     );
 
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders TranslateXCard — translateX transforms on elements", async () => {
@@ -357,6 +358,7 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: layout", () => {
       satoriPng,
       "flex-computed-text-width",
     );
-    expect(percentage).toBeLessThan(2.5);
+    // 0.83% measured on macOS arm64, 0.94% on CI's ubuntu x64.
+    expect(percentage).toBeLessThan(1.7);
   });
 });

@@ -1,9 +1,4 @@
-export {
-  HAS_NATIVE_DEPS,
-  loadFonts,
-  loadScriptFonts,
-  SCRIPT_FONT_FAMILIES,
-} from "./fonts.ts";
+export { loadFonts, loadScriptFonts, SCRIPT_FONT_FAMILIES } from "./fonts.ts";
 export {
   renderWithCanvas,
   renderWithSatori,

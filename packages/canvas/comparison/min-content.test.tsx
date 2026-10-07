@@ -5,7 +5,7 @@ import { buildLayoutTree } from "../src/jsx/layout.ts";
 import { DEFAULT_STYLE, resolveStyle } from "../src/jsx/style/compute.ts";
 import { TextMeasure, layoutText } from "../src/jsx/text/index.ts";
 import type { LayoutNode } from "../src/jsx/layout.ts";
-import { HAS_NATIVE_DEPS, loadFonts } from "./_helpers/setup.ts";
+import { loadFonts } from "./_helpers/setup.ts";
 
 // A flex item's minimum width is its min-content width in a row (CSS
 // `min-width: auto`): text that can't wrap and is wider than its box stays as
@@ -15,7 +15,7 @@ import { HAS_NATIVE_DEPS, loadFonts } from "./_helpers/setup.ts";
 // as in canvas), which centres its children unless a test says otherwise:
 // where each element starts and how wide it is, and where each of its lines
 // starts.
-describe.skipIf(!HAS_NATIVE_DEPS)("min-content width", () => {
+describe("min-content width", () => {
   beforeAll(async () => {
     ensureFontsRegistered(await loadFonts());
   });

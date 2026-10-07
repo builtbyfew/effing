@@ -2,7 +2,6 @@ import { beforeAll, describe, it, expect } from "vitest";
 import React from "react";
 import type { FontData } from "../src/types.ts";
 import {
-  HAS_NATIVE_DEPS,
   loadFonts,
   renderWithCanvas,
   renderWithSatori,
@@ -11,7 +10,7 @@ import {
   HEIGHT,
 } from "./_helpers/setup.ts";
 
-describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG defs", () => {
+describe("visual comparison: SVG defs", () => {
   let fonts: FontData[];
   beforeAll(async () => {
     fonts = await loadFonts();
@@ -61,7 +60,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG defs", () => {
       satoriPng,
       "svg-clip-path",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("svg-multi-path-cliprule", async () => {
@@ -103,7 +103,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG defs", () => {
       satoriPng,
       "svg-multi-path-cliprule",
     );
-    expect(percentage).toBeLessThan(1);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders SVG mask — masked path clipping", async () => {
@@ -150,7 +151,8 @@ describe.skipIf(!HAS_NATIVE_DEPS)("visual comparison: SVG defs", () => {
       satoriPng,
       "svg-mask-clipping",
     );
-    expect(percentage).toBeLessThan(2);
+    // 0.000% measured; a floor for anti-aliasing.
+    expect(percentage).toBeLessThan(0.05);
   });
 
   it("renders SVG mask — top-level mask outside defs", async () => {

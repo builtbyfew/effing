@@ -4,6 +4,7 @@
 
 (() => {
   const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
+  const words = new Intl.Segmenter("en", { granularity: "word" });
   const round = (value) => Math.round(value * 1e4) / 1e4;
   /** Spaces that hang at a soft wrap (CSS Text 3 §4.1.3). */
   const HANGING = /^[ \t]+$/;
@@ -202,65 +203,97 @@
       collapse === "preserve" || collapse === "break-spaces";
     const forcesNewlines = collapse !== "collapse";
     const metrics = lineMetrics(parent);
-    // The text as drawn, which the DOM has before its `text-transform`.
-    const transform = (text, before) => {
+    // The text as drawn, which the DOM has before its `text-transform`: of
+    // the whole text, so that a letter's case can depend on the letters
+    // around it (a final sigma), and `capitalize` capitalizes each word as
+    // ICU finds words ("o'neil's", "X-Ray"), as Chrome does.
+    const transform = (text) => {
       switch (style.textTransform) {
         case "uppercase":
           return text.toUpperCase();
         case "lowercase":
           return text.toLowerCase();
         case "capitalize":
-          return before === undefined || /\s/.test(before)
-            ? text.charAt(0).toUpperCase() + text.slice(1)
-            : text;
+          return Array.from(words.segment(text), ({ segment, isWordLike }) =>
+            isWordLike
+              ? segment.charAt(0).toUpperCase() + segment.slice(1)
+              : segment,
+          ).join("");
         default:
           return text;
       }
     };
     const collapsed = metrics.height < 1;
 
+    // The run's text as drawn, transformed as a whole: a word can span text
+    // nodes ("hello w", "orld"). A piece of it, from one index of the DOM's
+    // text to another, is where the transform of the text before each puts
+    // them: a transform can change a letter's length ("ß" uppercased is
+    // "SS"), but not for what follows it.
+    const text = nodes.map((node) => (isBr(node) ? "\n" : node.data)).join("");
+    const drawn = transform(text);
+    const drawnAt =
+      drawn === text
+        ? (index) => index
+        : (index) => transform(text.slice(0, index)).length;
+    // Which Chrome must agree with, where the run is all the element's text.
+    const whole = itemsOf(parent).length === 1;
+    const normal = (value) => value.replace(/\s+/g, " ").trim();
+    if (whole && normal(drawn) !== normal(parent.innerText)) {
+      throw new Error(
+        `The text of <${parent.localName}> is drawn as ${JSON.stringify(parent.innerText)}, not ${JSON.stringify(drawn)}: text-transform it as Chrome does`,
+      );
+    }
+
     // Every grapheme cluster and <br>, with its boxes on the page. A space
     // that collapses has a box of no width, or none.
     const pieces = [];
+    let offset = 0;
     for (const node of nodes) {
       if (isBr(node)) {
         const rects = [...node.getClientRects()];
         if (rects.length > 0) pieces.push({ br: true, text: "", rects });
+        offset += 1;
         continue;
       }
       for (const { segment, index } of graphemes.segment(node.data)) {
         const range = document.createRange();
         range.setStart(node, index);
         range.setEnd(node, index + segment.length);
+        const start = offset + index;
         pieces.push({
-          text: transform(segment, node.data[index - 1]),
+          text: drawn.slice(drawnAt(start), drawnAt(start + segment.length)),
           rects: [...range.getClientRects()],
         });
       }
+      offset += node.data.length;
     }
 
-    // Lines, from where each piece's first box is: a soft wrap's space is on
+    // Lines, from where each piece's last box is: a soft wrap's space is on
     // the line it ends, and a newline's too. Where line boxes have no height
     // (`line-height: 0`), they're all at one height, so a line also starts
     // where the text goes back to the left.
     const lines = [];
     let line = null;
     for (const piece of pieces) {
-      const first = piece.rects[0];
-      if (!first) {
+      // A piece's line is that of its last box: the range of the character
+      // after a soft hyphen that a line breaks at has the hyphen's box first,
+      // on the line before.
+      const box = piece.rects.at(-1);
+      if (!box) {
         line?.pieces.push(piece);
         continue;
       }
       const startsLine =
         !line ||
-        Math.abs(first.top - line.top) > 0.5 ||
-        (collapsed && first.width > 0 && first.left < line.right - 0.5);
+        Math.abs(box.top - line.top) > 0.5 ||
+        (collapsed && box.width > 0 && box.left < line.right - 0.5);
       if (startsLine) {
-        line = { top: first.top, right: -Infinity, pieces: [] };
+        line = { top: box.top, right: -Infinity, pieces: [] };
         lines.push(line);
       }
       line.pieces.push(piece);
-      if (first.width > 0) line.right = Math.max(line.right, first.right);
+      if (box.width > 0) line.right = Math.max(line.right, box.right);
     }
 
     const result = [];

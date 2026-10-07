@@ -1,0 +1,241 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "f32f11b2d18ab952",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "filters by grayscale(1)": {
+      "hash": "7da3f0d2a3cec1d2",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-1.png"
+    },
+    "filters by grayscale(0.5)": {
+      "hash": "3076c569de9918e4",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-0-5.png"
+    },
+    "filters by sepia(1)": {
+      "hash": "5b7e0ae3724c3505",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-sepia-1.png"
+    },
+    "filters by saturate(2.5)": {
+      "hash": "5bdb9c72a106e833",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-saturate-2-5.png"
+    },
+    "filters by saturate(0.3)": {
+      "hash": "99ed58780038b970",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-saturate-0-3.png"
+    },
+    "filters by hue-rotate(90deg)": {
+      "hash": "66dc63568f43a94d",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-hue-rotate-90deg.png"
+    },
+    "filters by hue-rotate(200deg)": {
+      "hash": "ab7eb60f174866c9",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-hue-rotate-200deg.png"
+    },
+    "filters by contrast(1.8)": {
+      "hash": "647d095656e55f8f",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-contrast-1-8.png"
+    },
+    "filters by contrast(0.4)": {
+      "hash": "a2342d914ebe4911",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-contrast-0-4.png"
+    },
+    "filters by brightness(1.3)": {
+      "hash": "c51aa4e187657e19",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-brightness-1-3.png"
+    },
+    "filters by invert(0.8)": {
+      "hash": "8f4946437382ccbe",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-invert-0-8.png"
+    },
+    "filters by opacity(0.4)": {
+      "hash": "cb1f4e61ff1f06f9",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-opacity-0-4.png"
+    },
+    "filters by sepia(0.6) hue-rotate(120deg) saturate(2)": {
+      "hash": "3018527679fcc813",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-sepia-0-6-hue-rotate-120deg-saturate-2.png"
+    },
+    "filters by grayscale(1) contrast(2) brightness(0.8)": {
+      "hash": "ed2ab02812f36412",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] }
+      },
+      "screenshot": "filters/filters-by-grayscale-1-contrast-2-brightness-0-8.png"
+    },
+    "casts a blurred drop shadow": {
+      "hash": "3858f3fb98d12744",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 100, "height": 50, "lines": [] }
+      },
+      "screenshot": "filters/casts-a-blurred-drop-shadow.png"
+    },
+    "casts a sharp drop shadow of a circle and a square": {
+      "hash": "fe0526838a1a072c",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 120, "height": 50, "lines": [] }
+      },
+      "screenshot": "filters/casts-a-sharp-drop-shadow-of-a-circle-and-a-square.png"
+    },
+    "filters text by grayscale": {
+      "hash": "124dce2a86d9dc66",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 104.9375,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Grayed",
+              "x": 10,
+              "width": 104.9375,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/filters-text-by-grayscale.png"
+    },
+    "casts a drop shadow of text": {
+      "hash": "455fe9c591e0efd4",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 122.75,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Dropped",
+              "x": 10,
+              "width": 122.75,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/casts-a-drop-shadow-of-text.png"
+    },
+    "blurs text": {
+      "hash": "450ca7f24d5c48e2",
+      "elements": {
+        "f": {
+          "x": 10,
+          "y": 10,
+          "width": 103.1563,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Blurred",
+              "x": 10,
+              "width": 103.1563,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "filters/blurs-text.png"
+    },
+    "filters the backdrop by grayscale(1)": {
+      "hash": "b74ace4706d0488e",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-grayscale-1.png"
+    },
+    "filters the backdrop by sepia(1)": {
+      "hash": "6d09f8559bbafda8",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-sepia-1.png"
+    },
+    "filters the backdrop by saturate(3)": {
+      "hash": "ec498da81dcfb31f",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-saturate-3.png"
+    },
+    "filters the backdrop by hue-rotate(180deg)": {
+      "hash": "1928231422de96c9",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-hue-rotate-180deg.png"
+    },
+    "filters the backdrop by contrast(2)": {
+      "hash": "7879c6c87d036ebe",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-contrast-2.png"
+    },
+    "filters the backdrop by opacity(0.5)": {
+      "hash": "966374b1bdb5fad1",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-opacity-0-5.png"
+    },
+    "filters the backdrop by grayscale(0.5) blur(2px)": {
+      "hash": "cd9e474de9e437ce",
+      "elements": {
+        "f": { "x": 10, "y": 10, "width": 220, "height": 60, "lines": [] },
+        "b": { "x": 70, "y": 20, "width": 120, "height": 40, "lines": [] }
+      },
+      "screenshot": "filters/filters-the-backdrop-by-grayscale-0-5-blur-2px.png"
+    }
+  }
+}

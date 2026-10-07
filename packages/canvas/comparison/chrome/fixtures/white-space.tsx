@@ -431,8 +431,10 @@ const fixtures: ChromeFixture[] = [
       // Chrome draws a form feed as nothing only under pre and pre-wrap.
       ...((control === "\v" ||
         (whiteSpace !== "pre" && whiteSpace !== "pre-wrap")) && {
-        knownDifference:
-          "Chrome draws it as a box 6.67px wide, from a fallback font that makes the line 30px tall; canvas draws nothing",
+        knownDifference: {
+          why: "effing-skia#36: Chrome draws it as a box 6.67px wide, from a fallback font that makes the line 30px tall; canvas draws nothing",
+          differs: ["#p height", "#p line 1 top", "#p line 1 width"],
+        },
       }),
     })),
   ),

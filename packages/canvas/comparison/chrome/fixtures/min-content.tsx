@@ -107,7 +107,7 @@ const rowFixture = (
  * Canvas makes "Antidisestablishmentarianism" 0.74px narrower on the line
  * after a wrap than on its own (568.3px, where Chrome has 569.05px either
  * way): the kerning of the space before it against its "A", which Chrome
- * leaves with the space at the wrap.
+ * leaves with the space at the wrap (effing-skia#32).
  */
 const KERNED_AT_WRAP = { lineWidth: 0.8 };
 
@@ -572,8 +572,10 @@ export default fixtureModule("min-content", [
       [198.8, 168.69],
     ],
     {
-      knownDifference:
-        "canvas makes the first two items one line tall (44px and 14px), where it draws their text, and Chrome lays it out, on three and two lines (132px and 28px)",
+      knownDifference: {
+        why: "effing#194: canvas makes the first two items one line tall (44px and 14px), where it draws their text, and Chrome lays it out, on three and two lines (132px and 28px)",
+        differs: ["#item0 height", "#item1 height", "#item1 line 2 width"],
+      },
     },
   ),
   // Chrome takes the element's flex basis from its text's max-content, where
@@ -606,8 +608,10 @@ export default fixtureModule("min-content", [
         [width, 300 - width],
       ],
       {
-        knownDifference:
-          "Yoga shares the shrinking out by the flex basis at the width available, where Chrome takes the text's max-content",
+        knownDifference: {
+          why: "effing#195: Yoga shares the shrinking out by the flex basis at the width available, where Chrome takes the text's max-content",
+          differs: ["#item0 width", "#item1 x", "#item1 width"],
+        },
       },
     ),
   ),

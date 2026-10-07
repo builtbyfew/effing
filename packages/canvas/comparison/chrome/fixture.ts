@@ -139,11 +139,67 @@ export type ChromeFixture = {
     pixels: [number, number, [number, number, number]][];
   };
   /**
-   * Where canvas is known not to lay the fixture out as Chrome does, why:
-   * its layout must then differ from Chrome's, and the test fails once it
-   * doesn't, for the note to go.
+   * Where canvas is known not to lay the fixture out as Chrome does: what
+   * differs, and why. The differences found must be those, and the test
+   * fails once there are none, for the note to go.
    */
-  knownDifference?: string;
+  knownDifference?: KnownDifference;
+  /**
+   * Where canvas lays the fixture out as Chrome does but paints it
+   * otherwise: how its pixels (or an ellipsis's end) differ, and why. They
+   * must differ so, and the test fails once they match Chrome's.
+   */
+  knownPaintDifference?: KnownPaintDifference;
+};
+
+/**
+ * What a difference found must be, to be expected: its subject (what
+ * `differences()` says it's about, the message up to its first ": ", as
+ * "#p line 2 width"), or a RegExp of the whole message.
+ */
+export type Expected = string | RegExp;
+
+/**
+ * The subject of a difference in each of lines `from` to `to` of `#id`: as
+ * `linesDiffer("p", 1, 3, "width")`, "#p line 1 width" to "#p line 3 width".
+ */
+export const linesDiffer = (
+  id: string,
+  from: number,
+  to: number,
+  what: string,
+): string[] =>
+  Array.from(
+    { length: to - from + 1 },
+    (_, i) => `#${id} line ${from + i} ${what}`,
+  );
+
+/** How canvas lays a fixture out otherwise than Chrome, and why. */
+export type KnownDifference = {
+  /** Why canvas differs. */
+  why: string;
+  /**
+   * Every difference found: each found must match one of these, and each
+   * of these a difference found.
+   */
+  differs: readonly Expected[];
+};
+
+/** How canvas paints a fixture otherwise than Chrome, and why. */
+export type KnownPaintDifference = {
+  /** Why canvas differs. */
+  why: string;
+  /**
+   * The share of pixels that differ, in %, as measured: from, to. It must
+   * be beyond the fixture's pixel tolerance. Without it, the pixels must be
+   * within the tolerance.
+   */
+  pixels?: readonly [number, number];
+  /**
+   * The ellipses that end elsewhere than Chrome's (as "#p line 2"): each
+   * found must match one of these, and each of these one found.
+   */
+  ellipses?: readonly Expected[];
 };
 
 export type FixtureModule = {
@@ -164,6 +220,30 @@ export function fixtureModule(
       throw new Error(`Two fixtures in ${name} are named "${fixture.name}"`);
     }
     names.add(fixture.name);
+    const paint = fixture.knownPaintDifference;
+    if (paint && !fixture.screenshot) {
+      throw new Error(
+        `"${fixture.name}" has a knownPaintDifference but no screenshot`,
+      );
+    }
+    if (paint && !paint.pixels && !paint.ellipses?.length) {
+      throw new Error(
+        `"${fixture.name}"'s knownPaintDifference expects no difference`,
+      );
+    }
+    if (paint?.pixels) {
+      const tolerance = { ...DEFAULT_TOLERANCE, ...fixture.tolerance };
+      if (!(paint.pixels[0] > tolerance.pixels)) {
+        throw new Error(
+          `"${fixture.name}"'s knownPaintDifference expects pixels within its tolerance: from ${paint.pixels[0]}%, not ${tolerance.pixels}% or less`,
+        );
+      }
+    }
+    if (fixture.knownDifference?.differs.length === 0) {
+      throw new Error(
+        `"${fixture.name}"'s knownDifference expects no difference`,
+      );
+    }
     if (!fixture.screenshot) continue;
     if (slugs.has(slugOf(fixture))) {
       throw new Error(

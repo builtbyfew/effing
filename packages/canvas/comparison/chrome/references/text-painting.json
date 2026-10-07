@@ -1,0 +1,318 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "f32f11b2d18ab952",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "underlines text": {
+      "hash": "70f23461a6c8edba",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 193.4688,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Underlined",
+              "x": 10,
+              "width": 193.4688,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/underlines-text.png"
+    },
+    "skips descenders when underlining": {
+      "hash": "770bc88f0c7736f6",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 124.5156,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hyping",
+              "x": 10,
+              "width": 124.5156,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/skips-descenders-when-underlining.png"
+    },
+    "strikes text through": {
+      "hash": "9536d604ea82912e",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 124.5156,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hyping",
+              "x": 10,
+              "width": 124.5156,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/strikes-text-through.png"
+    },
+    "overlines text": {
+      "hash": "786b6d7019a1ee5c",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 171.2031,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Overlined",
+              "x": 10,
+              "width": 171.2031,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/overlines-text.png"
+    },
+    "underlines each wrapped line": {
+      "hash": "a400c0ea4b0b79b6",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 150,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Underlined lines",
+              "x": 10,
+              "width": 143.4219,
+              "top": 10,
+              "height": 23,
+              "baseline": 28
+            },
+            {
+              "text": "of text in a nar",
+              "x": 10,
+              "width": 126.75,
+              "top": 33,
+              "height": 23,
+              "baseline": 51
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/underlines-each-wrapped-line.png"
+    },
+    "strikes each wrapped line through": {
+      "hash": "ec19fdc027716c73",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 150,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Struck text that",
+              "x": 10,
+              "width": 133.3906,
+              "top": 10,
+              "height": 23,
+              "baseline": 28
+            },
+            {
+              "text": "wraps onto lines",
+              "x": 10,
+              "width": 144.5313,
+              "top": 33,
+              "height": 23,
+              "baseline": 51
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/strikes-each-wrapped-line-through.png"
+    },
+    "underlines a clamped line but not its ellipsis": {
+      "hash": "a96f541b316436bf",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Underlined lines of",
+              "x": 10,
+              "width": 165.6563,
+              "top": 10,
+              "height": 23,
+              "baseline": 28
+            },
+            {
+              "text": "text in a narrow box",
+              "x": 10,
+              "width": 174.5313,
+              "top": 33,
+              "height": 23,
+              "baseline": 51,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/underlines-a-clamped-line-but-not-its-ellipsis.png"
+    },
+    "casts a blurred text shadow": {
+      "hash": "98b54a72b38bcc18",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 10,
+              "width": 151.2344,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/casts-a-blurred-text-shadow.png"
+    },
+    "casts a widely blurred text shadow": {
+      "hash": "060676864b1f9d74",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 115.6094,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Glowing",
+              "x": 10,
+              "width": 115.6094,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/casts-a-widely-blurred-text-shadow.png"
+    },
+    "strokes text": {
+      "hash": "b30c0c240f824d0b",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 137.8594,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Stroked",
+              "x": 10,
+              "width": 137.8594,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/strokes-text.png"
+    },
+    "casts a shadow of stroked text": {
+      "hash": "1cd28a98f1d75d46",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 137.8594,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Stroked",
+              "x": 10,
+              "width": 137.8594,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/casts-a-shadow-of-stroked-text.png"
+    },
+    "spaces letters out": {
+      "hash": "15561033b001d45f",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 161.4375,
+          "height": 28,
+          "lines": [
+            {
+              "text": "Spaced out",
+              "x": 10,
+              "width": 161.4375,
+              "top": 10,
+              "height": 28,
+              "baseline": 32
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/spaces-letters-out.png"
+    },
+    "spaces letters in": {
+      "hash": "bc849ce5f7ea60a6",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 177.3281,
+          "height": 28,
+          "lines": [
+            {
+              "text": "Squeezed together",
+              "x": 10,
+              "width": 177.3281,
+              "top": 10,
+              "height": 28,
+              "baseline": 32
+            }
+          ]
+        }
+      },
+      "screenshot": "text-painting/spaces-letters-in.png"
+    }
+  }
+}

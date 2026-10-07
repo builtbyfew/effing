@@ -64,9 +64,27 @@ export const SCRIPT_FONT_FAMILIES = SCRIPT_FONTS.map(([name]) => name).join(
   ", ",
 );
 
+/**
+ * Fonts loaded with the script fonts, but not in `SCRIPT_FONT_FAMILIES`
+ * (SIL Open Font License, see `fonts/OFL-Noto.txt` and
+ * `fonts/OFL-Poppins.txt`), under names no system font has (see
+ * `BUNDLED_SANS`):
+ *
+ * - Noto Sans Hebrew, subset to Hebrew, for right-to-left text;
+ * - Poppins, subset to Basic Latin, for a font with a line gap other than
+ *   Liberation Sans's (100 units of 1000 in its hhea table, 2px at 20px).
+ */
+export const BUNDLED_HEBREW = "Bundled Noto Sans Hebrew";
+export const BUNDLED_POPPINS = "Bundled Poppins";
+
+const MORE_FONTS = [
+  [BUNDLED_HEBREW, "NotoSansHebrew-Regular.woff"],
+  [BUNDLED_POPPINS, "Poppins-Regular.woff"],
+] as const;
+
 export async function loadScriptFonts(): Promise<FontData[]> {
   return Promise.all(
-    SCRIPT_FONTS.map(([name, file]) =>
+    [...SCRIPT_FONTS, ...MORE_FONTS].map(([name, file]) =>
       readFile(join(FONT_DIR, file)).then((data) => ({
         name,
         data,

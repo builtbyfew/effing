@@ -1,0 +1,1893 @@
+{
+  "chrome": "154.0.8037.98",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "stacks the text either side of it in a row": {
+      "hash": "8fa6f3a90858d19b",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "First line",
+              "x": 0,
+              "width": 75.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 0,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "stacks three lines in a row": {
+      "hash": "83eb7b3b600695f0",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "First line",
+              "x": 0,
+              "width": 75.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 0,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "third line",
+              "x": 0,
+              "width": 75.6094,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "keeps the run as narrow as its lines next to other elements": {
+      "hash": "a2bc96d7adf8a521",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "a",
+              "x": 10,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 10,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "y",
+              "x": 21.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "c",
+              "x": 31.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "d",
+              "x": 31.125,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "makes a <br> between elements an empty line of its own in a row": {
+      "hash": "a77da3a58dfadfa5",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 11.125,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 11.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 11.125,
+          "y": 0,
+          "width": 11.125,
+          "height": 23,
+          "lines": [
+            {
+              "text": "b",
+              "x": 11.125,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "starts the run after an element with a <br>": {
+      "hash": "0e0519cc2cb3737d",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 10,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "a",
+              "x": 10,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "ends the run before an element with a <br>": {
+      "hash": "5de4c347024e7506",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "x",
+              "x": 11.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "breaks the text of an element with a <br> in it": {
+      "hash": "a994d19e92b5e9a9",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "c",
+              "x": 11.125,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "stacks the text either side of it in a column": {
+      "hash": "32c7bf033d173c53",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "First line",
+              "x": 0,
+              "width": 75.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 0,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "makes a <br> between elements an empty line of its own in a column (\"\")": {
+      "hash": "6357ff62a0e38772",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "makes a <br> between elements an empty line of its own in a column (\" \")": {
+      "hash": "ecfb47a5b494f7be",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks the runs between elements in a column": {
+      "hash": "a79e45c7cb8ece57",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 138,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 10,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "y",
+              "x": 0,
+              "width": 10,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "c",
+              "x": 0,
+              "width": 10,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "d",
+              "x": 0,
+              "width": 11.125,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> at the start in a row": {
+      "hash": "0aee39442697648a",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> at the start in a column": {
+      "hash": "0c3751b1c530225d",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> at the end in a row": {
+      "hash": "cd13b5e4351e5e71",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> at the end in a column": {
+      "hash": "0db3e34174ed9e6f",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s at the end in a row": {
+      "hash": "85bc4e879df01802",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s at the end in a column": {
+      "hash": "7ea0f6a2967a061e",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "First",
+              "x": 0,
+              "width": 38.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s in a row": {
+      "hash": "44ff6258bb54818f",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s in a column": {
+      "hash": "c0bf32a71408b8ec",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays out three <br>s in a row": {
+      "hash": "834cdaa28db8d3d9",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 92,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "lays out three <br>s in a column": {
+      "hash": "522806216ef85dec",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 92,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s at the start in a row": {
+      "hash": "97a1df29abd0ea86",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays out two <br>s at the start in a column": {
+      "hash": "b5efef527aa743c1",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays out nothing but a <br> in a row": {
+      "hash": "b7735c9d498b6c20",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "lays out nothing but a <br> in a column": {
+      "hash": "a3a5339002fad122",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "lays out nothing but two <br>s in a row": {
+      "hash": "09523fe284a381ed",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out nothing but two <br>s in a column": {
+      "hash": "fba89f53af10a115",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> in white space in a row": {
+      "hash": "67b68acac0416703",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "lays out a <br> in white space in a column": {
+      "hash": "19a319f441705096",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "ignores a <br> with display: none": {
+      "hash": "fbf3dcc339b1b22a",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 23,
+          "lines": [
+            {
+              "text": "First line second line",
+              "x": 0,
+              "width": 182.3125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "removes the spaces around a <br> under normal": {
+      "hash": "c7036f5db785363b",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "removes tabs and newlines around a <br> under normal": {
+      "hash": "d3bed546d9df8b96",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "removes the spaces around a <br> under nowrap": {
+      "hash": "f8d607562ca68113",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "removes tabs and newlines around a <br> under nowrap": {
+      "hash": "cec134171cbc169f",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "removes the spaces around a <br> under pre-line": {
+      "hash": "e2e98e68e0159777",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "removes tabs and newlines around a <br> under pre-line": {
+      "hash": "12c9aed3a9994b8e",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 92,
+          "lines": [
+            {
+              "text": "a",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 300,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "",
+              "x": 300,
+              "width": 0,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "keeps the spaces around a <br> under pre": {
+      "hash": "8b86823c987b6e58",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": " b",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps the spaces around a <br> under pre-wrap": {
+      "hash": "a66762c9bd8df07f",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": " b",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre-line (1)": {
+      "hash": "59621d2f2f8b96fb",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre-line (2)": {
+      "hash": "014a76b1aff77270",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre (1)": {
+      "hash": "c83ecce110e59abf",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre (2)": {
+      "hash": "99b37ca6c4b7a40b",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre-wrap (1)": {
+      "hash": "2af099be3ee69fb5",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "breaks at both a newline and a <br> under pre-wrap (2)": {
+      "hash": "84ab685aecf3d7aa",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0,
+              "width": 11.125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "",
+              "x": 0,
+              "width": 0,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "b",
+              "x": 0,
+              "width": 11.125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "lays a CR before a <br> out under pre": {
+      "hash": "7d7f650016d5320b",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "A\rV",
+              "x": 273.3125,
+              "width": 26.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "lays a CR before a <br> out under pre-wrap": {
+      "hash": "e0a9942664f64238",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "A\rV",
+              "x": 273.3125,
+              "width": 26.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps a line separator before a <br> a space": {
+      "hash": "8d02c27d54268be2",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "b",
+              "x": 288.875,
+              "width": 11.125,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "keeps the no-break spaces around a <br>": {
+      "hash": "20a2fafbfe2ba366",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "a ",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": " b",
+              "x": 283.3125,
+              "width": 16.6875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "breaks at a <br> under nowrap": {
+      "hash": "8da99d0e2cc698ed",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hello world again and more",
+              "x": 0,
+              "width": 243.4688,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "words here and some more",
+              "x": 0,
+              "width": 243.4531,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "wraps the lines between <br>s": {
+      "hash": "0d16c85db3f1a81a",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 92,
+          "lines": [
+            {
+              "text": "Hello world",
+              "x": 0,
+              "width": 98.9375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "again and more",
+              "x": 0,
+              "width": 138.9844,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "words here",
+              "x": 0,
+              "width": 98.9375,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "next",
+              "x": 0,
+              "width": 37.8125,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            }
+          ]
+        }
+      }
+    },
+    "aligns each line right": {
+      "hash": "0981032303aefc6d",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "First line",
+              "x": 224.4219,
+              "width": 75.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 198.8125,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "third line",
+              "x": 224.3906,
+              "width": 75.6094,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "aligns each line center": {
+      "hash": "c7b6dd33035e66cf",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 69,
+          "lines": [
+            {
+              "text": "First line",
+              "x": 112.2031,
+              "width": 75.5781,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 99.4063,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "third line",
+              "x": 112.1875,
+              "width": 75.6094,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "aligns the lines of a wrapped line": {
+      "hash": "0f87b5b482110abf",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 60,
+          "height": 69,
+          "lines": [
+            {
+              "text": "aaa",
+              "x": 26.625,
+              "width": 33.375,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "bbb",
+              "x": 26.625,
+              "width": 33.375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "ccc",
+              "x": 30,
+              "width": 30,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        }
+      }
+    },
+    "sizes clamped lines with <br>s to the widest": {
+      "hash": "524567e2aa50e7dc",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Short",
+              "x": 0,
+              "width": 47.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "A longer line here",
+              "x": 0,
+              "width": 155.6719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        },
+        "clamped": {
+          "x": 0,
+          "y": 0,
+          "width": 155.6719,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Short",
+              "x": 0,
+              "width": 47.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "A longer line here",
+              "x": 0,
+              "width": 155.6719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      }
+    },
+    "sizes clamped lines with newlines to the widest": {
+      "hash": "a7f8d422e1ad4911",
+      "elements": {
+        "c": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Short",
+              "x": 0,
+              "width": 47.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "A longer line here",
+              "x": 0,
+              "width": 155.6719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        },
+        "clamped": {
+          "x": 0,
+          "y": 0,
+          "width": 155.6719,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Short",
+              "x": 0,
+              "width": 47.8125,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "A longer line here",
+              "x": 0,
+              "width": 155.6719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1615 @@
+{
+  "chrome": "154.0.8037.98",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "centred in its parent: nowrap, centred": {
+      "hash": "70a30b4b2a057fee",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centred in its parent: nowrap": {
+      "hash": "16181c05e973e7fd",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centred in its parent: nowrap in a centring row": {
+      "hash": "4b607685c9988845",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centred in its parent: nowrap that doesn't shrink": {
+      "hash": "f034548b7a4cd966",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centred in its parent: nowrap, clipped": {
+      "hash": "434b0c0bc88f1680",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres a word wider than the box": {
+      "hash": "4dbcc72197814bae",
+      "elements": {
+        "text": {
+          "x": -17.875,
+          "y": 37.5,
+          "width": 635.7656,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": -17.875,
+              "width": 635.7656,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres words wider than the box, as wide as the widest": {
+      "hash": "6f04ff1af7073fd3",
+      "elements": {
+        "text": {
+          "x": -17.875,
+          "y": 15,
+          "width": 635.7656,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": -17.875,
+              "width": 635.7656,
+              "top": 15,
+              "height": 45,
+              "baseline": 51
+            },
+            {
+              "text": "Antidisestablishmentarianism",
+              "x": 15.4844,
+              "width": 569.0469,
+              "top": 60,
+              "height": 45,
+              "baseline": 96
+            }
+          ]
+        }
+      }
+    },
+    "doesn't count a break-word break in the min-content": {
+      "hash": "f3368c0e44fd3883",
+      "elements": {
+        "text": {
+          "x": -17.875,
+          "y": 37.5,
+          "width": 635.7656,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": -17.875,
+              "width": 635.7656,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "keeps preserved spaces in the min-content": {
+      "hash": "7c9a1fbf12995d0e",
+      "elements": {
+        "text": {
+          "x": -2.2969,
+          "y": 37.5,
+          "width": 604.5938,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X  X5 M Sportpakket",
+              "x": -2.2969,
+              "width": 604.5938,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "adds padding and borders": {
+      "hash": "df84033d12e90335",
+      "elements": {
+        "text": {
+          "x": -14.7344,
+          "y": 37.5,
+          "width": 629.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 9.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres in a reversed row": {
+      "hash": "8db75f86a3f0c7e9",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres when its parent hides what overflows it": {
+      "hash": "83f3f0c33253ca8e",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres across a column, as wide as its line": {
+      "hash": "374c7122813124b7",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "centres across a column, words as wide as the widest": {
+      "hash": "6fa694718aa5aa8f",
+      "elements": {
+        "text": {
+          "x": -17.875,
+          "y": 15,
+          "width": 635.7656,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": -17.875,
+              "width": 635.7656,
+              "top": 15,
+              "height": 45,
+              "baseline": 51
+            },
+            {
+              "text": "Antidisestablishmentarianism",
+              "x": 15.4844,
+              "width": 569.0469,
+              "top": 60,
+              "height": 45,
+              "baseline": 96
+            }
+          ]
+        }
+      }
+    },
+    "keeps the text as wide as its line in a box of its own column": {
+      "hash": "44ebbd19f5cfb754",
+      "elements": {
+        "text": {
+          "x": 3.2656,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "grows from no flex basis no narrower than its line": {
+      "hash": "f63660e2f3ddacc4",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "sizes an absolutely positioned box to its line": {
+      "hash": "a015bdb8e4293db3",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 0,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "keeps a run of text next to an element as wide as its line": {
+      "hash": "bf5e32ee0d593e04",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 0,
+          "width": 300,
+          "height": 120,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": -3.4062,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            },
+            {
+              "text": "!",
+              "x": 590.0781,
+              "width": 13.3281,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "lets text that can't wrap overflow a row of them": {
+      "hash": "27ea88b7d9d41792",
+      "elements": {
+        "a": {
+          "x": 150,
+          "y": 0,
+          "width": 208.8906,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello wonderful world",
+              "x": 150,
+              "width": 208.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "b": {
+          "x": 358.8906,
+          "y": 0,
+          "width": 123.3438,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Another item",
+              "x": 358.8906,
+              "width": 123.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "wraps text that can't wrap to lines of its own in a wrapping row": {
+      "hash": "9a9628cd5101feb6",
+      "elements": {
+        "a": {
+          "x": 143.3281,
+          "y": 0,
+          "width": 313.3438,
+          "height": 34,
+          "lines": [
+            {
+              "text": "Hello wonderful world",
+              "x": 143.3281,
+              "width": 313.3438,
+              "top": 0,
+              "height": 34,
+              "baseline": 27
+            }
+          ]
+        },
+        "b": {
+          "x": 207.4844,
+          "y": 34,
+          "width": 185.0156,
+          "height": 34,
+          "lines": [
+            {
+              "text": "Another item",
+              "x": 207.4844,
+              "width": 185.0156,
+              "top": 34,
+              "height": 34,
+              "baseline": 61
+            }
+          ]
+        }
+      }
+    },
+    "keeps wrapping text next to a sibling as wide as its widest word": {
+      "hash": "0cf22b0cc5fa93d0",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 0,
+          "width": 476.8125,
+          "height": 68,
+          "lines": [
+            {
+              "text": "Hi",
+              "x": 150,
+              "width": 30,
+              "top": 0,
+              "height": 34,
+              "baseline": 27
+            },
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": 150,
+              "width": 476.8281,
+              "top": 34,
+              "height": 34,
+              "baseline": 61
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line that hides what overflows it": {
+      "hash": "6538a25ceca5c4bd",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line with a min-width of its own": {
+      "hash": "e29fe3fd00a0e6c8",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line that hides what overflows it, centring its text": {
+      "hash": "cb178583e4095aef",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 3.2656,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a width": {
+      "hash": "58a97c4f8ba6a87d",
+      "elements": {
+        "text": {
+          "x": 200,
+          "y": 37.5,
+          "width": 200,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 200,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a width wider than the box": {
+      "hash": "4b78767ac01230f4",
+      "elements": {
+        "text": {
+          "x": 100,
+          "y": 37.5,
+          "width": 400,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 100,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a max width": {
+      "hash": "7e423e989d187871",
+      "elements": {
+        "text": {
+          "x": 175,
+          "y": 37.5,
+          "width": 250,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 175,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a max width wider than the box": {
+      "hash": "9ef158a4e2f32e8d",
+      "elements": {
+        "text": {
+          "x": 100,
+          "y": 37.5,
+          "width": 400,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 100,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a percentage width": {
+      "hash": "63003a4b50aa0993",
+      "elements": {
+        "text": {
+          "x": 225,
+          "y": 37.5,
+          "width": 150,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 225,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text below its line to a percentage max width": {
+      "hash": "10435dd11dd358e8",
+      "elements": {
+        "text": {
+          "x": 180,
+          "y": 37.5,
+          "width": 240,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 180,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text stretched across a column": {
+      "hash": "ea89f207b8831b93",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "shrinks text stretched across a column, a break-word word whole": {
+      "hash": "e5c8f06c002ca949",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": 150,
+              "width": 635.7656,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word anywhere under overflow-wrap: anywhere": {
+      "hash": "b4fa1a523e3b01ad",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": -7.5,
+          "width": 300,
+          "height": 135,
+          "lines": [
+            {
+              "text": "Supercalifragili",
+              "x": 155.5,
+              "width": 288.9844,
+              "top": -7.5,
+              "height": 45,
+              "baseline": 28.5
+            },
+            {
+              "text": "sticexpialidoci",
+              "x": 162.1563,
+              "width": 275.6719,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            },
+            {
+              "text": "ous",
+              "x": 264.4375,
+              "width": 71.125,
+              "top": 82.5,
+              "height": 45,
+              "baseline": 118.5
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word anywhere under word-break: break-all": {
+      "hash": "8a47adddd2aee41c",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": -7.5,
+          "width": 300,
+          "height": 135,
+          "lines": [
+            {
+              "text": "Supercalifragili",
+              "x": 155.5,
+              "width": 288.9844,
+              "top": -7.5,
+              "height": 45,
+              "baseline": 28.5
+            },
+            {
+              "text": "sticexpialidoci",
+              "x": 162.1563,
+              "width": 275.6719,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            },
+            {
+              "text": "ous",
+              "x": 264.4375,
+              "width": 71.125,
+              "top": 82.5,
+              "height": 45,
+              "baseline": 118.5
+            }
+          ]
+        }
+      }
+    },
+    "breaks a word anywhere under word-break: break-word": {
+      "hash": "a91cc242a0d284e9",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": -7.5,
+          "width": 300,
+          "height": 135,
+          "lines": [
+            {
+              "text": "Supercalifragili",
+              "x": 155.5,
+              "width": 288.9844,
+              "top": -7.5,
+              "height": 45,
+              "baseline": 28.5
+            },
+            {
+              "text": "sticexpialidoci",
+              "x": 162.1563,
+              "width": 275.6719,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            },
+            {
+              "text": "ous",
+              "x": 264.4375,
+              "width": 71.125,
+              "top": 82.5,
+              "height": 45,
+              "baseline": 118.5
+            }
+          ]
+        }
+      }
+    },
+    "truncates text with an ellipsis": {
+      "hash": "a2e012054b9d3d7f",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 37.5,
+          "width": 300,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 150,
+              "width": 593.4844,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5,
+              "truncated": true
+            }
+          ]
+        }
+      }
+    },
+    "clamps its lines": {
+      "hash": "6b472d761d42059e",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 15,
+          "width": 300,
+          "height": 90,
+          "lines": [
+            {
+              "text": "Supercalifragilisticexpialidocious",
+              "x": 150,
+              "width": 635.7656,
+              "top": 15,
+              "height": 45,
+              "baseline": 51
+            },
+            {
+              "text": "and more",
+              "x": 150,
+              "width": 180.0469,
+              "top": 60,
+              "height": 45,
+              "baseline": 96,
+              "truncated": true
+            }
+          ]
+        }
+      }
+    },
+    "centres a word that fits": {
+      "hash": "77c36ca3a67fb261",
+      "elements": {
+        "text": {
+          "x": 251.0938,
+          "y": 37.5,
+          "width": 97.7969,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 251.0938,
+              "width": 97.7969,
+              "top": 37.5,
+              "height": 45,
+              "baseline": 73.5
+            }
+          ]
+        }
+      }
+    },
+    "wraps text that fits next to a sibling": {
+      "hash": "43aae12939a93ef4",
+      "elements": {
+        "text": {
+          "x": 150,
+          "y": 0,
+          "width": 200,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hello wonderful",
+              "x": 150,
+              "width": 150,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "world of flex layout",
+              "x": 150,
+              "width": 182.25,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "shrinks two runs of text that wrap side by side": {
+      "hash": "4078bff3bc21abf0",
+      "elements": {
+        "a": {
+          "x": 150,
+          "y": 0,
+          "width": 143.1406,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Hello",
+              "x": 150,
+              "width": 48.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "wonderful",
+              "x": 150,
+              "width": 95.5469,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "world",
+              "x": 150,
+              "width": 53.3438,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "b": {
+          "x": 293.1406,
+          "y": 0,
+          "width": 156.8594,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Another item",
+              "x": 293.1406,
+              "width": 123.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wraps",
+              "x": 293.1406,
+              "width": 100.0313,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "holds items with fractional padding": {
+      "hash": "9116fce5eabac060",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 194.5,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello wonderful world",
+              "x": 3.2969,
+              "width": 191.2031,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "item1": {
+          "x": 194.5,
+          "y": 0,
+          "width": 113.3906,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Another item",
+              "x": 194.5,
+              "width": 113.3906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "holds items capped at a percentage width": {
+      "hash": "fd9223fb5ab98264",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 180,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Hello wonderful world",
+              "x": 0,
+              "width": 208.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        },
+        "item1": {
+          "x": 180,
+          "y": 0,
+          "width": 123.3438,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Another item",
+              "x": 180,
+              "width": 123.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "holds items with percentage padding": {
+      "hash": "287f763d010017c8",
+      "elements": {
+        "item0": {
+          "x": -11.7344,
+          "y": 0,
+          "width": 623.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 18.2656,
+              "width": 593.4844,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        }
+      }
+    },
+    "holds items capped at a percentage max width": {
+      "hash": "178402a66c7b444b",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 240,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": 0,
+              "width": 593.4844,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        },
+        "item1": { "x": 240, "y": 0, "width": 100, "height": 20, "lines": [] }
+      }
+    },
+    "holds items at percentages and fractions": {
+      "hash": "5540d50e7b01c2df",
+      "elements": {
+        "item0": {
+          "x": -11.8125,
+          "y": 0,
+          "width": 48.6719,
+          "height": 40,
+          "lines": [
+            {
+              "text": "layout",
+              "x": -8.5156,
+              "width": 45.375,
+              "top": 0,
+              "height": 20,
+              "baseline": 15
+            },
+            {
+              "text": "world",
+              "x": -6.1406,
+              "width": 40.625,
+              "top": 20,
+              "height": 20,
+              "baseline": 35
+            }
+          ]
+        },
+        "item1": {
+          "x": 43.3906,
+          "y": 0,
+          "width": 51.0313,
+          "height": 12,
+          "lines": [
+            {
+              "text": "layout Hi",
+              "x": 51.625,
+              "width": 42.7969,
+              "top": 0,
+              "height": 12,
+              "baseline": 10
+            }
+          ]
+        },
+        "item2": {
+          "x": 100.9531,
+          "y": 0,
+          "width": 54.0469,
+          "height": 66,
+          "lines": [
+            {
+              "text": "BMW",
+              "x": 100.9531,
+              "width": 46.4375,
+              "top": 0,
+              "height": 22,
+              "baseline": 17
+            },
+            {
+              "text": "Hi",
+              "x": 115.1875,
+              "width": 17.9531,
+              "top": 22,
+              "height": 22,
+              "baseline": 39
+            },
+            {
+              "text": "world",
+              "x": 101.4688,
+              "width": 45.4063,
+              "top": 44,
+              "height": 22,
+              "baseline": 61
+            }
+          ]
+        },
+        "item3": {
+          "x": 161.5313,
+          "y": 0,
+          "width": 33.4688,
+          "height": 32,
+          "lines": [
+            {
+              "text": "world",
+              "x": 161.5313,
+              "width": 33.4688,
+              "top": 0,
+              "height": 16,
+              "baseline": 13
+            },
+            {
+              "text": "world",
+              "x": 161.5313,
+              "width": 33.4688,
+              "top": 16,
+              "height": 16,
+              "baseline": 29
+            }
+          ]
+        }
+      }
+    },
+    "holds items with words wider than the row": {
+      "hash": "86ce7eb2575bfe75",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 164.4688,
+          "height": 46,
+          "lines": [
+            {
+              "text": "Hi",
+              "x": 3.2969,
+              "width": 18.8906,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Supercalifragilistic",
+              "x": 3.2969,
+              "width": 161.1719,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        },
+        "item1": {
+          "x": 164.4688,
+          "y": 0,
+          "width": 111.8594,
+          "height": 46,
+          "lines": [
+            {
+              "text": "wonderful",
+              "x": 167.7031,
+              "width": 86.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "Sportpakket",
+              "x": 167.7031,
+              "width": 106.7344,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        }
+      }
+    },
+    "holds items in a row a few pixels wide": {
+      "hash": "b5027b0ce64f6979",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 141.7656,
+          "height": 38,
+          "lines": [
+            {
+              "text": "item item",
+              "x": 7.9063,
+              "width": 133.8594,
+              "top": 0,
+              "height": 38,
+              "baseline": 30
+            }
+          ]
+        },
+        "item1": {
+          "x": 141.7656,
+          "y": 0,
+          "width": 278.0313,
+          "height": 42,
+          "lines": [
+            {
+              "text": "world layout item",
+              "x": 142.1875,
+              "width": 277.6094,
+              "top": 0,
+              "height": 42,
+              "baseline": 33
+            }
+          ]
+        }
+      }
+    },
+    "holds items that shrink by fractions": {
+      "hash": "1992820a60d3143b",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 97.3906,
+          "height": 132,
+          "lines": [
+            {
+              "text": "a",
+              "x": 0.1406,
+              "width": 21.7031,
+              "top": 0,
+              "height": 44,
+              "baseline": 35
+            },
+            {
+              "text": "world",
+              "x": 0.1406,
+              "width": 93.2031,
+              "top": 44,
+              "height": 44,
+              "baseline": 79
+            },
+            {
+              "text": "X5",
+              "x": 0.1406,
+              "width": 47.7031,
+              "top": 88,
+              "height": 44,
+              "baseline": 123
+            }
+          ]
+        },
+        "item1": {
+          "x": 99.3125,
+          "y": 0,
+          "width": 60.6406,
+          "height": 28,
+          "lines": [
+            {
+              "text": "wonderful",
+              "x": 100.5938,
+              "width": 52.0313,
+              "top": 0,
+              "height": 14,
+              "baseline": 11
+            },
+            {
+              "text": "Another",
+              "x": 100.5938,
+              "width": 42.0313,
+              "top": 14,
+              "height": 14,
+              "baseline": 25
+            }
+          ]
+        },
+        "item2": {
+          "x": 161.875,
+          "y": 0,
+          "width": 33.6563,
+          "height": 43,
+          "lines": [
+            {
+              "text": "a",
+              "x": 166.1563,
+              "width": 21.1406,
+              "top": 0,
+              "height": 43,
+              "baseline": 34
+            }
+          ]
+        },
+        "item3": {
+          "x": 198.7969,
+          "y": 0,
+          "width": 168.6875,
+          "height": 34,
+          "lines": [
+            {
+              "text": "Hi item Sportpakket Supercalifragilistic",
+              "x": 205.1875,
+              "width": 511.875,
+              "top": 0,
+              "height": 34,
+              "baseline": 27
+            }
+          ]
+        }
+      }
+    },
+    "shrinks an element that hides what overflows it by its flex basis": {
+      "hash": "d596e1fb5b9cec4c",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 167.8594,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "and more words",
+              "x": 0,
+              "width": 143.4063,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 167.8594,
+          "y": 0,
+          "width": 132.1406,
+          "height": 10,
+          "lines": []
+        }
+      }
+    },
+    "shrinks an element that has no min width by its flex basis": {
+      "hash": "390e57948bfc3871",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 167.8594,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "and more words",
+              "x": 0,
+              "width": 143.4063,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 167.8594,
+          "y": 0,
+          "width": 132.1406,
+          "height": 10,
+          "lines": []
+        }
+      }
+    },
+    "shrinks an element that hides what overflows it, next to more by its flex basis": {
+      "hash": "3543f3ffcb101480",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 165.2656,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "and more words",
+              "x": 0,
+              "width": 143.4063,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 165.2656,
+          "y": 0,
+          "width": 134.7344,
+          "height": 10,
+          "lines": []
+        }
+      }
+    },
+    "shrinks an element that has no min width, next to more by its flex basis": {
+      "hash": "ab7fda6bf159b53c",
+      "elements": {
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 165.2656,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Supercalifragilistic",
+              "x": 0,
+              "width": 161.1719,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "and more words",
+              "x": 0,
+              "width": 143.4063,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "here",
+              "x": 0,
+              "width": 40.0313,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 165.2656,
+          "y": 0,
+          "width": 134.7344,
+          "height": 10,
+          "lines": []
+        }
+      }
+    },
+    "leaves a wide item that doesn't shrink as wide as it is": {
+      "hash": "a6f46f9f491e2759",
+      "elements": {
+        "strip": { "x": 0, "y": 0, "width": 70000, "height": 10, "lines": [] },
+        "text": {
+          "x": -146.7344,
+          "y": 10,
+          "width": 593.4844,
+          "height": 45,
+          "lines": [
+            {
+              "text": "BMW Serie X X5 M Sportpakket",
+              "x": -146.7344,
+              "width": 593.4844,
+              "top": 10,
+              "height": 45,
+              "baseline": 46
+            }
+          ]
+        }
+      }
+    }
+  }
+}

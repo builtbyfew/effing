@@ -1,0 +1,116 @@
+{
+  "chrome": "154.0.8037.98",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "boxes": {
+      "hash": "165e48c1d8bba92a",
+      "elements": {
+        "a": { "x": 10, "y": 10, "width": 100, "height": 40, "lines": [] },
+        "b": { "x": 10, "y": 60, "width": 160, "height": 40, "lines": [] }
+      },
+      "screenshot": "painting/boxes.png"
+    },
+    "a linear gradient": {
+      "hash": "a93422981400c389",
+      "elements": {
+        "g": { "x": 10, "y": 10, "width": 220, "height": 100, "lines": [] }
+      },
+      "screenshot": "painting/a-linear-gradient.png"
+    },
+    "text": {
+      "hash": "e1458729adc37aa4",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 220,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox",
+              "x": 10,
+              "width": 178.9844,
+              "top": 10,
+              "height": 23,
+              "baseline": 28
+            },
+            {
+              "text": "jumps over the lazy dog.",
+              "x": 10,
+              "width": 216.7813,
+              "top": 33,
+              "height": 23,
+              "baseline": 51
+            }
+          ]
+        }
+      },
+      "screenshot": "painting/text.png"
+    },
+    "underlined text": {
+      "hash": "f811dabf229499eb",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 134.5313,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Underlined text",
+              "x": 10,
+              "width": 134.5313,
+              "top": 10,
+              "height": 23,
+              "baseline": 28
+            }
+          ]
+        },
+        "u": {
+          "x": 10,
+          "y": 43,
+          "width": 130.0781,
+          "height": 23,
+          "lines": [
+            {
+              "text": "Struck through",
+              "x": 10,
+              "width": 130.0781,
+              "top": 43,
+              "height": 23,
+              "baseline": 61
+            }
+          ]
+        }
+      },
+      "screenshot": "painting/underlined-text.png"
+    },
+    "text with a shadow": {
+      "hash": "765b5d713a17a1ea",
+      "elements": {
+        "t": {
+          "x": 10,
+          "y": 10,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 10,
+              "width": 151.2344,
+              "top": 10,
+              "height": 37,
+              "baseline": 39
+            }
+          ]
+        }
+      },
+      "screenshot": "painting/text-with-a-shadow.png"
+    },
+    "a blurred image": {
+      "hash": "2a5766507f07e809",
+      "elements": {},
+      "screenshot": "painting/a-blurred-image.png"
+    }
+  }
+}

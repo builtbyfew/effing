@@ -56,6 +56,12 @@ const lineBoxes = (count: number, height: number, baseline: number) => ({
 const HALF_LEADING =
   "canvas puts the baseline in a line box of a set height 0.07px higher: half the leading from the unrounded ascent and descent, where Chrome rounds them";
 
+/**
+ * "A" on a line of its own, before a wrap, is 12.8px in Chrome, and in
+ * canvas on macOS; on Linux, canvas makes it 12.24px.
+ */
+const A_ON_ITS_OWN = { lineWidth: 0.6 };
+
 const fixtures: ChromeFixture[] = [
   ...(
     [
@@ -70,6 +76,7 @@ const fixtures: ChromeFixture[] = [
       {},
       width,
       texts(lines),
+      text === LONG ? { tolerance: A_ON_ITS_OWN } : {},
     ),
   ),
   ...(
@@ -105,6 +112,7 @@ const fixtures: ChromeFixture[] = [
         style,
         width,
         texts(lines),
+        text === LONG ? { tolerance: A_ON_ITS_OWN } : {},
       ),
     ),
   ),

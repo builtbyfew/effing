@@ -1,4 +1,9 @@
-export { loadFonts, loadScriptFonts, SCRIPT_FONT_FAMILIES } from "./fonts.ts";
+export {
+  BUNDLED_SANS,
+  loadFonts,
+  loadScriptFonts,
+  SCRIPT_FONT_FAMILIES,
+} from "./fonts.ts";
 export {
   renderWithCanvas,
   renderWithSatori,

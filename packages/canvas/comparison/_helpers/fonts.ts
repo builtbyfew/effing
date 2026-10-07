@@ -24,11 +24,21 @@ const FONT_VARIANTS = [
   },
 ] as const;
 
-export async function loadFonts(): Promise<FontData[]> {
+/**
+ * The bundled Liberation Sans under a family name no system font has. A
+ * Liberation Sans installed on the system (as fonts-liberation is on Ubuntu)
+ * shadows fonts registered under its own name (effing-skia#29), so tests
+ * that must lay text out in the bundled fonts, whatever the machine, load
+ * them under this name: `loadFonts(BUNDLED_SANS)`.
+ */
+export const BUNDLED_SANS = "Bundled Liberation Sans";
+
+/** The bundled Liberation Sans faces, registered as `name`. */
+export async function loadFonts(name = "Liberation Sans"): Promise<FontData[]> {
   return Promise.all(
     FONT_VARIANTS.map(({ file, weight, style }) =>
       readFile(join(FONT_DIR, file)).then((data) => ({
-        name: "Liberation Sans",
+        name,
         data,
         weight,
         style,
@@ -57,15 +67,19 @@ export const SCRIPT_FONT_FAMILIES = SCRIPT_FONTS.map(([name]) => name).join(
 /**
  * Fonts loaded with the script fonts, but not in `SCRIPT_FONT_FAMILIES`
  * (SIL Open Font License, see `fonts/OFL-Noto.txt` and
- * `fonts/OFL-Poppins.txt`):
+ * `fonts/OFL-Poppins.txt`), under names no system font has (see
+ * `BUNDLED_SANS`):
  *
  * - Noto Sans Hebrew, subset to Hebrew, for right-to-left text;
  * - Poppins, subset to Basic Latin, for a font with a line gap other than
  *   Liberation Sans's (100 units of 1000 in its hhea table, 2px at 20px).
  */
+export const BUNDLED_HEBREW = "Bundled Noto Sans Hebrew";
+export const BUNDLED_POPPINS = "Bundled Poppins";
+
 const MORE_FONTS = [
-  ["Noto Sans Hebrew", "NotoSansHebrew-Regular.woff"],
-  ["Poppins", "Poppins-Regular.woff"],
+  [BUNDLED_HEBREW, "NotoSansHebrew-Regular.woff"],
+  [BUNDLED_POPPINS, "Poppins-Regular.woff"],
 ] as const;
 
 export async function loadScriptFonts(): Promise<FontData[]> {

@@ -1,5 +1,5 @@
 import type React from "react";
-import { fixtureModule } from "../fixture.ts";
+import { SANS, fixtureModule } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 
 // Filters and backdrop filters, compared pixel by pixel with Chrome's
@@ -25,7 +25,7 @@ const frame = (
         height,
         padding: 10,
         backgroundColor: "white",
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontSize: 20,
       }}
     >

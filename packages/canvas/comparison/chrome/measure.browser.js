@@ -58,8 +58,9 @@
    *   is a run of text (`applyStylesToYoga`, `buildNode`);
    * - `lineClamp` is Chrome's `-webkit-line-clamp`, which takes a
    *   `-webkit-box`;
-   * - `textBoxTrim` (and `textBoxEdge`) are inherited, and trim the text of
-   *   an element of nothing but text, which takes a block container in CSS;
+   * - `textBoxTrim`, `textBoxEdge` and `textOverflow` are inherited, and
+   *   apply to the text of an element of nothing but text, which takes a
+   *   block container in CSS;
    * - a number for `lineHeight` above 5 is pixels in canvas, but a multiple
    *   of the font size in CSS: fixtures must give it in px.
    */
@@ -69,6 +70,13 @@
       const style = element.getAttribute("style") ?? "";
       const clamp = /(?:^|;)\s*line-clamp\s*:\s*(\d+)/.exec(style);
       if (clamp) {
+        // A -webkit-box stacks its children, where canvas lays them out in
+        // the element's row: only text (and <br>s) clamp alike.
+        if ([...element.children].some((child) => !isBr(child))) {
+          throw new Error(
+            `lineClamp on <${element.localName}> with elements in it: Chrome's -webkit-box stacks them, unlike canvas`,
+          );
+        }
         element.style.display = "-webkit-box";
         element.style.webkitBoxOrient = "vertical";
         element.style.webkitLineClamp = clamp[1];
@@ -85,14 +93,30 @@
       if (element.style.flexShrink === "") {
         element.style.flexShrink = onlyText ? "1" : "0";
       }
-      // `textBoxTrim` and `textBoxEdge` are inherited in canvas, and trim
-      // the element's text; in CSS they trim a block container's.
-      const trim = inherited(element, "text-box-trim");
-      if (onlyText && trim && trim !== "none") {
-        element.style.display = "flow-root";
-        element.style.setProperty("text-box-trim", trim);
-        const edge = inherited(element, "text-box-edge");
-        if (edge) element.style.setProperty("text-box-edge", edge);
+      // `textBoxTrim`, `textBoxEdge` and `textOverflow` are inherited in
+      // canvas, and apply to the element's text; in CSS they apply to a
+      // block container's, which the text's anonymous flex item doesn't
+      // inherit them into. An element of nothing but text with any of them
+      // is a block container here (a clamped one is a -webkit-box already).
+      if (!onlyText) continue;
+      const inheritedText = [
+        ["text-box-trim", "none"],
+        ["text-box-edge", "auto"],
+        ["text-overflow", "clip"],
+      ]
+        .map(([property, initial]) => [
+          property,
+          inherited(element, property) || initial,
+          initial,
+        ])
+        .filter(([, value, initial]) => value !== initial);
+      // The edge alone does nothing.
+      if (inheritedText.every(([property]) => property === "text-box-edge")) {
+        continue;
+      }
+      if (!clamp) element.style.display = "flow-root";
+      for (const [property, value] of inheritedText) {
+        element.style.setProperty(property, value);
       }
     }
   }

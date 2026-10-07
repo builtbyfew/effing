@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "17eed5536db0c744",
   "platform": "darwin-arm64",
   "fixtures": {
     "justifies the lines but the last": {
-      "hash": "6918cf8615d3ba07",
+      "hash": "e86d36ca54889266",
       "elements": {
         "p": {
           "x": 0,
@@ -56,7 +57,7 @@
       }
     },
     "doesn't justify a line of a single word": {
-      "hash": "768801c7e3d1e313",
+      "hash": "2a5fd09f8317769e",
       "elements": {
         "p": {
           "x": 0,
@@ -93,7 +94,7 @@
       }
     },
     "doesn't justify a line that ends at a forced break": {
-      "hash": "e7e41ca5ea2ee557",
+      "hash": "9354973408f73933",
       "elements": {
         "p": {
           "x": 0,
@@ -130,7 +131,7 @@
       }
     },
     "justifies letter-spaced lines": {
-      "hash": "100c4c6e6f11bb39",
+      "hash": "9180c886e07b862e",
       "elements": {
         "p": {
           "x": 0,
@@ -183,7 +184,7 @@
       }
     },
     "wraps Hebrew": {
-      "hash": "e63fd8939fdd01b0",
+      "hash": "79c7958e41918078",
       "elements": {
         "p": {
           "x": 0,
@@ -220,7 +221,7 @@
       }
     },
     "right-aligns Hebrew": {
-      "hash": "2783dd6d39c7f953",
+      "hash": "fd71fec6657bb25a",
       "elements": {
         "p": {
           "x": 0,
@@ -257,7 +258,7 @@
       }
     },
     "wraps Hebrew mixed with Latin and digits": {
-      "hash": "24b57a2959963845",
+      "hash": "7c6d9c42cb072c9f",
       "elements": {
         "p": {
           "x": 0,
@@ -302,7 +303,7 @@
       }
     },
     "truncates Hebrew with an ellipsis": {
-      "hash": "12970f077f79bded",
+      "hash": "aba4e7fee4eb8c5d",
       "elements": {
         "p": {
           "x": 0,
@@ -325,7 +326,7 @@
       "screenshot": "text-layout/truncates-hebrew-with-an-ellipsis.png"
     },
     "clamps Hebrew to two lines": {
-      "hash": "bba6155a2a9fec75",
+      "hash": "21024ac214133003",
       "elements": {
         "p": {
           "x": 0,
@@ -356,7 +357,7 @@
       "screenshot": "text-layout/clamps-hebrew-to-two-lines.png"
     },
     "puts tabs at tab stops under pre": {
-      "hash": "bd574a3352b78f38",
+      "hash": "ad84bca14a4e42ec",
       "elements": {
         "p": {
           "x": 0,
@@ -385,7 +386,7 @@
       }
     },
     "puts tabs at tab stops under pre-wrap": {
-      "hash": "0b2bc303754110df",
+      "hash": "39b0c048f0ceff70",
       "elements": {
         "p": {
           "x": 0,
@@ -414,7 +415,7 @@
       }
     },
     "draws an unbroken soft hyphen as nothing": {
-      "hash": "249a32aa058cfdbe",
+      "hash": "2ca81970285d5dfa",
       "elements": {
         "p": {
           "x": 0,
@@ -435,7 +436,7 @@
       }
     },
     "breaks a line at a soft hyphen": {
-      "hash": "7c087ee139e20698",
+      "hash": "69c8a1a3586cf5a1",
       "elements": {
         "p": {
           "x": 0,
@@ -469,11 +470,10 @@
             }
           ]
         }
-      },
-      "screenshot": "text-layout/breaks-a-line-at-a-soft-hyphen.png"
+      }
     },
     "transforms \"Hello world, straße\" to uppercase": {
-      "hash": "15450fa983cab4eb",
+      "hash": "e0c5a1f79d4bce9c",
       "elements": {
         "p": {
           "x": 0,
@@ -494,7 +494,7 @@
       }
     },
     "transforms \"HELLO World ΣΑΣ\" to lowercase": {
-      "hash": "b7d8e40942aaa44a",
+      "hash": "a486165011ad7c3f",
       "elements": {
         "p": {
           "x": 0,
@@ -515,7 +515,7 @@
       }
     },
     "transforms \"hello wide world of text\" to capitalize": {
-      "hash": "a6aa9631728801d0",
+      "hash": "0bb83aa9b621a4f8",
       "elements": {
         "p": {
           "x": 0,
@@ -536,7 +536,7 @@
       }
     },
     "transforms \"it's o'neil's x-ray, élan and 3d\" to capitalize": {
-      "hash": "0aef78009ed8ad69",
+      "hash": "94143d7e5bfa6f44",
       "elements": {
         "p": {
           "x": 0,
@@ -557,7 +557,7 @@
       }
     },
     "wraps uppercased text": {
-      "hash": "36e7d8ae09e1c923",
+      "hash": "d2cbf36dd231da53",
       "elements": {
         "p": {
           "x": 0,
@@ -602,7 +602,7 @@
       }
     },
     "measures a line that starts after a space it kerns with": {
-      "hash": "1145e6c93cdb924d",
+      "hash": "16fd4d15fc0ddf12",
       "elements": {
         "p": {
           "x": 0,
@@ -647,7 +647,7 @@
       }
     },
     "clamps letter-spaced text to two lines": {
-      "hash": "9e9696cd43a2f0c4",
+      "hash": "40350f6dc3be0f0d",
       "elements": {
         "p": {
           "x": 0,
@@ -678,7 +678,7 @@
       "screenshot": "text-layout/clamps-letter-spaced-text-to-two-lines.png"
     },
     "clamps uppercased text to two lines": {
-      "hash": "bdf8fd18d261444e",
+      "hash": "00cf5dacb9e8266a",
       "elements": {
         "p": {
           "x": 0,
@@ -709,7 +709,7 @@
       "screenshot": "text-layout/clamps-uppercased-text-to-two-lines.png"
     },
     "clamps centred text to two lines": {
-      "hash": "220917573345d4f5",
+      "hash": "7b1230a8b9d2a122",
       "elements": {
         "p": {
           "x": 0,
@@ -736,11 +736,10 @@
             }
           ]
         }
-      },
-      "screenshot": "text-layout/clamps-centred-text-to-two-lines.png"
+      }
     },
     "clamps right-aligned text to two lines": {
-      "hash": "02155ea9e767319e",
+      "hash": "26095fedcda9fed4",
       "elements": {
         "p": {
           "x": 0,
@@ -767,11 +766,10 @@
             }
           ]
         }
-      },
-      "screenshot": "text-layout/clamps-right-aligned-text-to-two-lines.png"
+      }
     },
     "clamps justified text to two lines": {
-      "hash": "d11b6d54ad2718f1",
+      "hash": "adf668f30f63253b",
       "elements": {
         "p": {
           "x": 0,
@@ -802,7 +800,7 @@
       "screenshot": "text-layout/clamps-justified-text-to-two-lines.png"
     },
     "trims to text alphabetic, normal lines": {
-      "hash": "e7964307aea82a9b",
+      "hash": "40c30a8de9794186",
       "elements": {
         "p": {
           "x": 0,
@@ -831,7 +829,7 @@
       }
     },
     "trims to cap alphabetic, normal lines": {
-      "hash": "39b4895cac689eb6",
+      "hash": "fbb4bfef29ff6a82",
       "elements": {
         "p": {
           "x": 0,
@@ -860,7 +858,7 @@
       }
     },
     "trims to ex alphabetic, normal lines": {
-      "hash": "0ddccd4810e83d91",
+      "hash": "92e658c63818c2bc",
       "elements": {
         "p": {
           "x": 0,
@@ -889,7 +887,7 @@
       }
     },
     "trims to text (trim-both), 30px lines": {
-      "hash": "b9aa2d766b124f40",
+      "hash": "911105e51af2a2bc",
       "elements": {
         "p": {
           "x": 0,
@@ -918,7 +916,7 @@
       }
     },
     "trims to cap alphabetic (trim-both), 30px lines": {
-      "hash": "36c70c422a4996e7",
+      "hash": "9a3b578e8c901be9",
       "elements": {
         "p": {
           "x": 0,
@@ -947,7 +945,7 @@
       }
     },
     "trims to cap alphabetic (trim-start), 30px lines": {
-      "hash": "8d7019053e362d6f",
+      "hash": "59f133c0fff8ef6a",
       "elements": {
         "p": {
           "x": 0,
@@ -976,7 +974,7 @@
       }
     },
     "trims to ex alphabetic (trim-end), 30px lines": {
-      "hash": "bb37f03d81ad807c",
+      "hash": "5f211e0320ee0e5e",
       "elements": {
         "p": {
           "x": 0,
@@ -1005,7 +1003,7 @@
       }
     },
     "lays out italic text": {
-      "hash": "6790f04823aaffd0",
+      "hash": "6eccb0a5c44ca383",
       "elements": {
         "p": {
           "x": 0,
@@ -1058,7 +1056,7 @@
       }
     },
     "lays out bold text": {
-      "hash": "d2451f0898f8816d",
+      "hash": "a6e417a32736743c",
       "elements": {
         "p": {
           "x": 0,
@@ -1111,7 +1109,7 @@
       }
     },
     "lays out bold italic text, which no face is": {
-      "hash": "7fec1d88606a9a21",
+      "hash": "852da6969cff7d26",
       "elements": {
         "p": {
           "x": 0,
@@ -1161,11 +1159,10 @@
             }
           ]
         }
-      },
-      "screenshot": "text-layout/lays-out-bold-italic-text-which-no-face-is.png"
+      }
     },
     "synthesizes bold where there's no bold face": {
-      "hash": "08bc9fb8c708ec71",
+      "hash": "48a2c0cea97cffe1",
       "elements": {
         "p": {
           "x": 0,
@@ -1186,7 +1183,7 @@
       }
     },
     "synthesizes italic where there's no italic face": {
-      "hash": "0c70f93e595ccd3a",
+      "hash": "b87461e4986caba0",
       "elements": {
         "p": {
           "x": 0,
@@ -1208,7 +1205,7 @@
       "screenshot": "text-layout/synthesizes-italic-where-there-s-no-italic-face.png"
     },
     "grows a normal line box for a fallback font (Hebrew)": {
-      "hash": "edb50c4b2916fefd",
+      "hash": "662e4f2c02239deb",
       "elements": {
         "p": {
           "x": 0,
@@ -1229,7 +1226,7 @@
       }
     },
     "grows a normal line box for a fallback font (Thai)": {
-      "hash": "644519f3a427c075",
+      "hash": "72e5e127e944c627",
       "elements": {
         "p": {
           "x": 0,
@@ -1250,7 +1247,7 @@
       }
     },
     "keeps a normal line box for a fallback font that fits in it": {
-      "hash": "3f6de5c229f17ba2",
+      "hash": "115f9164804202bc",
       "elements": {
         "p": {
           "x": 0,
@@ -1271,7 +1268,7 @@
       }
     },
     "line-height: normal, Poppins at 13.5px": {
-      "hash": "0d46058ccb89e088",
+      "hash": "e5ec7b7fb37712ab",
       "elements": {
         "p": {
           "x": 0,
@@ -1308,7 +1305,7 @@
       }
     },
     "line-height: normal, Poppins at 20px": {
-      "hash": "c1dc4477b102ac7f",
+      "hash": "4633e0fee4ebedba",
       "elements": {
         "p": {
           "x": 0,
@@ -1345,7 +1342,7 @@
       }
     },
     "line-height: normal, Poppins at 33px": {
-      "hash": "e94c5887226edd74",
+      "hash": "be528db40d7f89af",
       "elements": {
         "p": {
           "x": 0,

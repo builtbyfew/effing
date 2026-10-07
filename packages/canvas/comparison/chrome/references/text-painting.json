@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "17eed5536db0c744",
   "platform": "darwin-arm64",
   "fixtures": {
     "underlines text": {
-      "hash": "447fdec46082c947",
+      "hash": "70f23461a6c8edba",
       "elements": {
         "t": {
           "x": 10,
@@ -25,7 +26,7 @@
       "screenshot": "text-painting/underlines-text.png"
     },
     "skips descenders when underlining": {
-      "hash": "20edd2238937cd5f",
+      "hash": "770bc88f0c7736f6",
       "elements": {
         "t": {
           "x": 10,
@@ -47,7 +48,7 @@
       "screenshot": "text-painting/skips-descenders-when-underlining.png"
     },
     "strikes text through": {
-      "hash": "1c4de9840ac0a653",
+      "hash": "9536d604ea82912e",
       "elements": {
         "t": {
           "x": 10,
@@ -69,7 +70,7 @@
       "screenshot": "text-painting/strikes-text-through.png"
     },
     "overlines text": {
-      "hash": "bbcbe81724cc4eb0",
+      "hash": "786b6d7019a1ee5c",
       "elements": {
         "t": {
           "x": 10,
@@ -91,7 +92,7 @@
       "screenshot": "text-painting/overlines-text.png"
     },
     "underlines each wrapped line": {
-      "hash": "9ee19c4cfb09fc79",
+      "hash": "a400c0ea4b0b79b6",
       "elements": {
         "t": {
           "x": 10,
@@ -121,7 +122,7 @@
       "screenshot": "text-painting/underlines-each-wrapped-line.png"
     },
     "strikes each wrapped line through": {
-      "hash": "75295d4f56a98e1a",
+      "hash": "ec19fdc027716c73",
       "elements": {
         "t": {
           "x": 10,
@@ -151,7 +152,7 @@
       "screenshot": "text-painting/strikes-each-wrapped-line-through.png"
     },
     "underlines a clamped line but not its ellipsis": {
-      "hash": "a963948288990238",
+      "hash": "a96f541b316436bf",
       "elements": {
         "t": {
           "x": 10,
@@ -182,7 +183,7 @@
       "screenshot": "text-painting/underlines-a-clamped-line-but-not-its-ellipsis.png"
     },
     "casts a blurred text shadow": {
-      "hash": "3d88dafb751cb2b1",
+      "hash": "98b54a72b38bcc18",
       "elements": {
         "t": {
           "x": 10,
@@ -204,7 +205,7 @@
       "screenshot": "text-painting/casts-a-blurred-text-shadow.png"
     },
     "casts a widely blurred text shadow": {
-      "hash": "7253f2c55123f267",
+      "hash": "060676864b1f9d74",
       "elements": {
         "t": {
           "x": 10,
@@ -226,7 +227,7 @@
       "screenshot": "text-painting/casts-a-widely-blurred-text-shadow.png"
     },
     "strokes text": {
-      "hash": "d96f94b7e2525683",
+      "hash": "b30c0c240f824d0b",
       "elements": {
         "t": {
           "x": 10,
@@ -248,7 +249,7 @@
       "screenshot": "text-painting/strokes-text.png"
     },
     "casts a shadow of stroked text": {
-      "hash": "5243e445c02e3c06",
+      "hash": "1cd28a98f1d75d46",
       "elements": {
         "t": {
           "x": 10,
@@ -270,7 +271,7 @@
       "screenshot": "text-painting/casts-a-shadow-of-stroked-text.png"
     },
     "spaces letters out": {
-      "hash": "2c74a7f3846a347f",
+      "hash": "15561033b001d45f",
       "elements": {
         "t": {
           "x": 10,
@@ -292,7 +293,7 @@
       "screenshot": "text-painting/spaces-letters-out.png"
     },
     "spaces letters in": {
-      "hash": "44f3eaa67a60b6a8",
+      "hash": "bc849ce5f7ea60a6",
       "elements": {
         "t": {
           "x": 10,

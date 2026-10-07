@@ -1,7 +1,7 @@
 import type React from "react";
 import { PNG } from "pngjs";
 import { BlurShowcaseCard } from "../../_fixtures/image-cards.tsx";
-import { fixtureModule } from "../fixture.ts";
+import { fixtureModule, SANS } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 
 // Painting, compared pixel by pixel with Chrome's screenshot: a 240×120
@@ -27,7 +27,7 @@ const painted = (
         padding: 10,
         gap: 10,
         backgroundColor: "white",
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontSize: 20,
       }}
     >

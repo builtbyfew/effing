@@ -1,5 +1,5 @@
 import type React from "react";
-import { fixtureModule, quote } from "../fixture.ts";
+import { fixtureModule, quote, SANS } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 import { paragraph, texts } from "./paragraph.tsx";
 
@@ -45,7 +45,7 @@ const between = (
         display: "flex",
         alignItems: "flex-start",
         width: 300,
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontSize: 20,
         ...style,
       }}
@@ -72,7 +72,7 @@ const alone = (
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
-        fontFamily: "Liberation Sans",
+        fontFamily: SANS,
         fontSize: 20,
       }}
     >
@@ -236,6 +236,8 @@ const fixtures: ChromeFixture[] = [
     { lineClamp: 2, overflow: "hidden" },
     150,
     { lines: [{ text: "Hello world" }, {}] },
+    // 1.1% measured, where the ellipsis's end is checked on its own.
+    { screenshot: true, width: 180, height: 56, tolerance: { pixels: 2.5 } },
   ),
   paragraph(
     "truncates nowrap text on one line",
@@ -243,6 +245,8 @@ const fixtures: ChromeFixture[] = [
     { whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" },
     150,
     { height: 23, lines: [{}] },
+    // 1.4% measured, where the ellipsis's end is checked on its own.
+    { screenshot: true, width: 180, height: 30, tolerance: { pixels: 3 } },
   ),
   paragraph(
     "collapses before text-transform",

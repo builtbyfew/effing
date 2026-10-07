@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "17eed5536db0c744",
   "platform": "darwin-arm64",
   "fixtures": {
     "leaves a word wider than the box unbroken: A supercalifragilisticexpialidocious word here at 80px": {
-      "hash": "7b60624ef019bd21",
+      "hash": "41df441184bbe656",
       "elements": {
         "p": {
           "x": 0,
@@ -48,7 +49,7 @@
       }
     },
     "leaves a word wider than the box unbroken: A supercalifragilisticexpialidocious word here at 120px": {
-      "hash": "75896b8da490ec85",
+      "hash": "5c2117be5903ebae",
       "elements": {
         "p": {
           "x": 0,
@@ -85,7 +86,7 @@
       }
     },
     "leaves a word wider than the box unbroken: over lazy here at 39px": {
-      "hash": "269388ad8cd558af",
+      "hash": "74b0ab495831a07d",
       "elements": {
         "p": {
           "x": 0,
@@ -122,7 +123,7 @@
       }
     },
     "breaks a word wider than the box under word-break: break-word: A supercalifragilisticexpialidocious word here at 80px": {
-      "hash": "21137b8b3cd5416d",
+      "hash": "ff09a85b63f17301",
       "elements": {
         "p": {
           "x": 0,
@@ -191,7 +192,7 @@
       }
     },
     "breaks a word wider than the box under overflow-wrap: break-word: A supercalifragilisticexpialidocious word here at 80px": {
-      "hash": "a8b78d66c6f945dc",
+      "hash": "78ac63703347324b",
       "elements": {
         "p": {
           "x": 0,
@@ -260,7 +261,7 @@
       }
     },
     "breaks a word wider than the box under word-break: break-word: A supercalifragilisticexpialidocious word here at 120px": {
-      "hash": "cddafab21f3ae8a5",
+      "hash": "3b2f51cff023ff75",
       "elements": {
         "p": {
           "x": 0,
@@ -313,7 +314,7 @@
       }
     },
     "breaks a word wider than the box under overflow-wrap: break-word: A supercalifragilisticexpialidocious word here at 120px": {
-      "hash": "47de10080e9a4c4c",
+      "hash": "8abc9a37d161e417",
       "elements": {
         "p": {
           "x": 0,
@@ -366,7 +367,7 @@
       }
     },
     "breaks a word wider than the box under word-break: break-word: over lazy here at 39px": {
-      "hash": "e44154ce9b5ce88a",
+      "hash": "09c1e65d95d2bf9f",
       "elements": {
         "p": {
           "x": 0,
@@ -411,7 +412,7 @@
       }
     },
     "breaks a word wider than the box under overflow-wrap: break-word: over lazy here at 39px": {
-      "hash": "d8391086067aba12",
+      "hash": "764ded040b0a0a2e",
       "elements": {
         "p": {
           "x": 0,
@@ -456,7 +457,7 @@
       }
     },
     "breaks a word wider than the box under word-break: break-word: supercalifragilisticexpialidocious at 100px": {
-      "hash": "0c9955a65d71bc0d",
+      "hash": "0ec7dc6ea96ef818",
       "elements": {
         "p": {
           "x": 0,
@@ -493,7 +494,7 @@
       }
     },
     "breaks a word wider than the box under overflow-wrap: break-word: supercalifragilisticexpialidocious at 100px": {
-      "hash": "415fbb0902b9a91a",
+      "hash": "afaffcccefa754e2",
       "elements": {
         "p": {
           "x": 0,
@@ -530,7 +531,7 @@
       }
     },
     "breaks a word wider than the box under word-break: break-word: The quick brown fox at 30px": {
-      "hash": "6a11aeca92ba9410",
+      "hash": "403979b92dddd9bd",
       "elements": {
         "p": {
           "x": 0,
@@ -599,7 +600,7 @@
       }
     },
     "breaks a word wider than the box under overflow-wrap: break-word: The quick brown fox at 30px": {
-      "hash": "9d6d7ba3e85beca3",
+      "hash": "96f1762f8a020e24",
       "elements": {
         "p": {
           "x": 0,
@@ -668,7 +669,7 @@
       }
     },
     "breaks between any two letters under break-all 1, at 69px": {
-      "hash": "686015f81ead9db8",
+      "hash": "361f447e2da2fe02",
       "elements": {
         "p": {
           "x": 0,
@@ -777,7 +778,7 @@
       }
     },
     "breaks between any two letters under break-all 2, at 105px": {
-      "hash": "c755f6e32939f71a",
+      "hash": "eb376092ea0c79fc",
       "elements": {
         "p": {
           "x": 0,
@@ -854,7 +855,7 @@
       }
     },
     "breaks between any two letters under break-all 3, at 150px": {
-      "hash": "101db3c14beb161d",
+      "hash": "6c6b57881f0ea638",
       "elements": {
         "p": {
           "x": 0,
@@ -915,7 +916,7 @@
       }
     },
     "breaks between any two letters under break-all 4, at 100px": {
-      "hash": "6a801196db4e6cee",
+      "hash": "d3dbd6efb39f1415",
       "elements": {
         "p": {
           "x": 0,
@@ -968,7 +969,7 @@
       }
     },
     "keeps the trailing spaces of white-space: pre in the line": {
-      "hash": "11a5400c4730f2e2",
+      "hash": "a2eac72d4ea0c5c3",
       "elements": {
         "p": {
           "x": 0,
@@ -997,7 +998,7 @@
       }
     },
     "keeps the trailing spaces of white-space: pre-wrap in the line": {
-      "hash": "15f7f91ea1b19d19",
+      "hash": "c3c722886457077f",
       "elements": {
         "p": {
           "x": 0,
@@ -1026,7 +1027,7 @@
       }
     },
     "start-aligns a line that overflows: An overflowing title, center": {
-      "hash": "094bb7e1b0ca3e00",
+      "hash": "16597c78a142b0c5",
       "elements": {
         "p": {
           "x": 0,
@@ -1047,7 +1048,7 @@
       }
     },
     "start-aligns a line that overflows: An overflowing title, right": {
-      "hash": "587b937fca4b38f1",
+      "hash": "47ab5e9e8c301716",
       "elements": {
         "p": {
           "x": 0,
@@ -1068,7 +1069,7 @@
       }
     },
     "start-aligns a line that overflows: Supercalifragilistic, center": {
-      "hash": "7464891971dad2b0",
+      "hash": "82463822ef465a1e",
       "elements": {
         "p": {
           "x": 0,
@@ -1089,7 +1090,7 @@
       }
     },
     "start-aligns a line that overflows: Supercalifragilistic, right": {
-      "hash": "3f821739bc5ae34d",
+      "hash": "dc533b5d5e7e9394",
       "elements": {
         "p": {
           "x": 0,
@@ -1110,7 +1111,7 @@
       }
     },
     "puts letter spacing after each glyph": {
-      "hash": "496161b7722e1216",
+      "hash": "41c59f6efc7f779a",
       "elements": {
         "p": {
           "x": 0,
@@ -1131,7 +1132,7 @@
       }
     },
     "puts letter spacing after each glyph, 3px of it": {
-      "hash": "677cdce5144b48c4",
+      "hash": "6db6e19f6bea50ed",
       "elements": {
         "p": {
           "x": 0,
@@ -1152,7 +1153,7 @@
       }
     },
     "places lines on half-leading baselines": {
-      "hash": "7c5c1745064a8d66",
+      "hash": "46581bf622d3cac4",
       "elements": {
         "p": {
           "x": 0,
@@ -1205,7 +1206,7 @@
       }
     },
     "collapses the line boxes for a line height of 0": {
-      "hash": "993d3dcafc465247",
+      "hash": "e1a2b8233d379fbc",
       "elements": {
         "p": {
           "x": 0,
@@ -1242,7 +1243,7 @@
       }
     },
     "gives text of no font size no line boxes": {
-      "hash": "625fa56992141bb6",
+      "hash": "897836e3a90b0255",
       "elements": {
         "p": {
           "x": 0,
@@ -1263,7 +1264,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 11px": {
-      "hash": "72b04da4ea817ef4",
+      "hash": "7f95e92a30ca1f79",
       "elements": {
         "p": {
           "x": 0,
@@ -1300,7 +1301,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 13.5px": {
-      "hash": "754b0a946a29255f",
+      "hash": "cb97ce94a496caa9",
       "elements": {
         "p": {
           "x": 0,
@@ -1337,7 +1338,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 16px": {
-      "hash": "e5c72600e0a34338",
+      "hash": "a128d45099bb8fc2",
       "elements": {
         "p": {
           "x": 0,
@@ -1374,7 +1375,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 20px": {
-      "hash": "8944a339778054dc",
+      "hash": "cdca4cac884080e6",
       "elements": {
         "p": {
           "x": 0,
@@ -1411,7 +1412,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 33px": {
-      "hash": "286f6b1a8d750c71",
+      "hash": "6a46e79a565d74be",
       "elements": {
         "p": {
           "x": 0,
@@ -1448,7 +1449,7 @@
       }
     },
     "line-height: normal, Liberation Sans at 48px": {
-      "hash": "808eca7d78c0bfdd",
+      "hash": "1c8930d9abd171c0",
       "elements": {
         "p": {
           "x": 0,
@@ -1485,7 +1486,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 11px": {
-      "hash": "aacac23c127e66a5",
+      "hash": "71b92014a9987401",
       "elements": {
         "p": {
           "x": 0,
@@ -1522,7 +1523,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 13.5px": {
-      "hash": "b85b2c50bd2021b8",
+      "hash": "957efdb4e02583c3",
       "elements": {
         "p": {
           "x": 0,
@@ -1559,7 +1560,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 16px": {
-      "hash": "717f18e6099610d3",
+      "hash": "4790ff91b75bfcfd",
       "elements": {
         "p": {
           "x": 0,
@@ -1596,7 +1597,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 20px": {
-      "hash": "548226671b955fda",
+      "hash": "742740e3eacfd760",
       "elements": {
         "p": {
           "x": 0,
@@ -1633,7 +1634,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 33px": {
-      "hash": "cb1a6e5e0335eeba",
+      "hash": "d6f94742a9fd521b",
       "elements": {
         "p": {
           "x": 0,
@@ -1670,7 +1671,7 @@
       }
     },
     "line-height: normal, Noto Sans Thai at 48px": {
-      "hash": "08271e5ed12037a5",
+      "hash": "9b6d23f138a942d6",
       "elements": {
         "p": {
           "x": 0,
@@ -1707,7 +1708,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 11px": {
-      "hash": "41788b9d58d426cb",
+      "hash": "39b109ede639a379",
       "elements": {
         "p": {
           "x": 0,
@@ -1744,7 +1745,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 13.5px": {
-      "hash": "7d2bd73902e3fa50",
+      "hash": "8a9f5d9f07911d10",
       "elements": {
         "p": {
           "x": 0,
@@ -1781,7 +1782,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 16px": {
-      "hash": "3db28e078c0cb242",
+      "hash": "3fff5a57c14ca17f",
       "elements": {
         "p": {
           "x": 0,
@@ -1818,7 +1819,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 20px": {
-      "hash": "91f47a6899b53bc9",
+      "hash": "3c2ff8fe44059de9",
       "elements": {
         "p": {
           "x": 0,
@@ -1855,7 +1856,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 33px": {
-      "hash": "f8feac7701326747",
+      "hash": "b7d36787a4027c88",
       "elements": {
         "p": {
           "x": 0,
@@ -1892,7 +1893,7 @@
       }
     },
     "line-height: normal, Noto Sans Lao at 48px": {
-      "hash": "af48f6ffdb87e1cf",
+      "hash": "56b7016b2241309d",
       "elements": {
         "p": {
           "x": 0,
@@ -1929,7 +1930,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 11px": {
-      "hash": "8ea35b402d9ab443",
+      "hash": "e1a6d629ca1ddc7a",
       "elements": {
         "p": {
           "x": 0,
@@ -1966,7 +1967,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 13.5px": {
-      "hash": "58c472bdaeea7b94",
+      "hash": "7ac986ed7c64bde8",
       "elements": {
         "p": {
           "x": 0,
@@ -2003,7 +2004,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 16px": {
-      "hash": "d8fc2d0086e0b3e8",
+      "hash": "5c80bdb96e223dab",
       "elements": {
         "p": {
           "x": 0,
@@ -2040,7 +2041,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 20px": {
-      "hash": "1e55ad1f3a98dcff",
+      "hash": "3cfe6846f8791048",
       "elements": {
         "p": {
           "x": 0,
@@ -2077,7 +2078,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 33px": {
-      "hash": "6aa42bf63b354261",
+      "hash": "d1eea031963f67d4",
       "elements": {
         "p": {
           "x": 0,
@@ -2114,7 +2115,7 @@
       }
     },
     "line-height: normal, Noto Sans Myanmar at 48px": {
-      "hash": "c49a6342fdb48ad7",
+      "hash": "39499cf7db5706bb",
       "elements": {
         "p": {
           "x": 0,
@@ -2151,7 +2152,7 @@
       }
     },
     "line-height: normal, three lines of Liberation Sans at 20px": {
-      "hash": "5ec660279b10c5b9",
+      "hash": "de69d0b58fbbf4bf",
       "elements": {
         "p": {
           "x": 0,
@@ -2188,7 +2189,7 @@
       }
     },
     "line-height: normal, a bold face": {
-      "hash": "d6f3d5509653faa7",
+      "hash": "8bbc83d88bd3ebdc",
       "elements": {
         "p": {
           "x": 0,
@@ -2209,7 +2210,7 @@
       }
     },
     "line-height: normal, clamped to whole line boxes": {
-      "hash": "6d5785d950a47318",
+      "hash": "cb11ea699a136193",
       "elements": {
         "p": {
           "x": 0,
@@ -2239,7 +2240,7 @@
       }
     },
     "line-height: normal, trims two lines at 13.5px (trim-both)": {
-      "hash": "630ffc34215f209b",
+      "hash": "d5c2259d2eefd3bd",
       "elements": {
         "p": {
           "x": 0,
@@ -2268,7 +2269,7 @@
       }
     },
     "line-height: normal, trims two lines at 20px (trim-start)": {
-      "hash": "b250e5b5c5483ed0",
+      "hash": "73dc8c182e52abb1",
       "elements": {
         "p": {
           "x": 0,
@@ -2297,7 +2298,7 @@
       }
     },
     "line-height: normal, trims two lines at 20px (trim-end)": {
-      "hash": "d70c7738a0f6747c",
+      "hash": "309d7e4666913b57",
       "elements": {
         "p": {
           "x": 0,
@@ -2326,7 +2327,7 @@
       }
     },
     "line-height: normal, trims two lines at 20px (trim-both)": {
-      "hash": "61568132db3a473a",
+      "hash": "6163f126a56d9df7",
       "elements": {
         "p": {
           "x": 0,
@@ -2355,7 +2356,7 @@
       }
     },
     "line-height: normal, trims two lines at 33px (trim-both)": {
-      "hash": "0fda5b2c2835100b",
+      "hash": "ff303765f0da7430",
       "elements": {
         "p": {
           "x": 0,
@@ -2384,7 +2385,7 @@
       }
     },
     "truncates \"ab cd efgh ij\" (normal) clamped to a line at 90px": {
-      "hash": "5ce34bcf0060b3c1",
+      "hash": "198b827fef40a09a",
       "elements": {
         "p": {
           "x": 0,
@@ -2403,10 +2404,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "native-text/truncates-ab-cd-efgh-ij-normal-clamped-to-a-line-at-90px.png"
     },
     "truncates \"aaaa bb cccc\" (normal) clamped to a line at 100px": {
-      "hash": "c629041b48cb9753",
+      "hash": "c4606a89f50eda50",
       "elements": {
         "p": {
           "x": 0,
@@ -2425,10 +2427,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-normal-clamped-to-a-line-at-100px.png"
     },
     "truncates \"aaaa bb cccc\" (normal) clamped to a line at 110px": {
-      "hash": "d3f41abb87d833ac",
+      "hash": "75dd5383ef1b552c",
       "elements": {
         "p": {
           "x": 0,
@@ -2447,10 +2450,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-normal-clamped-to-a-line-at-110px.png"
     },
     "truncates \"aaaa bb   cccc\" (pre-wrap) clamped to a line at 100px": {
-      "hash": "a731a73bfc546e84",
+      "hash": "8c898679e4f2b216",
       "elements": {
         "p": {
           "x": 0,
@@ -2469,10 +2473,11 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-pre-wrap-clamped-to-a-line-at-100px.png"
     },
     "truncates \"aaaa bb   cccc\" (pre-wrap) clamped to a line at 120px": {
-      "hash": "49b1f3dc1732090c",
+      "hash": "92f5ce0511ee9cb7",
       "elements": {
         "p": {
           "x": 0,
@@ -2491,7 +2496,78 @@
             }
           ]
         }
-      }
+      },
+      "screenshot": "native-text/truncates-aaaa-bb-cccc-pre-wrap-clamped-to-a-line-at-120px.png"
+    },
+    "clamps a 20px paragraph to 2 lines": {
+      "hash": "fd4d548007b7527f",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 46,
+          "lines": [
+            {
+              "text": "The quick brown fox jumps over",
+              "x": 0,
+              "width": 282.3438,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "the lazy dog. Pack my box with",
+              "x": 0,
+              "width": 274.5781,
+              "top": 23,
+              "height": 23,
+              "baseline": 41,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/clamps-a-20px-paragraph-to-2-lines.png"
+    },
+    "clamps a 16px paragraph to 3 lines": {
+      "hash": "73b51d50fc404678",
+      "elements": {
+        "p": {
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 54,
+          "lines": [
+            {
+              "text": "The quick brown fox jumps over the lazy",
+              "x": 0,
+              "width": 285.4688,
+              "top": 0,
+              "height": 18,
+              "baseline": 14
+            },
+            {
+              "text": "dog. Pack my box with five dozen liquor",
+              "x": 0,
+              "width": 281.0313,
+              "top": 18,
+              "height": 18,
+              "baseline": 32
+            },
+            {
+              "text": "jugs. How vexingly quick daft zebras",
+              "x": 0,
+              "width": 257.9063,
+              "top": 36,
+              "height": 18,
+              "baseline": 50,
+              "truncated": true
+            }
+          ]
+        }
+      },
+      "screenshot": "native-text/clamps-a-16px-paragraph-to-3-lines.png"
     }
   }
 }

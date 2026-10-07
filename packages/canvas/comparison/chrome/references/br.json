@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "17eed5536db0c744",
   "platform": "darwin-arm64",
   "fixtures": {
     "stacks the text either side of it in a row": {
-      "hash": "8fa6f3a90858d19b",
+      "hash": "9072f9e77c782955",
       "elements": {
         "c": {
           "x": 0,
@@ -32,7 +33,7 @@
       }
     },
     "stacks three lines in a row": {
-      "hash": "83eb7b3b600695f0",
+      "hash": "f1f22d7cdf1cc569",
       "elements": {
         "c": {
           "x": 0,
@@ -69,7 +70,7 @@
       }
     },
     "keeps the run as narrow as its lines next to other elements": {
-      "hash": "a2bc96d7adf8a521",
+      "hash": "4dbdf8323a21b6bc",
       "elements": {
         "c": {
           "x": 0,
@@ -130,7 +131,7 @@
       }
     },
     "makes a <br> between elements an empty line of its own in a row": {
-      "hash": "a77da3a58dfadfa5",
+      "hash": "7f0f01a0d986ebec",
       "elements": {
         "c": {
           "x": 0,
@@ -183,7 +184,7 @@
       }
     },
     "starts the run after an element with a <br>": {
-      "hash": "0e0519cc2cb3737d",
+      "hash": "03f5f40a89a70ff2",
       "elements": {
         "c": {
           "x": 0,
@@ -220,7 +221,7 @@
       }
     },
     "ends the run before an element with a <br>": {
-      "hash": "5de4c347024e7506",
+      "hash": "5c79c708e02071c0",
       "elements": {
         "c": {
           "x": 0,
@@ -249,7 +250,7 @@
       }
     },
     "breaks the text of an element with a <br> in it": {
-      "hash": "a994d19e92b5e9a9",
+      "hash": "56a26a6834f0e093",
       "elements": {
         "c": {
           "x": 0,
@@ -286,7 +287,7 @@
       }
     },
     "stacks the text either side of it in a column": {
-      "hash": "32c7bf033d173c53",
+      "hash": "fb3018e95093c0fd",
       "elements": {
         "c": {
           "x": 0,
@@ -315,7 +316,7 @@
       }
     },
     "makes a <br> between elements an empty line of its own in a column (\"\")": {
-      "hash": "6357ff62a0e38772",
+      "hash": "cf4b259cf11fa637",
       "elements": {
         "c": {
           "x": 0,
@@ -352,7 +353,7 @@
       }
     },
     "makes a <br> between elements an empty line of its own in a column (\" \")": {
-      "hash": "ecfb47a5b494f7be",
+      "hash": "571e5742c97c43b1",
       "elements": {
         "c": {
           "x": 0,
@@ -389,7 +390,7 @@
       }
     },
     "breaks the runs between elements in a column": {
-      "hash": "a79e45c7cb8ece57",
+      "hash": "46ed67259ec709f4",
       "elements": {
         "c": {
           "x": 0,
@@ -450,7 +451,7 @@
       }
     },
     "lays out a <br> at the start in a row": {
-      "hash": "0aee39442697648a",
+      "hash": "fb0f132cd73e9727",
       "elements": {
         "c": {
           "x": 0,
@@ -479,7 +480,7 @@
       }
     },
     "lays out a <br> at the start in a column": {
-      "hash": "0c3751b1c530225d",
+      "hash": "0fac3bb8cd36ca83",
       "elements": {
         "c": {
           "x": 0,
@@ -508,7 +509,7 @@
       }
     },
     "lays out a <br> at the end in a row": {
-      "hash": "cd13b5e4351e5e71",
+      "hash": "2b88c38ab7702b17",
       "elements": {
         "c": {
           "x": 0,
@@ -529,7 +530,7 @@
       }
     },
     "lays out a <br> at the end in a column": {
-      "hash": "0db3e34174ed9e6f",
+      "hash": "27c9a8377ee7e537",
       "elements": {
         "c": {
           "x": 0,
@@ -550,7 +551,7 @@
       }
     },
     "lays out two <br>s at the end in a row": {
-      "hash": "85bc4e879df01802",
+      "hash": "c0ddea962848cd3a",
       "elements": {
         "c": {
           "x": 0,
@@ -579,7 +580,7 @@
       }
     },
     "lays out two <br>s at the end in a column": {
-      "hash": "7ea0f6a2967a061e",
+      "hash": "bdc85cfb680ef327",
       "elements": {
         "c": {
           "x": 0,
@@ -608,7 +609,7 @@
       }
     },
     "lays out two <br>s in a row": {
-      "hash": "44ff6258bb54818f",
+      "hash": "cd60a685154de3ca",
       "elements": {
         "c": {
           "x": 0,
@@ -645,7 +646,7 @@
       }
     },
     "lays out two <br>s in a column": {
-      "hash": "c0bf32a71408b8ec",
+      "hash": "a236475fd88725a1",
       "elements": {
         "c": {
           "x": 0,
@@ -682,7 +683,7 @@
       }
     },
     "lays out three <br>s in a row": {
-      "hash": "834cdaa28db8d3d9",
+      "hash": "b4337d31ee575719",
       "elements": {
         "c": {
           "x": 0,
@@ -727,7 +728,7 @@
       }
     },
     "lays out three <br>s in a column": {
-      "hash": "522806216ef85dec",
+      "hash": "e264341c49801bfd",
       "elements": {
         "c": {
           "x": 0,
@@ -772,7 +773,7 @@
       }
     },
     "lays out two <br>s at the start in a row": {
-      "hash": "97a1df29abd0ea86",
+      "hash": "7b1af15598125937",
       "elements": {
         "c": {
           "x": 0,
@@ -809,7 +810,7 @@
       }
     },
     "lays out two <br>s at the start in a column": {
-      "hash": "b5efef527aa743c1",
+      "hash": "2416e66671cd0e18",
       "elements": {
         "c": {
           "x": 0,
@@ -846,7 +847,7 @@
       }
     },
     "lays out nothing but a <br> in a row": {
-      "hash": "b7735c9d498b6c20",
+      "hash": "4032aeeb9fcbd23d",
       "elements": {
         "c": {
           "x": 0,
@@ -867,7 +868,7 @@
       }
     },
     "lays out nothing but a <br> in a column": {
-      "hash": "a3a5339002fad122",
+      "hash": "eb550aee1c9cdc80",
       "elements": {
         "c": {
           "x": 0,
@@ -888,7 +889,7 @@
       }
     },
     "lays out nothing but two <br>s in a row": {
-      "hash": "09523fe284a381ed",
+      "hash": "a04199a0395d8964",
       "elements": {
         "c": {
           "x": 0,
@@ -917,7 +918,7 @@
       }
     },
     "lays out nothing but two <br>s in a column": {
-      "hash": "fba89f53af10a115",
+      "hash": "041284ae9a87d6dd",
       "elements": {
         "c": {
           "x": 0,
@@ -946,7 +947,7 @@
       }
     },
     "lays out a <br> in white space in a row": {
-      "hash": "67b68acac0416703",
+      "hash": "ba32b0bb74e11689",
       "elements": {
         "c": {
           "x": 0,
@@ -967,7 +968,7 @@
       }
     },
     "lays out a <br> in white space in a column": {
-      "hash": "19a319f441705096",
+      "hash": "f7c8e539b807d8b1",
       "elements": {
         "c": {
           "x": 0,
@@ -988,7 +989,7 @@
       }
     },
     "ignores a <br> with display: none": {
-      "hash": "fbf3dcc339b1b22a",
+      "hash": "c71257390b8bc839",
       "elements": {
         "c": {
           "x": 0,
@@ -1009,7 +1010,7 @@
       }
     },
     "removes the spaces around a <br> under normal": {
-      "hash": "c7036f5db785363b",
+      "hash": "3aa200327ff9a2e6",
       "elements": {
         "c": {
           "x": 0,
@@ -1038,7 +1039,7 @@
       }
     },
     "removes tabs and newlines around a <br> under normal": {
-      "hash": "d3bed546d9df8b96",
+      "hash": "006664c2ed2e511f",
       "elements": {
         "c": {
           "x": 0,
@@ -1067,7 +1068,7 @@
       }
     },
     "removes the spaces around a <br> under nowrap": {
-      "hash": "f8d607562ca68113",
+      "hash": "be69d48c4b359162",
       "elements": {
         "c": {
           "x": 0,
@@ -1096,7 +1097,7 @@
       }
     },
     "removes tabs and newlines around a <br> under nowrap": {
-      "hash": "cec134171cbc169f",
+      "hash": "28c763a9b4f549a4",
       "elements": {
         "c": {
           "x": 0,
@@ -1125,7 +1126,7 @@
       }
     },
     "removes the spaces around a <br> under pre-line": {
-      "hash": "e2e98e68e0159777",
+      "hash": "49894abd07a3802a",
       "elements": {
         "c": {
           "x": 0,
@@ -1154,7 +1155,7 @@
       }
     },
     "removes tabs and newlines around a <br> under pre-line": {
-      "hash": "12c9aed3a9994b8e",
+      "hash": "0b0e68b5cd9d5119",
       "elements": {
         "c": {
           "x": 0,
@@ -1199,7 +1200,7 @@
       }
     },
     "keeps the spaces around a <br> under pre": {
-      "hash": "8b86823c987b6e58",
+      "hash": "a11f0a7f1ec4380c",
       "elements": {
         "c": {
           "x": 0,
@@ -1228,7 +1229,7 @@
       }
     },
     "keeps the spaces around a <br> under pre-wrap": {
-      "hash": "a66762c9bd8df07f",
+      "hash": "991e354fbdd58ad2",
       "elements": {
         "c": {
           "x": 0,
@@ -1257,7 +1258,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre-line (1)": {
-      "hash": "59621d2f2f8b96fb",
+      "hash": "cf1f2b7cfd8f6f08",
       "elements": {
         "c": {
           "x": 0,
@@ -1294,7 +1295,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre-line (2)": {
-      "hash": "014a76b1aff77270",
+      "hash": "bb7a8f07352616a3",
       "elements": {
         "c": {
           "x": 0,
@@ -1331,7 +1332,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre (1)": {
-      "hash": "c83ecce110e59abf",
+      "hash": "5048a1c89632f268",
       "elements": {
         "c": {
           "x": 0,
@@ -1368,7 +1369,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre (2)": {
-      "hash": "99b37ca6c4b7a40b",
+      "hash": "0f0e84725723b390",
       "elements": {
         "c": {
           "x": 0,
@@ -1405,7 +1406,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre-wrap (1)": {
-      "hash": "2af099be3ee69fb5",
+      "hash": "1a290f47435a435b",
       "elements": {
         "c": {
           "x": 0,
@@ -1442,7 +1443,7 @@
       }
     },
     "breaks at both a newline and a <br> under pre-wrap (2)": {
-      "hash": "84ab685aecf3d7aa",
+      "hash": "923f24df39e6f673",
       "elements": {
         "c": {
           "x": 0,
@@ -1479,7 +1480,7 @@
       }
     },
     "lays a CR before a <br> out under pre": {
-      "hash": "7d7f650016d5320b",
+      "hash": "6a36b8f490909243",
       "elements": {
         "c": {
           "x": 0,
@@ -1508,7 +1509,7 @@
       }
     },
     "lays a CR before a <br> out under pre-wrap": {
-      "hash": "e0a9942664f64238",
+      "hash": "2a6c0afc3533c35a",
       "elements": {
         "c": {
           "x": 0,
@@ -1537,7 +1538,7 @@
       }
     },
     "keeps a line separator before a <br> a space": {
-      "hash": "8d02c27d54268be2",
+      "hash": "e022b38c66173b7e",
       "elements": {
         "c": {
           "x": 0,
@@ -1566,7 +1567,7 @@
       }
     },
     "keeps the no-break spaces around a <br>": {
-      "hash": "20a2fafbfe2ba366",
+      "hash": "bfc36f537c4112ec",
       "elements": {
         "c": {
           "x": 0,
@@ -1595,7 +1596,7 @@
       }
     },
     "breaks at a <br> under nowrap": {
-      "hash": "8da99d0e2cc698ed",
+      "hash": "14b9e061c3c7b888",
       "elements": {
         "c": {
           "x": 0,
@@ -1624,7 +1625,7 @@
       }
     },
     "wraps the lines between <br>s": {
-      "hash": "0d16c85db3f1a81a",
+      "hash": "3a6f80e038bcf7da",
       "elements": {
         "c": {
           "x": 0,
@@ -1669,7 +1670,7 @@
       }
     },
     "aligns each line right": {
-      "hash": "0981032303aefc6d",
+      "hash": "71cce0fb56146347",
       "elements": {
         "c": {
           "x": 0,
@@ -1706,7 +1707,7 @@
       }
     },
     "aligns each line center": {
-      "hash": "c7b6dd33035e66cf",
+      "hash": "fda18a9e7c405d69",
       "elements": {
         "c": {
           "x": 0,
@@ -1743,7 +1744,7 @@
       }
     },
     "aligns the lines of a wrapped line": {
-      "hash": "0f87b5b482110abf",
+      "hash": "8b082ff7ccfeada5",
       "elements": {
         "c": {
           "x": 0,
@@ -1780,7 +1781,7 @@
       }
     },
     "sizes clamped lines with <br>s to the widest": {
-      "hash": "524567e2aa50e7dc",
+      "hash": "55525d10009423f2",
       "elements": {
         "c": {
           "x": 0,
@@ -1835,7 +1836,7 @@
       }
     },
     "sizes clamped lines with newlines to the widest": {
-      "hash": "a7f8d422e1ad4911",
+      "hash": "91f11c715a1c730d",
       "elements": {
         "c": {
           "x": 0,

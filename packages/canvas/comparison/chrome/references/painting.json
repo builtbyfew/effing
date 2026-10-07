@@ -1,9 +1,10 @@
 {
   "chrome": "154.0.8037.98",
+  "generator": "17eed5536db0c744",
   "platform": "darwin-arm64",
   "fixtures": {
     "boxes": {
-      "hash": "165e48c1d8bba92a",
+      "hash": "7988a9b28255edd4",
       "elements": {
         "a": { "x": 10, "y": 10, "width": 100, "height": 40, "lines": [] },
         "b": { "x": 10, "y": 60, "width": 160, "height": 40, "lines": [] }
@@ -11,14 +12,14 @@
       "screenshot": "painting/boxes.png"
     },
     "a linear gradient": {
-      "hash": "a93422981400c389",
+      "hash": "e6b09747ff137ba9",
       "elements": {
         "g": { "x": 10, "y": 10, "width": 220, "height": 100, "lines": [] }
       },
       "screenshot": "painting/a-linear-gradient.png"
     },
     "text": {
-      "hash": "e1458729adc37aa4",
+      "hash": "4c8bfc293ae5b823",
       "elements": {
         "t": {
           "x": 10,
@@ -48,7 +49,7 @@
       "screenshot": "painting/text.png"
     },
     "underlined text": {
-      "hash": "f811dabf229499eb",
+      "hash": "72efa29a2804c847",
       "elements": {
         "t": {
           "x": 10,
@@ -86,7 +87,7 @@
       "screenshot": "painting/underlined-text.png"
     },
     "text with a shadow": {
-      "hash": "765b5d713a17a1ea",
+      "hash": "dd9c4164328e6568",
       "elements": {
         "t": {
           "x": 10,

@@ -1,5 +1,9 @@
-import { SCRIPT_FONT_FAMILIES } from "../../_helpers/fonts.ts";
-import { fixtureModule, quote } from "../fixture.ts";
+import {
+  BUNDLED_HEBREW,
+  BUNDLED_POPPINS,
+  SCRIPT_FONT_FAMILIES,
+} from "../../_helpers/fonts.ts";
+import { SANS, fixtureModule, quote } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 import { paragraph } from "./paragraph.tsx";
 
@@ -13,7 +17,7 @@ const TEXT =
   "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.";
 
 /** Hebrew, which Liberation Sans hasn't: Noto Sans Hebrew draws it. */
-const HEBREW = "Noto Sans Hebrew, Liberation Sans";
+const HEBREW = `${BUNDLED_HEBREW}, ${SANS}`;
 const SHALOM = "שלום עולם, מה שלומך היום? הכל טוב מאוד";
 
 /**
@@ -137,20 +141,16 @@ const fixtures: ChromeFixture[] = [
     {},
     380,
   ),
-  shot(
-    paragraph(
-      "breaks a line at a soft hyphen",
-      "super\u00adcali\u00adfragilistic\u00adexpiali\u00addocious",
-      {},
-      130,
-      undefined,
-      {
-        knownDifference:
-          "canvas breaks the line at the soft hyphen but draws no hyphen there: its lines are 6.67px (a hyphen) narrower than Chrome's",
-      },
-    ),
-    140,
-    75,
+  paragraph(
+    "breaks a line at a soft hyphen",
+    "super\u00adcali\u00adfragilistic\u00adexpiali\u00addocious",
+    {},
+    130,
+    undefined,
+    {
+      knownDifference:
+        "canvas breaks the line at the soft hyphen but draws no hyphen there: its lines are 6.67px (a hyphen) narrower than Chrome's",
+    },
   ),
 
   // text-transform.
@@ -235,20 +235,18 @@ const fixtures: ChromeFixture[] = [
         },
       ],
     ] as const
-  ).map(([what, style, rest]) =>
-    shot(
-      paragraph(
-        `clamps ${what} text to two lines`,
-        TEXT,
-        { lineClamp: 2, overflow: "hidden", ...style },
-        200,
-        undefined,
-        rest,
-      ),
-      210,
-      50,
-    ),
-  ),
+  ).map(([what, style, rest]) => {
+    const fixture = paragraph(
+      `clamps ${what} text to two lines`,
+      TEXT,
+      { lineClamp: 2, overflow: "hidden", ...style },
+      200,
+      undefined,
+      rest,
+    );
+    // The pixels too, of those laid out as Chrome lays them out.
+    return "knownDifference" in rest ? fixture : shot(fixture, 210, 50);
+  }),
 
   // text-box-edge, trimming normal line boxes, at the box's top left: the
   // line boxes trimmed are as precise as their baselines.
@@ -303,33 +301,29 @@ const fixtures: ChromeFixture[] = [
   // there's none.
   paragraph("lays out italic text", TEXT, { fontStyle: "italic" }, 200),
   paragraph("lays out bold text", TEXT, { fontWeight: 700 }, 200),
-  shot(
-    paragraph(
-      "lays out bold italic text, which no face is",
-      TEXT,
-      { fontWeight: 700, fontStyle: "italic" },
-      200,
-      undefined,
-      {
-        knownDifference:
-          "there's no bold italic face: Chrome matches the style before the weight, as CSS does, and draws the italic face in synthesized bold (the regular widths); canvas draws the bold face slanted, and breaks its wider lines elsewhere",
-      },
-    ),
-    210,
-    120,
+  paragraph(
+    "lays out bold italic text, which no face is",
+    TEXT,
+    { fontWeight: 700, fontStyle: "italic" },
+    200,
+    undefined,
+    {
+      knownDifference:
+        "there's no bold italic face: Chrome matches the style before the weight, as CSS does, and draws the italic face in synthesized bold (the regular widths); canvas draws the bold face slanted, and breaks its wider lines elsewhere",
+    },
   ),
   // The advances only: Chrome on macOS emboldens more lightly than canvas.
   paragraph(
     "synthesizes bold where there's no bold face",
     "Synthetic bold text here",
-    { fontFamily: "Poppins", fontWeight: 700 },
+    { fontFamily: BUNDLED_POPPINS, fontWeight: 700 },
     380,
   ),
   shot(
     paragraph(
       "synthesizes italic where there's no italic face",
       "Synthetic italic text here",
-      { fontFamily: "Poppins", fontStyle: "italic" },
+      { fontFamily: BUNDLED_POPPINS, fontStyle: "italic" },
       380,
       undefined,
       // 0.95% on macOS, where Chrome rasterises glyphs heavier.
@@ -345,7 +339,7 @@ const fixtures: ChromeFixture[] = [
   paragraph(
     "grows a normal line box for a fallback font (Hebrew)",
     "Hello שלום world",
-    { fontFamily: "Liberation Sans, Noto Sans Hebrew" },
+    { fontFamily: `${SANS}, ${BUNDLED_HEBREW}` },
     380,
     undefined,
     {
@@ -356,7 +350,7 @@ const fixtures: ChromeFixture[] = [
   paragraph(
     "grows a normal line box for a fallback font (Thai)",
     "Hello สวัสดี world",
-    { fontFamily: `Liberation Sans, ${SCRIPT_FONT_FAMILIES}` },
+    { fontFamily: `${SANS}, ${SCRIPT_FONT_FAMILIES}` },
     380,
     undefined,
     {
@@ -376,7 +370,7 @@ const fixtures: ChromeFixture[] = [
     paragraph(
       `line-height: normal, Poppins at ${fontSize}px`,
       "Hello wide world of text",
-      { fontFamily: "Poppins", fontSize },
+      { fontFamily: BUNDLED_POPPINS, fontSize },
       fontSize * 6,
     ),
   ),

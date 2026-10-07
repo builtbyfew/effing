@@ -255,7 +255,9 @@ export function transcriptionDifferences(
 /**
  * Where the ink of each truncated line ends, in a PNG of the fixture: its
  * ellipsis's right edge, for a line that's left-aligned. The line's band is
- * its line box, across its element's box.
+ * its line box, across its element's box. Ink is what differs from the
+ * band's background, its most common colour, by half a channel's range: a
+ * background of any colour (the frame's, or the element's) is no ink.
  */
 export function ellipsisEnds(
   png: { width: number; height: number; data: Uint8Array },
@@ -269,11 +271,32 @@ export function ellipsisEnds(
       const x1 = Math.min(png.width, Math.ceil(box.x + box.width));
       const y0 = Math.max(0, Math.floor(line.top));
       const y1 = Math.min(png.height, Math.ceil(line.top + line.height));
+      const at = (x: number, y: number) => (y * png.width + x) * 4;
+      const counts = new Map<number, number>();
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const key = new DataView(
+            png.data.buffer,
+            png.data.byteOffset,
+          ).getUint32(at(x, y));
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+      }
+      const [background] = [...counts].reduce(
+        (a, b) => (b[1] > a[1] ? b : a),
+        [0, 0],
+      );
+      const ink = (x: number, y: number) => {
+        for (let c = 0; c < 4; c++) {
+          const bg = (background >>> (24 - 8 * c)) & 0xff;
+          if (Math.abs(png.data[at(x, y) + c]! - bg) >= 128) return true;
+        }
+        return false;
+      };
       let end: number | undefined;
       for (let y = y0; y < y1; y++) {
         for (let x = x1 - 1; x >= x0 && (end === undefined || x >= end); x--) {
-          // Ink: at least half covered.
-          if (png.data[(y * png.width + x) * 4 + 3]! >= 128) {
+          if (ink(x, y)) {
             end = x + 1;
             break;
           }

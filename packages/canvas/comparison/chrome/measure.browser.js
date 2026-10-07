@@ -113,6 +113,15 @@
       if (inheritedText.every(([property]) => property === "text-box-edge")) {
         continue;
       }
+      // A block container has no `justify-content`, which canvas honours:
+      // it places the text in the element by it (and grows it across the
+      // element only at flex-start), so the two would part.
+      const justify = element.style.justifyContent;
+      if (!clamp && !["", "normal", "flex-start"].includes(justify)) {
+        throw new Error(
+          `justify-content: ${justify} on <${element.localName}> with ${inheritedText.map(([p]) => p).join(", ")}: Chrome applies those to a block container, which has no justify-content`,
+        );
+      }
       if (!clamp) element.style.display = "flow-root";
       for (const [property, value] of inheritedText) {
         element.style.setProperty(property, value);

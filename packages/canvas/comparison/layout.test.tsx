@@ -358,7 +358,7 @@ describe("visual comparison: layout", () => {
       satoriPng,
       "flex-computed-text-width",
     );
-    // 0.83% measured.
+    // 0.83% measured on macOS arm64, 0.94% on CI's ubuntu x64.
     expect(percentage).toBeLessThan(1.7);
   });
 });

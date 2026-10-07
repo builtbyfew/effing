@@ -172,16 +172,17 @@ const statsBarCases: {
 // breaks outright, not a regression in its text. Where canvas and satori
 // differ, Chrome is authoritative, and the tests that pin Chrome's numbers
 // are what catch regressions in layout and text. Mutation experiments showed
-// that these can't catch small content changes: dropping a word or a chip,
-// or changing a letter or a digit, moved most cards' differences by less
-// than the ≈0.3–1.5% that canvas and satori already differ by (and some
-// down).
+// that these can't catch small content changes: canvas and satori already
+// differ by 0.25–1.5% here, so most cards stay under their thresholds with a
+// word or a chip dropped, and all but MetricsDashboard and BannerStrip with
+// any one letter or digit changed. Some changes even bring canvas closer to
+// satori.
 //
-// Each threshold is about 1.5 times what's measured here (macOS arm64,
-// logged as "[comparison]"). The cards set `lineHeight: 1`: satori's
-// `normal` line height leaves out the font's line gap, which canvas includes,
-// as Chrome does (#180), and line boxes a whole number of pixels tall are
-// placed alike by both.
+// Each threshold is about 1.5 times what's measured (logged as
+// "[comparison]"; macOS arm64 and CI's ubuntu x64 agree within 0.02%). The
+// cards set `lineHeight: 1`: satori's `normal` line height leaves out the
+// font's line gap, which canvas includes, as Chrome does (#180), and line
+// boxes a whole number of pixels tall are placed alike by both.
 describe("visual comparison: cards (satori smoke checks)", () => {
   let fonts: FontData[];
 

@@ -14,8 +14,8 @@ import {
 // differ, Chrome is authoritative, and the text tests that pin Chrome's
 // numbers (native-text, white-space, br, min-content) are what catch
 // regressions in text layout. Each threshold is about twice what's measured
-// here (macOS arm64, logged as "[comparison]"), with a floor of 0.05% for
-// anti-aliasing on other platforms.
+// (logged as "[comparison]"; macOS arm64 and CI's ubuntu x64 agree within
+// 0.01%), with a floor of 0.05% for anti-aliasing.
 //
 // Satori's `normal` line height leaves out the font's line gap, which canvas
 // includes, as Chrome does (#180). Tests of more than one line, or of a line

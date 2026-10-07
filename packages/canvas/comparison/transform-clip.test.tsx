@@ -278,7 +278,7 @@ describe("scaled text moves continuously across whole scales", () => {
       console.log(
         `[comparison] ${fontSize}px frame-to-frame jump: ${worst.toFixed(3)}px`,
       );
-      // ≤0.114px on macOS arm64.
+      // ≤0.114px on macOS arm64, ≤0.096px on CI's ubuntu x64.
       expect(worst, JSON.stringify(deviations)).toBeLessThan(0.16);
     },
   );

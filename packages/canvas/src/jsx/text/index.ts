@@ -38,6 +38,13 @@ export type TextLayoutResult = {
    */
   maxContentWidth: number;
   /**
+   * The width of the widest run of text that can't break: a word, or a line
+   * that doesn't wrap (CSS min-content). An `overflow-wrap: break-word` that
+   * breaks a word doesn't count, as in CSS; `anywhere` does, but the
+   * paragraph knows it as `break-word` (see `TextMeasure.minContentWidth`).
+   */
+  minContentWidth: number;
+  /**
    * The paragraph to paint. The segments describe its lines, for
    * decorations.
    */
@@ -137,6 +144,23 @@ function resolveLineHeight(
 }
 
 /**
+ * Round a text width for Yoga up to 1/64px, as Chrome does: it lays out in
+ * units of 1/64px, and rounds the width of text up to them. That also keeps
+ * Yoga's sums exact. It shrinks flex items in float32, and when every item
+ * that shrinks in a line is held at its minimum width, the shrink factors it
+ * sums and takes away again can leave a rounding error behind, which it then
+ * divides by: the items grow to millions of pixels. Rounding up keeps the
+ * text on the lines it was measured with.
+ */
+function toLayoutGrid(width: number): number {
+  return Math.ceil(width * 64) / 64;
+}
+
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
+
+/**
  * Sizes a text node for Yoga, and lays its text out for drawing at the width
  * Yoga finally gives it.
  *
@@ -151,12 +175,26 @@ function resolveLineHeight(
  * unchanged by the pin, so the next layout normally keeps the node's width.
  */
 export class TextMeasure {
-  /** Yoga's measurements by width (Infinity for unbounded). */
+  /**
+   * Yoga's measurements by width (Infinity for unbounded), and those at
+   * exactly a width.
+   */
   private readonly sizes = new Map<number, { width: number; height: number }>();
+  private readonly exactSizes = new Map<
+    number,
+    { width: number; height: number }
+  >();
   /** The heights reported to Yoga since the last `settle`. */
   private readonly reported = new Set<number>();
   private pinnedHeight: number | undefined;
   private settled: { width: number; result: TextLayoutResult } | undefined;
+  /**
+   * The text's intrinsic widths, from whichever layout came first: its
+   * max-content width, and a bound on its min-content width, which is the
+   * min-content width but where finding it takes more (see `widestGrapheme`).
+   */
+  private intrinsic:
+    { max: number; minBound: number; min: number | undefined } | undefined;
   private readonly measureStyle: ComputedStyle;
 
   constructor(
@@ -174,34 +212,166 @@ export class TextMeasure {
    * Measure the text for Yoga.
    *
    * @param maxWidth - The width available, Infinity for unbounded
+   * @param exact - Whether the node is exactly `maxWidth` wide, whatever its
+   *   text: it's then measured for its height there
    */
-  measure(maxWidth: number): { width: number; height: number } {
-    let size = this.sizes.get(maxWidth);
+  measure(maxWidth: number, exact = false): { width: number; height: number } {
+    const sizes = exact ? this.exactSizes : this.sizes;
+    let size = sizes.get(maxWidth);
     if (!size) {
-      const result = layoutText(
-        this.text,
-        this.measureStyle,
-        maxWidth,
-        this.emojiEnabled,
-      );
-      // When text wraps, report the constraint width (like CSS block layout),
-      // so that the node is drawn at the width its lines were broken at.
-      // Text that only breaks where it's forced to is as wide as its widest
-      // line (CSS fit-content), without the ellipsis a line clamp adds: the
-      // clamped line is truncated to fit that width when it's drawn, as in
-      // Chrome.
-      const wrapped = result.maxContentWidth > maxWidth;
-      size = {
-        width: wrapped
-          ? maxWidth
-          : Math.min(result.width, result.maxContentWidth, maxWidth),
-        height: result.height,
-      };
-      this.sizes.set(maxWidth, size);
+      let result = this.layOut(maxWidth);
+      // Text is as wide as CSS fit-content makes it. When it wraps, that's
+      // the constraint width (like CSS block layout), so that the node is
+      // drawn at the width its lines were broken at, unless a run that can't
+      // break is wider: then it's as wide as that run (its min-content), and
+      // laid out at that width, as it will be drawn. Text that only breaks
+      // where it's forced to is as wide as its widest line (max-content),
+      // without the ellipsis a line clamp adds: the clamped line is truncated
+      // to fit that width when it's drawn, as in Chrome.
+      let width: number;
+      if (exact) {
+        width = maxWidth;
+      } else if (result.maxContentWidth > maxWidth) {
+        width =
+          this.minContentBound <= maxWidth
+            ? maxWidth
+            : Math.max(maxWidth, this.minContentWidth);
+        if (width > maxWidth) result = this.layOut(width);
+      } else {
+        width = Math.min(
+          toLayoutGrid(Math.min(result.width, result.maxContentWidth)),
+          maxWidth,
+        );
+      }
+      size = { width, height: result.height };
+      sizes.set(maxWidth, size);
     }
     const height = this.pinnedHeight ?? size.height;
     this.reported.add(height);
     return { width: size.width, height };
+  }
+
+  /**
+   * The text's min-content width: as narrow as it gets, each run of it that
+   * can't break on a line of its own. As CSS has it, that's the widest word,
+   * or the widest line for text that doesn't wrap, and under
+   * `overflow-wrap: anywhere` (or `word-break: break-word`) and
+   * `word-break: break-all` the widest letter. Text truncated with an
+   * ellipsis (`text-overflow: ellipsis` without wrapping, or a line clamp)
+   * has none: it's drawn at whatever width it has, which CSS gives it in
+   * the `overflow: hidden` box an ellipsis needs.
+   *
+   * Never wider than the text's widest line, and on the layout grid (see
+   * `toLayoutGrid`), as the widths `measure` reports are.
+   */
+  get minContentWidth(): number {
+    const intrinsic = this.intrinsic ?? this.measureIntrinsic();
+    intrinsic.min ??= Math.min(
+      toLayoutGrid(this.widestGrapheme()),
+      intrinsic.minBound,
+    );
+    return intrinsic.min;
+  }
+
+  /** At least the text's min-content width, and found without more work. */
+  get minContentBound(): number {
+    return (this.intrinsic ?? this.measureIntrinsic()).minBound;
+  }
+
+  /**
+   * The text's max-content width: its widest line, were no line to wrap, on
+   * the layout grid.
+   */
+  get maxContentWidth(): number {
+    return (this.intrinsic ?? this.measureIntrinsic()).max;
+  }
+
+  /** Whether the text can't be narrower than its widest line. */
+  get unbreakable(): boolean {
+    return this.minContentBound >= this.maxContentWidth;
+  }
+
+  private measureIntrinsic(): NonNullable<TextMeasure["intrinsic"]> {
+    this.layOut(Infinity);
+    return this.intrinsic!;
+  }
+
+  private layOut(width: number): TextLayoutResult {
+    const result = layoutText(
+      this.text,
+      this.measureStyle,
+      width,
+      this.emojiEnabled,
+    );
+    this.intrinsic ??= this.intrinsicOf(result);
+    return result;
+  }
+
+  /** The intrinsic widths of the text, from a layout of it at any width. */
+  private intrinsicOf(
+    result: TextLayoutResult,
+  ): NonNullable<TextMeasure["intrinsic"]> {
+    const { style } = this;
+    const max = toLayoutGrid(result.maxContentWidth);
+    const noWrap = style.whiteSpace === "nowrap" || style.whiteSpace === "pre";
+    if (
+      (style.lineClamp !== undefined && style.lineClamp >= 1) ||
+      (noWrap && style.textOverflow === "ellipsis")
+    ) {
+      return { max, minBound: 0, min: 0 };
+    }
+    // Every layout of text that doesn't wrap has the same lines. The
+    // paragraph gives its min-content as its max-content, which it rounds
+    // up: the widest line is what's drawn.
+    const minBound = Math.min(
+      toLayoutGrid(
+        noWrap
+          ? Math.min(result.minContentWidth, result.width)
+          : result.minContentWidth,
+      ),
+      max,
+    );
+    // The paragraph breaks a word under `anywhere` as under `break-word`,
+    // which a word's min-content doesn't count: its widest word is a bound.
+    const anywhere =
+      !noWrap &&
+      (style.overflowWrap === "anywhere" || style.wordBreak === "break-word");
+    return { max, minBound, min: anywhere ? undefined : minBound };
+  }
+
+  /**
+   * The width of the text's widest grapheme cluster: its min-content where
+   * a line may break between any two. Each one is laid out once, as a word
+   * of its own.
+   */
+  private widestGrapheme(): number {
+    const text = applyTextTransform(
+      collapseWhiteSpace(this.text, this.style.whiteSpace),
+      this.style,
+    );
+    // Latin text is a grapheme per character; other scripts and emoji may
+    // join several.
+    const graphemes = new Set<string>(
+      /^[\s!-\u02ff]*$/.test(text)
+        ? text
+        : Array.from(graphemeSegmenter.segment(text), ({ segment }) => segment),
+    );
+    for (const grapheme of graphemes) {
+      if (/^\s+$/.test(grapheme)) graphemes.delete(grapheme);
+    }
+    if (graphemes.size === 0) return 0;
+    return layoutText(
+      [...graphemes].join(" "),
+      {
+        ...this.measureStyle,
+        whiteSpace: "normal",
+        wordBreak: "normal",
+        overflowWrap: "normal",
+        textTransform: "none",
+      },
+      Infinity,
+      this.emojiEnabled,
+    ).minContentWidth;
   }
 
   /**

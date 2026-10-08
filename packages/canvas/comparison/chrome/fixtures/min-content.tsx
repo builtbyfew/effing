@@ -668,6 +668,58 @@ export default fixtureModule("min-content", [
     ]),
   ),
   columnFixture(
+    "holds text items in a column with no room",
+    <div style={{ display: "flex", width: 500, height: 200 }}>
+      <div
+        id="column"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: 160,
+          height: 0,
+          fontFamily: SANS,
+          fontSize: 20,
+        }}
+      >
+        <div id="item0">{LINES}</div>
+        <div id="item1" style={{ padding: 4 }}>
+          {LINES}
+        </div>
+      </div>
+    </div>,
+  ),
+  columnFixture(
+    "holds text items in a column its parent squeezes to nothing",
+    <div style={{ display: "flex", width: 500, height: 200 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: 160,
+          height: 100,
+          fontFamily: SANS,
+          fontSize: 20,
+        }}
+      >
+        <div style={{ height: 100, flexShrink: 0 }} />
+        <div
+          id="column"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flexShrink: 1,
+            minHeight: 0,
+          }}
+        >
+          <div id="item0">{LINES}</div>
+          <div id="item1" style={{ flex: 1 }}>
+            {LINES}
+          </div>
+        </div>
+      </div>
+    </div>,
+  ),
+  columnFixture(
     "centres text in an element's own column too short for it",
     column([
       [

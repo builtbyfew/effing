@@ -887,8 +887,10 @@ describe("text measured and drawn at one width", () => {
   it("falls back to Yoga's own layout when the text doesn't settle", async () => {
     // In a wrapping column of fixed height, a text's height decides which
     // column the next item goes in, and with it the widths: each height
-    // drawn moves the layout on to widths it doesn't fit.
-    // (A half of the column around it, which has no width of its own.)
+    // drawn moves the layout on to widths it doesn't fit. (A half of the
+    // column around it, which has no width of its own. With no `minHeight`,
+    // the text would be held at its lines' height, as CSS holds it, which
+    // settles the layout.)
     const element = (
       <div
         style={{
@@ -918,7 +920,9 @@ describe("text measured and drawn at one width", () => {
           >
             dog word word here
           </div>
-          <div style={{ display: "flex", flexGrow: 1, fontSize: 14 }}>
+          <div
+            style={{ display: "flex", flexGrow: 1, fontSize: 14, minHeight: 0 }}
+          >
             jumps quick quick quick A quick
           </div>
         </div>

@@ -50,6 +50,12 @@ export function createTextYogaNode(): YogaNode {
   return Yoga.Node.create(textConfig);
 }
 
+/** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
+export function floorToPixel(value: number): number {
+  const rounded = Math.round(value);
+  return Math.abs(value - rounded) < 1e-4 ? rounded : Math.floor(value);
+}
+
 export function freeYogaNode(node: YogaNode): void {
   node.freeRecursive();
 }

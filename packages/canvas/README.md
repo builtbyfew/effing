@@ -197,11 +197,13 @@ const png = canvas.encodeSync("png");
 | `gap`                 | Shorthand for `rowGap`, `columnGap`                                                 |
 | `rowGap`, `columnGap` | Number                                                                              |
 
-> ¹ `baseline` aligns children to the line-box **bottom** (the same result as
-> `flex-end`), **not** the typographic baseline. Rows mixing different font
-> sizes will not share a text baseline. This is a limitation of the bundled
-> Yoga layout engine, whose JS binding exposes no baseline function; the same
-> caveat applies to Satori.
+> ¹ `baseline` aligns the items of a row by their first baselines, as in CSS
+> (Satori aligns them by their boxes' bottoms): text by its first line's
+> baseline, below its element's padding and border, and an element by that of
+> its first item (in a row, its first item aligned by its baseline, if any). A
+> box with no items has its bottom edge for a baseline. In a column, it's
+> `flex-start`, and the items of a `wrap-reverse` row are aligned by their
+> boxes' bottoms.
 
 ### Dimensions
 

@@ -1,4 +1,5 @@
 import type { FixtureModule } from "../fixture.ts";
+import baseline from "./baseline.tsx";
 import br from "./br.tsx";
 import filters from "./filters.tsx";
 import minContent from "./min-content.tsx";
@@ -18,4 +19,5 @@ export const modules: FixtureModule[] = [
   textLayout,
   textPainting,
   filters,
+  baseline,
 ];

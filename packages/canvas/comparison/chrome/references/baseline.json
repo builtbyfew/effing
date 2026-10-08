@@ -1,0 +1,1205 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "f32f11b2d18ab952",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "aligns text of mixed font sizes": {
+      "hash": "7d3cdcba762cb6fa",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 182.75,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Big",
+              "x": 0,
+              "width": 69.375,
+              "top": 0,
+              "height": 55,
+              "baseline": 44
+            },
+            {
+              "text": "medium",
+              "x": 69.375,
+              "width": 85.3594,
+              "top": 22,
+              "height": 28,
+              "baseline": 44
+            },
+            {
+              "text": "small",
+              "x": 154.7344,
+              "width": 28.0156,
+              "top": 33,
+              "height": 14,
+              "baseline": 44
+            }
+          ]
+        },
+        "big": {
+          "x": 0,
+          "y": 0,
+          "width": 69.375,
+          "height": 55,
+          "lines": [
+            {
+              "text": "Big",
+              "x": 0,
+              "width": 69.375,
+              "top": 0,
+              "height": 55,
+              "baseline": 44
+            }
+          ]
+        },
+        "medium": {
+          "x": 69.375,
+          "y": 22,
+          "width": 85.3594,
+          "height": 28,
+          "lines": [
+            {
+              "text": "medium",
+              "x": 69.375,
+              "width": 85.3594,
+              "top": 22,
+              "height": 28,
+              "baseline": 44
+            }
+          ]
+        },
+        "small": {
+          "x": 154.7344,
+          "y": 33,
+          "width": 28.0156,
+          "height": 14,
+          "lines": [
+            {
+              "text": "small",
+              "x": 154.7344,
+              "width": 28.0156,
+              "top": 33,
+              "height": 14,
+              "baseline": 44
+            }
+          ]
+        }
+      }
+    },
+    "aligns a price with its currency and unit": {
+      "hash": "bfdb52f89fbe51b6",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 161.4688,
+          "height": 100,
+          "lines": [
+            {
+              "text": "€",
+              "x": 10,
+              "width": 13.3594,
+              "top": 47,
+              "height": 28,
+              "baseline": 69
+            },
+            {
+              "text": "42",
+              "x": 27.3594,
+              "width": 71.1875,
+              "top": 10,
+              "height": 74,
+              "baseline": 69
+            },
+            {
+              "text": "/month",
+              "x": 102.5469,
+              "width": 48.9219,
+              "top": 55,
+              "height": 18,
+              "baseline": 69
+            }
+          ]
+        },
+        "currency": {
+          "x": 10,
+          "y": 47,
+          "width": 13.3594,
+          "height": 28,
+          "lines": [
+            {
+              "text": "€",
+              "x": 10,
+              "width": 13.3594,
+              "top": 47,
+              "height": 28,
+              "baseline": 69
+            }
+          ]
+        },
+        "amount": {
+          "x": 27.3594,
+          "y": 10,
+          "width": 71.1875,
+          "height": 74,
+          "lines": [
+            {
+              "text": "42",
+              "x": 27.3594,
+              "width": 71.1875,
+              "top": 10,
+              "height": 74,
+              "baseline": 69
+            }
+          ]
+        },
+        "unit": {
+          "x": 102.5469,
+          "y": 55,
+          "width": 48.9219,
+          "height": 18,
+          "lines": [
+            {
+              "text": "/month",
+              "x": 102.5469,
+              "width": 48.9219,
+              "top": 55,
+              "height": 18,
+              "baseline": 69
+            }
+          ]
+        }
+      },
+      "screenshot": "baseline/aligns-a-price-with-its-currency-and-unit.png"
+    },
+    "aligns a badge with a price, in rows of set line heights": {
+      "hash": "df362bce186ef61e",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 260,
+          "height": 60,
+          "lines": [
+            {
+              "text": "NEW",
+              "x": 18,
+              "width": 31.6719,
+              "top": 21,
+              "height": 11,
+              "baseline": 30
+            },
+            {
+              "text": "$425,000",
+              "x": 149.8906,
+              "width": 100.1094,
+              "top": 10,
+              "height": 24,
+              "baseline": 30
+            }
+          ]
+        },
+        "badge": {
+          "x": 10,
+          "y": 19,
+          "width": 47.6719,
+          "height": 15,
+          "lines": [
+            {
+              "text": "NEW",
+              "x": 18,
+              "width": 31.6719,
+              "top": 21,
+              "height": 11,
+              "baseline": 30
+            }
+          ]
+        },
+        "price": {
+          "x": 149.8906,
+          "y": 10,
+          "width": 100.1094,
+          "height": 24,
+          "lines": [
+            {
+              "text": "$425,000",
+              "x": 149.8906,
+              "width": 100.1094,
+              "top": 10,
+              "height": 24,
+              "baseline": 30
+            }
+          ]
+        }
+      },
+      "screenshot": "baseline/aligns-a-badge-with-a-price-in-rows-of-set-line-heights.png"
+    },
+    "aligns wrapped text by its first line": {
+      "hash": "d39a1018bbf1d277",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 204.5,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Total",
+              "x": 0,
+              "width": 84.5,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            },
+            {
+              "text": "a few words that",
+              "x": 84.5,
+              "width": 116.5,
+              "top": 22,
+              "height": 18,
+              "baseline": 36
+            },
+            {
+              "text": "wrap over three",
+              "x": 84.5,
+              "width": 111.1719,
+              "top": 40,
+              "height": 18,
+              "baseline": 54
+            },
+            {
+              "text": "lines",
+              "x": 84.5,
+              "width": 32.9063,
+              "top": 58,
+              "height": 18,
+              "baseline": 72
+            }
+          ]
+        },
+        "label": {
+          "x": 0,
+          "y": 0,
+          "width": 84.5,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Total",
+              "x": 0,
+              "width": 84.5,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        },
+        "wrapped": {
+          "x": 84.5,
+          "y": 22,
+          "width": 120,
+          "height": 54,
+          "lines": [
+            {
+              "text": "a few words that",
+              "x": 84.5,
+              "width": 116.5,
+              "top": 22,
+              "height": 18,
+              "baseline": 36
+            },
+            {
+              "text": "wrap over three",
+              "x": 84.5,
+              "width": 111.1719,
+              "top": 40,
+              "height": 18,
+              "baseline": 54
+            },
+            {
+              "text": "lines",
+              "x": 84.5,
+              "width": 32.9063,
+              "top": 58,
+              "height": 18,
+              "baseline": 72
+            }
+          ]
+        }
+      }
+    },
+    "aligns text with forced breaks by its first line": {
+      "hash": "acb9656631819e43",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 129.2031,
+          "height": 200,
+          "lines": [
+            {
+              "text": "first line",
+              "x": 0,
+              "width": 68.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 0,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "small",
+              "x": 101.1875,
+              "width": 28.0156,
+              "top": 7,
+              "height": 14,
+              "baseline": 18
+            }
+          ]
+        },
+        "lines": {
+          "x": 0,
+          "y": 0,
+          "width": 101.1875,
+          "height": 46,
+          "lines": [
+            {
+              "text": "first line",
+              "x": 0,
+              "width": 68.9063,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "second line",
+              "x": 0,
+              "width": 101.1875,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            }
+          ]
+        },
+        "small": {
+          "x": 101.1875,
+          "y": 7,
+          "width": 28.0156,
+          "height": 14,
+          "lines": [
+            {
+              "text": "small",
+              "x": 101.1875,
+              "width": 28.0156,
+              "top": 7,
+              "height": 14,
+              "baseline": 18
+            }
+          ]
+        }
+      }
+    },
+    "aligns text by its content box, past padding and borders": {
+      "hash": "83ac56fc13ec104f",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 141.0313,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Padded",
+              "x": 4,
+              "width": 103.4375,
+              "top": 17,
+              "height": 34,
+              "baseline": 44
+            },
+            {
+              "text": "plain",
+              "x": 111.4375,
+              "width": 29.5938,
+              "top": 31,
+              "height": 16,
+              "baseline": 44
+            }
+          ]
+        },
+        "padded": {
+          "x": 0,
+          "y": 0,
+          "width": 111.4375,
+          "height": 59,
+          "lines": [
+            {
+              "text": "Padded",
+              "x": 4,
+              "width": 103.4375,
+              "top": 17,
+              "height": 34,
+              "baseline": 44
+            }
+          ]
+        },
+        "plain": {
+          "x": 111.4375,
+          "y": 31,
+          "width": 29.5938,
+          "height": 16,
+          "lines": [
+            {
+              "text": "plain",
+              "x": 111.4375,
+              "width": 29.5938,
+              "top": 31,
+              "height": 16,
+              "baseline": 44
+            }
+          ]
+        }
+      }
+    },
+    "aligns text of set line heights": {
+      "hash": "3ffcda0df77abc89",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 147.875,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Tall",
+              "x": 0,
+              "width": 30.0156,
+              "top": 0,
+              "height": 60,
+              "baseline": 37
+            },
+            {
+              "text": "normal",
+              "x": 30.0156,
+              "width": 61.1406,
+              "top": 19,
+              "height": 23,
+              "baseline": 37
+            },
+            {
+              "text": "tight",
+              "x": 91.1563,
+              "width": 56.7188,
+              "top": 17,
+              "height": 20,
+              "baseline": 37
+            }
+          ]
+        },
+        "tall": {
+          "x": 0,
+          "y": 0,
+          "width": 30.0156,
+          "height": 60,
+          "lines": [
+            {
+              "text": "Tall",
+              "x": 0,
+              "width": 30.0156,
+              "top": 0,
+              "height": 60,
+              "baseline": 37
+            }
+          ]
+        },
+        "normal": {
+          "x": 30.0156,
+          "y": 19,
+          "width": 61.1406,
+          "height": 23,
+          "lines": [
+            {
+              "text": "normal",
+              "x": 30.0156,
+              "width": 61.1406,
+              "top": 19,
+              "height": 23,
+              "baseline": 37
+            }
+          ]
+        },
+        "tight": {
+          "x": 91.1563,
+          "y": 17,
+          "width": 56.7188,
+          "height": 20,
+          "lines": [
+            {
+              "text": "tight",
+              "x": 91.1563,
+              "width": 56.7188,
+              "top": 17,
+              "height": 20,
+              "baseline": 37
+            }
+          ]
+        }
+      }
+    },
+    "aligns trimmed text": {
+      "hash": "da0eb23c64a44ada",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 99.1875,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Cap",
+              "x": 0,
+              "width": 73.3906,
+              "top": -8.4844,
+              "height": 45,
+              "baseline": 27.5156
+            },
+            {
+              "text": "text",
+              "x": 73.3906,
+              "width": 25.7969,
+              "top": 13.5156,
+              "height": 18,
+              "baseline": 27.5156
+            }
+          ]
+        },
+        "trimmed": {
+          "x": 0,
+          "y": 0,
+          "width": 73.3906,
+          "height": 27.5156,
+          "lines": [
+            {
+              "text": "Cap",
+              "x": 0,
+              "width": 73.3906,
+              "top": -8.4844,
+              "height": 45,
+              "baseline": 27.5156
+            }
+          ]
+        },
+        "other": {
+          "x": 73.3906,
+          "y": 13.5156,
+          "width": 25.7969,
+          "height": 18,
+          "lines": [
+            {
+              "text": "text",
+              "x": 73.3906,
+              "width": 25.7969,
+              "top": 13.5156,
+              "height": 18,
+              "baseline": 27.5156
+            }
+          ]
+        }
+      }
+    },
+    "aligns runs of text among elements": {
+      "hash": "42a516089425a39f",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 115.6719,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Total",
+              "x": 0,
+              "width": 42.25,
+              "top": 15,
+              "height": 23,
+              "baseline": 33
+            },
+            {
+              "text": "99",
+              "x": 42.25,
+              "width": 40.0469,
+              "top": 0,
+              "height": 42,
+              "baseline": 33
+            },
+            {
+              "text": "due",
+              "x": 82.2969,
+              "width": 33.375,
+              "top": 15,
+              "height": 23,
+              "baseline": 33
+            }
+          ]
+        },
+        "amount": {
+          "x": 42.25,
+          "y": 0,
+          "width": 40.0469,
+          "height": 42,
+          "lines": [
+            {
+              "text": "99",
+              "x": 42.25,
+              "width": 40.0469,
+              "top": 0,
+              "height": 42,
+              "baseline": 33
+            }
+          ]
+        }
+      }
+    },
+    "aligns a box of a nested column by its first item": {
+      "hash": "31f7a03e9d624c7d",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 88.625,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Title",
+              "x": 0,
+              "width": 59.2656,
+              "top": 8,
+              "height": 37,
+              "baseline": 37
+            },
+            {
+              "text": "subtitle",
+              "x": 0,
+              "width": 38.0313,
+              "top": 45,
+              "height": 14,
+              "baseline": 56
+            },
+            {
+              "text": "side",
+              "x": 59.2656,
+              "width": 29.3594,
+              "top": 23,
+              "height": 18,
+              "baseline": 37
+            }
+          ]
+        },
+        "card": {
+          "x": 0,
+          "y": 0,
+          "width": 59.2656,
+          "height": 59,
+          "lines": [
+            {
+              "text": "Title",
+              "x": 0,
+              "width": 59.2656,
+              "top": 8,
+              "height": 37,
+              "baseline": 37
+            },
+            {
+              "text": "subtitle",
+              "x": 0,
+              "width": 38.0313,
+              "top": 45,
+              "height": 14,
+              "baseline": 56
+            }
+          ]
+        },
+        "title": {
+          "x": 0,
+          "y": 8,
+          "width": 59.2656,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Title",
+              "x": 0,
+              "width": 59.2656,
+              "top": 8,
+              "height": 37,
+              "baseline": 37
+            }
+          ]
+        },
+        "subtitle": {
+          "x": 0,
+          "y": 45,
+          "width": 59.2656,
+          "height": 14,
+          "lines": [
+            {
+              "text": "subtitle",
+              "x": 0,
+              "width": 38.0313,
+              "top": 45,
+              "height": 14,
+              "baseline": 56
+            }
+          ]
+        },
+        "side": {
+          "x": 59.2656,
+          "y": 23,
+          "width": 29.3594,
+          "height": 18,
+          "lines": [
+            {
+              "text": "side",
+              "x": 59.2656,
+              "width": 29.3594,
+              "top": 23,
+              "height": 18,
+              "baseline": 37
+            }
+          ]
+        }
+      }
+    },
+    "aligns a box of a nested baseline row by its shared baseline": {
+      "hash": "7aee66b3c803e36b",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 40.0156,
+          "height": 200,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 6,
+              "top": 26,
+              "height": 14,
+              "baseline": 37
+            },
+            {
+              "text": "Y",
+              "x": 6,
+              "width": 24.0156,
+              "top": 4,
+              "height": 42,
+              "baseline": 37
+            },
+            {
+              "text": "z",
+              "x": 30.0156,
+              "width": 10,
+              "top": 19,
+              "height": 23,
+              "baseline": 37
+            }
+          ]
+        },
+        "inner": {
+          "x": 0,
+          "y": 0,
+          "width": 30.0156,
+          "height": 46,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 6,
+              "top": 26,
+              "height": 14,
+              "baseline": 37
+            },
+            {
+              "text": "Y",
+              "x": 6,
+              "width": 24.0156,
+              "top": 4,
+              "height": 42,
+              "baseline": 37
+            }
+          ]
+        },
+        "x": {
+          "x": 0,
+          "y": 26,
+          "width": 6,
+          "height": 14,
+          "lines": [
+            {
+              "text": "x",
+              "x": 0,
+              "width": 6,
+              "top": 26,
+              "height": 14,
+              "baseline": 37
+            }
+          ]
+        },
+        "y": {
+          "x": 6,
+          "y": 4,
+          "width": 24.0156,
+          "height": 42,
+          "lines": [
+            {
+              "text": "Y",
+              "x": 6,
+              "width": 24.0156,
+              "top": 4,
+              "height": 42,
+              "baseline": 37
+            }
+          ]
+        },
+        "z": {
+          "x": 30.0156,
+          "y": 19,
+          "width": 10,
+          "height": 23,
+          "lines": [
+            {
+              "text": "z",
+              "x": 30.0156,
+              "width": 10,
+              "top": 19,
+              "height": 23,
+              "baseline": 37
+            }
+          ]
+        }
+      }
+    },
+    "aligns an empty box by its bottom edge": {
+      "hash": "42e4035acdb4d283",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 68.3594,
+          "height": 200,
+          "lines": [
+            {
+              "text": "text",
+              "x": 20,
+              "width": 48.3594,
+              "top": 3,
+              "height": 34,
+              "baseline": 30
+            }
+          ]
+        },
+        "box": { "x": 0, "y": 0, "width": 20, "height": 30, "lines": [] },
+        "text": {
+          "x": 20,
+          "y": 3,
+          "width": 48.3594,
+          "height": 34,
+          "lines": [
+            {
+              "text": "text",
+              "x": 20,
+              "width": 48.3594,
+              "top": 3,
+              "height": 34,
+              "baseline": 30
+            }
+          ]
+        }
+      }
+    },
+    "aligns items by their baselines below their top margins": {
+      "hash": "9e0e247f2f772ab0",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 111.1875,
+          "height": 200,
+          "lines": [
+            {
+              "text": "low",
+              "x": 0,
+              "width": 30.0156,
+              "top": 30,
+              "height": 23,
+              "baseline": 48
+            },
+            {
+              "text": "Big",
+              "x": 30.0156,
+              "width": 57.8125,
+              "top": 12,
+              "height": 45,
+              "baseline": 48
+            },
+            {
+              "text": "auto",
+              "x": 87.8281,
+              "width": 23.3594,
+              "top": 186,
+              "height": 14,
+              "baseline": 197
+            }
+          ]
+        },
+        "low": {
+          "x": 0,
+          "y": 30,
+          "width": 30.0156,
+          "height": 23,
+          "lines": [
+            {
+              "text": "low",
+              "x": 0,
+              "width": 30.0156,
+              "top": 30,
+              "height": 23,
+              "baseline": 48
+            }
+          ]
+        },
+        "big": {
+          "x": 30.0156,
+          "y": 12,
+          "width": 57.8125,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Big",
+              "x": 30.0156,
+              "width": 57.8125,
+              "top": 12,
+              "height": 45,
+              "baseline": 48
+            }
+          ]
+        },
+        "auto": {
+          "x": 87.8281,
+          "y": 186,
+          "width": 23.3594,
+          "height": 14,
+          "lines": [
+            {
+              "text": "auto",
+              "x": 87.8281,
+              "width": 23.3594,
+              "top": 186,
+              "height": 14,
+              "baseline": 197
+            }
+          ]
+        }
+      }
+    },
+    "aligns only the items with alignSelf: baseline": {
+      "hash": "90ad7686bcb27fda",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 109.9531,
+          "height": 200,
+          "lines": [
+            {
+              "text": "Big",
+              "x": 0,
+              "width": 57.8125,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            },
+            {
+              "text": "small",
+              "x": 57.8125,
+              "width": 32.6719,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            },
+            {
+              "text": "top",
+              "x": 90.4844,
+              "width": 19.4688,
+              "top": 0,
+              "height": 16,
+              "baseline": 13
+            }
+          ]
+        },
+        "big": {
+          "x": 0,
+          "y": 0,
+          "width": 57.8125,
+          "height": 45,
+          "lines": [
+            {
+              "text": "Big",
+              "x": 0,
+              "width": 57.8125,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        },
+        "small": {
+          "x": 57.8125,
+          "y": 23,
+          "width": 32.6719,
+          "height": 16,
+          "lines": [
+            {
+              "text": "small",
+              "x": 57.8125,
+              "width": 32.6719,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            }
+          ]
+        },
+        "top": {
+          "x": 90.4844,
+          "y": 0,
+          "width": 19.4688,
+          "height": 16,
+          "lines": [
+            {
+              "text": "top",
+              "x": 90.4844,
+              "width": 19.4688,
+              "top": 0,
+              "height": 16,
+              "baseline": 13
+            }
+          ]
+        }
+      }
+    },
+    "aligns each line of a wrapping row": {
+      "hash": "cb32ec4a0bca2be4",
+      "elements": {
+        "row": {
+          "x": 0,
+          "y": 0,
+          "width": 150,
+          "height": 82,
+          "lines": [
+            {
+              "text": "One",
+              "x": 0,
+              "width": 75.6094,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            },
+            {
+              "text": "two",
+              "x": 81.6094,
+              "width": 21.7969,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            },
+            {
+              "text": "three",
+              "x": 109.4063,
+              "width": 31.9219,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            },
+            {
+              "text": "Four",
+              "x": 0,
+              "width": 65.7969,
+              "top": 45,
+              "height": 37,
+              "baseline": 74
+            }
+          ]
+        },
+        "a": {
+          "x": 0,
+          "y": 0,
+          "width": 75.6094,
+          "height": 45,
+          "lines": [
+            {
+              "text": "One",
+              "x": 0,
+              "width": 75.6094,
+              "top": 0,
+              "height": 45,
+              "baseline": 36
+            }
+          ]
+        },
+        "b": {
+          "x": 81.6094,
+          "y": 23,
+          "width": 21.7969,
+          "height": 16,
+          "lines": [
+            {
+              "text": "two",
+              "x": 81.6094,
+              "width": 21.7969,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            }
+          ]
+        },
+        "c": {
+          "x": 109.4063,
+          "y": 23,
+          "width": 31.9219,
+          "height": 16,
+          "lines": [
+            {
+              "text": "three",
+              "x": 109.4063,
+              "width": 31.9219,
+              "top": 23,
+              "height": 16,
+              "baseline": 36
+            }
+          ]
+        },
+        "d": {
+          "x": 0,
+          "y": 45,
+          "width": 65.7969,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Four",
+              "x": 0,
+              "width": 65.7969,
+              "top": 45,
+              "height": 37,
+              "baseline": 74
+            }
+          ]
+        }
+      }
+    }
+  }
+}

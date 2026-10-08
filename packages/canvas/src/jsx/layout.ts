@@ -16,6 +16,7 @@ import {
 } from "./style/compute.ts";
 import type { ComputedStyle } from "./style/compute.ts";
 import { applyStylesToYoga, toLayoutUnit } from "./style/properties.ts";
+import { alignBaselines } from "./baseline.ts";
 import { TextMeasure } from "./text/index.ts";
 import { isWhiteSpaceOnly } from "./text/white-space.ts";
 import type { TextContent } from "./text/white-space.ts";
@@ -29,6 +30,7 @@ import {
   MeasureMode,
   Unit,
   Wrap,
+  floorToPixel,
 } from "./yoga.ts";
 import type { YogaNode } from "./yoga.ts";
 
@@ -158,6 +160,13 @@ export async function buildLayoutTree(
       );
     }
   }
+  // Yoga aligns items by their boxes' bottoms where CSS aligns them by
+  // their baselines: align them again, by their text's. Where a row aligns
+  // items so, that's up to MAX_BASELINE_RELAYOUTS = 4 rounds more.
+  alignBaselines(elementNode, () => {
+    layOut();
+    settleText(elementNode, layOut, renderContext.debug);
+  });
   if (renderContext.debug && layouts > 5) {
     console.warn(`[@effing/canvas] computed the layout ${layouts} times`);
   }
@@ -952,12 +961,6 @@ const isBreak = (node: ReactNode): node is ReactElement<{ style?: unknown }> =>
 
 const isHidden = (el: ReactElement<{ style?: unknown }>): boolean =>
   (el.props.style as { display?: unknown } | undefined)?.display === "none";
-
-/** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
-function floorToPixel(value: number): number {
-  const rounded = Math.round(value);
-  return Math.abs(value - rounded) < 1e-4 ? rounded : Math.floor(value);
-}
 
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();

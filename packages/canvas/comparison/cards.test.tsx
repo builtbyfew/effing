@@ -55,8 +55,9 @@ const propertyCases: {
         "Fenced Yard",
       ],
     },
-    // 1.51% measured.
-    maxDiff: 2.3,
+    // 3.15% measured: satori aligns the header's badge and price by their
+    // boxes' bottoms, canvas by their baselines, as Chrome does.
+    maxDiff: 4.7,
   },
   {
     label: "sold house with few features",
@@ -69,8 +70,8 @@ const propertyCases: {
       sqft: "960",
       features: ["Parking", "Balcony"],
     },
-    // 0.38% measured.
-    maxDiff: 0.6,
+    // 1.35% measured, the header aligned otherwise, as above.
+    maxDiff: 2,
   },
 ];
 

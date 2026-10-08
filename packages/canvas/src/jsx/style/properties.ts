@@ -61,13 +61,9 @@ export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
     if (jc !== undefined) node.setJustifyContent(jc);
   }
 
-  // Align items.
-  // NOTE: `baseline` does NOT produce typographic baseline alignment. The
-  // bundled yoga-layout JS binding exposes no baseline function, so Yoga falls
-  // back to a node's height as its baseline — which aligns box bottoms (the
-  // same result as `flex-end`), correct only when all children share a font
-  // size. The README documents this limitation; don't re-advertise it as full
-  // baseline support without a real fix, since the engine can't express it.
+  // Align items. Yoga's JS binding has no baseline function: Yoga takes a
+  // text node's bottom edge for its baseline, and `alignBaselines` (see
+  // `../baseline.ts`) aligns the items by their text's baselines after it.
   if (style.alignItems) {
     const map: Record<string, Align> = {
       "flex-start": Align.FlexStart,
@@ -80,7 +76,7 @@ export function applyStylesToYoga(node: YogaNode, style: ComputedStyle): void {
     if (ai !== undefined) node.setAlignItems(ai);
   }
 
-  // Align self (`baseline` carries the same box-bottom caveat as alignItems)
+  // Align self
   if (style.alignSelf) {
     const map: Record<string, Align> = {
       auto: Align.Auto,

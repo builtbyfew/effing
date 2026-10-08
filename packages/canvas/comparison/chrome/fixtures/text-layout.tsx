@@ -3,7 +3,13 @@ import {
   BUNDLED_POPPINS,
   SCRIPT_FONT_FAMILIES,
 } from "../../_helpers/fonts.ts";
-import { SANS, fixtureModule, linesDiffer, quote } from "../fixture.ts";
+import {
+  SANS,
+  fixtureModule,
+  linesDiffer,
+  quote,
+  intentional,
+} from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 import { paragraph } from "./paragraph.tsx";
 
@@ -24,16 +30,10 @@ const SHALOM = "שלום עולם, מה שלומך היום? הכל טוב מא�
  * Chrome draws an ellipsis as three full stops where the first font has no
  * "…", as Noto Sans Hebrew hasn't; canvas draws "…" from the next font.
  */
-const THREE_DOTS =
-  'effing#197: Chrome draws the ellipsis as three full stops ("...") where the first font has no "…" (Noto Sans Hebrew), canvas draws "…" from Liberation Sans';
-
-/**
- * Chrome places the baseline in a line box of a set height by the font's
- * ascent and descent rounded to whole pixels, before it trims it (see
- * `HALF_LEADING` in `native-text.tsx`).
- */
-const HALF_LEADING =
-  "effing-skia#34: canvas puts the baseline in a line box of a set height 0.07px higher: half the leading from the unrounded ascent and descent, where Chrome rounds them";
+const THREE_DOTS = intentional(
+  "effing#197",
+  'Chrome draws the ellipsis as three full stops ("...") where the first font has no "…" (Noto Sans Hebrew), canvas draws "…" from Liberation Sans',
+);
 
 /**
  * Chrome 154 has only the legacy `-webkit-line-clamp`, no unprefixed
@@ -109,7 +109,10 @@ const fixtures: ChromeFixture[] = [
       undefined,
       {
         knownPaintDifference: {
-          why: `effing-skia#38: canvas keeps the text's logical start ("שלום עולם, מה") and ends it in "…", at the run's visual left; Chrome, in a left-to-right paragraph (canvas has no \`direction\`), clips the line at its end edge, keeping the visual left of the right-to-left run, the text's last words ("היום? הכל טוב מאוד"), ellipsized; and ${THREE_DOTS}`,
+          why: `${intentional(
+            "effing-skia#38",
+            'canvas keeps the text\'s logical start ("שלום עולם, מה") and ends it in "…", at the run\'s visual left; Chrome, in a left-to-right paragraph (canvas has no `direction`), clips the line at its end edge, keeping the visual left of the right-to-left run, the text\'s last words ("היום? הכל טוב מאוד"), ellipsized',
+          )}; and ${THREE_DOTS}`,
           pixels: [7, 16],
           ellipses: ["#p line 1"],
         },
@@ -146,7 +149,10 @@ const fixtures: ChromeFixture[] = [
       undefined,
       {
         knownDifference: {
-          why: "effing-skia#35: canvas draws a tab one space wide (as its README says), where CSS advances it to the next tab stop, 8 spaces apart (tab-size: 8)",
+          why: intentional(
+            "effing-skia#35",
+            "canvas draws a tab one space wide (as its README says), where CSS advances it to the next tab stop, 8 spaces apart (tab-size: 8)",
+          ),
           differs: linesDiffer("p", 1, 2, "width"),
         },
       },
@@ -166,13 +172,6 @@ const fixtures: ChromeFixture[] = [
     "super\u00adcali\u00adfragilistic\u00adexpiali\u00addocious",
     {},
     130,
-    undefined,
-    {
-      knownDifference: {
-        why: "effing-skia#31: canvas breaks the line at the soft hyphen but draws no hyphen there: its lines are 6.67px (a hyphen) narrower than Chrome's",
-        differs: linesDiffer("p", 1, 2, "width"),
-      },
-    },
   ),
 
   // text-transform.
@@ -230,19 +229,12 @@ const fixtures: ChromeFixture[] = [
     "Over Away Yes Tea",
     {},
     60,
-    undefined,
-    {
-      knownDifference: {
-        why: 'effing-skia#32: canvas measures a line that starts after the space it wraps at, where the font kerns that space with the line\'s first letter ("space A", "space Y", "space T" in Liberation Sans), half that kerning narrower than Chrome (0.55px for "Away", 0.18px for "Yes" and "Tea")',
-        differs: linesDiffer("p", 2, 4, "width"),
-      },
-    },
   ),
 
   // Line clamps with other text styles.
   ...(
     [
-      // Their pixels differ by 0.9% and 1.5% on macOS, where Chrome
+      // Their pixels differ by 0.9%, 1.5% and 1.6% on macOS, where Chrome
       // rasterises glyphs heavier.
       ["letter-spaced", { letterSpacing: 3 }, { tolerance: { pixels: 1.5 } }],
       [
@@ -267,13 +259,11 @@ const fixtures: ChromeFixture[] = [
       [
         "justified",
         { textAlign: "justify" },
-        {
-          knownPaintDifference: {
-            why: 'effing-skia#33: Chrome justifies the clamped line, as a line that isn\'t the paragraph\'s last, and cuts it for the ellipsis ("jumps over the la…"); canvas doesn\'t justify it ("jumps over the lazy…")',
-            pixels: [3.5, 8.5],
-            ellipses: ["#p line 2"],
-          },
-        },
+        // Justified, then cut for the ellipsis, as in Chrome ("jumps over
+        // the la…"). An intentional difference this doesn't cover: after a
+        // CJK character, the last kept, the ellipsis sits 1–2px left of
+        // Chrome's.
+        { tolerance: { pixels: 2.5 } },
       ],
     ] as const
   ).map(([what, style, rest]) => {
@@ -298,7 +288,10 @@ const fixtures: ChromeFixture[] = [
         "cap alphabetic",
         {
           knownDifference: {
-            why: 'effing#188: canvas trims to the top of "H" as measureText bounds it, rounded out to whole pixels (14px above the baseline at 20px), where Chrome trims to the font\'s cap height (13.77px)',
+            why: intentional(
+              "effing#188",
+              'canvas trims to the top of "H" as measureText bounds it, rounded out to whole pixels (14px above the baseline at 20px), where Chrome trims to the font\'s cap height (13.77px)',
+            ),
             differs: linesDiffer("p", 1, 2, "top"),
           },
         },
@@ -307,7 +300,10 @@ const fixtures: ChromeFixture[] = [
         "ex alphabetic",
         {
           knownDifference: {
-            why: 'effing#188: canvas trims to the top of "x" as measureText bounds it, rounded out to whole pixels (11px above the baseline at 20px), where Chrome trims to the font\'s x-height (10.57px)',
+            why: intentional(
+              "effing#188",
+              'canvas trims to the top of "x" as measureText bounds it, rounded out to whole pixels (11px above the baseline at 20px), where Chrome trims to the font\'s x-height (10.57px)',
+            ),
             differs: linesDiffer("p", 1, 2, "top"),
           },
         },
@@ -337,13 +333,6 @@ const fixtures: ChromeFixture[] = [
       "Hxg\nHxg",
       { whiteSpace: "pre", lineHeight: "30px", textBoxTrim, textBoxEdge },
       1000,
-      undefined,
-      {
-        knownDifference: {
-          why: HALF_LEADING,
-          differs: linesDiffer("p", 1, 2, "baseline in its line box"),
-        },
-      },
     ),
   ),
 
@@ -356,13 +345,6 @@ const fixtures: ChromeFixture[] = [
     TEXT,
     { fontWeight: 700, fontStyle: "italic" },
     200,
-    undefined,
-    {
-      knownDifference: {
-        why: "effing-skia#37: there's no bold italic face: Chrome matches the style before the weight, as CSS does, and draws the italic face in synthesized bold (the regular widths); canvas draws the bold face slanted, and breaks its wider lines elsewhere",
-        differs: [...linesDiffer("p", 1, 5, "width"), "#p line 4", "#p line 5"],
-      },
-    },
   ),
   // The advances only: Chrome on macOS emboldens more lightly than canvas.
   paragraph(

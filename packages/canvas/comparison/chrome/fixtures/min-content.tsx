@@ -103,14 +103,6 @@ const rowFixture = (
   ...rest,
 });
 
-/**
- * Canvas makes "Antidisestablishmentarianism" 0.74px narrower on the line
- * after a wrap than on its own (568.3px, where Chrome has 569.05px either
- * way): the kerning of the space before it against its "A", which Chrome
- * leaves with the space at the wrap (effing-skia#32).
- */
-const KERNED_AT_WRAP = { lineWidth: 0.8 };
-
 const SIBLING = (
   <div key="s" style={{ width: 100, height: 20, flexShrink: 0 }} />
 );
@@ -148,7 +140,6 @@ export default fixtureModule("min-content", [
     text({ textAlign: "center" }, WORDS),
     {},
     { text: box(-17.88, 635.77, [-17.88, 15.48]) },
-    { tolerance: KERNED_AT_WRAP },
   ),
   inBoxFixture(
     "doesn't count a break-word break in the min-content",
@@ -199,7 +190,6 @@ export default fixtureModule("min-content", [
     text({ textAlign: "center" }, WORDS),
     { flexDirection: "column" },
     { text: box(-17.88, 635.77, [-17.88, 15.48]) },
-    { tolerance: KERNED_AT_WRAP },
   ),
   inBoxFixture(
     "keeps the text as wide as its line in a box of its own column",
@@ -574,7 +564,7 @@ export default fixtureModule("min-content", [
     {
       knownDifference: {
         why: "effing#194: canvas makes the first two items one line tall (44px and 14px), where it draws their text, and Chrome lays it out, on three and two lines (132px and 28px)",
-        differs: ["#item0 height", "#item1 height", "#item1 line 2 width"],
+        differs: ["#item0 height", "#item1 height"],
       },
     },
   ),

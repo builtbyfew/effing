@@ -1,5 +1,5 @@
 import type React from "react";
-import { SANS, fixtureModule } from "../fixture.ts";
+import { SANS, fixtureModule, intentional } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 
 // Text painting, compared pixel by pixel with Chrome's screenshot:
@@ -92,7 +92,10 @@ const fixtures: ChromeFixture[] = [
     "Overlined",
     {
       knownPaintDifference: {
-        why: "effing#190: canvas centres the overline 0.85em above the baseline (rows 10–13 here); Chrome paints it above the content area, its bottom at the ascent (rows 6–9), 4px higher at 40px: y = baseline − ascent − thickness / 2 for its centre",
+        why: intentional(
+          "effing#190",
+          "canvas centres the overline 0.85em above the baseline (rows 10–13 here); Chrome paints it above the content area, its bottom at the ascent (rows 6–9), 4px higher at 40px: y = baseline − ascent − thickness / 2 for its centre",
+        ),
         pixels: [6.5, 14.5],
       },
     },
@@ -105,7 +108,10 @@ const fixtures: ChromeFixture[] = [
     UNDERLINED.slice(0, 33),
     {
       knownPaintDifference: {
-        why: "effing#190: canvas doesn't snap an underline to whole pixels: at 20px it's 2px thick from 0.73px below the baseline, across three rows, where Chrome fills the two rows from 1px below it",
+        why: intentional(
+          "effing#190",
+          "canvas doesn't snap an underline to whole pixels: at 20px it's 2px thick from 0.73px below the baseline, across three rows, where Chrome fills the two rows from 1px below it",
+        ),
         pixels: [1.2, 2.6],
       },
     },
@@ -130,7 +136,10 @@ const fixtures: ChromeFixture[] = [
     UNDERLINED,
     {
       knownPaintDifference: {
-        why: "effing#190: canvas underlines the ellipsis of a clamped line; Chrome doesn't",
+        why: intentional(
+          "effing#190",
+          "canvas underlines the ellipsis of a clamped line; Chrome doesn't",
+        ),
         pixels: [1.8, 4],
         ellipses: ["#t line 2"],
       },

@@ -26,7 +26,7 @@
     "comparison:chrome": "tsx comparison/chrome/generate.tsx"
   },
   "dependencies": {
-    "@effing/skia": "1.0.10-effing.5",
+    "@effing/skia": "1.0.10-effing.6",
     "css-background-parser": "^0.1.0",
     "css-box-shadow": "^1.0.0-3",
     "css-gradient-parser": "^0.0.17",

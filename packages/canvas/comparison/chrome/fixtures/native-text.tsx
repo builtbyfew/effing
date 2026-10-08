@@ -1,4 +1,4 @@
-import { fixtureModule, quote, SANS, linesDiffer } from "../fixture.ts";
+import { fixtureModule, quote, SANS } from "../fixture.ts";
 import type { ChromeFixture } from "../fixture.ts";
 import { paragraph, texts } from "./paragraph.tsx";
 
@@ -46,15 +46,6 @@ const lineBoxes = (count: number, height: number, baseline: number) => ({
     baseline: i * height + baseline,
   })),
 });
-
-/**
- * Chrome puts the baseline in a line box of a set height half the leading
- * below the rounded ascent (as for `normal`): 22px down a 30px line box at
- * 20px, where canvas, from the unrounded ascent and descent, puts it at
- * 21.93px (effing-skia#34).
- */
-const HALF_LEADING =
-  "effing-skia#34: canvas puts the baseline in a line box of a set height 0.07px higher: half the leading from the unrounded ascent and descent, where Chrome rounds them";
 
 const fixtures: ChromeFixture[] = [
   ...(
@@ -211,13 +202,6 @@ const fixtures: ChromeFixture[] = [
     TEXT,
     { lineHeight: "30px" },
     200,
-    undefined,
-    {
-      knownDifference: {
-        why: HALF_LEADING,
-        differs: linesDiffer("p", 1, 5, "baseline in its line box"),
-      },
-    },
   ),
   paragraph(
     "collapses the line boxes for a line height of 0",
@@ -225,12 +209,6 @@ const fixtures: ChromeFixture[] = [
     { lineHeight: 0 },
     80,
     { height: 0, ...texts(["Hello", "world", "again"]) },
-    {
-      knownDifference: {
-        why: HALF_LEADING,
-        differs: linesDiffer("p", 1, 3, "baseline in its line box"),
-      },
-    },
   ),
   paragraph(
     "gives text of no font size no line boxes",

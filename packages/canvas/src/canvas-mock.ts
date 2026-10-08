@@ -23,7 +23,8 @@ type MockPlaceholder = {
  * Mock of `@effing/skia/extensions`, to pair with `createCanvasMock`. Its
  * `Paragraph` lays text out the way the canvas mock measures it: 8px per
  * character, ascent 12, descent 4 and no line gap, breaking greedily at spaces and leaving
- * a word wider than the line to overflow it. A placeholder is one character
+ * a word wider than the line to overflow it. As the real one, it rounds the
+ * line height to 1/64px and places baselines by Chrome's half-leading. A placeholder is one character
  * (U+FFFC) of its own width, its baseline on the line's.
  */
 export function createExtensionsMock() {
@@ -47,7 +48,11 @@ export function createExtensionsMock() {
     layout(width: number) {
       const { text, style, placeholders } = this;
       const charWidth = 8 + (style.letterSpacing ?? 0);
-      const lineHeight = style.lineHeight ?? 16;
+      const lineHeight = Math.round((style.lineHeight ?? 16) * 64) / 64;
+      // Chrome's half-leading: the half of the leading above the text, halved
+      // in 1/64px and floored to whole pixels.
+      const baselineInBox =
+        12 + Math.floor(Math.trunc(((lineHeight - 16) * 64) / 2) / 64);
       const bounded = width > 0 && Number.isFinite(width);
       // Each character's advance, and where each placeholder is.
       const advances: number[] = [];
@@ -115,7 +120,7 @@ export function createExtensionsMock() {
         return {
           left,
           width: lineWidth,
-          baseline: i * lineHeight + (lineHeight + 12 - 4) / 2,
+          baseline: i * lineHeight + baselineInBox,
           startIndex: start,
           endIndex: end,
           hardBreak,
@@ -162,6 +167,7 @@ export function createExtensionsMock() {
     strokeParagraph: vi.fn(),
     beginGroup: vi.fn(),
     endGroup: vi.fn(),
+    fontRevision: () => 0,
   };
 }
 

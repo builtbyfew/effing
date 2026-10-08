@@ -787,4 +787,26 @@ describe("min-content width", () => {
       height: layoutText(content, style, 100).height,
     });
   });
+
+  it("checks the heights Yoga still has cached at a new width", () => {
+    // Yoga keeps a node's measurements until it's marked dirty, and can
+    // size the node from one at another width than it ends up at, without
+    // measuring it again: what it has is checked again at the new width.
+    const style = resolveStyle(
+      { fontFamily: "Liberation Sans", fontSize: 20 },
+      DEFAULT_STYLE,
+    );
+    const content = "Several words that wrap onto a few lines";
+    const measure = new TextMeasure(content, style);
+    const wide = measure.measure(1000, true);
+    expect(measure.settle(1000, true)).toBe(false);
+    // Laid out at 100px with no measurement since, on three lines.
+    expect(measure.settle(100, true)).toBe(true);
+    const narrow = layoutText(content, style, 100).height;
+    expect(narrow).toBeGreaterThan(wide.height);
+    // Pinned to the height drawn there, for the node marked dirty.
+    expect(measure.measure(1000, true).height).toBe(narrow);
+    expect(measure.settle(100, true)).toBe(false);
+    expect(measure.heightAt(1000)).toBe(wide.height);
+  });
 });

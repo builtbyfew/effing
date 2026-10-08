@@ -1592,6 +1592,835 @@
         }
       }
     },
+    "holds text items in a column too short for them": {
+      "hash": "5d7dacced2c29dc0",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 100,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Several words",
+              "x": 6,
+              "width": 126.7188,
+              "top": 75,
+              "height": 23,
+              "baseline": 93
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 6,
+              "width": 143.4375,
+              "top": 98,
+              "height": 23,
+              "baseline": 116
+            },
+            {
+              "text": "few lines",
+              "x": 6,
+              "width": 77.8125,
+              "top": 121,
+              "height": 23,
+              "baseline": 139
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 69,
+          "width": 160,
+          "height": 81,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 6,
+              "width": 126.7188,
+              "top": 75,
+              "height": 23,
+              "baseline": 93
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 6,
+              "width": 143.4375,
+              "top": 98,
+              "height": 23,
+              "baseline": 116
+            },
+            {
+              "text": "few lines",
+              "x": 6,
+              "width": 77.8125,
+              "top": 121,
+              "height": 23,
+              "baseline": 139
+            }
+          ]
+        },
+        "item2": { "x": 0, "y": 150, "width": 160, "height": 0, "lines": [] }
+      }
+    },
+    "holds text items with no flex basis in a column too short for them": {
+      "hash": "5ec1297c6c79ae81",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 100,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 69,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 69,
+              "height": 23,
+              "baseline": 87
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 92,
+              "height": 23,
+              "baseline": 110
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 115,
+              "height": 23,
+              "baseline": 133
+            }
+          ]
+        },
+        "item2": { "x": 0, "y": 138, "width": 160, "height": 0, "lines": [] }
+      }
+    },
+    "holds a text item in a column at its height, below its lines": {
+      "hash": "0ed6e9f0f679731c",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 100,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 30,
+              "height": 23,
+              "baseline": 48
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 53,
+              "height": 23,
+              "baseline": 71
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 76,
+              "height": 23,
+              "baseline": 94
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 30,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 30,
+              "height": 23,
+              "baseline": 48
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 53,
+              "height": 23,
+              "baseline": 71
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 76,
+              "height": 23,
+              "baseline": 94
+            }
+          ]
+        },
+        "item2": { "x": 0, "y": 99, "width": 160, "height": 1, "lines": [] }
+      }
+    },
+    "shrinks text items in a column that have no minimum": {
+      "hash": "1083305264adbee0",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 100,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 46.625,
+              "height": 23,
+              "baseline": 64.625
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 69.625,
+              "height": 23,
+              "baseline": 87.625
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 92.625,
+              "height": 23,
+              "baseline": 110.625
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 46.625,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 46.625,
+          "width": 160,
+          "height": 46.625,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 46.625,
+              "height": 23,
+              "baseline": 64.625
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 69.625,
+              "height": 23,
+              "baseline": 87.625
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 92.625,
+              "height": 23,
+              "baseline": 110.625
+            }
+          ]
+        },
+        "item2": {
+          "x": 0,
+          "y": 93.25,
+          "width": 160,
+          "height": 6.75,
+          "lines": []
+        }
+      }
+    },
+    "holds text items in a column with no room": {
+      "hash": "6cf36629d935723d",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 0,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            },
+            {
+              "text": "Several words",
+              "x": 4,
+              "width": 126.7188,
+              "top": 73,
+              "height": 23,
+              "baseline": 91
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 4,
+              "width": 143.4375,
+              "top": 96,
+              "height": 23,
+              "baseline": 114
+            },
+            {
+              "text": "few lines",
+              "x": 4,
+              "width": 77.8125,
+              "top": 119,
+              "height": 23,
+              "baseline": 137
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 0,
+              "height": 23,
+              "baseline": 18
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 23,
+              "height": 23,
+              "baseline": 41
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 46,
+              "height": 23,
+              "baseline": 64
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 69,
+          "width": 160,
+          "height": 77,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 4,
+              "width": 126.7188,
+              "top": 73,
+              "height": 23,
+              "baseline": 91
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 4,
+              "width": 143.4375,
+              "top": 96,
+              "height": 23,
+              "baseline": 114
+            },
+            {
+              "text": "few lines",
+              "x": 4,
+              "width": 77.8125,
+              "top": 119,
+              "height": 23,
+              "baseline": 137
+            }
+          ]
+        }
+      }
+    },
+    "holds text items in a column its parent squeezes to nothing": {
+      "hash": "d3a9f895e67b190a",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 100,
+          "width": 160,
+          "height": 0,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 100,
+              "height": 23,
+              "baseline": 118
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 123,
+              "height": 23,
+              "baseline": 141
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 146,
+              "height": 23,
+              "baseline": 164
+            },
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 169,
+              "height": 23,
+              "baseline": 187
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 192,
+              "height": 23,
+              "baseline": 210
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 215,
+              "height": 23,
+              "baseline": 233
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 100,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 100,
+              "height": 23,
+              "baseline": 118
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 123,
+              "height": 23,
+              "baseline": 141
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 146,
+              "height": 23,
+              "baseline": 164
+            }
+          ]
+        },
+        "item1": {
+          "x": 0,
+          "y": 169,
+          "width": 160,
+          "height": 69,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": 169,
+              "height": 23,
+              "baseline": 187
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 192,
+              "height": 23,
+              "baseline": 210
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 215,
+              "height": 23,
+              "baseline": 233
+            }
+          ]
+        }
+      }
+    },
+    "centres text in an element's own column too short for it": {
+      "hash": "eb7505c6cc69b958",
+      "elements": {
+        "column": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 100,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": -19.5,
+              "height": 23,
+              "baseline": -1.5
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 3.5,
+              "height": 23,
+              "baseline": 21.5
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 26.5,
+              "height": 23,
+              "baseline": 44.5
+            }
+          ]
+        },
+        "item0": {
+          "x": 0,
+          "y": 0,
+          "width": 160,
+          "height": 30,
+          "lines": [
+            {
+              "text": "Several words",
+              "x": 0,
+              "width": 126.7188,
+              "top": -19.5,
+              "height": 23,
+              "baseline": -1.5
+            },
+            {
+              "text": "that wrap onto a",
+              "x": 0,
+              "width": 143.4375,
+              "top": 3.5,
+              "height": 23,
+              "baseline": 21.5
+            },
+            {
+              "text": "few lines",
+              "x": 0,
+              "width": 77.8125,
+              "top": 26.5,
+              "height": 23,
+              "baseline": 44.5
+            }
+          ]
+        }
+      }
+    },
     "leaves a wide item that doesn't shrink as wide as it is": {
       "hash": "7d2c5c0715b9a540",
       "elements": {

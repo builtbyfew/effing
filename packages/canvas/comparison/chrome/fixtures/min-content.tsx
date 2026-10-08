@@ -103,6 +103,45 @@ const rowFixture = (
   ...rest,
 });
 
+/**
+ * A column 100px tall of 20px Liberation Sans items, 160px wide, which
+ * their text wraps on three lines at, in a 500px frame.
+ */
+const column = (items: [React.CSSProperties, string][]) => (
+  <div style={{ display: "flex", width: 500, height: 200 }}>
+    <div
+      id="column"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: 160,
+        height: 100,
+        fontFamily: SANS,
+        fontSize: 20,
+      }}
+    >
+      {items.map(([style, content], i) => (
+        <div key={i} id={`item${i}`} style={style}>
+          {content}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const columnFixture = (
+  name: string,
+  element: React.ReactElement,
+): ChromeFixture => ({ name, width: 500, height: 200, element });
+
+const LINES = "Several words that wrap onto a few lines";
+
+/** A box that shrinks, below the text in a column. */
+const SHRINKING: [React.CSSProperties, string] = [
+  { height: 10, flexShrink: 1 },
+  "",
+];
+
 const SIBLING = (
   <div key="s" style={{ width: 100, height: 20, flexShrink: 0 }} />
 );
@@ -561,12 +600,6 @@ export default fixtureModule("min-content", [
       [161.88, 33.66],
       [198.8, 168.69],
     ],
-    {
-      knownDifference: {
-        why: "effing#194: canvas makes the first two items one line tall (44px and 14px), where it draws their text, and Chrome lays it out, on three and two lines (132px and 28px)",
-        differs: ["#item0 height", "#item1 height"],
-      },
-    },
   ),
   // Chrome takes the element's flex basis from its text's max-content, where
   // Yoga takes it at the width available, and so shrinks it to another
@@ -607,6 +640,46 @@ export default fixtureModule("min-content", [
         },
       },
     ),
+  ),
+  // CSS's `min-height: auto` keeps a text item in a column as tall as its
+  // lines at its width: they overflow the column, not the item.
+  columnFixture(
+    "holds text items in a column too short for them",
+    column([
+      [{}, LINES],
+      [{ padding: 4, borderWidth: 2, borderStyle: "solid" }, LINES],
+      SHRINKING,
+    ]),
+  ),
+  columnFixture(
+    "holds text items with no flex basis in a column too short for them",
+    column([[{ flex: 1 }, LINES], [{ flex: 1 }, LINES], SHRINKING]),
+  ),
+  columnFixture(
+    "holds a text item in a column at its height, below its lines",
+    column([[{ height: 30 }, LINES], [{}, LINES], SHRINKING]),
+  ),
+  columnFixture(
+    "shrinks text items in a column that have no minimum",
+    column([
+      [{ overflow: "hidden" }, LINES],
+      [{ minHeight: 0 }, LINES],
+      SHRINKING,
+    ]),
+  ),
+  columnFixture(
+    "centres text in an element's own column too short for it",
+    column([
+      [
+        {
+          flexDirection: "column",
+          justifyContent: "center",
+          height: 30,
+          flexShrink: 0,
+        },
+        LINES,
+      ],
+    ]),
   ),
   {
     name: "leaves a wide item that doesn't shrink as wide as it is",

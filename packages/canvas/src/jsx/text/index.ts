@@ -184,7 +184,11 @@ export class TextMeasure {
     number,
     { width: number; height: number }
   >();
-  /** The heights reported to Yoga since the last `settle`. */
+  /**
+   * The heights reported to Yoga since the node was last marked dirty (see
+   * `settle`): Yoga may size the node, and its ancestors, from any of them,
+   * cached, without measuring it again.
+   */
   private readonly reported = new Set<number>();
   private pinnedHeight: number | undefined;
   private settled: { width: number; result: TextLayoutResult } | undefined;
@@ -249,6 +253,20 @@ export class TextMeasure {
     const height = this.pinnedHeight ?? size.height;
     this.reported.add(height);
     return { width: size.width, height };
+  }
+
+  /**
+   * The height of the text's lines at exactly `width`, as drawn there,
+   * whatever height later measurements are pinned to.
+   */
+  heightAt(width: number): number {
+    if (this.settled?.width === width) return this.settled.result.height;
+    let size = this.exactSizes.get(width);
+    if (!size) {
+      size = { width, height: this.layOut(width).height };
+      this.exactSizes.set(width, size);
+    }
+    return size.height;
   }
 
   /**
@@ -376,13 +394,16 @@ export class TextMeasure {
 
   /**
    * Lay the text out for drawing at the node's final content width, and
-   * check it against the heights Yoga was given since the last call.
+   * check it against the heights Yoga was given since the node was last
+   * marked dirty: Yoga reuses a node's measurements until then, also when
+   * the node ends up at another width, so the heights of earlier layouts
+   * count too, not just those of the last.
    *
    * @param pin - Whether to pin later measurements to the drawn height when
    *   they disagree
    * @returns Whether Yoga sized the node from another height. If `pin`, the
    *   node's measurements are now pinned to the drawn height, and the caller
-   *   should mark the node dirty and compute the layout again.
+   *   must mark the node dirty and compute the layout again.
    */
   settle(width: number, pin: boolean): boolean {
     if (this.settled?.width !== width) {
@@ -395,21 +416,23 @@ export class TextMeasure {
     const agrees =
       this.reported.size === 0 ||
       (this.reported.size === 1 && this.reported.has(height));
-    this.reported.clear();
     if (agrees) return false;
-    if (pin) this.pinnedHeight = height;
+    if (pin) {
+      this.pinnedHeight = height;
+      this.reported.clear();
+    }
     return true;
   }
 
   /**
    * Drop the pinned height, so that Yoga sees the measured heights again.
    *
-   * @returns Whether there was a pin
+   * @returns Whether there was a pin, for the caller to mark the node dirty
    */
   unpin(): boolean {
     const pinned = this.pinnedHeight !== undefined;
     this.pinnedHeight = undefined;
-    this.reported.clear();
+    if (pinned) this.reported.clear();
     return pinned;
   }
 

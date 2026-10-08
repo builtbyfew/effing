@@ -15,7 +15,13 @@ import {
 } from "./group.ts";
 import { drawImage } from "./image.ts";
 import { computeContain, computeCover } from "./object-fit.ts";
-import { drawBoxShadow, drawRect, getBorderRadiusFromStyle } from "./rect.ts";
+import {
+  drawBoxShadow,
+  drawInsetBoxShadow,
+  drawRect,
+  getBorderRadiusFromStyle,
+} from "./rect.ts";
+import { parseBoxShadow } from "./shadow.ts";
 import { drawSvgContainer } from "./svg/index.ts";
 import { drawText } from "./text.ts";
 import { parseCSSLength, resolveBoxValue } from "./utils.ts";
@@ -122,11 +128,12 @@ async function paintNode(
   // the group: a group's backdrop is read from the enclosing one.
   group.open = beginElementGroup(ctx, opacity, style.filter);
 
-  // Draw box-shadow BEFORE overflow clip — CSS overflow:hidden clips children,
+  // Draw outer box shadows BEFORE overflow clip — CSS overflow:hidden clips children,
   // not the element's own box-shadow.
-  if (style.boxShadow) {
-    drawBoxShadow(ctx, x, y, width, height, style.boxShadow, borderRadius);
-  }
+  const boxShadows = style.boxShadow
+    ? parseBoxShadow(style.boxShadow, style.color ?? "black")
+    : [];
+  drawBoxShadow(ctx, x, y, width, height, boxShadows, borderRadius);
 
   // Apply clipping for overflow: hidden
   const isClipped =
@@ -248,6 +255,9 @@ async function paintNode(
       }
     }
   }
+
+  // Inset box shadows paint over the background, inside the padding box.
+  drawInsetBoxShadow(ctx, x, y, width, height, boxShadows, borderRadius, style);
 
   // Debug: draw bounding boxes
   if (renderContext.debug) {

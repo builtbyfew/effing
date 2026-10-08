@@ -12,6 +12,8 @@ import type {
   TextSegment,
 } from "../text/index.ts";
 import { setFont } from "../text/measure.ts";
+import type { Shadow } from "./shadow.ts";
+import { parseTextShadow } from "./shadow.ts";
 
 const emojiImageCache = new Map<string, Promise<Image | null>>();
 
@@ -61,12 +63,13 @@ export async function drawText(
   if (!first) return;
   const x = offsetX;
   const y = offsetY + layout.paragraphOffsetY;
-  const shadow = textShadow ? parseShadow(textShadow) : null;
+  const shadows = textShadow ? parseTextShadow(textShadow, first.color) : [];
   ctx.fillStyle = first.color;
 
-  // Each pass is a single native call for the whole paragraph.
-  if (shadow) {
-    drawShadowPass(ctx, shadow, getColorAlpha(first.color), () =>
+  // Each pass is a single native call for the whole paragraph. The shadows
+  // paint back to front: the first listed is on top.
+  for (let i = shadows.length - 1; i >= 0; i--) {
+    drawShadowPass(ctx, shadows[i]!, getColorAlpha(first.color), () =>
       fillParagraph(ctx, paragraph, x, y),
     );
   }
@@ -123,26 +126,6 @@ async function drawEmoji(
   });
 }
 
-interface ParsedShadow {
-  offsetX: number;
-  offsetY: number;
-  blur: number;
-  color: string;
-}
-
-function parseShadow(shadow: string): ParsedShadow | null {
-  const parts = shadow.match(
-    /(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(.*)/,
-  );
-  if (!parts) return null;
-  return {
-    offsetX: parseFloat(parts[1]!),
-    offsetY: parseFloat(parts[2]!),
-    blur: parseFloat(parts[3]!),
-    color: parts[4]!.trim(),
-  };
-}
-
 /** Extract the alpha component from a CSS color string. */
 function getColorAlpha(color: string): number {
   const parsed = parseCssColor(color);
@@ -161,11 +144,13 @@ function getColorAlpha(color: string): number {
  */
 function drawShadowPass(
   ctx: SKRSContext2D,
-  shadow: ParsedShadow,
+  shadow: Shadow,
   textAlpha: number,
   drawFn: () => void,
 ): void {
   ctx.save();
+  // An invalid colour leaves the fill as it was: make that no colour.
+  ctx.fillStyle = "rgba(0, 0, 0, 0)";
   ctx.fillStyle = shadow.color;
   if (textAlpha < 1) ctx.globalAlpha *= textAlpha;
   if (shadow.blur > 0) ctx.filter = `blur(${shadow.blur / 2}px)`;

@@ -204,3 +204,22 @@ describe("resolveUnits – clipPath and backdropFilter", () => {
     expect(style.clipPath).toBe("inset(1e1em)");
   });
 });
+
+describe("resolveUnits – boxShadow and textShadow", () => {
+  it("resolves lengths inside the shadows, leaving colours alone", () => {
+    const style = resolveUnits(
+      {
+        fontSize: 20,
+        boxShadow:
+          "inset 0.5em 1rem 2vw -1px rgb(0 0 0 / 50%), 0 0 4pt #1e1e1e",
+        textShadow: "1em 1em #0f0",
+      },
+      800,
+      600,
+    );
+    expect(style.boxShadow).toBe(
+      "inset 10px 16px 16px -1px rgb(0 0 0 / 50%), 0 0 5.333333px #1e1e1e",
+    );
+    expect(style.textShadow).toBe("20px 20px #0f0");
+  });
+});

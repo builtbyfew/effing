@@ -1,0 +1,160 @@
+{
+  "chrome": "154.0.8037.98",
+  "generator": "f32f11b2d18ab952",
+  "platform": "darwin-arm64",
+  "fixtures": {
+    "casts a blurred box shadow": {
+      "hash": "38d94ea15cb6bf8f",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/casts-a-blurred-box-shadow.png"
+    },
+    "grows a box shadow by its spread": {
+      "hash": "ba760569baf56282",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b3": { "x": 350, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/grows-a-box-shadow-by-its-spread.png"
+    },
+    "shrinks a box shadow by a negative spread": {
+      "hash": "deb186a85f5bbf0f",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/shrinks-a-box-shadow-by-a-negative-spread.png"
+    },
+    "casts an inset box shadow": {
+      "hash": "db629f09ce475813",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b3": { "x": 350, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/casts-an-inset-box-shadow.png"
+    },
+    "casts several box shadows, the first on top": {
+      "hash": "92e163192eec5e49",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/casts-several-box-shadows-the-first-on-top.png"
+    },
+    "reads a box shadow's colour first, or as currentColor": {
+      "hash": "5cb3ed5909ccb462",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b3": { "x": 350, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/reads-a-box-shadow-s-colour-first-or-as-currentcolor.png"
+    },
+    "ignores an invalid box shadow": {
+      "hash": "eb9ad4e8fe561f28",
+      "elements": {
+        "b0": { "x": 20, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b1": { "x": 130, "y": 20, "width": 80, "height": 50, "lines": [] },
+        "b2": { "x": 240, "y": 20, "width": 80, "height": 50, "lines": [] }
+      },
+      "screenshot": "shadows/ignores-an-invalid-box-shadow.png"
+    },
+    "casts a text shadow without a blur": {
+      "hash": "a757f44295b2d797",
+      "elements": {
+        "t": {
+          "x": 20,
+          "y": 20,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 20,
+              "width": 151.2344,
+              "top": 20,
+              "height": 37,
+              "baseline": 49
+            }
+          ]
+        }
+      },
+      "screenshot": "shadows/casts-a-text-shadow-without-a-blur.png"
+    },
+    "reads a text shadow's colour first": {
+      "hash": "52455ff841341b73",
+      "elements": {
+        "t": {
+          "x": 20,
+          "y": 20,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 20,
+              "width": 151.2344,
+              "top": 20,
+              "height": 37,
+              "baseline": 49
+            }
+          ]
+        }
+      },
+      "screenshot": "shadows/reads-a-text-shadow-s-colour-first.png"
+    },
+    "casts a text shadow in currentColor": {
+      "hash": "231a55f47c66ed99",
+      "elements": {
+        "t": {
+          "x": 20,
+          "y": 20,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 20,
+              "width": 151.2344,
+              "top": 20,
+              "height": 37,
+              "baseline": 49
+            }
+          ]
+        }
+      },
+      "screenshot": "shadows/casts-a-text-shadow-in-currentcolor.png"
+    },
+    "casts several text shadows, the first on top": {
+      "hash": "ff02e87117fdfac7",
+      "elements": {
+        "t": {
+          "x": 20,
+          "y": 20,
+          "width": 151.2344,
+          "height": 37,
+          "lines": [
+            {
+              "text": "Shadowed",
+              "x": 20,
+              "width": 151.2344,
+              "top": 20,
+              "height": 37,
+              "baseline": 49
+            }
+          ]
+        }
+      },
+      "screenshot": "shadows/casts-several-text-shadows-the-first-on-top.png"
+    }
+  }
+}

@@ -280,13 +280,15 @@ const png = canvas.encodeSync("png");
 
 | Property          | Values / Notes                                   |
 | ----------------- | ------------------------------------------------ |
-| `boxShadow`       | CSS box-shadow string                            |
-| `textShadow`      | CSS text-shadow string                           |
+| `boxShadow`       | CSS box-shadow list⁵                             |
+| `textShadow`      | CSS text-shadow list⁵ (inherited)                |
 | `transform`       | `translate`, `scale`, `rotate`, `skewX`, `skewY` |
 | `transformOrigin` | CSS transform-origin string                      |
 | `filter`          | CSS filter string                                |
 | `backdropFilter`  | CSS filter string applied to the backdrop        |
 | `clipPath`        | Basic shapes, `shape()`, geometry boxes, `none`  |
+
+⁵ As in CSS: a comma-separated list of shadows, the first painted on top. A box shadow is `inset`, two to four lengths (x and y offsets, blur radius, spread) and a colour, in either order; a text shadow is two or three lengths (no spread or `inset`) and a colour. A shadow without a colour is cast in `currentColor`. A spread grows the shadow's shape (or, negative, shrinks it), and its corner radii with it; an `inset` shadow is cast inside the padding box, clipped to its rounded corners. Lengths are in px or any unit canvas resolves (`em`, `rem`, `vw`, `pt`, …; a bare number is read as px). An invalid value casts no shadow, as CSS ignores it.
 
 ### Image
 

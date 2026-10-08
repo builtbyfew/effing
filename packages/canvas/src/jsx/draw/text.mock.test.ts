@@ -67,6 +67,16 @@ describe("drawText", () => {
     expect(ctx.filter).toBe("blur(2px)");
   });
 
+  it("draws a list of shadows back to front, before the text", async () => {
+    await draw({}, "1px 2px red, blue 3px 4px");
+
+    expect(fillParagraph).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(ctx.translate).mock.calls).toEqual([
+      [3, 4],
+      [1, 2],
+    ]);
+  });
+
   it("strokes the paragraph under the fill", async () => {
     await draw({ WebkitTextStrokeWidth: 2, WebkitTextStrokeColor: "blue" });
 

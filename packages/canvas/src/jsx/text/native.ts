@@ -23,8 +23,10 @@ export type NativeParagraph = Paragraph;
 function toWeight(weight: number | string | undefined): number {
   if (typeof weight === "number") return weight;
   if (weight === "bold") return 700;
-  const parsed = parseInt(String(weight ?? "400"), 10);
-  return isNaN(parsed) ? 400 : parsed;
+  // A number as `ctx.font` reads it, so "1e3" is 1000 here too.
+  const text = String(weight ?? "400").trim();
+  const parsed = text === "" ? NaN : Number(text);
+  return Number.isFinite(parsed) ? parsed : 400;
 }
 
 function toFontStyle(

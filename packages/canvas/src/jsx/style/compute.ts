@@ -208,12 +208,19 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "WebkitTextStrokeColor",
 ];
 
+/** A CSS `<number>`: no trailing dot (`550.`), as `ctx.font` reads it. */
+const CSS_NUMBER = /^[+-]?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
+
 /** Whether `weight` is a font-weight CSS accepts: a keyword, or 1 to 1000. */
 function isValidFontWeight(weight: number | string): boolean {
-  const n = typeof weight === "number" ? weight : Number(weight.trim());
-  // Keywords ("bold", "bolder", …) are left to `ctx.font` to read.
-  if (typeof weight === "string" && isNaN(n)) return true;
-  return Number.isFinite(n) && n >= 1 && n <= 1000;
+  if (typeof weight === "string") {
+    const text = weight.trim();
+    // Keywords ("bold", "bolder", …) are left to `ctx.font` to read.
+    if (!/^[+\-.\d]/.test(text)) return true;
+    if (!CSS_NUMBER.test(text)) return false;
+    weight = Number(text);
+  }
+  return Number.isFinite(weight) && weight >= 1 && weight <= 1000;
 }
 
 /**

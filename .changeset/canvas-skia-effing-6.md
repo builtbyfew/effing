@@ -51,3 +51,19 @@ Fonts:
 - Bold italic in a family with bold and italic faces but no bold italic one
   is the italic face emboldened, as in Chrome, where it was the bold face
   slanted, and lines can break elsewhere.
+
+Also:
+
+- Emoji (and other inline images) between right-to-left words are ordered
+  as the text's direction gives, where the first one used to land on the
+  left; a clamped line is letter-spaced as the rest of its paragraph.
+- A `filter` list keeps applying past a transparent `drop-shadow()`, and
+  accepts a colour before the lengths (`drop-shadow(red 4px 4px)`), `hsl()`
+  and `hwb()` colours, and upper-case names.
+- Filtered draws (`filter`, blurred shadows) are much faster: the blur only
+  covers what is drawn.
+
+If you draw with the re-exported `createCanvas` or `GlobalFonts` directly:
+`ctx.font` now throws for a weight outside 1 to 1000 (it used to read
+`"0 20px Arial"` as a 0px font in the family "20px Arial"), and `ctx.filter`
+keeps its previous value when given a value CSS rejects.

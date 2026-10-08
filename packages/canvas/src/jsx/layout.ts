@@ -690,8 +690,9 @@ function enforceAutoMinimumHeight(node: IntermediateNode): boolean {
   return true;
 }
 
-const isAuto = (value: number | string | undefined) =>
-  value === undefined || value === "auto";
+const isAuto = (
+  value: number | string | undefined,
+): value is undefined | "auto" => value === undefined || value === "auto";
 
 /**
  * A node's padding and borders on the left and right, as Yoga has them, or
@@ -773,8 +774,8 @@ function capped(
     let cap: number;
     if (typeof value === "number") {
       cap = toLayoutUnit(value);
-    } else if (value!.endsWith("%") && Number.isFinite(parentContentSize)) {
-      cap = (parseFloat(value!) / 100) * parentContentSize;
+    } else if (value.endsWith("%") && Number.isFinite(parentContentSize)) {
+      cap = (parseFloat(value) / 100) * parentContentSize;
     } else {
       return undefined;
     }

@@ -48,8 +48,10 @@ const UNDERLINED = "Underlined lines of text in a narrow box and more besides";
  * has it: the half of the stroke inside the glyphs shows. Canvas paints it
  * under the fill, which covers that half.
  */
-const STROKE_UNDER_FILL =
-  "effing#191: canvas paints the stroke under the fill, which hides its inner half; Chrome paints it over the fill";
+const STROKE_UNDER_FILL = intentional(
+  "effing#191",
+  "canvas paints the stroke under the fill, which hides its inner half; Chrome paints it over the fill",
+);
 
 const fixtures: ChromeFixture[] = [
   // Decorations.
@@ -72,7 +74,10 @@ const fixtures: ChromeFixture[] = [
       // As "underlines text" is held: the gaps are 0.6% of the frame.
       tolerance: { pixels: 0.2 },
       knownPaintDifference: {
-        why: "effing#189: canvas underlines through the descenders of y, p and g; Chrome skips them (text-decoration-skip-ink: auto)",
+        why: intentional(
+          "effing#189",
+          "canvas underlines through the descenders of y, p and g; Chrome skips them (text-decoration-skip-ink: auto)",
+        ),
         pixels: [0.45, 1.05],
       },
     },

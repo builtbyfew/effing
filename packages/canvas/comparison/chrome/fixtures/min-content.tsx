@@ -1,5 +1,5 @@
 import type React from "react";
-import { fixtureModule, SANS } from "../fixture.ts";
+import { fixtureModule, intentional, SANS } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 
 // The cases of min-content.test.tsx that hold Chrome's numbers: 40px bold
@@ -599,7 +599,10 @@ export default fixtureModule("min-content", [
       ],
       {
         knownDifference: {
-          why: "effing#195: Yoga shares the shrinking out by the flex basis at the width available, where Chrome takes the text's max-content",
+          why: intentional(
+            "effing#195",
+            "Yoga shares the shrinking out by the flex basis at the width available, where Chrome takes the text's max-content",
+          ),
           differs: ["#item0 width", "#item1 x", "#item1 width"],
         },
       },

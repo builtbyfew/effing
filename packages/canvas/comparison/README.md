@@ -72,6 +72,6 @@ Fixtures set their text in `SANS` (from `chrome/fixture.ts`): the bundled Libera
 Write fixtures so that CSS and canvas read them alike:
 
 - Give line heights in px (`"30px"`): a number is a multiple of the font size in CSS, but px above 5 in canvas. The generator refuses one.
-- Align text in a box with `flexDirection: "column"` on the box. This is a known difference between canvas and CSS, which is yet to be decided on: in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it ([effing#196](https://github.com/builtbyfew/effing/issues/196)).
+- Align text in a box with `flexDirection: "column"` on the box. This is a deliberate difference between canvas and CSS (decided in effing#196: canvas keeps it): in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it ([effing#196](https://github.com/builtbyfew/effing/issues/196)).
 - Set `flexShrink` where an item should shrink: canvas defaults it to 0 (as Satori does), except for an element of nothing but text; the generator sets it the same way.
 - `text-overflow: ellipsis` needs `overflow: hidden` in Chrome.

@@ -197,7 +197,10 @@ const fixtures: ChromeFixture[] = [
     undefined,
     {
       knownDifference: {
-        why: "effing#187: canvas capitalizes after an apostrophe and only ASCII letters (\"It'S O'Neil'S X-Ray, éLan And 3d\"), where Chrome capitalizes each word as ICU finds them (\"It's O'neil's X-Ray, Élan And 3d\")",
+        why: intentional(
+          "effing#187",
+          "canvas capitalizes after an apostrophe and only ASCII letters (\"It'S O'Neil'S X-Ray, éLan And 3d\"), where Chrome capitalizes each word as ICU finds them (\"It's O'neil's X-Ray, Élan And 3d\")",
+        ),
         differs: ["#p line 1", "#p line 1 width"],
       },
     },
@@ -378,7 +381,10 @@ const fixtures: ChromeFixture[] = [
     undefined,
     {
       knownDifference: {
-        why: "effing#181: canvas sizes a normal line box from the first font alone; Chrome grows it to fit Noto Sans Hebrew, which draws part of the line (27px, not 23px)",
+        why: intentional(
+          "effing#181",
+          "canvas sizes a normal line box from the first font alone; Chrome grows it to fit Noto Sans Hebrew, which draws part of the line (27px, not 23px)",
+        ),
         differs: [/^#p height: canvas 23, Chrome 27 /, "#p line 1 top"],
       },
     },
@@ -391,7 +397,10 @@ const fixtures: ChromeFixture[] = [
     undefined,
     {
       knownDifference: {
-        why: "effing#181: canvas sizes a normal line box from the first font alone; Chrome grows it to fit Noto Sans Thai, which draws part of the line (30px, not 23px)",
+        why: intentional(
+          "effing#181",
+          "canvas sizes a normal line box from the first font alone; Chrome grows it to fit Noto Sans Thai, which draws part of the line (30px, not 23px)",
+        ),
         differs: [/^#p height: canvas 23, Chrome 30 /, "#p line 1 top"],
       },
     },

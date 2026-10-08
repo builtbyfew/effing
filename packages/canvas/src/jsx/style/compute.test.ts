@@ -23,10 +23,31 @@ describe("resolveStyle", () => {
 
   it("takes any font-weight from 1 to 1000, and ignores others", () => {
     const parent = { ...DEFAULT_STYLE, fontWeight: 700 };
-    for (const fontWeight of [1, 550, 1000, "550", "1e3", "bold", "lighter"]) {
+    for (const fontWeight of [
+      1,
+      550,
+      1000,
+      "550",
+      "1e3",
+      "bold",
+      "Bolder",
+      "lighter",
+      "normal",
+    ]) {
       expect(resolveStyle({ fontWeight }, parent).fontWeight).toBe(fontWeight);
     }
-    for (const fontWeight of [0, 1001, -5, NaN, "0", "1200", "550.", "5.e2"]) {
+    for (const fontWeight of [
+      0,
+      1001,
+      -5,
+      NaN,
+      "0",
+      "1200",
+      "550.",
+      "5.e2",
+      "bogus",
+      "",
+    ]) {
       expect(resolveStyle({ fontWeight }, parent).fontWeight).toBe(700);
     }
   });

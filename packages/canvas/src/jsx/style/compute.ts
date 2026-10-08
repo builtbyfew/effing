@@ -208,6 +208,23 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
   "WebkitTextStrokeColor",
 ];
 
+/** A CSS `<number>`: no trailing dot (`550.`), as `ctx.font` reads it. */
+const CSS_NUMBER = /^[+-]?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
+
+/** The font-weight keywords CSS accepts, left to `ctx.font` to read. */
+const FONT_WEIGHT_KEYWORDS = new Set(["normal", "bold", "bolder", "lighter"]);
+
+/** Whether `weight` is a font-weight CSS accepts: a keyword, or 1 to 1000. */
+function isValidFontWeight(weight: number | string): boolean {
+  if (typeof weight === "string") {
+    const text = weight.trim();
+    if (FONT_WEIGHT_KEYWORDS.has(text.toLowerCase())) return true;
+    if (!CSS_NUMBER.test(text)) return false;
+    weight = Number(text);
+  }
+  return Number.isFinite(weight) && weight >= 1 && weight <= 1000;
+}
+
 /**
  * Resolve the computed style for a node, inheriting from parent where appropriate.
  */
@@ -216,6 +233,12 @@ export function resolveStyle(
   parentStyle: ComputedStyle,
 ): ComputedStyle {
   const style = { ...rawStyle };
+
+  // A font-weight outside 1–1000 is invalid, and ignored as in CSS: the
+  // element inherits its parent's (`ctx.font` throws on one).
+  if (style.fontWeight !== undefined && !isValidFontWeight(style.fontWeight)) {
+    delete style.fontWeight;
+  }
 
   // Apply inherited properties
   for (const prop of INHERITABLE_PROPS) {

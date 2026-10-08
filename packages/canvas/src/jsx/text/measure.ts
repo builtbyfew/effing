@@ -58,10 +58,12 @@ export function setFont(
  * (underTrim) of a line box based on `text-box-edge` keywords.
  *
  * The trim amount is the distance from the line box's edge to the target
- * metric for each edge, as the `text` edge the font's ascent and descent.
+ * metric for each edge, as the `text` edge the font's ascent and descent
+ * rounded to whole pixels, as the line box's half-leading takes them (so the
+ * `text` edge trims a set line height's half-leading exactly, as in Chrome).
  *
  * @param line - The line box, its baseline, and the font's ascent and
- *   descent in px, as the line box is built from them
+ *   descent in px, rounded as the line box is built from them
  */
 export function measureTrimMetrics(
   fontSize: number,

@@ -5,7 +5,7 @@
 // half-leading from the font's hhea metrics) and paints unhinted, unsnapped
 // glyphs. `line-height: normal` line boxes are Chrome's (see `normalLineBox`).
 
-import { Paragraph } from "@effing/skia/extensions";
+import { Paragraph, fontRevision } from "@effing/skia/extensions";
 import type {
   ParagraphLine,
   ParagraphPlaceholder,
@@ -15,7 +15,6 @@ import type {
 import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
-import { fontGeneration } from "../font.ts";
 import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
 import type { PlacedEmoji, TextLayoutResult, TextSegment } from "./index.ts";
 
@@ -23,9 +22,13 @@ export type NativeParagraph = Paragraph;
 
 function toWeight(weight: number | string | undefined): number {
   if (typeof weight === "number") return weight;
-  if (weight === "bold") return 700;
-  const parsed = parseInt(String(weight ?? "400"), 10);
-  return isNaN(parsed) ? 400 : parsed;
+  // A number as `ctx.font` reads it, so "1e3" is 1000 here too.
+  const text = String(weight ?? "400")
+    .trim()
+    .toLowerCase();
+  if (text === "bold") return 700;
+  const parsed = text === "" ? NaN : Number(text);
+  return Number.isFinite(parsed) ? parsed : 400;
 }
 
 function toFontStyle(
@@ -171,19 +174,48 @@ export function normalLineBox(
   };
 }
 
-// Normal line boxes by font and size, valid for one font generation.
+/**
+ * A line box of a set line height, as the paragraph lays it out by Chrome's
+ * half-leading (Blink's `CalculateLeadingSpace`): the ascent and descent
+ * rounded to whole pixels, and the half of the leading above them floored to
+ * whole pixels, after halving it in Chrome's 1/64px layout units. For Liberation
+ * Sans at 20px in a 30px line, the baseline is at 22px.
+ *
+ * @param lineHeight - The line height in px, as the paragraph reports it
+ *   (rounded to 1/64px)
+ * @param ascent - The font's hhea ascent in px
+ * @param descent - Its hhea descent in px, positive below the baseline
+ */
+function halfLeadingLineBox(
+  lineHeight: number,
+  ascent: number,
+  descent: number,
+): LineBox {
+  const a = Math.round(ascent);
+  const d = Math.round(descent);
+  const leading = (lineHeight - a - d) * 64;
+  return {
+    lineHeight,
+    baseline: a + Math.floor(Math.trunc(leading / 2) / 64),
+    ascent: a,
+    descent: d,
+  };
+}
+
+// Normal line boxes by font and size, valid for one font revision.
 const MAX_NORMAL_LINE_BOXES = 1000;
 const normalLineBoxes = new Map<string, LineBox>();
-let normalLineBoxesGeneration = -1;
+let normalLineBoxesRevision = -1;
 
 /**
  * The `line-height: normal` line box of text in a font, from the hhea ascent,
  * descent and line gap of the font Skia's paragraph finds for it.
  */
 function normalLineBoxFor(style: ParagraphStyle): LineBox {
-  if (normalLineBoxesGeneration !== fontGeneration()) {
+  const revision = fontRevision();
+  if (normalLineBoxesRevision !== revision) {
     normalLineBoxes.clear();
-    normalLineBoxesGeneration = fontGeneration();
+    normalLineBoxesRevision = revision;
   }
   const { fontFamily, fontSize, fontWeight, fontStyle } = style;
   const key = `${fontFamily}|${fontWeight}|${fontStyle}|${fontSize}`;
@@ -346,17 +378,11 @@ export function layoutTextNative(
   countParagraph();
   const layout = paragraph.layout(width);
 
-  // The paragraph places each baseline by half-leading in its line box. A
-  // normal line box has it where Chrome does, and the text moves there.
-  const paragraphBaseline =
-    (layout.lineHeight + layout.ascent - layout.descent) / 2;
-  const box: LineBox = normal ?? {
-    lineHeight: layout.lineHeight,
-    baseline: paragraphBaseline,
-    ascent: layout.ascent,
-    descent: layout.descent,
-  };
-  const shift = box.baseline - paragraphBaseline;
+  // The paragraph places each baseline by Chrome's half-leading in its line
+  // box, which for a normal line box is where `normalLineBox` has it.
+  const box: LineBox =
+    normal ??
+    halfLeadingLineBox(layout.lineHeight, layout.ascent, layout.descent);
 
   // An empty paragraph has no lines, where CSS keeps one empty line box.
   const lines: ParagraphLine[] =
@@ -366,7 +392,7 @@ export function layoutTextNative(
           {
             left: 0,
             width: 0,
-            baseline: paragraphBaseline,
+            baseline: box.baseline,
             startIndex: 0,
             endIndex: 0,
             hardBreak: true,
@@ -379,7 +405,7 @@ export function layoutTextNative(
       .slice(toTextIndex(line.startIndex), toTextIndex(line.endIndex))
       .replace(/\n/g, ""),
     x: line.left,
-    y: line.baseline + shift,
+    y: line.baseline,
     width: line.width,
     height: layout.lineHeight,
     fontSize,
@@ -400,9 +426,9 @@ export function layoutTextNative(
     emoji.push({
       grapheme: content.emoji[i]!,
       x: placed.x,
-      y: placed.y + shift,
+      y: placed.y,
       size: fontSize,
-      baseline: lines[placed.line]!.baseline + shift,
+      baseline: lines[placed.line]!.baseline,
     });
   });
 
@@ -410,7 +436,7 @@ export function layoutTextNative(
   // at MIN_FONT_SIZE, has them of no height, as in CSS.
   let height = lines.length * layout.lineHeight;
 
-  let paragraphOffsetY = shift;
+  let paragraphOffsetY = 0;
   const textBoxTrim = style.textBoxTrim;
   if (textBoxTrim && textBoxTrim !== "none") {
     const trim = measureTrimMetrics(

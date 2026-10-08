@@ -174,6 +174,14 @@ export const linesDiffer = (
     (_, i) => `#${id} line ${from + i} ${what}`,
   );
 
+/**
+ * The `why` of a difference kept on purpose, whose issue was closed without
+ * a change: Chrome is a reference for correctness, not a target, and parity
+ * with it isn't a goal in itself. As `intentional("effing#188", "canvas…")`.
+ */
+export const intentional = (issue: string, why: string): string =>
+  `intentional (${issue}, closed: Chrome parity isn't a goal in itself): ${why}`;
+
 /** How canvas lays a fixture out otherwise than Chrome, and why. */
 export type KnownDifference = {
   /** Why canvas differs. */

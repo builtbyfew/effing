@@ -110,15 +110,6 @@ const COLOURS = { tolerance: { pixelThreshold: 0.01, pixels: 0.1 } };
 /** As `COLOURS`, for a chain that differs by 0.31% at 0.01 (none at 0.015). */
 const CHAINED_COLOURS = { tolerance: { pixelThreshold: 0.015, pixels: 0.1 } };
 
-/**
- * Canvas blurs a drop shadow half as much as Chrome: Chrome takes
- * drop-shadow()'s length as the blur's standard deviation (as blur() does),
- * canvas as a blur radius, of twice the standard deviation (as box-shadow
- * and text-shadow do). Canvas's `drop-shadow(… 12px …)` is Chrome's `6px`.
- */
-const HALVED_BLUR =
-  "canvas blurs a drop shadow with half Chrome's standard deviation: it takes drop-shadow()'s length as a blur radius (as box-shadow does), Chrome as the standard deviation (as blur() does)";
-
 const fixtures: ChromeFixture[] = [
   ...FILTERS.map((filter) =>
     frame(
@@ -147,14 +138,9 @@ const fixtures: ChromeFixture[] = [
         filter: "drop-shadow(6px 8px 6px #1e293b)",
       }}
     />,
-    {
-      // Without the difference, none of its pixels differ (canvas's
-      // drop-shadow(6px 8px 12px) against Chrome's).
-      tolerance: { pixels: 0.2 },
-      // As measured (5.5%): a shadow 1px further off (6.2%), or blurred 1px
-      // more or less (2.4%, 9.3%), is out of it.
-      knownPaintDifference: { why: HALVED_BLUR, pixels: [5.2, 5.8] },
-    },
+    // None of its pixels differ at 0.03, where a shadow 1px further off
+    // differs by 3.9% (at 0.1, by none), and one blurred 1px more by 0.16%.
+    { tolerance: { pixelThreshold: 0.03, pixels: 0.1 } },
   ),
   frame(
     "casts a sharp drop shadow of a circle and a square",
@@ -209,15 +195,10 @@ const fixtures: ChromeFixture[] = [
     >
       Dropped
     </div>,
-    {
-      // 0.43% of pixels differ where canvas blurs the shadow as Chrome does
-      // (drop-shadow(3px 3px 4px …)): a ring where the shadow's halo meets
-      // the glyphs' edges, which Chrome rasterises heavier on macOS.
-      tolerance: { pixels: 0.7 },
-      // As measured (3.3%): a shadow 1px further off (4.5%) is out of it,
-      // and the shapes' drop shadows hold its geometry.
-      knownPaintDifference: { why: HALVED_BLUR, pixels: [2.5, 4.2] },
-    },
+    // 0.43% of pixels differ: a ring where the shadow's halo meets the
+    // glyphs' edges, which Chrome rasterises heavier on macOS. The blurred
+    // drop shadow above holds the shadow's geometry.
+    { tolerance: { pixels: 0.7 } },
   ),
   frame(
     "blurs text",

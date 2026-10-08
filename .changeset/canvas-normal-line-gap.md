@@ -25,12 +25,8 @@ grows a line for a fallback font that draws some of its text, which canvas
 doesn't yet. Chrome on Linux puts the baseline a pixel higher for fonts whose
 descent it rounds down; renders follow macOS on every platform.
 
-To notice fonts registered or removed through `GlobalFonts`, canvas wraps the
-shared `GlobalFonts` object's mutating methods (`register`, `registerFromPath`,
-`remove`, `removeBatch`, `removeAll`, `setAlias`, `loadFontsFromDir`,
-`loadSystemFonts`) once per process. They behave as before, but
-`@effing/skia`'s own `GlobalFonts` gets the wrappers too, since it is the same
-object.
+Line boxes follow fonts registered or removed through `GlobalFonts` too, as
+@effing/skia's font revision counter tells canvas of them.
 
 With @effing/skia 1.0.10-effing.5, text also matches Chrome in three more
 places:

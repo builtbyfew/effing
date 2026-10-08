@@ -84,9 +84,9 @@ describe("native paragraph layout", () => {
   });
 
   it("places lines on CSS half-leading baselines from the hhea metrics", () => {
-    // Liberation Sans: hhea ascender 1854, descender -434, unitsPerEm 2048.
-    const ascent = (1854 / 2048) * 20;
-    const descent = (434 / 2048) * 20;
+    // Liberation Sans: hhea ascender 1854, descender -434, unitsPerEm 2048,
+    // so 18.1 and 4.24 at 20px. Chrome rounds them (18 + 4) and floors the
+    // half of the leading above them: 18 + floor((30 - 22) / 2) = 22.
     const result = layoutText(
       TEXT,
       style({ fontSize: 20, lineHeight: 30 }),
@@ -95,7 +95,7 @@ describe("native paragraph layout", () => {
     expect(result.paragraph).toBeDefined();
     expect(result.segments.length).toBeGreaterThan(2);
     result.segments.forEach((seg, i) => {
-      expect(seg.y).toBeCloseTo(i * 30 + (30 + ascent - descent) / 2, 4);
+      expect(seg.y).toBe(i * 30 + 22);
     });
     expect(result.height).toBeCloseTo(result.segments.length * 30, 4);
   });
@@ -463,13 +463,11 @@ describe("native paragraph layout", () => {
   });
 
   it("keeps one empty line box for empty text", () => {
-    // Liberation Sans: hhea ascender 1854, descender -434, unitsPerEm 2048.
-    const ascent = (1854 / 2048) * 20;
-    const descent = (434 / 2048) * 20;
     for (const [lineHeight, height, baseline] of [
       // Chrome's normal line box (see above).
       [undefined, 23, 18],
-      [30, 30, (30 + ascent - descent) / 2],
+      // Chrome's half-leading (see above).
+      [30, 30, 22],
     ]) {
       const result = layoutText("", style({ fontSize: 20, lineHeight }), 300);
       expect(result.height).toBe(height);
@@ -548,10 +546,11 @@ describe("native paragraph layout", () => {
       "world",
       "again",
     ]);
-    // Every line's baseline is where the glyphs centre on the collapsed line
-    // box: (ascent - descent) / 2 below it.
+    // Every line's baseline is by Chrome's half-leading, of a leading of
+    // -22px (the rounded ascent and descent, 18 + 4): 18 + floor(-22 / 2) = 7
+    // below the collapsed line box.
     for (const seg of result.segments) {
-      expect(seg.y).toBeCloseTo(((1854 - 434) / 2048) * 10, 4);
+      expect(seg.y).toBe(7);
     }
   });
 
@@ -734,17 +733,16 @@ describe("native paragraph layout", () => {
         return [result.height, Math.round(result.segments[0]!.y * 1e4) / 1e4];
       };
       box(); // A fallback font's.
-      const key = GlobalFonts.register(
-        await font("LiberationSans-Regular.woff"),
-        family,
-      );
+      // `register` dedupes by content, so these share their typefaces with
+      // the "Liberation Sans" and "Noto Sans Myanmar" registered above, and
+      // `remove` takes those away too: they're registered again after.
+      const liberation = await font("LiberationSans-Regular.woff");
+      const myanmar = await font("NotoSansMyanmar-Regular.woff");
+      const key = GlobalFonts.register(liberation, family);
       try {
         expect(box()).toEqual([23, 18]);
         GlobalFonts.remove(key!);
-        const other = GlobalFonts.register(
-          await font("NotoSansMyanmar-Regular.woff"),
-          family,
-        );
+        const other = GlobalFonts.register(myanmar, family);
         try {
           expect(box()).toEqual([43, 26]);
         } finally {
@@ -752,6 +750,8 @@ describe("native paragraph layout", () => {
         }
       } finally {
         GlobalFonts.remove(key!);
+        GlobalFonts.register(liberation, "Liberation Sans");
+        GlobalFonts.register(myanmar, "Noto Sans Myanmar");
       }
     });
 

@@ -196,8 +196,9 @@ describe("visual comparison: text (satori smoke checks)", () => {
       "br-whitespace-collapse",
     );
 
-    // 0.023% measured.
-    expect(percentage).toBeLessThan(0.05);
+    // 0.21% measured: at lineHeight 1, the baseline is Chrome's half-leading
+    // (35px down a 42px line), 0.55px above Satori's.
+    expect(percentage).toBeLessThan(0.3);
   });
 
   it("renders textShadow — shadow inherited by child text nodes", async () => {
@@ -347,7 +348,8 @@ describe("visual comparison: text (satori smoke checks)", () => {
       "webkit-text-stroke",
     );
 
-    // 0.124% measured.
-    expect(percentage).toBeLessThan(0.2);
+    // 0.38% measured: at lineHeight 1, the baselines are Chrome's
+    // half-leading, about 0.5px above Satori's.
+    expect(percentage).toBeLessThan(0.5);
   });
 });

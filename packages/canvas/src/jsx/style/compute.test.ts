@@ -21,6 +21,37 @@ describe("resolveStyle", () => {
     expect(style.color).toBe("blue");
   });
 
+  it("takes any font-weight from 1 to 1000, and ignores others", () => {
+    const parent = { ...DEFAULT_STYLE, fontWeight: 700 };
+    for (const fontWeight of [
+      1,
+      550,
+      1000,
+      "550",
+      "1e3",
+      "bold",
+      "Bolder",
+      "lighter",
+      "normal",
+    ]) {
+      expect(resolveStyle({ fontWeight }, parent).fontWeight).toBe(fontWeight);
+    }
+    for (const fontWeight of [
+      0,
+      1001,
+      -5,
+      NaN,
+      "0",
+      "1200",
+      "550.",
+      "5.e2",
+      "bogus",
+      "",
+    ]) {
+      expect(resolveStyle({ fontWeight }, parent).fontWeight).toBe(700);
+    }
+  });
+
   it("resolves fontSize with em units relative to parent fontSize", () => {
     const input: ExpandedStyle = { fontSize: "4em" };
     const style = resolveStyle(input, { ...DEFAULT_STYLE, fontSize: 16 });

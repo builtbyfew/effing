@@ -1,5 +1,5 @@
 import type React from "react";
-import { fixtureModule, quote, SANS } from "../fixture.ts";
+import { fixtureModule, quote, SANS, intentional } from "../fixture.ts";
 import type { ChromeFixture, Transcribed } from "../fixture.ts";
 import { paragraph, texts } from "./paragraph.tsx";
 
@@ -432,7 +432,10 @@ const fixtures: ChromeFixture[] = [
       ...((control === "\v" ||
         (whiteSpace !== "pre" && whiteSpace !== "pre-wrap")) && {
         knownDifference: {
-          why: "effing-skia#36: Chrome draws it as a box 6.67px wide, from a fallback font that makes the line 30px tall; canvas draws nothing",
+          why: intentional(
+            "effing-skia#36",
+            "Chrome draws it as a box 6.67px wide, from a fallback font that makes the line 30px tall; canvas draws nothing",
+          ),
           differs: ["#p height", "#p line 1 top", "#p line 1 width"],
         },
       }),

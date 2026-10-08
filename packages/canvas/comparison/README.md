@@ -30,6 +30,8 @@ For a fixture with `screenshot: true`, it also stores a PNG of the frame (on a t
 
 A fixture with a `knownDifference` documents where canvas doesn't lay it out as Chrome does: why (with the issue to fix it), and what differs, as the subjects of the differences found (`"#p line 1 width"`) or RegExps of them. The differences found must be those, and no others, and the test fails once there are none, so that the note goes when the difference does. A `knownPaintDifference` does the same for a fixture that canvas lays out as Chrome does but paints otherwise: the share of its pixels that differ must be within the range measured (beyond its tolerance), and the ellipses that end elsewhere than Chrome's those it names.
 
+Chrome is a reference for correctness, not a target: matching it isn't a goal in itself. A difference that is kept on purpose, whose issue was closed without a change, says so with `intentional(issue, why)` from `chrome/fixture.ts`, and isn't a bug to fix.
+
 ### Regenerating
 
 ```sh
@@ -41,7 +43,7 @@ It drives the Chrome installed on the machine through `playwright-core` (no brow
 
 Generate them on macOS. Chrome rounds `line-height: normal` line boxes differently on Linux, and canvas sizes them as Chrome on macOS does (see footnote ⁴ in the [canvas README](../README.md)); text is also rasterised differently across platforms, so screenshots taken elsewhere won't match canvas as closely. Fonts that aren't in `_helpers/fonts/` (emoji, CJK, a glyph a font doesn't have) come from the system in Chrome and differ from canvas's: keep fixtures to the bundled fonts, or give them a tolerance and say why.
 
-Fixtures set their text in `SANS` (from `chrome/fixture.ts`): the bundled Liberation Sans under a family name no system font has. A Liberation Sans installed on the system, as Ubuntu's fonts-liberation is on CI, shadows a font registered under its own name in @effing/skia ([effing-skia#29](https://github.com/builtbyfew/effing-skia/issues/29)), and kerns differently.
+Fixtures set their text in `SANS` (from `chrome/fixture.ts`): the bundled Liberation Sans under a family name no system font has, so that they can't pick up a Liberation Sans installed on the system, as Ubuntu's fonts-liberation is on CI, which kerns differently. (Since @effing/skia 1.0.10-effing.6, a font registered under a system family's name replaces that family, so it no longer would: [effing-skia#29](https://github.com/builtbyfew/effing-skia/issues/29).)
 
 ### Adding a fixture
 
@@ -70,6 +72,6 @@ Fixtures set their text in `SANS` (from `chrome/fixture.ts`): the bundled Libera
 Write fixtures so that CSS and canvas read them alike:
 
 - Give line heights in px (`"30px"`): a number is a multiple of the font size in CSS, but px above 5 in canvas. The generator refuses one.
-- Align text in a box with `flexDirection: "column"` on the box. This is a known difference between canvas and CSS, which is yet to be decided on: in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it ([effing#196](https://github.com/builtbyfew/effing/issues/196)).
+- Align text in a box with `flexDirection: "column"` on the box. This is a deliberate difference between canvas and CSS (decided in effing#196: canvas keeps it): in a row, canvas grows the text of an element of nothing but text across the element (where its `justifyContent` is `flex-start`, the default), so `textAlign` aligns it there, where CSS leaves the text's anonymous flex item as wide as its text, with nothing to align it in. Across a column, both stretch it ([effing#196](https://github.com/builtbyfew/effing/issues/196)).
 - Set `flexShrink` where an item should shrink: canvas defaults it to 0 (as Satori does), except for an element of nothing but text; the generator sets it the same way.
 - `text-overflow: ellipsis` needs `overflow: hidden` in Chrome.

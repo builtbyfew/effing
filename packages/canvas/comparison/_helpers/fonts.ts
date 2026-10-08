@@ -25,11 +25,12 @@ const FONT_VARIANTS = [
 ] as const;
 
 /**
- * The bundled Liberation Sans under a family name no system font has. A
- * Liberation Sans installed on the system (as fonts-liberation is on Ubuntu)
- * shadows fonts registered under its own name (effing-skia#29), so tests
- * that must lay text out in the bundled fonts, whatever the machine, load
- * them under this name: `loadFonts(BUNDLED_SANS)`.
+ * The bundled Liberation Sans under a family name no system font has, for
+ * tests that must lay text out in the bundled fonts, whatever the machine:
+ * `loadFonts(BUNDLED_SANS)`. A Liberation Sans installed on the system (as
+ * fonts-liberation is on Ubuntu) used to shadow fonts registered under its
+ * own name (effing-skia#29); since @effing/skia 1.0.10-effing.6 a registered
+ * family replaces it, so the name is no longer needed for that, only kept.
  */
 export const BUNDLED_SANS = "Bundled Liberation Sans";
 

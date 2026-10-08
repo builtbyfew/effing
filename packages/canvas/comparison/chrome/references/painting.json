@@ -108,6 +108,14 @@
       },
       "screenshot": "painting/text-with-a-shadow.png"
     },
+    "a rounded image background under an overflowing child": {
+      "hash": "6b9f60ff7f25127b",
+      "elements": {
+        "p": { "x": 10, "y": 10, "width": 120, "height": 60, "lines": [] },
+        "c": { "x": 90, "y": 50, "width": 60, "height": 40, "lines": [] }
+      },
+      "screenshot": "painting/a-rounded-image-background-under-an-overflowing-child.png"
+    },
     "a blurred image": {
       "hash": "2a5766507f07e809",
       "elements": {},

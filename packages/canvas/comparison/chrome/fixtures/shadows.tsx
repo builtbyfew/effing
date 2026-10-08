@@ -58,10 +58,11 @@ const box = (
 
 /**
  * Box shadows: at most 0.15% of pixels differ at a threshold of 0.03 (edges
- * antialiased otherwise). A shadow 1px further off differs by 1% to 5.6%, one
- * 1px wider by 5.5% to 16%, and one blurred 1px more by up to 2.1%.
+ * antialiased otherwise). Every shadow 1px further off differs by 1% to 5.6%,
+ * 1px wider by 5.5% to 16%, and blurred 1px more by up to 2.1%; one box's
+ * shadow of four 1px wider differs by 0.29%.
  */
-const BOX_SHADOWS = { pixelThreshold: 0.03, pixels: 0.3 };
+const BOX_SHADOWS = { pixelThreshold: 0.03, pixels: 0.2 };
 
 /** A frame of boxes, one for each shadow. */
 const boxes = (

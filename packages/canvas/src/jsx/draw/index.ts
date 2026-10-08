@@ -186,16 +186,20 @@ async function paintNode(
         // Try url(...) background image
         const urlMatch = layer.match(/url\(["']?(.*?)["']?\)/);
         if (urlMatch) {
-          if (hasRadius(borderRadius)) {
-            applyClip(ctx, x, y, width, height, borderRadius);
-          }
-
+          // Load the image first, so that nothing awaits inside the save.
           const image = await cachedLoadImage(
             renderContext.imageCache,
             urlMatch[1]!,
             renderContext.userAgent,
           );
           const bgSize = style.backgroundSize;
+
+          // The rounded clip is the background's alone: restored after it, so
+          // that it doesn't clip the text, image and children painted next.
+          ctx.save();
+          if (hasRadius(borderRadius)) {
+            applyClip(ctx, x, y, width, height, borderRadius);
+          }
 
           if (bgSize === "cover") {
             // Cover fills the box completely — no tiling needed
@@ -251,6 +255,7 @@ async function paintNode(
               }
             }
           }
+          ctx.restore();
         }
       }
     }

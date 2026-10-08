@@ -16,3 +16,8 @@ Parse `boxShadow` and `textShadow` as CSS does
   elsewhere now work in both.
 - An invalid value casts no shadow, as CSS ignores it. A list used to be
   read as one shadow, with the rest of the list as its colour.
+
+Also stop a `url()` background on an element with a border radius from
+clipping what is painted after it: the rounded clip used to stay for the
+element's text, image and children, cutting a child that overflows the
+element's corners.

@@ -245,14 +245,23 @@ async function paintNode(
               tileW = image.width;
               tileH = image.height;
             }
+            // A zero-size image (or a tile size that isn't finite) paints
+            // nothing, and would step the tiling loops by 0 forever.
+            const drawable =
+              tileW > 0 &&
+              tileH > 0 &&
+              Number.isFinite(tileW) &&
+              Number.isFinite(tileH);
             const repeat = style.backgroundRepeat ?? "repeat";
             const stepX =
               repeat === "repeat" || repeat === "repeat-x" ? tileW : width;
             const stepY =
               repeat === "repeat" || repeat === "repeat-y" ? tileH : height;
-            for (let ty = y; ty < y + height; ty += stepY) {
-              for (let tx = x; tx < x + width; tx += stepX) {
-                ctx.drawImage(image, tx, ty, tileW, tileH);
+            if (drawable) {
+              for (let ty = y; ty < y + height; ty += stepY) {
+                for (let tx = x; tx < x + width; tx += stepX) {
+                  ctx.drawImage(image, tx, ty, tileW, tileH);
+                }
               }
             }
           }

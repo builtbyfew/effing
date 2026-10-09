@@ -39,7 +39,7 @@ pnpm --filter @effing/canvas comparison:chrome            # every module
 pnpm --filter @effing/canvas comparison:chrome br painting # some
 ```
 
-It drives the Chrome installed on the machine through `playwright-core` (no browser download), from `CHROME_PATH` or the usual install location, and records Chrome's version and the platform in each JSON file. Commit the JSON and PNG files it writes; CI has no Chrome and only reads them.
+It drives the Chrome installed on the machine through `playwright-core` (no browser download), from `CHROME_PATH` or the usual install location, and records Chrome's version and the platform in each JSON file. Commit the JSON and PNG files it writes; CI has no Chrome and only reads them. The Chrome version recorded can differ from module to module, as each module is regenerated on its own: only the generator hash and the platform are checked.
 
 Generate them on macOS. Chrome rounds `line-height: normal` line boxes differently on Linux, and canvas sizes them as Chrome on macOS does (see footnote ⁴ in the [canvas README](../README.md)); text is also rasterised differently across platforms, so screenshots taken elsewhere won't match canvas as closely. Fonts that aren't in `_helpers/fonts/` (emoji, CJK, a glyph a font doesn't have) come from the system in Chrome and differ from canvas's: keep fixtures to the bundled fonts, or give them a tolerance and say why.
 

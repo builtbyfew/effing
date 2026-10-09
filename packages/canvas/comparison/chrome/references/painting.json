@@ -1,5 +1,5 @@
 {
-  "chrome": "154.0.8037.98",
+  "chrome": "155.0.8059.39",
   "generator": "f32f11b2d18ab952",
   "platform": "darwin-arm64",
   "fixtures": {
@@ -115,6 +115,16 @@
         "c": { "x": 90, "y": 50, "width": 60, "height": 40, "lines": [] }
       },
       "screenshot": "painting/a-rounded-image-background-under-an-overflowing-child.png"
+    },
+    "image backgrounds larger than their box": {
+      "hash": "2ffb238e6b0bc924",
+      "elements": {
+        "a": { "x": 10, "y": 10, "width": 60, "height": 40, "lines": [] },
+        "b": { "x": 80, "y": 10, "width": 70, "height": 40, "lines": [] },
+        "c": { "x": 160, "y": 10, "width": 40, "height": 60, "lines": [] },
+        "s": { "x": 10, "y": 80, "width": 200, "height": 30, "lines": [] }
+      },
+      "screenshot": "painting/image-backgrounds-larger-than-their-box.png"
     },
     "a blurred image": {
       "hash": "2a5766507f07e809",

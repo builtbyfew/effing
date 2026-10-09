@@ -131,6 +131,39 @@ export default fixtureModule("painting", [
       />
     </div>,
   ]),
+  // An image background is clipped to its box, with or without a radius: an
+  // image larger than the box, and the last tiles of a repeated one, don't
+  // paint past its edges, into the gap or onto the box next to it.
+  painted("image backgrounds larger than their box", [
+    <div key="r" style={{ display: "flex", gap: 10 }}>
+      <div
+        id="a"
+        style={{
+          width: 60,
+          height: 40,
+          backgroundImage: `url(${testImage(100, 70)})`,
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+      <div
+        id="b"
+        style={{
+          width: 70,
+          height: 40,
+          backgroundImage: `url(${testImage(30, 30)})`,
+        }}
+      />
+      <div
+        id="c"
+        style={{ width: 40, height: 60, backgroundColor: "#fde68a" }}
+      />
+    </div>,
+    <div
+      key="s"
+      id="s"
+      style={{ width: 200, height: 30, backgroundColor: "#3b82f6" }}
+    />,
+  ]),
   // image.test.tsx's card, whose pixels it holds where the blurred image
   // fades out over the page, as Chrome painted them.
   {

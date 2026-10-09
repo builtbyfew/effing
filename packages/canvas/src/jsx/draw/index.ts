@@ -194,12 +194,13 @@ async function paintNode(
           );
           const bgSize = style.backgroundSize;
 
-          // The rounded clip is the background's alone: restored after it, so
-          // that it doesn't clip the text, image and children painted next.
+          // Clipped to the border box (rounded or not), as CSS's default
+          // `background-clip: border-box` does, so that an image or tile
+          // larger than the box doesn't paint past it. The clip is the
+          // background's alone: restored after it, so that it doesn't clip
+          // the text, image and children painted next.
           ctx.save();
-          if (hasRadius(borderRadius)) {
-            applyClip(ctx, x, y, width, height, borderRadius);
-          }
+          applyClip(ctx, x, y, width, height, borderRadius);
 
           if (bgSize === "cover") {
             // Cover fills the box completely — no tiling needed

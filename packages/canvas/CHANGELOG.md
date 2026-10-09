@@ -1,5 +1,223 @@
 # @effing/canvas
 
+## 0.44.0
+
+### Minor Changes
+
+- 5d068e6: Update to @effing/skia 1.0.10-effing.6: CSS drop shadows, soft hyphens, wider justification, Chrome's baselines and font matching
+
+  Filters:
+
+  - `filter: drop-shadow(...)` blurs twice as much as before, as CSS defines
+    it: its blur length is the standard deviation, as for `blur()`, where it
+    was half of it. Halve the blur length for the old look. `boxShadow` and
+    `textShadow` are unchanged.
+  - Filter values that CSS rejects are now ignored, so the element has no
+    filter, where they used to be clamped or drawn in black: a negative amount
+    or blur length (`blur(-1px)`, `opacity(-1)`), a unitless `hue-rotate(90)`,
+    or a `drop-shadow()` whose colour can't be read.
+
+  Text:
+
+  - A line that breaks at a soft hyphen (U+00AD) ends with a hyphen, as in
+    browsers.
+  - Justified text spreads at no-break spaces too, and around CJK characters
+    (kana, punctuation and fullwidth forms as well as ideographs), as in
+    Chrome.
+  - A justified line that `lineClamp` cuts is justified first, then cut for
+    the ellipsis, as in Chrome ("jumps over the la…" where it was "jumps over
+    the lazy…").
+  - A line that starts after the space it wrapped at no longer kerns against
+    that space, so it's measured as wide as in Chrome, and a few lines break
+    elsewhere.
+  - With a set `lineHeight`, baselines are placed by Chrome's half-leading,
+    from the font's ascent and descent rounded to whole pixels: they move by
+    up to about 1px (Liberation Sans at 20px in 30px lines: 22px down each
+    line, where it was 21.93px), and `textBoxTrim` trims to the rounded ascent
+    and descent. `normal` line boxes don't change.
+  - Text is laid out at the font size floored to 1/100px, as in Chrome
+    (17.3px is 17.29px), which changes widths at fractional sizes by up to
+    about 0.13%.
+
+  Fonts:
+
+  - A font registered under the name of a system font (through `fonts`,
+    `registerFont`, `registerFontFromPath` or `GlobalFonts`) replaces that
+    system family in every style, as `@font-face` does in browsers: styles you
+    don't register are synthesized from the ones you do. Register every style
+    you use.
+  - `fontWeight` takes any weight from 1 to 1000 (`550`), as CSS does; one
+    outside that range is ignored and the parent's applies.
+  - A `.ttc` or `.otc` font collection loads every face in it, not only the
+    first.
+  - Bold italic in a family with bold and italic faces but no bold italic one
+    is the italic face emboldened, as in Chrome, where it was the bold face
+    slanted, and lines can break elsewhere.
+
+  Also:
+
+  - Emoji (and other inline images) between right-to-left words are ordered
+    as the text's direction gives, where the first one used to land on the
+    left; a clamped line is letter-spaced as the rest of its paragraph.
+  - A `filter` list keeps applying past a transparent `drop-shadow()`, and
+    accepts a colour before the lengths (`drop-shadow(red 4px 4px)`), `hsl()`
+    and `hwb()` colours, and upper-case names.
+  - Filtered draws (`filter`, blurred shadows) are much faster: the blur only
+    covers what is drawn.
+
+  If you draw with the re-exported `createCanvas` or `GlobalFonts` directly:
+  `ctx.font` now throws for a weight outside 1 to 1000 (it used to read
+  `"0 20px Arial"` as a 0px font in the family "20px Arial"), and `ctx.filter`
+  keeps its previous value when given a value CSS rejects.
+
+- 25c793c: Don't shrink text below its min-content width, so text too wide for its box stays centred
+
+  Text that can't wrap (`whiteSpace: "nowrap"`, or a single word) and is
+  wider than its box shrank to the box, and since 0.43 a line that overflows
+  starts at its box's edge, so it was no longer centred in a centring parent:
+  it started at the box's left edge and ran off to the right. In CSS a flex
+  item is never narrower than its min-content width (`min-width: auto`), so
+  Chrome keeps such text as wide as its line and centres it, overflowing on
+  both sides. Canvas now does the same.
+
+  - In a row, an element that holds only text, and a run of text between
+    elements, are at least as wide as the text's widest word, or its widest
+    line where it doesn't wrap, padding and borders included. A `width` or
+    `maxWidth` caps that, percentages included. There is no minimum with a
+    `minWidth` of the element's own, with `overflow: "hidden"` (or `scroll` or
+    `auto`), or for an absolutely positioned element, as in CSS.
+  - Text truncated with an ellipsis (`textOverflow: "ellipsis"` without
+    wrapping, or `lineClamp`) still shrinks to its box and is truncated there.
+  - Under `overflowWrap: "anywhere"`, `wordBreak: "break-all"` and
+    `wordBreak: "break-word"`, words still break to fit the box. Under
+    `overflowWrap: "break-word"`, the min-content is still the whole word, as
+    in CSS: a word only breaks where the box can't grow to it.
+  - Across a column (`alignItems: "center"` and the like), text that can't fit
+    is as wide as its widest word or line, rather than the width available.
+  - Lengths are laid out in units of 1/64px, as in Chrome: text widths are
+    rounded up to them, and lengths in px (widths, padding, borders, margins,
+    gaps, flex bases and positions) truncated. Boxes can come out a pixel
+    wider or narrower where that crosses half a pixel, as in Chrome.
+  - Rows whose items are all held at their minimums are laid out as in CSS.
+    Yoga could size such items at millions of pixels, and now pins them at
+    their minimums instead, also in rows that ran away before.
+
+  Layouts that relied on text shrinking below its words change: a row of text
+  items that can't fit now overflows its container, as in Chrome. Give an item
+  `minWidth: 0` or `overflow: "hidden"` to let its box shrink (the text then
+  overflows the box), or an ellipsis to truncate the text.
+
+### Patch Changes
+
+- c45f0a2: A `url()` background is clipped to its box, as in CSS, so a tile larger than the element no longer draws outside it. A `url()` background of a zero-size image no longer hangs the render.
+- 44e55b3: Make `<br />` a forced line break inside a run of text, as in browsers
+
+  A `<br />` used to be a flex item of its own, with no size: in a column it
+  put the text after it on the next line, but in a row (the default
+  `flexDirection`) `First line <br /> second line` set the two lines side by
+  side, where browsers stack them.
+
+  - A `<br />` is now part of the run of text around it, which is laid out as
+    one item, and breaks the line there: in a row as in a column, at the start
+    or end of the text, several in a row for empty lines, and inside
+    fragments, arrays and components.
+  - It breaks the line under every `whiteSpace`, `nowrap` included, and the
+    spaces, tabs and newlines before and after it are removed where spaces
+    collapse. Under `pre`, `pre-wrap` and `pre-line`, a newline next to it is
+    a break of its own, as in browsers.
+  - A `<br />` between two elements is an item of one empty line, and one with
+    `display: none` is left out.
+  - Text with more than one line that only breaks where it's forced to (at a
+    `<br />`, or at a newline under `pre`, `pre-wrap` or `pre-line`) is now as
+    wide as its widest line, rather than the full width available, so the
+    items after it follow it and a background drawn behind it fits it. With
+    `lineClamp`, that width leaves out the ellipsis, and the clamped line is
+    truncated to fit it, as in Chrome.
+
+  Layouts that relied on the old behaviour change:
+
+  - `gap` no longer applies between the lines either side of a `<br />`: they
+    are one item now, as in Chrome.
+  - In a column, the lines either side of a `<br />` used to be separate items,
+    each 23px tall with Liberation Sans at 20px. They are now lines of one
+    run, spaced at the `normal` line height that canvas gives any wrapped
+    text: 23px with that font, as in Chrome, so the column is as tall as
+    before.
+
+- 9c6451b: Size `line-height: normal` line boxes as Chrome does, line gap included (@effing/skia 1.0.10-effing.5)
+
+  A `normal` line box is now the font's hhea ascent, descent and line gap, each
+  rounded to whole pixels, with the baseline at the rounded ascent plus half the
+  line gap (rounded down), as Chrome lays it out on macOS. Before, it was the
+  unrounded ascent plus descent without the line gap, and the text's height was
+  rounded up as a whole.
+
+  Text with `line-height: normal` changes height. For fonts with a line gap, it
+  gets taller by about a pixel per line: Liberation Sans at 20px is 23px a line
+  where it was 22.34px, so three lines are 69px where they were 68px. For fonts
+  without one, each line now rounds to a whole pixel, up or down: Noto Sans
+  Myanmar at 20px is 43px a line where it was 43.68px. Glyphs move to Chrome's
+  baseline, by up to about a pixel; `text-box-trim` trims to the rounded ascent
+  and descent; and `findLargestUsableFontSize` can pick a smaller size where the
+  taller lines no longer fit. Explicit line heights don't change.
+
+  The metrics are those of the first available font in the `fontFamily` list,
+  system fonts and fonts registered through `GlobalFonts` included. Chrome also
+  grows a line for a fallback font that draws some of its text, which canvas
+  doesn't yet. Chrome on Linux puts the baseline a pixel higher for fonts whose
+  descent it rounds down; renders follow macOS on every platform.
+
+  Line boxes follow fonts registered or removed through `GlobalFonts` too, as
+  @effing/skia's font revision counter tells canvas of them.
+
+  With @effing/skia 1.0.10-effing.5, text also matches Chrome in three more
+  places:
+
+  - Under `pre` and `pre-wrap`, a lone CR is kept instead of dropped. It is
+    still drawn as nothing and doesn't break the line, but the letters either
+    side of it no longer kern or join: `"A\rV"` is as wide as in Chrome.
+  - A line or paragraph separator (U+2028, U+2029) gets `letterSpacing` once,
+    not twice.
+  - Under `pre`, a clamped line that ends at a newline now gets an ellipsis
+    ("ab…"), as under `pre-line` and `pre-wrap`.
+
+- 9c891c3: Parse `boxShadow` and `textShadow` as CSS does
+
+  - `boxShadow` takes a comma-separated list, painted with the first shadow on
+    top. `inset` shadows are now cast inside the padding box, clipped to its
+    rounded corners, rather than drawn as outer shadows, and a spread now grows
+    (or, negative, shrinks) the shadow and its corner radii. The colour may come
+    first, and a shadow without one is cast in the element's `color`.
+  - `textShadow` now draws without a blur radius (`3px 3px red`), with the
+    colour first (`red 3px 3px 4px`) or left out (cast in the text's colour),
+    and as a list of shadows, the first on top.
+  - Lengths in `em`, `rem`, `vw`, `pt` and the other units canvas resolves
+    elsewhere now work in both.
+  - An invalid value casts no shadow, as CSS ignores it. A list used to be
+    read as one shadow, with the rest of the list as its colour.
+
+  Also stop a `url()` background on an element with a border radius from
+  clipping what is painted after it: the rounded clip used to stay for the
+  element's text, image and children, cutting a child that overflows the
+  element's corners.
+
+- 3a45ca2: Use @effing/skia's own `line-height: normal` instead of computing it in canvas; drop other workarounds the fork no longer needs. No visible change.
+
+  Text with `textOverflow: "ellipsis"` is now measured with its ellipsis, as it's drawn. Its measured height is unchanged, and so is its width almost always, since the paragraph's max-content width ignores the ellipsis. The one exception: `nowrap` or `pre` text with an ellipsis has its max-content width measured a line at a time, as it's drawn. A line shaped on its own can come out wider or narrower than the same line shaped as part of the whole text. @effing/skia documents one right-to-left line with fallback fonts that came out 14px off. Such a node is now as wide as its drawn line.
+
+- 3b4d871: Size squeezed text items for the lines they draw, in rows and columns
+
+  - A text item squeezed in a row could be sized one line tall while it drew
+    several lines over the items below it. Its height had been checked against
+    the lines at an earlier width, and Yoga kept sizing it from that height
+    after the item moved to another width. It's now sized for the lines laid
+    out at its final width.
+  - A column too short for its text items no longer shrinks them below their
+    lines, as `min-height: auto` keeps them in CSS: they keep the height of
+    their lines at their width, and overflow the column instead of each other.
+    A `height` (or `maxHeight`) caps that, and an item with `overflow: hidden`
+    or a `minHeight` of its own still shrinks, as in browsers.
+
 ## 0.43.0
 
 ### Minor Changes

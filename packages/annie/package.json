@@ -1,6 +1,6 @@
 {
   "name": "@effing/annie",
-  "version": "0.43.0",
+  "version": "0.44.0",
   "description": "Annie animation frame generator utilities",
   "repository": {
     "type": "git",

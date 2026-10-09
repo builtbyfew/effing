@@ -5,13 +5,6 @@ import type { FontData } from "../types.ts";
 const registeredFonts = new Set<string>();
 
 /**
- * Reset internal font state (test-only).
- */
-export function _resetForTest(): void {
-  registeredFonts.clear();
-}
-
-/**
  * Register a font from a FontData buffer.
  * Registration is idempotent — re-registering the same font name is a no-op.
  *

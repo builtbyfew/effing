@@ -52,8 +52,8 @@ export function isWhiteSpaceOnly(text: string): boolean {
  * paragraph lays out as Chrome does: with no width, no glyph and no break
  * opportunity, but as a break in the shaping, so the letters either side of
  * it don't kern or join. Under every value, a CRLF is one segment break, as
- * in Chrome (the paragraph would keep the CR in the line too, and draw it
- * before an ellipsis), and:
+ * in Chrome, made one newline so that removing a final break and joining at
+ * a `<br>` deal in single-unit newlines, and:
  *
  * - A segment break or a `<br>` at the very end of the text ends the last
  *   line, rather than starting an empty one, as in Chrome. This relies on

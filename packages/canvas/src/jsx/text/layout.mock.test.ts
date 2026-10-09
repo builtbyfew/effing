@@ -164,12 +164,15 @@ describe("layoutText", () => {
     expect(result.height).toBe(0);
   });
 
-  it("gives the paragraph Chrome's `normal` line height", () => {
+  it("lays out `normal` line boxes as the paragraph sizes them", () => {
     // The mock's font has no line gap: 12 + 4.
     for (const lineHeight of [undefined, "normal"]) {
-      const result = layoutText("aaa", { fontSize: 16, lineHeight }, 500);
-      expect(paragraphStyle(result).lineHeight).toBe(16);
-      expect(result.segments[0]!.y).toBe(12);
+      const result = layoutText("aaa bbb", { fontSize: 16, lineHeight }, 40);
+      expect(result.height).toBe(32);
+      expect(result.segments.map((s) => [s.y, s.height])).toEqual([
+        [12, 16],
+        [28, 16],
+      ]);
     }
   });
 

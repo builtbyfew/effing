@@ -139,7 +139,7 @@ function getColorAlpha(color: string): number {
  * appearance, so when the text color has alpha < 1 the shadow is also
  * attenuated. The canvas shadow API does NOT do this — it always renders
  * the shadow at the full specified opacity. We match CSS behavior by
- * drawing the shadow as a separate fillText at the offset, with
+ * drawing the shadow as a separate fillParagraph at the offset, with
  * globalAlpha scaled by the text color's alpha.
  */
 function drawShadowPass(

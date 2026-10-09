@@ -199,18 +199,12 @@ export class TextMeasure {
    */
   private intrinsic:
     { max: number; minBound: number; min: number | undefined } | undefined;
-  private readonly measureStyle: ComputedStyle;
 
   constructor(
     private readonly text: TextContent,
     private readonly style: ComputedStyle,
     private readonly emojiEnabled?: boolean,
-  ) {
-    // Strip textOverflow during measurement so ellipsis truncation doesn't
-    // shrink the reported width below the Yoga constraint.  The draw phase
-    // still uses the original style (with textOverflow) for rendering.
-    this.measureStyle = { ...style, textOverflow: "clip" };
-  }
+  ) {}
 
   /**
    * Measure the text for Yoga.
@@ -315,12 +309,7 @@ export class TextMeasure {
   }
 
   private layOut(width: number): TextLayoutResult {
-    const result = layoutText(
-      this.text,
-      this.measureStyle,
-      width,
-      this.emojiEnabled,
-    );
+    const result = layoutText(this.text, this.style, width, this.emojiEnabled);
     this.intrinsic ??= this.intrinsicOf(result);
     return result;
   }
@@ -381,7 +370,7 @@ export class TextMeasure {
     return layoutText(
       [...graphemes].join(" "),
       {
-        ...this.measureStyle,
+        ...this.style,
         whiteSpace: "normal",
         wordBreak: "normal",
         overflowWrap: "normal",

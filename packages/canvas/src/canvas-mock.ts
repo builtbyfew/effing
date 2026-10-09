@@ -167,7 +167,6 @@ export function createExtensionsMock() {
     strokeParagraph: vi.fn(),
     beginGroup: vi.fn(),
     endGroup: vi.fn(),
-    fontRevision: () => 0,
   };
 }
 
@@ -181,17 +180,12 @@ export function createCanvasMock() {
     lineJoin: "miter" as string,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
-    shadowColor: "transparent",
-    shadowBlur: 0,
-    shadowOffsetX: 0,
-    shadowOffsetY: 0,
     canvas: { width: 200, height: 200 },
     save: vi.fn(),
     restore: vi.fn(),
     fillRect: vi.fn(),
     strokeRect: vi.fn(),
     fillText: vi.fn(),
-    strokeText: vi.fn(),
     beginPath: vi.fn(),
     closePath: vi.fn(),
     moveTo: vi.fn(),
@@ -226,8 +220,6 @@ export function createCanvasMock() {
     })),
     measureText: vi.fn((text: string) => ({
       width: text.length * 8,
-      fontBoundingBoxAscent: 12,
-      fontBoundingBoxDescent: 4,
       actualBoundingBoxAscent: 12,
       actualBoundingBoxDescent: 4,
     })),

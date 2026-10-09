@@ -3,9 +3,9 @@
 // it word by word across the native boundary. The paragraph follows the CSS
 // line model (every line box exactly `lineHeight` tall, baseline placed by
 // half-leading from the font's hhea metrics) and paints unhinted, unsnapped
-// glyphs. `line-height: normal` line boxes are Chrome's (see `normalLineBox`).
+// glyphs.
 
-import { Paragraph, fontRevision } from "@effing/skia/extensions";
+import { Paragraph } from "@effing/skia/extensions";
 import type {
   ParagraphLine,
   ParagraphPlaceholder,
@@ -137,49 +137,11 @@ type LineBox = {
 };
 
 /**
- * A `line-height: normal` line box, as Chrome lays it out on macOS (Blink's
- * `SimpleFontData::PlatformInit` and the inline layout's half-leading): the
- * font's hhea ascent, descent and line gap each rounded to whole pixels, the
- * line box their sum, and the line gap split over its top and bottom with the
- * odd pixel at the bottom. For Liberation Sans at 20px (ascent 18.1, descent
- * 4.24, line gap 0.65) that's a 23px line box with its baseline at 18px.
- *
- * The metrics are those of the first font in the family list that's
- * available, as the paragraph reports them, and only those: Chrome also
- * grows a normal line box to fit the metrics of any fallback font that draws
- * some of its text, which this doesn't (effing#181).
- *
- * Chrome on Linux and Android moves a pixel from the ascent to the descent
- * when it rounds the descent down, which puts the baseline a pixel higher
- * there; renders here are the same on every platform, and follow macOS.
- *
- * @param ascent - The font's hhea ascent in px
- * @param descent - Its hhea descent in px, positive below the baseline
- * @param lineGap - Its hhea line gap in px; a negative one counts as none
- */
-export function normalLineBox(
-  ascent: number,
-  descent: number,
-  lineGap: number,
-): LineBox {
-  // Rounding half up, as Skia's SkScalarRoundToScalar.
-  const a = Math.round(ascent);
-  const d = Math.round(descent);
-  const gap = Math.round(Math.max(0, lineGap));
-  return {
-    lineHeight: a + d + gap,
-    baseline: a + Math.floor(gap / 2),
-    ascent: a,
-    descent: d,
-  };
-}
-
-/**
- * A line box of a set line height, as the paragraph lays it out by Chrome's
- * half-leading (Blink's `CalculateLeadingSpace`): the ascent and descent
- * rounded to whole pixels, and the half of the leading above them floored to
- * whole pixels, after halving it in Chrome's 1/64px layout units. For Liberation
- * Sans at 20px in a 30px line, the baseline is at 22px.
+ * A line box, as the paragraph lays it out by Chrome's half-leading (Blink's
+ * `CalculateLeadingSpace`): the ascent and descent rounded to whole pixels,
+ * and the half of the leading above them floored to whole pixels, after
+ * halving it in Chrome's 1/64px layout units. For Liberation Sans at 20px in a
+ * 30px line, the baseline is at 22px; in a `normal` one, 23px tall, at 18px.
  *
  * @param lineHeight - The line height in px, as the paragraph reports it
  *   (rounded to 1/64px)
@@ -200,35 +162,6 @@ function halfLeadingLineBox(
     ascent: a,
     descent: d,
   };
-}
-
-// Normal line boxes by font and size, valid for one font revision.
-const MAX_NORMAL_LINE_BOXES = 1000;
-const normalLineBoxes = new Map<string, LineBox>();
-let normalLineBoxesRevision = -1;
-
-/**
- * The `line-height: normal` line box of text in a font, from the hhea ascent,
- * descent and line gap of the font Skia's paragraph finds for it.
- */
-function normalLineBoxFor(style: ParagraphStyle): LineBox {
-  const revision = fontRevision();
-  if (normalLineBoxesRevision !== revision) {
-    normalLineBoxes.clear();
-    normalLineBoxesRevision = revision;
-  }
-  const { fontFamily, fontSize, fontWeight, fontStyle } = style;
-  const key = `${fontFamily}|${fontWeight}|${fontStyle}|${fontSize}`;
-  let box = normalLineBoxes.get(key);
-  if (!box) {
-    const probe = new Paragraph("", style);
-    countParagraph();
-    const { ascent, descent, lineGap } = probe.layout(0);
-    box = normalLineBox(ascent, descent, lineGap);
-    if (normalLineBoxes.size >= MAX_NORMAL_LINE_BOXES) normalLineBoxes.clear();
-    normalLineBoxes.set(key, box);
-  }
-  return box;
 }
 
 const graphemeSegmenter = new Intl.Segmenter(undefined, {
@@ -354,18 +287,14 @@ export function layoutTextNative(
   // Skia keeps its own cache of shaped text, so building a paragraph for text
   // it has seen (the next frame of a video, or Yoga measuring a node again)
   // only breaks the lines anew.
-  const fontStyles = {
+  const paragraph = new Paragraph(content.items, {
     fontFamily: quoteFontFamilies(fontFamily),
     fontSize,
     fontWeight: toWeight(fontWeight),
     fontStyle: toFontStyle(fontStyle),
-  };
-  const normal =
-    lineHeight === undefined ? normalLineBoxFor(fontStyles) : undefined;
-  const paragraph = new Paragraph(content.items, {
-    ...fontStyles,
     letterSpacing,
-    lineHeight: normal?.lineHeight ?? lineHeight,
+    // Undefined for `normal`, which the paragraph sizes as Chrome does.
+    lineHeight,
     textAlign: toTextAlign(style.textAlign),
     noWrap,
     maxLines: lineClamp,
@@ -379,10 +308,12 @@ export function layoutTextNative(
   const layout = paragraph.layout(width);
 
   // The paragraph places each baseline by Chrome's half-leading in its line
-  // box, which for a normal line box is where `normalLineBox` has it.
-  const box: LineBox =
-    normal ??
-    halfLeadingLineBox(layout.lineHeight, layout.ascent, layout.descent);
+  // box, a normal one too.
+  const box = halfLeadingLineBox(
+    layout.lineHeight,
+    layout.ascent,
+    layout.descent,
+  );
 
   // An empty paragraph has no lines, where CSS keeps one empty line box.
   const lines: ParagraphLine[] =
@@ -400,10 +331,7 @@ export function layoutTextNative(
         ];
   const toTextIndex = content.toTextIndex ?? ((index: number) => index);
   const segments: TextSegment[] = lines.map((line, i) => ({
-    // A line that ends the text at a newline reports the newline as its text.
-    text: text
-      .slice(toTextIndex(line.startIndex), toTextIndex(line.endIndex))
-      .replace(/\n/g, ""),
+    text: text.slice(toTextIndex(line.startIndex), toTextIndex(line.endIndex)),
     x: line.left,
     y: line.baseline,
     width: line.width,

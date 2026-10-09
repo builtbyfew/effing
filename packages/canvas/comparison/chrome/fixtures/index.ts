@@ -4,6 +4,7 @@ import filters from "./filters.tsx";
 import minContent from "./min-content.tsx";
 import nativeText from "./native-text.tsx";
 import painting from "./painting.tsx";
+import shadows from "./shadows.tsx";
 import textLayout from "./text-layout.tsx";
 import textPainting from "./text-painting.tsx";
 import whiteSpace from "./white-space.tsx";
@@ -18,4 +19,5 @@ export const modules: FixtureModule[] = [
   textLayout,
   textPainting,
   filters,
+  shadows,
 ];

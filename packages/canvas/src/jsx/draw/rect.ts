@@ -1,7 +1,8 @@
 import type { SKRSContext2D } from "@effing/skia";
 
 import type { ComputedStyle } from "../style/compute.ts";
-import { hasRadius, roundedRect } from "./clip.ts";
+import { hasRadius, maxCornerRadius, roundedRect } from "./clip.ts";
+import type { Shadow } from "./shadow.ts";
 import { parseCSSLength, toNumber, resolveBoxValue } from "./utils.ts";
 
 /**
@@ -259,49 +260,178 @@ function drawBorders(
   }
 }
 
-// Parse simple box-shadow: offsetX offsetY blur spread? color
-const BOX_SHADOW_RE =
-  /(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?\s+(-?\d+(?:\.\d+)?)\s*(?:px)?(?:\s+(-?\d+(?:\.\d+)?)\s*(?:px)?)?\s+(.*)/;
+type BorderRadius = ReturnType<typeof getBorderRadiusFromStyle>;
 
+/** A colour no shadow is cast in: what an invalid colour leaves the fill. */
+const NO_COLOR = "rgba(0, 0, 0, 0)";
+
+/**
+ * Draw an element's outer box shadows (those not `inset`), back to front:
+ * the first listed is on top. Each is the border box grown by its spread
+ * (shrunk, when negative), offset and blurred, and only shows outside the
+ * border box.
+ */
 export function drawBoxShadow(
   ctx: SKRSContext2D,
   x: number,
   y: number,
   width: number,
   height: number,
-  boxShadow: string,
-  borderRadius: ReturnType<typeof getBorderRadiusFromStyle>,
+  shadows: Shadow[],
+  borderRadius: BorderRadius,
 ): void {
-  const parts = boxShadow.match(BOX_SHADOW_RE);
-  if (!parts) return;
+  const outer = shadows.filter((s) => !s.inset);
+  if (outer.length === 0) return;
+  const radii = clampRadii(borderRadius, width, height);
 
-  const offsetX = parseFloat(parts[1]!);
-  const offsetY = parseFloat(parts[2]!);
-  const blur = parseFloat(parts[3]!);
-  const color = parts[5]!.trim();
-
-  const radii = [
-    borderRadius.topLeft,
-    borderRadius.topRight,
-    borderRadius.bottomRight,
-    borderRadius.bottomLeft,
-  ];
-
-  // Clip to area OUTSIDE the element so shadow renders but inner fill is hidden
-  const margin = blur * 2 + Math.abs(offsetX) + Math.abs(offsetY);
+  // Clip to the area outside the border box, far enough out for every shadow.
+  let margin = 0;
+  for (const s of outer) {
+    margin = Math.max(margin, reach(s));
+  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(x - margin, y - margin, width + margin * 2, height + margin * 2);
-  ctx.roundRect(x, y, width, height, radii);
+  roundedRect(ctx, x, y, width, height, ...radii);
   ctx.clip("evenodd");
 
-  // Use CSS filter blur (sigma = blur/2) instead of the canvas shadow API
-  // because it matches SVG feGaussianBlur (used by satori) much more closely.
-  ctx.filter = `blur(${blur / 2}px)`;
-  ctx.translate(offsetX, offsetY);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.roundRect(x, y, width, height, radii);
-  ctx.fill();
+  for (let i = outer.length - 1; i >= 0; i--) {
+    const s = outer[i]!;
+    const w = width + s.spread * 2;
+    const h = height + s.spread * 2;
+    if (w <= 0 || h <= 0) continue;
+    ctx.save();
+    setShadowPaint(ctx, s);
+    ctx.beginPath();
+    roundedRect(
+      ctx,
+      x - s.spread + s.offsetX,
+      y - s.spread + s.offsetY,
+      w,
+      h,
+      ...spreadRadii(radii, s.spread),
+    );
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.restore();
+}
+
+/**
+ * Draw an element's `inset` box shadows, back to front: inside the padding
+ * box and clipped to it. Each is the shadow outside a hole, the padding box
+ * shrunk by the spread and offset, blurred into the box.
+ */
+export function drawInsetBoxShadow(
+  ctx: SKRSContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  shadows: Shadow[],
+  borderRadius: BorderRadius,
+  style: ComputedStyle,
+): void {
+  const inset = shadows.filter((s) => s.inset);
+  if (inset.length === 0) return;
+
+  const bt = resolveBoxValue(style.borderTopWidth, width);
+  const br = resolveBoxValue(style.borderRightWidth, width);
+  const bb = resolveBoxValue(style.borderBottomWidth, width);
+  const bl = resolveBoxValue(style.borderLeftWidth, width);
+  const px = x + bl;
+  const py = y + bt;
+  const pw = width - bl - br;
+  const ph = height - bt - bb;
+  if (pw <= 0 || ph <= 0) return;
+
+  // The padding box's corners: the border box's, less the borders' widths.
+  const [tl, tr, brr, bll] = clampRadii(borderRadius, width, height);
+  const inner: Radii = [
+    Math.max(0, tl - Math.max(bt, bl)),
+    Math.max(0, tr - Math.max(bt, br)),
+    Math.max(0, brr - Math.max(bb, br)),
+    Math.max(0, bll - Math.max(bb, bl)),
+  ];
+
+  ctx.save();
+  ctx.beginPath();
+  roundedRect(ctx, px, py, pw, ph, ...inner);
+  ctx.clip();
+
+  for (let i = inset.length - 1; i >= 0; i--) {
+    const s = inset[i]!;
+    // Far enough out that the shadow is solid where the blur reaches the box.
+    const m = reach(s);
+    ctx.save();
+    setShadowPaint(ctx, s);
+    ctx.beginPath();
+    ctx.rect(px - m, py - m, pw + m * 2, ph + m * 2);
+    const w = pw - s.spread * 2;
+    const h = ph - s.spread * 2;
+    if (w > 0 && h > 0) {
+      roundedRect(
+        ctx,
+        px + s.spread + s.offsetX,
+        py + s.spread + s.offsetY,
+        w,
+        h,
+        ...spreadRadii(inner, -s.spread),
+      );
+    }
+    ctx.fill("evenodd");
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/** How far a shadow can paint from the box it is cast by. */
+function reach(s: Shadow): number {
+  return (
+    s.blur * 2 +
+    Math.abs(s.offsetX) +
+    Math.abs(s.offsetY) +
+    Math.abs(s.spread) +
+    1
+  );
+}
+
+function setShadowPaint(ctx: SKRSContext2D, s: Shadow): void {
+  // An invalid colour leaves the fill as it was: make that no colour.
+  ctx.fillStyle = NO_COLOR;
+  ctx.fillStyle = s.color;
+  // Use a CSS blur filter (σ = blur / 2), as CSS defines the shadow's blur,
+  // rather than the canvas shadow API.
+  if (s.blur > 0) ctx.filter = `blur(${s.blur / 2}px)`;
+}
+
+/** Corner radii: top left, top right, bottom right, bottom left. */
+type Radii = [number, number, number, number];
+
+/** The radii as the box is drawn with them (see `roundedRect`). */
+function clampRadii(r: BorderRadius, width: number, height: number): Radii {
+  const max = maxCornerRadius(width, height);
+  return [
+    Math.min(r.topLeft, max),
+    Math.min(r.topRight, max),
+    Math.min(r.bottomRight, max),
+    Math.min(r.bottomLeft, max),
+  ];
+}
+
+/**
+ * The corner radii of a shape grown by `spread` (shrunk, when negative), as
+ * CSS has them: a radius grows by the spread, but one smaller than the spread
+ * by less (a square corner stays square), and shrinks to no less than 0.
+ */
+export function spreadRadii(radii: Radii, spread: number): Radii {
+  return radii.map((r) => spreadRadius(r, spread)) as Radii;
+}
+
+function spreadRadius(r: number, spread: number): number {
+  if (spread <= 0) return Math.max(0, r + spread);
+  if (r >= spread) return r + spread;
+  // CSS Backgrounds 3, "Shadow shape, spread, and knockout".
+  const ratio = r / spread;
+  return r + spread * (1 + (ratio - 1) ** 3);
 }

@@ -442,7 +442,7 @@ export function resolveUnits(
     }
   }
 
-  // Resolve CSS length units inside transform, clip-path and backdrop-filter
+  // Resolve CSS length units inside transform, clip-path, filter and shadow
   // strings so that by draw time values are either bare numbers or `%` (which
   // need element dimensions).
   for (const [prop, suffix] of LENGTH_STRING_PROPS) {
@@ -464,7 +464,7 @@ export function resolveUnits(
 /**
  * String-valued properties whose embedded CSS lengths are resolved to pixels,
  * with the suffix the resolved numbers are written with. The transform parser
- * takes bare numbers; clip-path and filter strings keep an explicit `px` so
+ * takes bare numbers; clip-path, filter and shadow strings keep an explicit `px` so
  * they stay valid CSS for the parsers downstream (Skia's filter parser
  * rejects a unitless `blur(6)`).
  */
@@ -474,6 +474,8 @@ const LENGTH_STRING_PROPS: [keyof ComputedStyle, string][] = [
   ["clipPath", "px"],
   ["filter", "px"],
   ["backdropFilter", "px"],
+  ["boxShadow", "px"],
+  ["textShadow", "px"],
 ];
 
 /**

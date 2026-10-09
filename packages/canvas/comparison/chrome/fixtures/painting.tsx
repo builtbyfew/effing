@@ -104,6 +104,33 @@ export default fixtureModule("painting", [
       Shadowed
     </div>,
   ]),
+  // The rounded clip of an image background is the background's alone: a
+  // child that overflows the corner isn't cut by it.
+  painted("a rounded image background under an overflowing child", [
+    <div
+      key="p"
+      id="p"
+      style={{
+        width: 120,
+        height: 60,
+        borderRadius: 20,
+        backgroundImage: `url(${testImage(120, 60)})`,
+        backgroundSize: "100% 100%",
+      }}
+    >
+      <div
+        id="c"
+        style={{
+          position: "absolute",
+          left: 80,
+          top: 40,
+          width: 60,
+          height: 40,
+          backgroundColor: "#ef4444",
+        }}
+      />
+    </div>,
+  ]),
   // image.test.tsx's card, whose pixels it holds where the blurred image
   // fades out over the page, as Chrome painted them.
   {

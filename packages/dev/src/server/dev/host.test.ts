@@ -101,7 +101,8 @@ function editShared(color: string) {
 }
 
 describe("startDevServer with annie workers", () => {
-  test("renders annies on a worker", async () => {
+  // The first render spawns the worker and transforms every module cold.
+  test("renders annies on a worker", { timeout: 20_000 }, async () => {
     expect(await annie()).toEqual(["red:worker"]);
     expect(await effie()).toBe("red");
   });

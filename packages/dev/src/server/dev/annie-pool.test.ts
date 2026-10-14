@@ -111,7 +111,7 @@ describe("createAnniePool", () => {
     const withProps = (props: unknown) => () =>
       pool.run("count:1", { ...args, props });
     expect(withProps({ size: new Size(2) })).toThrow(
-      "but props.size is a Size, which arrives as a plain object",
+      "but props.size is a Size, which a worker would get as a plain object, or not at all",
     );
     expect(withProps({ list: [1, { f: () => 0 }] })).toThrow(
       "but props.list[1].f is a function",

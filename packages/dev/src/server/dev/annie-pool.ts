@@ -35,8 +35,9 @@ export type AnniePool = {
   close(): Promise<void>;
 };
 
-// Objects structured clone copies with their type; any other object arrives
-// as a plain object. Map and Set are walked for their contents.
+// Objects structured clone copies with their type. Other objects arrive as
+// plain objects, or (URL, Promise and the like) make it throw. Map and Set
+// are walked for their contents.
 const CLONED_AS_IS = [Date, RegExp, ArrayBuffer];
 
 /**
@@ -90,7 +91,7 @@ export function findUnclonable(
   if (proto !== Object.prototype && proto !== null) {
     const name = (proto as { constructor?: { name?: string } }).constructor
       ?.name;
-    return `${path} is ${name ? `a ${name}` : "a class instance"}, which arrives as a plain object`;
+    return `${path} is ${name ? `a ${name}` : "a class instance"}, which a worker would get as a plain object, or not at all`;
   }
   return walk(Object.entries(value).map(([key, item]) => [`.${key}`, item]));
 }

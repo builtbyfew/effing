@@ -93,28 +93,33 @@ async function effie(): Promise<string> {
   return ((await response.json()) as { color: string }).color;
 }
 
-function editShared(color: string) {
+async function editShared(color: string) {
+  // Vite's watcher (chokidar) drops a change to a path that comes within
+  // 50ms of the previous one, and Linux reports edits fast enough for the
+  // previous test's edit to be that close.
+  await new Promise((resolve) => setTimeout(resolve, 200));
   fs.writeFileSync(
     path.join(dir, "shared.ts"),
     `export const COLOR = "${color}";\n`,
   );
 }
 
-describe("startDevServer with annie workers", () => {
-  // The first render spawns the worker and transforms every module cold.
-  test("renders annies on a worker", { timeout: 20_000 }, async () => {
+// Longer than the polls below; the first render also spawns the worker and
+// transforms every module cold.
+describe("startDevServer with annie workers", { timeout: 20_000 }, () => {
+  test("renders annies on a worker", async () => {
     expect(await annie()).toEqual(["red:worker"]);
     expect(await effie()).toBe("red");
   });
 
   test("picks up an edit on the main thread after a worker fetched it first", async () => {
-    editShared("blue");
+    await editShared("blue");
     await expect.poll(annie, { timeout: 10_000 }).toEqual(["blue:worker"]);
     expect(await effie()).toBe("blue");
   });
 
   test("picks up an edit on a worker after the main thread fetched it first", async () => {
-    editShared("green");
+    await editShared("green");
     await expect.poll(effie, { timeout: 10_000 }).toBe("green");
     expect(await annie()).toEqual(["green:worker"]);
   });

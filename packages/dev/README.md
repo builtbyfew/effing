@@ -37,13 +37,13 @@ Glob patterns can be strings or arrays. Each matched file should export a functi
 
 ### Options
 
-| Option    | Type                               | Description                                                                                                                                                                                                                                                      |
-| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `project` | `string`                           | Project name. Required.                                                                                                                                                                                                                                          |
-| `images`  | `string \| string[]`               | Glob(s) for image function modules.                                                                                                                                                                                                                              |
-| `annies`  | `string \| string[]`               | Glob(s) for annie function modules.                                                                                                                                                                                                                              |
-| `effies`  | `string \| string[]`               | Glob(s) for effie function modules.                                                                                                                                                                                                                              |
-| `dev`     | `{ host, port, ffs, resolutions }` | Dev server settings. Each `resolutions` entry is `{ width, height, label }` (all required). Defaults: host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar), `resolutions` 1080×1080 `"1:1"` / 1080×1350 `"4:5"` / 1080×1920 `"9:16"` in the preview picker. |
+| Option    | Type                                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `project` | `string`                                    | Project name. Required.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `images`  | `string \| string[]`                        | Glob(s) for image function modules.                                                                                                                                                                                                                                                                                                                                                                                            |
+| `annies`  | `string \| string[]`                        | Glob(s) for annie function modules.                                                                                                                                                                                                                                                                                                                                                                                            |
+| `effies`  | `string \| string[]`                        | Glob(s) for effie function modules.                                                                                                                                                                                                                                                                                                                                                                                            |
+| `dev`     | `{ host, port, ffs, resolutions, workers }` | Dev server settings. Each `resolutions` entry is `{ width, height, label }` (all required). `workers` caps the worker threads that render annies in parallel (see [Parallel rendering](#parallel-rendering)). Defaults: host `127.0.0.1`, port `3839`, `ffs: true` (auto-sidecar), `resolutions` 1080×1080 `"1:1"` / 1080×1350 `"4:5"` / 1080×1920 `"9:16"` in the preview picker, `workers` one per core less one, at most 8. |
 
 ### Environment
 
@@ -122,6 +122,14 @@ Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of
 | `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
 | `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
 | `--scale <n>`              | Output scale factor, effie only (default: 1).                         |
+
+### Parallel rendering
+
+FFS fetches all the annies in an effie at once, and the dev server renders them on worker threads, so they render in parallel rather than taking turns on the main thread. Workers start on demand, up to `dev.workers` (default: one per core less one, at most 8). Each keeps its own copy of the fns it has run, and picks up edits like the main thread does. Set `dev.workers` to `0` to render annies on the main thread.
+
+Props cross a thread boundary on their way to a worker, so an annie's parsed props must be [structured-cloneable](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm). JSON-shaped props always are.
+
+Workers draw frames; `canvas.encode()` then encodes them on `@effing/skia`'s own thread pool, which every worker shares: one thread per core, or as many as the `EFFING_SKIA_THREADS` environment variable says.
 
 ### `effing url`
 

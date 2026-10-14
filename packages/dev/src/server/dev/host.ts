@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import invariant from "tiny-invariant";
@@ -7,10 +8,11 @@ import {
   createServer as createViteServer,
   createServerModuleRunner,
   normalizePath,
+  type HotPayload,
 } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { createRequestListener } from "@react-router/node";
-import type { FnModule, FnModuleLoader } from "@effing/fn";
+import type { FnModule, FnModuleLoader, RunnerArgs } from "@effing/fn";
 import {
   FN_SUFFIX,
   resolveFns,
@@ -18,6 +20,8 @@ import {
   type ResolvedFns,
 } from "../../fns";
 import { DEFAULT_RESOLUTIONS, type EffingConfig } from "../../config/schema";
+import { createAnniePool } from "./annie-pool";
+import type { FnPaths } from "./annie-protocol";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,13 +83,32 @@ export async function startDevServer(
   const findAbsPath = (kind: FnKind, id: string): string | undefined =>
     resolved[kind].find((f) => f.id === id)?.absPath;
 
+  // Annie frames are drawn synchronously, so annies rendered on the main
+  // thread take turns even when requested concurrently (as FFS does for the
+  // layers of an effie). Run them on worker threads instead; the main thread
+  // still loads each annie module for its props schema and preview props.
+  const workers = options.config.dev?.workers ?? defaultWorkerCount();
+  const anniePool =
+    workers > 0
+      ? createAnniePool({
+          size: workers,
+          workerFile: annieWorkerPath(),
+          invoke: (payload) =>
+            vite.environments.ssr.hot.handleInvoke(payload as HotPayload),
+          fnPaths: () => fnPathsOf(resolved),
+        })
+      : undefined;
+
   const fnLoader: FnModuleLoader = {
     async loadModule<K extends FnKind>(kind: K, id: string) {
       const absPath = findAbsPath(kind, id);
       invariant(absPath, `no ${kind} found for id '${id}'`);
       const mod = (await runner.import(absPath)) as FnModule<K>;
       return {
-        runner: mod.runner,
+        runner:
+          kind === "annie" && anniePool
+            ? (args: RunnerArgs<unknown>) => anniePool.run(absPath, args)
+            : mod.runner,
         propsSchema: mod.propsSchema,
         previewProps: mod.previewProps,
       } as FnModule<K>;
@@ -164,6 +187,7 @@ export async function startDevServer(
   };
   const onChange = (file: string) => {
     if (!file.endsWith(FN_SUFFIX) && !isRenderedDep(file)) return;
+    anniePool?.invalidate();
     broadcastReload();
   };
   vite.watcher.on("add", onAddOrUnlink);
@@ -233,6 +257,7 @@ export async function startDevServer(
       vite.watcher.off("add", onAddOrUnlink);
       vite.watcher.off("unlink", onAddOrUnlink);
       vite.watcher.off("change", onChange);
+      await anniePool?.close();
       await runner.close();
       await vite.close();
       if (globalThis.__effingDevFnModuleLoader === fnLoader) {
@@ -281,6 +306,41 @@ async function listenWithRetry(
   }
   throw new Error(
     `Ports ${port}–${port + attempts - 1} on ${host} are all in use.`,
+  );
+}
+
+/**
+ * One worker per core, leaving one for the main thread, and at most 8: each
+ * worker holds its own copy of the fn modules and their canvas state.
+ */
+function defaultWorkerCount(): number {
+  return Math.min(Math.max(os.availableParallelism() - 1, 0), 8);
+}
+
+function fnPathsOf(resolved: ResolvedFns): FnPaths {
+  const byId = (fns: ResolvedFns[FnKind]) =>
+    Object.fromEntries(fns.map((f) => [f.id, f.absPath]));
+  return {
+    image: byId(resolved.image),
+    annie: byId(resolved.annie),
+    effie: byId(resolved.effie),
+  };
+}
+
+function annieWorkerPath(): string {
+  // Layouts:
+  //  - bundled CLI:    dist/cli/index.js        → ../server/dev/annie-worker.js
+  //  - in-repo source: src/server/dev/host.ts   → ../../../dist/server/dev/annie-worker.js
+  const candidates = [
+    path.resolve(__dirname, "../server/dev/annie-worker.js"),
+    path.resolve(__dirname, "../../../dist/server/dev/annie-worker.js"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  throw new Error(
+    `Could not locate the built annie worker — tried:\n  ${candidates.join("\n  ")}\n` +
+      `Run \`pnpm --filter @effing/dev build\` to produce it.`,
   );
 }
 

@@ -127,9 +127,9 @@ Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of
 
 FFS fetches all the annies in an effie at once, and the dev server renders them on worker threads, so they render in parallel rather than taking turns on the main thread. Workers start on demand, up to `dev.workers` (default: one per core less one, at most 8). Each keeps its own copy of the fns it has run, and picks up edits like the main thread does. Set `dev.workers` to `0` to render annies on the main thread.
 
-Props cross a thread boundary on their way to a worker, so an annie's parsed props must be [structured-cloneable](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm). JSON-shaped props always are.
+An annie's parsed props are copied to the worker with the [structured clone algorithm](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm), so they must be plain data: objects, arrays and primitives, plus `Date`, `Map`, `Set`, `RegExp` and typed arrays. A props schema that transforms them into class instances, functions or `Buffer`s (which would arrive as plain objects, fail, or arrive as plain `Uint8Array`s) gets an error naming the offending prop; set `dev.workers` to `0` for such annies.
 
-Workers draw frames; `canvas.encode()` then encodes them on `@effing/skia`'s own thread pool, which every worker shares: one thread per core, or as many as the `EFFING_SKIA_THREADS` environment variable says.
+Workers draw frames in parallel, but `canvas.encode()` encodes them on a thread pool they all share, which limits the speed-up. With `@effing/skia` 1.0.10-effing.6, which `@effing/canvas` uses now, that pool is libuv's: 4 threads unless `UV_THREADPOOL_SIZE` is set when Node starts.
 
 ### `effing url`
 

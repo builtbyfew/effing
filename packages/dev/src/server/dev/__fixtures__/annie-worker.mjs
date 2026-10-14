@@ -4,6 +4,7 @@
 //   thread    one frame holding this worker's threadId
 //   fail      one frame, then an error
 //   crash     exits the worker
+//   uncaught  throws outside the job, which crashes the worker
 //   endless   frames until cancelled
 //   cancels   one frame holding how many jobs this worker saw cancelled
 //   invoke    one frame holding the JSON result of an invoke round-trip
@@ -38,6 +39,11 @@ async function* behaviour(name) {
     throw new RangeError("fixture failure");
   } else if (name === "crash") {
     process.exit(3);
+  } else if (name === "uncaught") {
+    setTimeout(() => {
+      throw new Error("thrown outside the job");
+    });
+    await new Promise(() => {});
   } else if (name === "endless") {
     for (let i = 0; ; i++) yield [i % 256];
   } else if (name === "cancels") {

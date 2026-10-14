@@ -2,8 +2,8 @@
 //
 // Each worker evaluates user fns with its own Vite module runner, whose
 // requests are answered by the dev server's SSR environment over the parent
-// port. Transforms are thus shared with the main thread, and an edited fn is
-// re-fetched on its next import, exactly as with the in-process runner.
+// port. Transforms are thus shared with the main thread; the dev server tells
+// every runner which files changed (see invalidate.ts).
 
 import { parentPort } from "node:worker_threads";
 import {
@@ -17,6 +17,7 @@ import { createFlatUrlBuilder } from "@effing/fn/server";
 import invariant from "tiny-invariant";
 import { serveAnnieJobs } from "./annie-jobs";
 import type { FnPaths, FromWorker, ToWorker } from "./annie-protocol";
+import { invalidateFile } from "./invalidate";
 
 invariant(parentPort, "annie-worker must run in a worker thread");
 const port = parentPort;
@@ -53,10 +54,9 @@ const runner = new ModuleRunner(
   new ESModulesEvaluator(),
 );
 
-// A source file changed: drop every evaluated module, so the next job fetches
-// fresh code instead of trusting the server's per-module staleness check.
 port.on("message", (msg: ToWorker) => {
-  if (msg.type === "invalidate") runner.clearCache();
+  if (msg.type === "invalidate")
+    invalidateFile(runner.evaluatedModules, msg.file);
 });
 
 // Updated from every job, so fnModule() inside an annie sees the fns the

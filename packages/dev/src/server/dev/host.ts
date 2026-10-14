@@ -22,6 +22,7 @@ import {
 import { DEFAULT_RESOLUTIONS, type EffingConfig } from "../../config/schema";
 import { createAnniePool } from "./annie-pool";
 import type { FnPaths } from "./annie-protocol";
+import { invalidateFile } from "./invalidate";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -187,7 +188,16 @@ export async function startDevServer(
   };
   const onChange = (file: string) => {
     if (!file.endsWith(FN_SUFFIX) && !isRenderedDep(file)) return;
-    anniePool?.invalidate();
+    // Each runner — this thread's and every annie worker's — drops its own
+    // copies of the file (see invalidate.ts). Vite's own change handler
+    // invalidates the module graph only after awaiting its plugins'
+    // watchChange hooks, so a runner re-fetching before then would get the
+    // old transform back; invalidate it here first (Vite's call is then a
+    // harmless repeat).
+    const normalized = normalizePath(file);
+    vite.environments.ssr.moduleGraph.onFileChange(normalized);
+    invalidateFile(runner.evaluatedModules, normalized);
+    anniePool?.invalidate(normalized);
     broadcastReload();
   };
   vite.watcher.on("add", onAddOrUnlink);

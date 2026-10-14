@@ -24,17 +24,76 @@ export type AnniePoolOptions = {
 };
 
 export type AnniePool = {
-  /** Run the annie fn at `absPath` on a worker, streaming its frames back. */
-  run(absPath: string, args: RunnerArgs<unknown>): AsyncGenerator<Buffer>;
   /**
-   * Make workers re-evaluate fns on their next job. Call when a source file
-   * changes: Vite tracks staleness per module, not per runner, so once the
-   * main thread re-imports an edited fn, the server would tell workers that
-   * their cached copy is current.
+   * Run the annie fn at `absPath` on a worker, streaming its frames back.
+   * Throws right away, before any job starts, if `args.props` holds a value
+   * that wouldn't reach the worker as it is (see {@link findUnclonable}).
    */
-  invalidate(): void;
+  run(absPath: string, args: RunnerArgs<unknown>): AsyncGenerator<Buffer>;
+  /** Make every worker re-fetch `file` on its next import (see invalidate.ts). */
+  invalidate(file: string): void;
   close(): Promise<void>;
 };
+
+// Objects structured clone copies with their type; any other object arrives
+// as a plain object. Map and Set are walked for their contents.
+const CLONED_AS_IS = [Date, RegExp, ArrayBuffer];
+
+/**
+ * The first value in `value` that a worker wouldn't receive as it is, as a
+ * path and a description, or undefined. postMessage's structured clone
+ * rejects functions and symbols, and drops the prototype of class instances
+ * (a Buffer arrives as a plain Uint8Array), so zod transforms that build such
+ * values work on the main thread but not in a worker.
+ */
+export function findUnclonable(
+  value: unknown,
+  path = "props",
+  seen = new Set<object>(),
+): string | undefined {
+  if (typeof value === "function" || typeof value === "symbol") {
+    return `${path} is a ${typeof value}`;
+  }
+  if (typeof value !== "object" || value === null || seen.has(value)) {
+    return undefined;
+  }
+  seen.add(value);
+  const walk = (entries: Iterable<[string, unknown]>) => {
+    for (const [key, item] of entries) {
+      const found = findUnclonable(item, `${path}${key}`, seen);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  if (Array.isArray(value)) {
+    return walk(value.map((item, i) => [`[${i}]`, item]));
+  }
+  if (value instanceof Map) {
+    return (
+      walk([...value.keys()].map((key) => [" key", key])) ??
+      walk([...value].map(([key, item]) => [`.get(${String(key)})`, item]))
+    );
+  }
+  if (value instanceof Set) {
+    return walk([...value].map((item) => [" member", item]));
+  }
+  if (Buffer.isBuffer(value)) {
+    return `${path} is a Buffer, which arrives as a plain Uint8Array`;
+  }
+  if (
+    ArrayBuffer.isView(value) ||
+    CLONED_AS_IS.some((type) => value instanceof type)
+  ) {
+    return undefined;
+  }
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) {
+    const name = (proto as { constructor?: { name?: string } }).constructor
+      ?.name;
+    return `${path} is ${name ? `a ${name}` : "a class instance"}, which arrives as a plain object`;
+  }
+  return walk(Object.entries(value).map(([key, item]) => [`.${key}`, item]));
+}
 
 /**
  * Buffers a job's replies until its generator asks for them: with read-ahead
@@ -119,7 +178,9 @@ export function createAnniePool(options: AnniePoolOptions): AnniePool {
     });
 
     // An uncaught error or exit takes the worker's jobs down with it; drop
-    // the slot so later jobs go to a fresh worker.
+    // the slot so later jobs go to a fresh worker. The error may come from
+    // any annie the worker was running, so say so rather than pass it off as
+    // each job's own.
     const fail = (error: SerializedError) => {
       const index = slots.indexOf(slot);
       if (index !== -1) slots.splice(index, 1);
@@ -128,7 +189,13 @@ export function createAnniePool(options: AnniePoolOptions): AnniePool {
       }
       slot.jobs.clear();
     };
-    worker.on("error", (err) => fail(serializeError(err)));
+    worker.on("error", (err) => {
+      const error = serializeError(err);
+      fail({
+        ...error,
+        message: `annie worker crashed, in this or another annie it was running: ${error.message}`,
+      });
+    });
     worker.on("exit", (code) =>
       fail({
         name: "Error",
@@ -147,19 +214,32 @@ export function createAnniePool(options: AnniePoolOptions): AnniePool {
     return slots.reduce((a, b) => (b.jobs.size < a.jobs.size ? b : a));
   };
 
-  async function* run(
+  const run = (
+    absPath: string,
+    args: RunnerArgs<unknown>,
+  ): AsyncGenerator<Buffer> => {
+    if (closed) throw new Error("annie pool is closed");
+    const unclonable = findUnclonable(args.props);
+    if (unclonable) {
+      throw new Error(
+        `annie props must be plain data to reach a worker thread, but ${unclonable}. ` +
+          "Pass plain objects, arrays, primitives, Dates, Maps, Sets and typed arrays, " +
+          "or set dev.workers to 0 to render annies on the main thread.",
+      );
+    }
+    return stream(absPath, args);
+  };
+
+  async function* stream(
     absPath: string,
     args: RunnerArgs<unknown>,
   ): AsyncGenerator<Buffer> {
-    if (closed) throw new Error("annie pool is closed");
     const slot = acquire();
     const job = nextJob++;
     const inbox = new JobInbox();
     slot.jobs.set(job, inbox);
     let finished = false;
     try {
-      // Props cross a thread boundary, so they must be structured-cloneable;
-      // a DataCloneError surfaces here as the render's error.
       post(slot.worker, {
         type: "start",
         job,
@@ -194,8 +274,8 @@ export function createAnniePool(options: AnniePoolOptions): AnniePool {
 
   return {
     run,
-    invalidate() {
-      for (const slot of slots) post(slot.worker, { type: "invalidate" });
+    invalidate(file) {
+      for (const slot of slots) post(slot.worker, { type: "invalidate", file });
     },
     async close() {
       closed = true;

@@ -20,7 +20,7 @@ export type ToWorker =
     }
   | { type: "next"; job: number }
   | { type: "cancel"; job: number }
-  | { type: "invalidate" }
+  | { type: "invalidate"; file: string }
   | { type: "invoke-result"; id: number; result: unknown };
 
 /** Messages an annie worker sends to the main thread. */

@@ -4,11 +4,11 @@ import { steps } from "./steps";
 // Default concurrency: available cores, capped at 8. Frame callbacks are
 // dominated by synchronous draw work on the JS main thread, which cannot run
 // in parallel — extra concurrency only overlaps the async portions (e.g.
-// native encoding on libuv's threadpool, which defaults to 4 threads).
-// Benchmarks show throughput saturates around 4–8 in-flight frames, while
-// in-order yielding retains one completed frame buffer per slot, so peak
-// memory keeps growing with each extra slot. Pass `options.concurrency` to
-// override (e.g. alongside a larger `UV_THREADPOOL_SIZE`).
+// native encoding on @effing/skia's encode threads, one per core). Benchmarks
+// (when encoding ran on libuv's 4 threads) showed throughput saturating
+// around 4–8 in-flight frames, while in-order yielding retains one completed
+// frame buffer per slot, so peak memory keeps growing with each extra slot.
+// Pass `options.concurrency` to override.
 const MAX_DEFAULT_CONCURRENCY = 8;
 const defaultConcurrency = (): number =>
   Math.min(os.availableParallelism(), MAX_DEFAULT_CONCURRENCY);

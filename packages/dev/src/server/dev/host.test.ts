@@ -21,7 +21,25 @@ const schema = `export const propsSchema = {
 export const previewProps = {};
 `;
 
-// The fns wait a little before answering, so that requests made together
+// Transforms one prop and defaults another, as zod's .transform() and
+// .default() would, so the fns' output shows whether they got parsed props.
+const parsingSchema = `type Props = { label?: string; size?: number };
+const parse = (value: Props) => ({
+  ...value,
+  label: String(value.label).toUpperCase(),
+  size: value.size ?? 10,
+});
+export const propsSchema = {
+  safeParse: (value: Props) => ({ success: true, data: parse(value) }),
+  parse,
+};
+export const previewProps = { label: "preview" };
+`;
+const PARSED = { label: "PREVIEW", size: 10 };
+// imageResponse only checks the magic bytes, so the props follow them.
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+// The color fns wait a little before answering, so that requests made together
 // overlap.
 const FILES: Record<string, string> = {
   "tsconfig.json": `{ "compilerOptions": { "jsx": "react-jsx" } }\n`,
@@ -40,6 +58,24 @@ import { COLOR } from "../shared";
 export async function runner() {
   await new Promise((resolve) => setTimeout(resolve, 50));
   return { color: COLOR, thread: threadId, baseUrl: process.env.BASE_URL };
+}
+`,
+  "annies/props.fn.tsx": `${parsingSchema}
+export async function* runner({ props }: { props: object }) {
+  yield Buffer.from(JSON.stringify(props));
+}
+`,
+  "images/props.fn.tsx": `${parsingSchema}
+export async function runner({ props }: { props: object }) {
+  return Buffer.concat([
+    Buffer.from(${JSON.stringify(PNG_SIGNATURE)}),
+    Buffer.from(JSON.stringify(props)),
+  ]);
+}
+`,
+  "effies/props.fn.tsx": `${parsingSchema}
+export async function runner({ props }: { props: object }) {
+  return props;
 }
 `,
 };
@@ -72,6 +108,7 @@ function useProject(workers: number) {
       configDir: dir,
       config: {
         project: "host-test",
+        images: "images/*.fn.tsx",
         annies: "annies/*.fn.tsx",
         effies: "effies/*.fn.tsx",
         dev: { workers },
@@ -89,19 +126,29 @@ function useProject(workers: number) {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  // The fns answer with JSON: `T` is its shape, `Rendered` for the color fns.
+
   /** The annie's only frame. */
-  const annie = async (): Promise<Rendered> => {
-    const response = await fetch(`${base}/preview/annie/color.tar?w=10&h=10`);
+  const annie = async <T = Rendered>(id = "color"): Promise<T> => {
+    const response = await fetch(`${base}/preview/annie/${id}.tar?w=10&h=10`);
     expect(response.status).toBe(200);
     const tar = Buffer.from(await response.arrayBuffer());
     const size = parseInt(tar.subarray(124, 136).toString(), 8);
-    return JSON.parse(tar.subarray(512, 512 + size).toString()) as Rendered;
+    return JSON.parse(tar.subarray(512, 512 + size).toString()) as T;
   };
 
-  const effie = async (): Promise<Rendered> => {
-    const response = await fetch(`${base}/preview/effie/color.json?w=10&h=10`);
+  const effie = async <T = Rendered>(id = "color"): Promise<T> => {
+    const response = await fetch(`${base}/preview/effie/${id}.json?w=10&h=10`);
     expect(response.status).toBe(200);
-    return (await response.json()) as Rendered;
+    return (await response.json()) as T;
+  };
+
+  /** What follows the image's PNG signature. */
+  const image = async <T>(id: string): Promise<T> => {
+    const response = await fetch(`${base}/preview/image/${id}.bytes?w=10&h=10`);
+    expect(response.status).toBe(200);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return JSON.parse(bytes.subarray(PNG_SIGNATURE.length).toString()) as T;
   };
 
   // Requested together, so with workers they go to different ones: the
@@ -123,7 +170,7 @@ function useProject(workers: number) {
     );
   };
 
-  return { base: () => base, annie, effie, both, editShared };
+  return { base: () => base, annie, effie, image, both, editShared };
 }
 
 // Longer than the polls below; the first render also spawns the workers and
@@ -142,6 +189,21 @@ describe.each([2, 0])(
         expect(e.thread).not.toBe(0);
       });
     }
+
+    test("renders previews with the parsed props", async () => {
+      // As the signed URLs, and so the final video, render them.
+      type Parsed = typeof PARSED;
+      expect.soft(await project.annie<Parsed>("props")).toEqual(PARSED);
+      expect.soft(await project.image<Parsed>("props")).toEqual(PARSED);
+      expect.soft(await project.effie<Parsed>("props")).toEqual(PARSED);
+      // The effie page renders the effie in its loader, whose data React
+      // Router's single fetch serves (turbo-stream encoded) at `.data`.
+      const page = await fetch(
+        `${project.base()}/preview/effie/props.data?w=10&h=10`,
+      );
+      expect(page.status).toBe(200);
+      expect.soft(await page.text()).toContain(`"${PARSED.label}"`);
+    });
 
     test("sees env vars set after the server started", async () => {
       // As `effing render` sets BASE_URL once the server is listening.

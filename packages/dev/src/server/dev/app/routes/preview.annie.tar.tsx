@@ -14,12 +14,10 @@ export async function loader({
     "annie",
     annieId,
   );
-  invariant(
-    propsSchema.safeParse(previewProps).success,
-    "previewProps does not adhere to the propsSchema",
-  );
+  const parsed = propsSchema.safeParse(previewProps);
+  invariant(parsed.success, "previewProps does not adhere to the propsSchema");
   const frames = runner({
-    props: previewProps as Record<string, unknown>,
+    props: parsed.data,
     bounds: parseBoundsFromUrl(request.url),
   });
   return annieResponse(frames, {

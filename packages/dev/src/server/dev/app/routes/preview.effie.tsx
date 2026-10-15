@@ -55,14 +55,19 @@ export async function loader({
     "effie",
     effieId,
   );
-  if (propsSchema && !propsSchema.safeParse(previewProps).success) {
-    throw new Error("previewProps does not adhere to the propsSchema");
+  let props: unknown = previewProps;
+  if (propsSchema) {
+    const parsed = propsSchema.safeParse(previewProps);
+    if (!parsed.success) {
+      throw new Error("previewProps does not adhere to the propsSchema");
+    }
+    props = parsed.data;
   }
 
   const jsonUrl = `/preview/effie/${effieId}.json?w=${width}&h=${height}`;
 
   const effie = await runner({
-    props: previewProps,
+    props,
     bounds: { width, height },
   });
 

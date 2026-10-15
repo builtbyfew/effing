@@ -13,14 +13,17 @@ export async function loader({
     "effie",
     params.effieId!,
   );
+  let props: unknown = previewProps;
   if (propsSchema) {
+    const parsed = propsSchema.safeParse(previewProps);
     invariant(
-      propsSchema.safeParse(previewProps).success,
+      parsed.success,
       "previewProps does not adhere to the propsSchema",
     );
+    props = parsed.data;
   }
   const effie = await runner({
-    props: previewProps,
+    props,
     bounds: parseBoundsFromUrl(request.url),
   });
   return effieResponse(effie, {

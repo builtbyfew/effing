@@ -13,12 +13,10 @@ export async function loader({
     "image",
     params.imageId!,
   );
-  invariant(
-    propsSchema.safeParse(previewProps).success,
-    "previewProps does not adhere to the propsSchema",
-  );
+  const parsed = propsSchema.safeParse(previewProps);
+  invariant(parsed.success, "previewProps does not adhere to the propsSchema");
   const buffer = await runner({
-    props: previewProps as Record<string, unknown>,
+    props: parsed.data,
     bounds: parseBoundsFromUrl(request.url),
   });
   return imageResponse(buffer, {

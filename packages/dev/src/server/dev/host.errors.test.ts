@@ -21,15 +21,20 @@ export async function* runner() {
   yield Buffer.from("frame");
 }
 `,
-  // Fails once its first frame has gone out.
-  "annies/broken.fn.tsx": `${schema}
+};
+
+// Fails once the client has its first bytes, which the test signals by
+// creating `signal` (it gives up waiting after 10s).
+const brokenAnnie = (signal: string) => `${schema}
+import fs from "node:fs";
 export async function* runner() {
   yield Buffer.from("frame");
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  for (let i = 0; i < 1000 && !fs.existsSync(${JSON.stringify(signal)}); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
   throw new Error("broken annie");
 }
-`,
-};
+`;
 
 describe.each([2, 0])(
   "startDevServer with workers: %i",
@@ -45,7 +50,11 @@ describe.each([2, 0])(
       dir = fs.realpathSync(
         fs.mkdtempSync(path.join(os.tmpdir(), "effing-host-errors-")),
       );
-      for (const [file, source] of Object.entries(FILES)) {
+      const files = {
+        ...FILES,
+        "annies/broken.fn.tsx": brokenAnnie(path.join(dir, "fail")),
+      };
+      for (const [file, source] of Object.entries(files)) {
         fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
         fs.writeFileSync(path.join(dir, file), source);
       }
@@ -79,8 +88,15 @@ describe.each([2, 0])(
 
       const response = await annie("broken");
       expect(response.status).toBe(200);
+      const reader = response.body!.getReader();
+      expect((await reader.read()).done).toBe(false);
+      fs.writeFileSync(path.join(dir, "fail"), "");
       // Aborted, not ended cleanly as a complete-looking TAR.
-      await expect(response.arrayBuffer()).rejects.toThrow();
+      await expect(
+        (async () => {
+          while (!(await reader.read()).done);
+        })(),
+      ).rejects.toThrow();
 
       // The dev server, or the worker that served it, carries on.
       const next = await annie("ok");

@@ -12,13 +12,15 @@ describe("fetchAndCache", () => {
   let url: string;
   let baseDir: string;
   let store: LocalTransientStore;
+  let fail: () => void;
 
   beforeAll(async () => {
-    // Fails mid-body, as an annie whose fn throws after its first frame.
+    // Sends some bytes, and fails mid-body (as an annie whose fn throws after
+    // its first frame) when the test calls `fail`.
     server = http.createServer((_req, res) => {
       res.writeHead(200, { "Content-Type": "application/x-tar" });
       res.write(Buffer.alloc(1024));
-      setTimeout(() => res.destroy(), 50);
+      fail = () => res.destroy();
     });
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", () => resolve()),
@@ -36,8 +38,12 @@ describe("fetchAndCache", () => {
 
   test("rejects, caching nothing, when the source fails mid-body", async () => {
     const ctx = { transientStore: store } as unknown as ServerContext;
+    // Fail once the response has started, i.e. the download.
+    const onEvent = (event: string) => {
+      if (event === "downloading") fail();
+    };
     await expect(
-      fetchAndCache(url, "sources/broken", () => {}, ctx),
+      fetchAndCache(url, "sources/broken", onEvent, ctx),
     ).rejects.toThrow("terminated");
     expect(await store.exists("sources/broken")).toBe(false);
   });

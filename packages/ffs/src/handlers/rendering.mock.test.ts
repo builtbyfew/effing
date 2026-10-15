@@ -1051,10 +1051,15 @@ describe("streamRenderVideo failing mid-stream", () => {
   };
 
   /**
-   * Serve streamRenderVideo over a real socket and fetch the video: the
-   * client must see the response fail, not end cleanly as a short video.
+   * Serve streamRenderVideo over a real socket and fetch the video, calling
+   * `fail` once the client has the headers and the first bytes: the client
+   * must then see the response fail, not end cleanly as a short video.
    */
-  async function fetchVideo(ctx: ServerContext, jobId: string) {
+  async function fetchVideo(
+    ctx: ServerContext,
+    jobId: string,
+    fail: () => void,
+  ) {
     const http = await import("http");
     const { default: express } = await import("express");
     const { streamRenderVideo } = await import("./rendering");
@@ -1073,7 +1078,14 @@ describe("streamRenderVideo failing mid-stream", () => {
         `http://127.0.0.1:${port}/render/${jobId}/video`,
       );
       expect(response.status).toBe(200);
-      await expect(response.arrayBuffer()).rejects.toThrow();
+      const reader = response.body!.getReader();
+      expect((await reader.read()).done).toBe(false);
+      fail();
+      await expect(
+        (async () => {
+          while (!(await reader.read()).done);
+        })(),
+      ).rejects.toThrow();
       expect(error).toHaveBeenCalledWith(
         "Error streaming video:",
         expect.any(Error),
@@ -1091,15 +1103,9 @@ describe("streamRenderVideo failing mid-stream", () => {
 
     // As FFmpegRunner's output when ffmpeg exits non-zero partway through.
     const videoStream = new PassThrough();
+    videoStream.write(Buffer.alloc(1024));
     const mockRenderer = {
-      render: vi.fn(async () => {
-        videoStream.write(Buffer.alloc(1024));
-        setTimeout(
-          () => videoStream.destroy(new Error("ffmpeg exited with code 1")),
-          50,
-        );
-        return videoStream;
-      }),
+      render: vi.fn().mockResolvedValue(videoStream),
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
@@ -1110,28 +1116,34 @@ describe("streamRenderVideo failing mid-stream", () => {
     await fetchVideo(
       mockContext({ [storeKeys.videoJob(jobId)]: videoJob }),
       jobId,
+      () => videoStream.destroy(new Error("ffmpeg exited with code 1")),
     );
     expect(mockRenderer.close).toHaveBeenCalledOnce();
   });
 
   test("aborts the response when the render backend fails partway", async () => {
-    const { Readable } = await import("stream");
     const jobId = "backend-failure-id";
 
-    async function* failingBody() {
-      yield Buffer.alloc(1024);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      throw new Error("backend stream aborted");
-    }
+    // Not a body that fails on a timer: erroring a ReadableStream drops the
+    // chunks it still holds, so on a slow runner the handler could see the
+    // error before the first chunk and (rightly) answer 500.
+    let body!: ReadableStreamDefaultController<Uint8Array>;
     const { ffsFetch } = await import("../fetch");
     vi.mocked(ffsFetch).mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "video/mp4" }),
-      body: Readable.toWeb(Readable.from(failingBody())),
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          body = controller;
+          controller.enqueue(new Uint8Array(1024));
+        },
+      }),
     } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
 
     const ctx = mockContext({ [storeKeys.videoJob(jobId)]: videoJob });
     ctx.renderBackendResolver = () => ({ baseUrl: "http://backend:3000" });
-    await fetchVideo(ctx, jobId);
+    await fetchVideo(ctx, jobId, () =>
+      body.error(new Error("backend stream aborted")),
+    );
   });
 });

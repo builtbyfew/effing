@@ -1,23 +1,26 @@
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import invariant from "tiny-invariant";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   createServer as createViteServer,
   createServerModuleRunner,
   normalizePath,
+  type HotPayload,
+  type ViteDevServer,
 } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { createRequestListener } from "@react-router/node";
-import type { FnModule, FnModuleLoader } from "@effing/fn";
+import { FN_SUFFIX, resolveFns, type ResolvedFns } from "../../fns";
 import {
-  FN_SUFFIX,
-  resolveFns,
-  type FnKind,
-  type ResolvedFns,
-} from "../../fns";
-import { DEFAULT_RESOLUTIONS, type EffingConfig } from "../../config/schema";
+  DEFAULT_RESOLUTIONS,
+  type EffingConfig,
+  type Resolution,
+} from "../../config/schema";
+import { createAppWorkers, type DevApp } from "./app-workers";
+import { createFnLoader } from "./fn-loader";
+import { invalidateFile } from "./invalidate";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,15 +47,29 @@ export async function startDevServer(
     options.config,
   );
 
+  // Fns draw synchronously, so requests served on one thread take turns even
+  // when they come in together (as FFS fetches the layers of an effie). Serve
+  // the app on worker threads instead, each with its own module runner over
+  // the Vite server below; `workers: 0` serves it on this thread.
+  const workers = options.config.dev?.workers ?? defaultWorkerCount();
+  // Find the built files before starting Vite, so a missing one fails early.
+  const buildDir = appBuildDir();
+  const workerFile = workers > 0 ? appWorkerPath() : undefined;
+  const clientDir = path.join(buildDir, "client");
+  const faviconFile = faviconPath();
+  const resolutions = options.config.dev?.resolutions ?? DEFAULT_RESOLUTIONS;
+
   // Vite in middleware mode: serves no HTTP traffic and hosts no client
-  // assets. Its only job is to back `createServerModuleRunner`, which
-  // transforms + evaluates user fn files through the SSR module graph.
+  // assets. Its only job is to back the module runners — this thread's or
+  // each app worker's — that transform + evaluate user fn files through the
+  // SSR module graph.
   const vite = await createViteServer({
     root: options.configDir,
     // `ws: false` matters alongside `hmr: false`: in middleware mode Vite
     // otherwise still binds its HMR WebSocket server on its own port (24678),
-    // which collides across instances. Reload uses our SSE channel, and the
-    // module runner talks in-process, so the WS server is unused anyway.
+    // which collides across instances. Reload uses our SSE channel, and module
+    // runners talk in-process or over worker ports, so the WS server is unused
+    // anyway.
     server: { middlewareMode: true, hmr: false, ws: false },
     appType: "custom",
     optimizeDeps: { noDiscovery: true },
@@ -65,8 +82,8 @@ export async function startDevServer(
         // `@effing/fn` holds module-level singleton state (the fn runtime's
         // moduleLoader + urlBuilder). The pre-built preview handler and the
         // runner-loaded user fns each evaluate their imports independently —
-        // routing both through Node's process-wide import cache is the only
-        // way they end up reading from the same singleton.
+        // routing both through Node's import cache (one per thread) is the
+        // only way they end up reading from the same singleton.
         "@effing/fn",
       ],
     },
@@ -74,174 +91,172 @@ export async function startDevServer(
     plugins: [tsconfigPaths({ projects: [options.configDir] })],
   });
 
-  const runner = createServerModuleRunner(vite.environments.ssr);
+  // From here on, a failure (e.g. a strict port that's taken) closes what
+  // started: Vite's watcher would otherwise keep the process alive.
+  let started: DevApp | undefined;
+  try {
+    const app: DevApp = workerFile
+      ? createAppWorkers({
+          size: workers,
+          workerFile,
+          data: () => ({
+            buildDir,
+            fns: resolved,
+            resolutions,
+            project: options.config.project,
+          }),
+          invoke: (payload) =>
+            vite.environments.ssr.hot.handleInvoke(payload as HotPayload),
+        })
+      : await startInProcessApp(
+          vite,
+          () => resolved,
+          buildDir,
+          resolutions,
+          options.config.project,
+        );
+    started = app;
 
-  const findAbsPath = (kind: FnKind, id: string): string | undefined =>
-    resolved[kind].find((f) => f.id === id)?.absPath;
-
-  const fnLoader: FnModuleLoader = {
-    async loadModule<K extends FnKind>(kind: K, id: string) {
-      const absPath = findAbsPath(kind, id);
-      invariant(absPath, `no ${kind} found for id '${id}'`);
-      const mod = (await runner.import(absPath)) as FnModule<K>;
-      return {
-        runner: mod.runner,
-        propsSchema: mod.propsSchema,
-        previewProps: mod.previewProps,
-      } as FnModule<K>;
-    },
-    listModules: (kind) => resolved[kind].map((f) => f.id),
-    hasModule: (kind, id) => findAbsPath(kind, id) !== undefined,
-  };
-
-  // Install runtime context on globalThis BEFORE importing the pre-built
-  // handler. The preview's `fn.server.ts` / `resolutions.server.ts` read
-  // these on every request, so installing them up front keeps the first
-  // request from racing against initialization.
-  globalThis.__effingDevFnModuleLoader = fnLoader;
-  globalThis.__effingDevResolutions =
-    options.config.dev?.resolutions ?? DEFAULT_RESOLUTIONS;
-  globalThis.__effingDevProjectName = options.config.project;
-
-  // Pre-built RR Node server. We import dynamically so this module can be
-  // typechecked / bundled before the preview build artifact exists.
-  const buildDir = appBuildDir();
-  const build = await import(
-    /* @vite-ignore */ path.join(buildDir, "server/index.js")
-  );
-  const rrListener = createRequestListener({ build, mode: "development" });
-
-  // SSE channel used by the reload script injected in root.tsx.
-  const sseClients = new Set<http.ServerResponse>();
-  const broadcastReload = (): void => {
-    if (sseClients.size === 0) return;
-    for (const c of sseClients) {
-      try {
-        c.write("event: reload\ndata:\n\n");
-      } catch {
-        // client dropped; cleanup runs on its own "close" handler
-      }
-    }
-  };
-
-  const clientDir = path.join(buildDir, "client");
-  const faviconFile = faviconPath();
-
-  // Reuse Vite's own chokidar watcher (rooted at options.configDir) instead
-  // of standing up a second one.
-  //
-  // A content edit reloads when the file is either an fn itself or a module
-  // some rendered fn imports (directly or transitively) — i.e. it lives in
-  // the SSR module graph, so a re-render will reflect the edit. This picks up
-  // shared helpers (fonts, utils) while ignoring files no render depends on
-  // (config, tests, unused modules). A module enters the graph's
-  // fileToModulesMap when first transformed during a render and stays there
-  // across edits — Vite's change handler only clears its transform result —
-  // so presence is a stable signal independent of handler ordering. Those map
-  // keys are stored normalized, so we must normalize the raw chokidar path
-  // before the lookup; on macOS/Linux normalizePath is a no-op, but on Windows
-  // chokidar emits backslash paths and an un-normalized lookup would silently
-  // miss, quietly degrading to fn-only reloads.
-  const isRenderedDep = (file: string): boolean => {
-    const mods = vite.environments.ssr.moduleGraph.getModulesByFile(
-      normalizePath(file),
-    );
-    return mods !== undefined && mods.size > 0;
-  };
-  // add/unlink stays fn-scoped: adding or removing an fn changes the SET of
-  // fns, so we re-resolve the id→absPath map before broadcasting. Helper
-  // add/unlink is deliberately not handled — the module-graph signal is
-  // unreliable at this boundary (a just-added file hasn't been transformed
-  // into the graph yet, and an unlinked one is already evicted by Vite's own
-  // delete handler before this fires), so there's nothing dependable to test
-  // against. Editing a helper still reloads via onChange.
-  const onAddOrUnlink = (file: string) => {
-    if (!file.endsWith(FN_SUFFIX)) return;
-    void resolveFns(options.configDir, options.config).then((r) => {
-      resolved = r;
-      broadcastReload();
-    });
-  };
-  const onChange = (file: string) => {
-    if (!file.endsWith(FN_SUFFIX) && !isRenderedDep(file)) return;
-    broadcastReload();
-  };
-  vite.watcher.on("add", onAddOrUnlink);
-  vite.watcher.on("unlink", onAddOrUnlink);
-  vite.watcher.on("change", onChange);
-
-  const server = http.createServer(async (req, res) => {
-    const url = req.url ?? "/";
-
-    if (url === "/__effing/reload") {
-      handleSseRequest(req, res, sseClients);
-      return;
-    }
-    if (url === "/.well-known/appspecific/com.chrome.devtools.json") {
-      res.statusCode = 204;
-      res.end();
-      return;
-    }
-
-    const pathname = url.split("?", 1)[0];
-    if (pathname.startsWith("/assets/")) {
-      // Vite emits hashed filenames, so the contents are immutable for the
-      // lifetime of a build. Cache aggressively so reloads only fetch new
-      // hashes.
-      if (await tryServeStatic(clientDir, pathname, res, IMMUTABLE_CACHE))
-        return;
-    }
-    if (pathname === "/favicon.ico") {
-      // Dev-server branding shipped with @effing/dev — users can't override.
-      if (
-        await tryServeStatic(
-          path.dirname(faviconFile),
-          "/favicon.ico",
-          res,
-          REVALIDATE_CACHE,
-        )
-      )
-        return;
-    }
-
-    rrListener(req, res);
-  });
-
-  const port = await listenWithRetry(
-    server,
-    options.host,
-    options.port,
-    options.strictPort ?? false,
-  );
-
-  return {
-    port,
-    async close() {
+    // SSE channel used by the reload script injected in root.tsx.
+    const sseClients = new Set<http.ServerResponse>();
+    const broadcastReload = (): void => {
+      if (sseClients.size === 0) return;
       for (const c of sseClients) {
         try {
-          c.end();
+          c.write("event: reload\ndata:\n\n");
         } catch {
-          /* ignore */
+          // client dropped; cleanup runs on its own "close" handler
         }
       }
-      sseClients.clear();
-      await new Promise<void>((resolveClose) => {
-        server.close(() => resolveClose());
-        // Force-close hanging keep-alive connections so close() can resolve.
-        server.closeAllConnections?.();
+    };
+
+    // Reuse Vite's own chokidar watcher (rooted at options.configDir) instead
+    // of standing up a second one.
+    //
+    // A content edit reloads when the file is either an fn itself or a
+    // module some rendered fn imports (directly or transitively) — i.e. it
+    // lives in the SSR module graph, so a re-render will reflect the edit.
+    // This picks up shared helpers (fonts, utils) while ignoring files no
+    // render depends on (config, tests, unused modules). A module enters the
+    // graph's fileToModulesMap when first transformed during a render and
+    // stays there across edits — Vite's change handler only clears its
+    // transform result — so presence is a stable signal independent of
+    // handler ordering. Those map keys are stored normalized, so we must
+    // normalize the raw chokidar path before the lookup; on macOS/Linux
+    // normalizePath is a no-op, but on Windows chokidar emits backslash paths
+    // and an un-normalized lookup would silently miss, quietly degrading to
+    // fn-only reloads.
+    const isRenderedDep = (file: string): boolean => {
+      const mods = vite.environments.ssr.moduleGraph.getModulesByFile(
+        normalizePath(file),
+      );
+      return mods !== undefined && mods.size > 0;
+    };
+    // add/unlink stays fn-scoped: adding or removing an fn changes the SET of
+    // fns, so we re-resolve the id→absPath map before broadcasting. Helper
+    // add/unlink is deliberately not handled — the module-graph signal is
+    // unreliable at this boundary (a just-added file hasn't been transformed
+    // into the graph yet, and an unlinked one is already evicted by Vite's own
+    // delete handler before this fires), so there's nothing dependable to test
+    // against. Editing a helper still reloads via onChange.
+    const onAddOrUnlink = (file: string) => {
+      if (!file.endsWith(FN_SUFFIX)) return;
+      void resolveFns(options.configDir, options.config).then((r) => {
+        resolved = r;
+        app.setFns(r);
+        broadcastReload();
       });
-      vite.watcher.off("add", onAddOrUnlink);
-      vite.watcher.off("unlink", onAddOrUnlink);
-      vite.watcher.off("change", onChange);
-      await runner.close();
-      await vite.close();
-      if (globalThis.__effingDevFnModuleLoader === fnLoader) {
-        globalThis.__effingDevFnModuleLoader = undefined;
-        globalThis.__effingDevResolutions = undefined;
-        globalThis.__effingDevProjectName = undefined;
+    };
+    const onChange = (file: string) => {
+      if (!file.endsWith(FN_SUFFIX) && !isRenderedDep(file)) return;
+      // Every module runner drops its own copies of the file (see
+      // invalidate.ts). Vite's own change handler invalidates the module
+      // graph only after awaiting its plugins' watchChange hooks, so a runner
+      // re-fetching before then would get the old transform back; invalidate
+      // it here first (Vite's call is then a harmless repeat).
+      const normalized = normalizePath(file);
+      vite.environments.ssr.moduleGraph.onFileChange(normalized);
+      app.invalidate(normalized);
+      broadcastReload();
+    };
+    vite.watcher.on("add", onAddOrUnlink);
+    vite.watcher.on("unlink", onAddOrUnlink);
+    vite.watcher.on("change", onChange);
+
+    const server = http.createServer(async (req, res) => {
+      const url = req.url ?? "/";
+
+      if (url === "/__effing/reload") {
+        handleSseRequest(req, res, sseClients);
+        return;
       }
-    },
-  };
+      if (url === "/.well-known/appspecific/com.chrome.devtools.json") {
+        res.statusCode = 204;
+        res.end();
+        return;
+      }
+
+      const pathname = url.split("?", 1)[0];
+      if (pathname.startsWith("/assets/")) {
+        // Vite emits hashed filenames, so the contents are immutable for the
+        // lifetime of a build. Cache aggressively so reloads only fetch new
+        // hashes.
+        if (await tryServeStatic(clientDir, pathname, res, IMMUTABLE_CACHE))
+          return;
+      }
+      if (pathname === "/favicon.ico") {
+        // Dev-server branding shipped with @effing/dev — users can't
+        // override.
+        if (
+          await tryServeStatic(
+            path.dirname(faviconFile),
+            "/favicon.ico",
+            res,
+            REVALIDATE_CACHE,
+          )
+        )
+          return;
+      }
+
+      app.handle(req, res);
+    });
+
+    const port = await listenWithRetry(
+      server,
+      options.host,
+      options.port,
+      options.strictPort ?? false,
+    );
+
+    return {
+      port,
+      async close() {
+        for (const c of sseClients) {
+          try {
+            c.end();
+          } catch {
+            /* ignore */
+          }
+        }
+        sseClients.clear();
+        await new Promise<void>((resolveClose) => {
+          server.close(() => resolveClose());
+          // Force-close hanging keep-alive connections so close() can
+          // resolve.
+          server.closeAllConnections?.();
+        });
+        vite.watcher.off("add", onAddOrUnlink);
+        vite.watcher.off("unlink", onAddOrUnlink);
+        vite.watcher.off("change", onChange);
+        await app.close();
+        await vite.close();
+      },
+    };
+  } catch (err) {
+    await started?.close();
+    await vite.close();
+    throw err;
+  }
 }
 
 const MAX_PORT_ATTEMPTS = 16;
@@ -290,6 +305,83 @@ export async function listenWithRetry(
   }
   throw new Error(
     `Ports ${port}–${port + attempts - 1} on ${host} are all in use.`,
+  );
+}
+
+/** The dev app on this thread, for `workers: 0`. */
+async function startInProcessApp(
+  vite: ViteDevServer,
+  fns: () => ResolvedFns,
+  buildDir: string,
+  resolutions: Resolution[],
+  project: string,
+): Promise<DevApp> {
+  const runner = createServerModuleRunner(vite.environments.ssr);
+  const fnLoader = createFnLoader(runner, fns);
+
+  // Install runtime context on globalThis BEFORE importing the pre-built
+  // handler. The preview's `fn.server.ts` / `resolutions.server.ts` read
+  // these on every request, so installing them up front keeps the first
+  // request from racing against initialization.
+  globalThis.__effingDevFnModuleLoader = fnLoader;
+  globalThis.__effingDevResolutions = resolutions;
+  globalThis.__effingDevProjectName = project;
+
+  const close = async (): Promise<void> => {
+    await runner.close();
+    if (globalThis.__effingDevFnModuleLoader === fnLoader) {
+      globalThis.__effingDevFnModuleLoader = undefined;
+      globalThis.__effingDevResolutions = undefined;
+      globalThis.__effingDevProjectName = undefined;
+    }
+  };
+
+  try {
+    // Pre-built RR Node server. We import dynamically so this module can be
+    // typechecked / bundled before the preview build artifact exists.
+    const build = await import(
+      /* @vite-ignore */ pathToFileURL(path.join(buildDir, "server/index.js"))
+        .href
+    );
+    return {
+      handle: createRequestListener({ build, mode: "development" }),
+      invalidate: (file) => invalidateFile(runner.evaluatedModules, file),
+      // The loader reads the current fns on every call.
+      setFns: () => {},
+      close,
+    };
+  } catch (err) {
+    // The caller gets no DevApp to close.
+    await close();
+    throw err;
+  }
+}
+
+/**
+ * One worker per core, leaving one for the main thread, and at most 8: each
+ * worker holds its own copy of the fn modules and their canvas state. None
+ * below 3 cores, where a lone worker would add the proxy hop and a copy of
+ * the app without rendering anything in parallel.
+ */
+function defaultWorkerCount(): number {
+  const workers = os.availableParallelism() - 1;
+  return workers < 2 ? 0 : Math.min(workers, 8);
+}
+
+function appWorkerPath(): string {
+  // Layouts:
+  //  - bundled CLI:    dist/cli/index.js        → ../server/dev/app-worker.js
+  //  - in-repo source: src/server/dev/host.ts   → ../../../dist/server/dev/app-worker.js
+  const candidates = [
+    path.resolve(__dirname, "../server/dev/app-worker.js"),
+    path.resolve(__dirname, "../../../dist/server/dev/app-worker.js"),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  throw new Error(
+    `Could not locate the built app worker — tried:\n  ${candidates.join("\n  ")}\n` +
+      `Run \`pnpm --filter @effing/dev build\` to produce it.`,
   );
 }
 

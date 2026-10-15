@@ -15,6 +15,7 @@ export const devOptionsSchema = z.object({
   port: z.number().int().positive().optional(),
   ffs: z.boolean().optional(),
   resolutions: z.array(resolutionSchema).nonempty().optional(),
+  workers: z.number().int().nonnegative().optional(),
 });
 
 export type DevOptions = z.infer<typeof devOptionsSchema>;

@@ -251,7 +251,7 @@ const MAX_PORT_ATTEMPTS = 16;
  * Retrying on the actual listen (rather than probing first) avoids the
  * race where another process grabs the port between probe and bind.
  */
-async function listenWithRetry(
+export async function listenWithRetry(
   server: http.Server,
   host: string,
   port: number,
@@ -261,12 +261,21 @@ async function listenWithRetry(
   for (let i = 0; i < attempts; i++) {
     const candidate = port + i;
     try {
+      // Whichever of `error` / `listening` fires removes the other, so a
+      // failed attempt doesn't leave its `listening` callback behind for the
+      // next one (which would pile up and all fire on the eventual success).
       await new Promise<void>((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(candidate, host, () => {
-          server.removeListener("error", reject);
+        const onError = (err: Error) => {
+          server.removeListener("listening", onListening);
+          reject(err);
+        };
+        const onListening = () => {
+          server.removeListener("error", onError);
           resolve();
-        });
+        };
+        server.once("error", onError);
+        server.once("listening", onListening);
+        server.listen(candidate, host);
       });
       return candidate;
     } catch (err) {

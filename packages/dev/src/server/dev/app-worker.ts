@@ -1,10 +1,10 @@
 // Entry point of the dev server's app workers (see app-workers.ts).
 //
 // Each worker serves the pre-built dev app on a loopback port of its own, and
-// the dev server proxies requests to the least busy worker. Fns are evaluated
-// with the worker's own Vite module runner, whose requests are answered by the
-// dev server's SSR environment over the parent port, so transforms are shared
-// with every other worker.
+// the dev server proxies each request to an idle worker, else a new one, else
+// the least busy one. Fns are evaluated with the worker's own Vite module
+// runner, whose requests are answered by the dev server's SSR environment over
+// the parent port, so transforms are shared with every other worker.
 
 import http from "node:http";
 import path from "node:path";

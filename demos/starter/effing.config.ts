@@ -20,6 +20,6 @@ export default defineConfig({
   //     { width: 1080, height: 1350, label: "4:5" },
   //     { width: 1080, height: 1920, label: "9:16" },
   //   ],
-  //   workers: 8, // render threads (default: one per core less one, at most 8; 0 = main thread)
+  //   workers: 8, // render threads (default: one per core less one, at most 8, 0 below 3 cores; 0 = main thread)
   // },
 });

@@ -133,6 +133,25 @@ describe("createAppWorkers", () => {
     expect(after.thread).not.toBe(before.thread);
   });
 
+  test("cuts off a response when its worker crashes mid-stream", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { base, state } = await start({ size: 1 });
+    const before = await state();
+
+    const res = await fetch(`${base}/crash-midway`);
+    expect(res.status).toBe(200);
+    await expect(res.text()).rejects.toThrow();
+    await vi.waitFor(() =>
+      expect(errors).toHaveBeenCalledWith(
+        "App worker stopped:",
+        expect.objectContaining({ message: "fn blew up midway" }),
+      ),
+    );
+
+    const after = await state();
+    expect(after.thread).not.toBe(before.thread);
+  });
+
   test("reports a worker that fails to start", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const { base } = await start({ failStart: true });

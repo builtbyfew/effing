@@ -73,12 +73,11 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
       env: SHARE_ENV,
       workerData: options.data(),
     });
-    let ready!: (port: number) => void;
-    let failed!: (err: unknown) => void;
-    const port = new Promise<number>((resolve, reject) => {
-      ready = resolve;
-      failed = reject;
-    });
+    const {
+      promise: port,
+      resolve: ready,
+      reject: failed,
+    } = Promise.withResolvers<number>();
     port.catch(() => {}); // reported to the requests waiting on it
     const slot: Slot = { worker, port, inFlight: 0 };
 

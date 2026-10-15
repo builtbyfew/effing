@@ -67,6 +67,14 @@ const server = http.createServer(async (req, res) => {
         throw new Error("fn blew up");
       });
       return;
+    case "/crash-midway":
+      // Starts the response, then crashes.
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.write("first");
+      setTimeout(() => {
+        throw new Error("fn blew up midway");
+      }, 50);
+      return;
     case "/invoke":
       json(res, await invoke(url.searchParams.get("payload")));
       return;

@@ -546,7 +546,8 @@ export async function streamRenderVideo(
         sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Video streaming failed");
       }
     } else {
-      res.end();
+      // Abort rather than end, so the client sees a truncated video fail.
+      res.destroy();
     }
   }
 }
@@ -587,6 +588,9 @@ async function streamRenderDirect(
         resolve();
       });
       res.on("error", reject);
+      // pipe() doesn't forward the source's errors: without this, ffmpeg
+      // failing mid-stream would be an uncaught 'error' event.
+      videoStream.on("error", reject);
       videoStream.pipe(res);
     });
   } finally {

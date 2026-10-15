@@ -16,9 +16,9 @@ import {
   createNodeImportMeta,
 } from "vite/module-runner";
 import type { HotPayload } from "vite";
-import { createRequestListener } from "@react-router/node";
 import invariant from "tiny-invariant";
 import type { ResolvedFns } from "../../fns";
+import { createAppListener } from "./app-listener";
 import type {
   AppWorkerData,
   FromAppWorker,
@@ -77,9 +77,7 @@ const build = await import(
   /* @vite-ignore */ pathToFileURL(path.join(data.buildDir, "server/index.js"))
     .href
 );
-const server = http.createServer(
-  createRequestListener({ build, mode: "development" }),
-);
+const server = http.createServer(createAppListener(build));
 // The dev server's keep-alive agent is the only client. Closing its idle
 // connections would race with the agent reusing one (a 502 for that request).
 server.keepAliveTimeout = 0;

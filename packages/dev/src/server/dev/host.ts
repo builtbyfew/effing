@@ -11,13 +11,13 @@ import {
   type ViteDevServer,
 } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { createRequestListener } from "@react-router/node";
 import { FN_SUFFIX, resolveFns, type ResolvedFns } from "../../fns";
 import {
   DEFAULT_RESOLUTIONS,
   type EffingConfig,
   type Resolution,
 } from "../../config/schema";
+import { createAppListener } from "./app-listener";
 import { createAppWorkers, type DevApp } from "./app-workers";
 import { createFnLoader } from "./fn-loader";
 import { invalidateFile } from "./invalidate";
@@ -344,7 +344,7 @@ async function startInProcessApp(
         .href
     );
     return {
-      handle: createRequestListener({ build, mode: "development" }),
+      handle: createAppListener(build),
       invalidate: (file) => invalidateFile(runner.evaluatedModules, file),
       // The loader reads the current fns on every call.
       setFns: () => {},

@@ -1,5 +1,5 @@
 import express from "express";
-import { Readable, Transform } from "stream";
+import { Readable, Transform, pipeline } from "stream";
 import { randomUUID } from "crypto";
 import type { TransientStore } from "../storage";
 import { storeKeys } from "../storage";
@@ -388,8 +388,11 @@ export async function fetchAndCache(
     },
   });
 
-  // Pipe through progress tracker to cache storage with source TTL
-  const trackedStream = sourceStream.pipe(progressStream);
+  // Pipe through progress tracker to cache storage with source TTL.
+  // pipeline(), not pipe(): a source that fails mid-body (a dropped
+  // connection, an annie whose fn threw) must fail the put, not go unhandled
+  // and leave it waiting.
+  const trackedStream = pipeline(sourceStream, progressStream, () => {});
   await ctx.transientStore.put(
     cacheKey,
     trackedStream,

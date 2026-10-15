@@ -1,6 +1,6 @@
 import type { IncomingMessage, RequestListener } from "node:http";
 import { Writable } from "node:stream";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 import type { FnKind, FnModule, FnModuleLoader } from "../types";
 import { createFnHttpListener } from "./listener";
@@ -133,6 +133,7 @@ async function callListener(
         cb: (err?: Error) => void,
       ) {
         chunks.push(Buffer.from(chunk));
+        this.headersSent = true;
         cb();
       }
     }
@@ -142,6 +143,9 @@ async function callListener(
       resolve({ status: res.statusCode, headers, body: Buffer.concat(chunks) }),
     );
     res.on("error", reject);
+    // Closed without finishing: the response was destroyed (a no-op once
+    // resolved).
+    res.on("close", () => reject(new Error("response aborted")));
 
     try {
       listener(req, res as unknown as Parameters<RequestListener>[1]);
@@ -251,6 +255,39 @@ describe("createFnHttpListener", () => {
     expect(res.headers["content-type"]).toBe("application/x-tar");
     // TAR consists of 512-byte blocks; two frames + headers should be a few KB.
     expect(res.body.byteLength).toBeGreaterThan(512);
+  });
+
+  test("aborts the TAR of an annie that fails after its first frame", async () => {
+    async function* frames() {
+      yield JPEG_BYTES;
+      throw new Error("broken annie");
+    }
+    const loader = makeLoader({
+      annie: {
+        "my-annie": makeAnnieModule(z.object({}).passthrough(), () => frames()),
+      },
+    });
+    const segment = await signFnSegment(
+      {
+        id: "my-annie",
+        props: {},
+        bounds: { width: 100, height: 100 },
+      },
+      SECRET,
+    );
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      // Not ended cleanly, which would pass for a complete (shorter) TAR.
+      await expect(
+        callListener(makeListener(loader), { url: `/annie/${segment}` }),
+      ).rejects.toThrow("response aborted");
+      expect(error).toHaveBeenCalledWith(
+        "[fn-server] unhandled error:",
+        "broken annie",
+      );
+    } finally {
+      error.mockRestore();
+    }
   });
 
   test("returns 400 for an unsigned / tampered segment", async () => {

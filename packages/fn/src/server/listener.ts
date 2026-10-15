@@ -42,7 +42,10 @@ function sendJsonError(
   error: string,
 ): void {
   if (res.headersSent) {
-    if (!res.writableEnded) res.end();
+    // Too late for an error response (an annie failed mid-stream, say).
+    // Abort it, so the client sees it failed rather than a clean, truncated
+    // end.
+    if (!res.writableEnded) res.destroy();
     return;
   }
   res.statusCode = status;

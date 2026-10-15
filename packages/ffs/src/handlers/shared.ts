@@ -289,7 +289,9 @@ export async function proxyRemoteSSE(
 
 /**
  * Proxy a binary stream (e.g., video) from a fetch Response to an Express response.
- * Forwards Content-Type and Content-Length headers.
+ * Forwards Content-Type and Content-Length headers. If the stream fails
+ * partway, rejects without ending `res`, so the caller can abort it rather
+ * than end it cleanly as if complete.
  */
 export async function proxyBinaryStream(
   response: UndiciResponse,
@@ -320,6 +322,6 @@ export async function proxyBinaryStream(
     }
   } finally {
     reader.releaseLock();
-    res.end();
   }
+  res.end();
 }

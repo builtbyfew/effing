@@ -12,7 +12,7 @@ import type {
   EffieSourceWithType,
 } from "@effing/effie";
 import { effieDataSchema } from "@effing/effie";
-import { ErrorCode, backendError } from "./errors";
+import { BackendError, ErrorCode, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
 
 export type OnRenderComplete = (result: {
@@ -217,7 +217,9 @@ export function prefixEventSender<TMap extends Record<string, unknown>>(
 }
 
 /**
- * Proxy SSE events from a remote backend, prefixing event names
+ * Proxy SSE events from a remote backend, prefixing event names. Rejects with
+ * a BackendError when the backend answers with an error status, or when its
+ * stream fails partway (with the read error as its cause).
  */
 export async function proxyRemoteSSE(
   url: string,
@@ -249,7 +251,17 @@ export async function proxyRemoteSSE(
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      // A stream that fails partway (its connection dropped, say) is the
+      // backend's failure, like one that answers with an error status.
+      const { done, value } = await reader.read().catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new BackendError(
+          response.status,
+          ErrorCode.BACKEND_FAILED,
+          `Backend stream failed: ${reason}`,
+          { cause: error },
+        );
+      });
       if (done) break;
 
       // Check if client disconnected
@@ -289,7 +301,9 @@ export async function proxyRemoteSSE(
 
 /**
  * Proxy a binary stream (e.g., video) from a fetch Response to an Express response.
- * Forwards Content-Type and Content-Length headers.
+ * Forwards Content-Type and Content-Length headers. If the stream fails
+ * partway, rejects without ending `res`, so the caller can abort it rather
+ * than end it cleanly as if complete.
  */
 export async function proxyBinaryStream(
   response: UndiciResponse,
@@ -320,6 +334,6 @@ export async function proxyBinaryStream(
     }
   } finally {
     reader.releaseLock();
-    res.end();
   }
+  res.end();
 }

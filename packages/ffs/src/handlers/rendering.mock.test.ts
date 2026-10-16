@@ -419,6 +419,56 @@ describe("streamRenderVideo", () => {
     consoleSpy.mockRestore();
   });
 
+  test("reports a source that failed mid-body as a fetch failure", async () => {
+    const { FetchBodyError } = await import("./errors");
+    const jobId = "source-body-failure-id";
+    const url = "https://example.com/anim.tar";
+    const mockRenderer = {
+      render: vi
+        .fn()
+        .mockRejectedValue(
+          new FetchBodyError(url, 200, new TypeError("terminated")),
+        ),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+    const { streamRenderVideo } = await import("./rendering");
+
+    const res = mockResponse();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await streamRenderVideo(
+        mockRequest({ id: jobId }),
+        res,
+        mockContext({
+          [storeKeys.videoJob(jobId)]: {
+            effie: {
+              width: 1080,
+              height: 1080,
+              fps: 30,
+              cover: "https://example.com/cover.png",
+              background: { type: "color", color: "#000000" },
+              segments: [],
+              sources: {},
+            },
+            scale: 1,
+          } satisfies VideoJob,
+        }),
+      );
+    } finally {
+      error.mockRestore();
+    }
+
+    expect(res.statusCode).toBe(422);
+    expect(res.body).toEqual({
+      error: `Failed to fetch ${url}: response body failed: terminated`,
+      code: "FETCH_FAILED",
+    });
+  });
+
   test("does not delete video job when proxying to render backend", async () => {
     const videoJob: VideoJob = {
       effie: {
@@ -872,6 +922,76 @@ describe("streamRenderProgress with upload", () => {
     expect(mockRenderer.close).toHaveBeenCalledOnce();
   });
 
+  test("reports a source that failed mid-body as a fetch failure", async () => {
+    const { FetchBodyError } = await import("./errors");
+    const url = "https://example.com/anim.tar";
+    const mockRenderer = {
+      render: vi
+        .fn()
+        .mockRejectedValue(
+          new FetchBodyError(url, 200, new TypeError("terminated")),
+        ),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const jobId = "source-body-failure-upload-id";
+    const { streamRenderProgress } = await import("./rendering");
+    const res = mockResponse();
+    await streamRenderProgress(
+      mockRequest({ id: jobId }),
+      res,
+      mockContext(resolvedUploadJob(jobId)),
+    );
+
+    const events = parseSSEEvents(res);
+    expect(events.find((e) => e.event === "error")?.data).toEqual({
+      phase: "upload",
+      message: `Failed to fetch ${url}: response body failed: terminated`,
+      code: "FETCH_FAILED",
+    });
+  });
+
+  test("reports a warmup backend whose stream fails as a backend failure", async () => {
+    const { ffsFetch } = await import("../fetch");
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(`event: start\ndata: {"total":1}\n\n`),
+          );
+        },
+        // Once the event is read, the connection drops.
+        pull(controller) {
+          controller.error(new TypeError("terminated"));
+        },
+      }),
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const jobId = "warmup-backend-failure-id";
+    const { streamRenderProgress } = await import("./rendering");
+    const res = mockResponse();
+    const ctx = mockContext(resolvedUploadJob(jobId));
+    ctx.warmupBackendResolver = () => ({ baseUrl: "http://backend:3000" });
+    await streamRenderProgress(mockRequest({ id: jobId }), res, ctx);
+
+    expect(parseSSEEvents(res)).toEqual([
+      { event: "warmup:start", data: { total: 1 } },
+      {
+        event: "error",
+        data: {
+          phase: "warmup",
+          message: "Backend stream failed: terminated",
+          code: "BACKEND_FAILED",
+        },
+      },
+    ]);
+  });
+
   test("backend render streams the fetched video to a temp file before uploading", async () => {
     const { Readable } = await import("stream");
     const os = await import("os");
@@ -1028,5 +1148,122 @@ describe("streamRenderProgress with upload", () => {
       (name) => !tempFilesBefore.has(name),
     );
     expect(leftovers).toEqual([]);
+  });
+});
+
+describe("streamRenderVideo failing mid-stream", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  const videoJob: VideoJob = {
+    effie: {
+      width: 1080,
+      height: 1080,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "#000000" },
+      segments: [],
+      sources: {},
+    },
+    scale: 1,
+  };
+
+  /**
+   * Serve streamRenderVideo over a real socket and fetch the video, calling
+   * `fail` once the client has the headers and the first bytes: the client
+   * must then see the response fail, not end cleanly as a short video.
+   */
+  async function fetchVideo(
+    ctx: ServerContext,
+    jobId: string,
+    fail: () => void,
+  ) {
+    const http = await import("http");
+    const { default: express } = await import("express");
+    const { streamRenderVideo } = await import("./rendering");
+    const app = express();
+    app.get("/render/:id/video", (req, res) => {
+      void streamRenderVideo(req, res, ctx);
+    });
+    const server = http.createServer(app);
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", () => resolve()),
+    );
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { port } = server.address() as { port: number };
+      const response = await fetch(
+        `http://127.0.0.1:${port}/render/${jobId}/video`,
+      );
+      expect(response.status).toBe(200);
+      const reader = response.body!.getReader();
+      expect((await reader.read()).done).toBe(false);
+      fail();
+      await expect(
+        (async () => {
+          while (!(await reader.read()).done);
+        })(),
+      ).rejects.toThrow();
+      expect(error).toHaveBeenCalledWith(
+        "Error streaming video:",
+        expect.any(Error),
+      );
+    } finally {
+      error.mockRestore();
+      server.closeAllConnections();
+      server.close();
+    }
+  }
+
+  test("aborts the response when ffmpeg fails partway", async () => {
+    const { PassThrough } = await import("stream");
+    const jobId = "local-failure-id";
+
+    // As FFmpegRunner's output when ffmpeg exits non-zero partway through.
+    const videoStream = new PassThrough();
+    videoStream.write(Buffer.alloc(1024));
+    const mockRenderer = {
+      render: vi.fn().mockResolvedValue(videoStream),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    await fetchVideo(
+      mockContext({ [storeKeys.videoJob(jobId)]: videoJob }),
+      jobId,
+      () => videoStream.destroy(new Error("ffmpeg exited with code 1")),
+    );
+    expect(mockRenderer.close).toHaveBeenCalledOnce();
+  });
+
+  test("aborts the response when the render backend fails partway", async () => {
+    const jobId = "backend-failure-id";
+
+    // Not a body that fails on a timer: erroring a ReadableStream drops the
+    // chunks it still holds, so on a slow runner the handler could see the
+    // error before the first chunk and (rightly) answer 500.
+    let body!: ReadableStreamDefaultController<Uint8Array>;
+    const { ffsFetch } = await import("../fetch");
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "video/mp4" }),
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          body = controller;
+          controller.enqueue(new Uint8Array(1024));
+        },
+      }),
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const ctx = mockContext({ [storeKeys.videoJob(jobId)]: videoJob });
+    ctx.renderBackendResolver = () => ({ baseUrl: "http://backend:3000" });
+    await fetchVideo(ctx, jobId, () =>
+      body.error(new Error("backend stream aborted")),
+    );
   });
 });

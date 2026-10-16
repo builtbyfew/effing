@@ -1,5 +1,6 @@
 import type express from "express";
 import type { Response as UndiciResponse } from "undici";
+import { SsrfError } from "../url";
 
 export const ErrorCode = {
   UNAUTHORIZED: "UNAUTHORIZED",
@@ -36,9 +37,29 @@ export class FetchError extends Error {
     public readonly url: string,
     public readonly status: number,
     statusText: string,
+    /** `message` replaces the one made from the status. */
+    options?: ErrorOptions & { message?: string },
   ) {
-    super(`Failed to fetch ${url}: ${status} ${statusText}`);
+    super(
+      options?.message ?? `Failed to fetch ${url}: ${status} ${statusText}`,
+      options,
+    );
     this.name = "FetchError";
+  }
+}
+
+/**
+ * A source whose response started, but whose body failed partway (its
+ * connection dropped, say). The read error is its `cause`.
+ */
+export class FetchBodyError extends FetchError {
+  constructor(url: string, status: number, cause: unknown) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    super(url, status, "", {
+      cause,
+      message: `Failed to fetch ${url}: response body failed: ${reason}`,
+    });
+    this.name = "FetchBodyError";
   }
 }
 
@@ -49,8 +70,9 @@ export class BackendError extends Error {
     public readonly status: number,
     public readonly code: ErrorCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 
@@ -78,4 +100,16 @@ export async function backendError(
     // Response wasn't JSON — use defaults
   }
   return new BackendError(response.status, code, message);
+}
+
+export function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
+/** The code to report an error with, e.g. in an SSE `error` event. */
+export function toErrorCode(error: unknown): ErrorCode {
+  if (error instanceof BackendError) return error.code;
+  if (error instanceof FetchError || error instanceof SsrfError)
+    return ErrorCode.FETCH_FAILED;
+  return ErrorCode.INTERNAL_ERROR;
 }

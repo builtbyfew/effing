@@ -1,5 +1,8 @@
-import { describe, test, expect } from "vitest";
+import http from "node:http";
+import { afterAll, beforeAll, describe, test, expect } from "vitest";
+import { annieBuffer } from "@effing/annie";
 import { EffieRenderer } from "./renderer";
+import { FetchError } from "./handlers/errors";
 import type { EffieData, EffieSources } from "@effing/effie";
 
 function makeEffie(layer: {
@@ -369,5 +372,56 @@ describe("EffieRenderer background cover-scale", () => {
     expect(buildFilterComplex(backgroundEffie())).toContain(
       "[1:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,trim=start=2:duration=1",
     );
+  });
+});
+
+describe("EffieRenderer source failures", () => {
+  let server: http.Server;
+  let url: string;
+
+  beforeAll(async () => {
+    // An annie whose fn fails after its first frame: the frame goes out, then
+    // the connection is cut.
+    const annie = await annieBuffer(
+      (async function* () {
+        yield Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      })(),
+    );
+    server = http.createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/x-tar" });
+      // The TAR header and the frame, without the end-of-archive blocks.
+      res.write(annie.subarray(0, 1024), () => res.destroy());
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", () => resolve()),
+    );
+    url = `http://127.0.0.1:${(server.address() as { port: number }).port}/annie`;
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  test("a source that fails mid-body fails the render, naming it", async () => {
+    const renderer = new EffieRenderer({
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+      segments: [{ duration: 1, layers: [{ type: "animation", source: url }] }],
+    });
+    const error = await renderer.render().then(
+      () => undefined,
+      (err: unknown) => err,
+    );
+    renderer.close();
+    // A FetchError, so it's reported as FETCH_FAILED.
+    expect(error).toBeInstanceOf(FetchError);
+    expect(error).toMatchObject({
+      url,
+      message: `Failed to fetch ${url}: response body failed: terminated`,
+      cause: expect.objectContaining({ message: "terminated" }),
+    });
   });
 });

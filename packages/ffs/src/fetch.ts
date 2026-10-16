@@ -1,4 +1,6 @@
+import { Readable } from "stream";
 import { fetch, Agent, type Response, type BodyInit } from "undici";
+import { FetchBodyError } from "./handlers/errors";
 import { validateUrl, validatedLookup } from "./url";
 
 /**
@@ -144,4 +146,41 @@ export async function ffsFetch(
   }
 
   return response;
+}
+
+/**
+ * A source's response body as a Node stream, for the renderer and warmup.
+ *
+ * A failure reading the body (its connection dropping partway, say) fails the
+ * stream with a FetchBodyError that names the source, with the read error as
+ * its cause. The stream's own errors (when it's destroyed with one) pass
+ * through as they are. The body is read only as the stream is, so a body that
+ * fails before anyone reads the stream can't fail it with no one listening.
+ * Destroying the stream stops the download, whether or not a read is pending.
+ */
+export function sourceStream(url: string, response: Response): Readable {
+  const body = response.body;
+  if (!body) throw new Error(`No body for ${url}`);
+  const reader = body.getReader();
+  return new Readable({
+    read() {
+      reader.read().then(
+        (result) => {
+          // Destroying cancels the body, which settles a pending read.
+          if (this.destroyed) return;
+          this.push(result.done ? null : result.value);
+        },
+        (error: unknown) => {
+          if (this.destroyed) return;
+          this.destroy(new FetchBodyError(url, response.status, error));
+        },
+      );
+    },
+    destroy(error, callback) {
+      reader
+        .cancel()
+        .catch(() => {})
+        .then(() => callback(error));
+    },
+  });
 }

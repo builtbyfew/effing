@@ -419,6 +419,56 @@ describe("streamRenderVideo", () => {
     consoleSpy.mockRestore();
   });
 
+  test("reports a source that failed mid-body as a fetch failure", async () => {
+    const { FetchBodyError } = await import("./errors");
+    const jobId = "source-body-failure-id";
+    const url = "https://example.com/anim.tar";
+    const mockRenderer = {
+      render: vi
+        .fn()
+        .mockRejectedValue(
+          new FetchBodyError(url, 200, new TypeError("terminated")),
+        ),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+    const { streamRenderVideo } = await import("./rendering");
+
+    const res = mockResponse();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await streamRenderVideo(
+        mockRequest({ id: jobId }),
+        res,
+        mockContext({
+          [storeKeys.videoJob(jobId)]: {
+            effie: {
+              width: 1080,
+              height: 1080,
+              fps: 30,
+              cover: "https://example.com/cover.png",
+              background: { type: "color", color: "#000000" },
+              segments: [],
+              sources: {},
+            },
+            scale: 1,
+          } satisfies VideoJob,
+        }),
+      );
+    } finally {
+      error.mockRestore();
+    }
+
+    expect(res.statusCode).toBe(422);
+    expect(res.body).toEqual({
+      error: `Failed to fetch ${url}: response body failed: terminated`,
+      code: "FETCH_FAILED",
+    });
+  });
+
   test("does not delete video job when proxying to render backend", async () => {
     const videoJob: VideoJob = {
       effie: {
@@ -870,6 +920,39 @@ describe("streamRenderProgress with upload", () => {
     expect(existsSync(put.bodyPath)).toBe(false);
 
     expect(mockRenderer.close).toHaveBeenCalledOnce();
+  });
+
+  test("reports a source that failed mid-body as a fetch failure", async () => {
+    const { FetchBodyError } = await import("./errors");
+    const url = "https://example.com/anim.tar";
+    const mockRenderer = {
+      render: vi
+        .fn()
+        .mockRejectedValue(
+          new FetchBodyError(url, 200, new TypeError("terminated")),
+        ),
+      close: vi.fn(),
+    };
+    const { EffieRenderer } = await import("../renderer");
+    vi.mocked(EffieRenderer).mockImplementation(
+      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+    );
+
+    const jobId = "source-body-failure-upload-id";
+    const { streamRenderProgress } = await import("./rendering");
+    const res = mockResponse();
+    await streamRenderProgress(
+      mockRequest({ id: jobId }),
+      res,
+      mockContext(resolvedUploadJob(jobId)),
+    );
+
+    const events = parseSSEEvents(res);
+    expect(events.find((e) => e.event === "error")?.data).toEqual({
+      phase: "upload",
+      message: `Failed to fetch ${url}: response body failed: terminated`,
+      code: "FETCH_FAILED",
+    });
   });
 
   test("backend render streams the fetched video to a temp file before uploading", async () => {

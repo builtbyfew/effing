@@ -1,9 +1,9 @@
 import express from "express";
-import { Readable, Transform, pipeline } from "stream";
+import { Transform, pipeline } from "stream";
 import { randomUUID } from "crypto";
 import type { TransientStore } from "../storage";
 import { storeKeys } from "../storage";
-import { ffsFetch } from "../fetch";
+import { ffsFetch, sourceStream } from "../fetch";
 import {
   extractEffieSources,
   extractEffieSourcesWithTypes,
@@ -364,9 +364,7 @@ export async function fetchAndCache(
   sendEvent("downloading", { url, status: "started", bytesReceived: 0 });
 
   // Stream through a progress tracker
-  const sourceStream = Readable.fromWeb(
-    response.body as import("stream/web").ReadableStream,
-  );
+  const bodyStream = sourceStream(url, response);
 
   let totalBytes = 0;
   let lastEventTime = Date.now();
@@ -392,7 +390,7 @@ export async function fetchAndCache(
   // pipeline(), not pipe(): a source that fails mid-body (a dropped
   // connection, an annie whose fn threw) must fail the put, not go unhandled
   // and leave it waiting.
-  const trackedStream = pipeline(sourceStream, progressStream, () => {});
+  const trackedStream = pipeline(bodyStream, progressStream, () => {});
   await ctx.transientStore.put(
     cacheKey,
     trackedStream,

@@ -36,9 +36,22 @@ export class FetchError extends Error {
     public readonly url: string,
     public readonly status: number,
     statusText: string,
+    options?: ErrorOptions,
   ) {
-    super(`Failed to fetch ${url}: ${status} ${statusText}`);
+    super(`Failed to fetch ${url}: ${status} ${statusText}`, options);
     this.name = "FetchError";
+  }
+}
+
+/**
+ * A source whose response started, but whose body failed partway (its
+ * connection dropped, say). The read error is its `cause`.
+ */
+export class FetchBodyError extends FetchError {
+  constructor(url: string, status: number, cause: unknown) {
+    super(url, status, "", { cause });
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    this.message = `Failed to fetch ${url}: response body failed: ${reason}`;
   }
 }
 

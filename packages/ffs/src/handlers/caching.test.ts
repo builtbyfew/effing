@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { LocalTransientStore } from "../storage";
 import { fetchAndCache } from "./caching";
+import { FetchError } from "./errors";
 import type { ServerContext } from "./shared";
 
 describe("fetchAndCache", () => {
@@ -46,5 +47,23 @@ describe("fetchAndCache", () => {
       fetchAndCache(url, "sources/broken", onEvent, ctx),
     ).rejects.toThrow("terminated");
     expect(await store.exists("sources/broken")).toBe(false);
+  });
+
+  test("names the source that failed mid-body", async () => {
+    const ctx = { transientStore: store } as unknown as ServerContext;
+    const onEvent = (event: string) => {
+      if (event === "downloading") fail();
+    };
+    const error = await fetchAndCache(url, "sources/named", onEvent, ctx).then(
+      () => undefined,
+      (err: unknown) => err,
+    );
+    // A FetchError, so it's reported as FETCH_FAILED.
+    expect(error).toBeInstanceOf(FetchError);
+    expect(error).toMatchObject({
+      url,
+      message: `Failed to fetch ${url}: response body failed: terminated`,
+      cause: expect.objectContaining({ message: "terminated" }),
+    });
   });
 });

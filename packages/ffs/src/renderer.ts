@@ -6,7 +6,7 @@ import type { FFmpegInput } from "./ffmpeg";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import { processTransition } from "./transition";
 import type { EffieData, EffieSources, EffieWebUrl } from "@effing/effie";
-import { ffsFetch } from "./fetch";
+import { ffsFetch, sourceStream } from "./fetch";
 import { fileURLToPath } from "url";
 import { storeKeys } from "./storage";
 import type { TransientStore } from "./storage";
@@ -100,11 +100,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     if (!response.ok) {
       throw new FetchError(src, response.status, response.statusText);
     }
-    if (!response.body) {
-      throw new Error(`No body for ${src}`);
-    }
-    // Convert WHATWG ReadableStream to Node.js Readable
-    return Readable.fromWeb(response.body);
+    return sourceStream(src, response);
   }
 
   private buildAudioFilter({

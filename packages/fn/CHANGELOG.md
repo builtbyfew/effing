@@ -1,5 +1,16 @@
 # @effing/fn
 
+## 0.45.0
+
+### Patch Changes
+
+- e74f68d: Abort the response of an fn that fails mid-stream in the fn server
+
+  When an annie threw after its first frame, the fn server ended the response cleanly, so clients got a complete-looking but truncated TAR, and FFS rendered the annie with fewer frames instead of failing. The response is now aborted.
+  - @effing/annie@0.45.0
+  - @effing/effie@0.45.0
+  - @effing/serde@0.45.0
+
 ## 0.44.0
 
 ### Patch Changes

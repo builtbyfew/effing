@@ -1,5 +1,34 @@
 # @effing/dev
 
+## 0.45.0
+
+### Minor Changes
+
+- 2852572: Serve the dev app on worker threads, so the annies of an effie render in parallel
+
+  FFS fetches all the annies in an effie at once, but the dev server drew them in turns on its one thread. `effing dev` and `effing render` now serve requests on worker threads, started on demand up to the new `dev.workers` option (default: one per core less one, at most 8, and `0` below 3 cores; `0` serves everything on the main thread as before). Each worker evaluates fns on its own, so module-level state isn't shared between requests served by different workers, and each busy worker holds its own copy of the app, the fns and their canvas and font state, so lower `dev.workers` to save memory.
+
+### Patch Changes
+
+- 412e6df: Stop the dev server from leaking listeners while it looks for a free port
+
+  Each port that turned out to be taken left a `listening` callback on the server, so walking past more than ten of them printed a `MaxListenersExceededWarning`, and all of those callbacks fired once a port was free.
+
+- e74f68d: Keep the dev server running when an fn fails after its response has started
+
+  An annie that threw after its first frame left an unhandled rejection behind: it stopped `effing dev` with `dev.workers: 0`, and otherwise stopped the app worker, failing every other request that worker was serving (such as the other annies of the same effie). The error is now logged with the request URL and the response aborted, so the client sees it failed.
+
+- 67d53d1: Render previews with the props the fn's schema parses `previewProps` into
+
+  The preview endpoints and the effie preview page checked `previewProps` against the `propsSchema` but then passed the fn the unparsed object, so a schema's transforms and defaults didn't apply and a preview could differ from what a signed URL, and so the final video, renders.
+
+- Updated dependencies [e74f68d]
+  - @effing/fn@0.45.0
+  - @effing/effie-preview@0.45.0
+  - @effing/effie@0.45.0
+  - @effing/serde@0.45.0
+  - @effing/annie-player@0.45.0
+
 ## 0.44.0
 
 ### Patch Changes

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { defaultOutputPath, targetUrl } from "./render";
+import {
+  defaultOutputPath,
+  ffsRenderArgs,
+  runRender,
+  targetUrl,
+} from "./render";
 
 describe("defaultOutputPath", () => {
   test("effie renders to mp4", () => {
@@ -55,5 +60,62 @@ describe("targetUrl", () => {
       "secret",
     );
     expect(url).toMatch(new RegExp(`^${base}/effie/[^/?]+$`));
+  });
+});
+
+describe("ffsRenderArgs", () => {
+  const url = "http://127.0.0.1:3839/preview/effie/video.json?w=1080&h=1920";
+
+  test("passes only url and output by default", () => {
+    expect(ffsRenderArgs(url, "out.mp4")).toEqual(["render", url, "out.mp4"]);
+    expect(
+      ffsRenderArgs(url, "out.mp4", {
+        scale: 1,
+        skipValidation: false,
+        allowLocalFiles: false,
+      }),
+    ).toEqual(["render", url, "out.mp4"]);
+  });
+
+  test("passes --scale when it isn't 1", () => {
+    expect(ffsRenderArgs(url, "out.mp4", { scale: 0.5 })).toEqual([
+      "render",
+      url,
+      "out.mp4",
+      "--scale",
+      "0.5",
+    ]);
+  });
+
+  test("passes --skip-validation when given", () => {
+    expect(ffsRenderArgs(url, "out.mp4", { skipValidation: true })).toEqual([
+      "render",
+      url,
+      "out.mp4",
+      "--skip-validation",
+    ]);
+  });
+
+  test("passes --allow-local-files when given", () => {
+    expect(ffsRenderArgs(url, "out.mp4", { allowLocalFiles: true })).toEqual([
+      "render",
+      url,
+      "out.mp4",
+      "--allow-local-files",
+    ]);
+  });
+});
+
+describe("runRender", () => {
+  test.each([
+    ["--scale", { scale: 2 }],
+    ["--skip-validation", { skipValidation: true }],
+    ["--allow-local-files", { allowLocalFiles: true }],
+  ])("rejects %s for non-effie kinds", async (flag, options) => {
+    for (const kind of ["image", "annie"]) {
+      await expect(runRender(kind, "cover", options)).rejects.toThrow(
+        `${flag} only applies to effie renders.`,
+      );
+    }
   });
 });

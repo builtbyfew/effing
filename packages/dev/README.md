@@ -130,6 +130,10 @@ Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of
 | `--height <n>`             | Height in pixels (default: first entry in `dev.resolutions`).         |
 | `-r, --resolution <label>` | Pick bounds from a `dev.resolutions` preset by label (e.g. `"9:16"`). |
 | `--scale <n>`              | Output scale factor, effie only (default: 1).                         |
+| `--skip-validation`        | Skip Effie schema validation, effie only.                             |
+| `--allow-local-files`      | Allow `file://` sources in the composition, effie only.               |
+
+The Effie schema only accepts HTTP(S) and data URLs, so `--allow-local-files` needs `--skip-validation` too.
 
 ### `effing url`
 

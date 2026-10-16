@@ -955,6 +955,43 @@ describe("streamRenderProgress with upload", () => {
     });
   });
 
+  test("reports a warmup backend whose stream fails as a backend failure", async () => {
+    const { ffsFetch } = await import("../fetch");
+    vi.mocked(ffsFetch).mockResolvedValue({
+      ok: true,
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(`event: start\ndata: {"total":1}\n\n`),
+          );
+        },
+        // Once the event is read, the connection drops.
+        pull(controller) {
+          controller.error(new TypeError("terminated"));
+        },
+      }),
+    } as unknown as Awaited<ReturnType<typeof ffsFetch>>);
+
+    const jobId = "warmup-backend-failure-id";
+    const { streamRenderProgress } = await import("./rendering");
+    const res = mockResponse();
+    const ctx = mockContext(resolvedUploadJob(jobId));
+    ctx.warmupBackendResolver = () => ({ baseUrl: "http://backend:3000" });
+    await streamRenderProgress(mockRequest({ id: jobId }), res, ctx);
+
+    expect(parseSSEEvents(res)).toEqual([
+      { event: "warmup:start", data: { total: 1 } },
+      {
+        event: "error",
+        data: {
+          phase: "warmup",
+          message: "Backend stream failed: terminated",
+          code: "BACKEND_FAILED",
+        },
+      },
+    ]);
+  });
+
   test("backend render streams the fetched video to a temp file before uploading", async () => {
     const { Readable } = await import("stream");
     const os = await import("os");

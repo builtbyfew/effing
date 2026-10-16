@@ -78,7 +78,10 @@ describe("streamWarmupProgress via a warmup backend", () => {
       { event: "start", data: { total: 1 } },
       {
         event: "error",
-        data: { message: "terminated", code: "INTERNAL_ERROR" },
+        data: {
+          message: "Backend stream failed: terminated",
+          code: "BACKEND_FAILED",
+        },
       },
     ]);
   });

@@ -156,24 +156,31 @@ export async function ffsFetch(
  * its cause. The stream's own errors (when it's destroyed with one) pass
  * through as they are. The body is read only as the stream is, so a body that
  * fails before anyone reads the stream can't fail it with no one listening.
+ * Destroying the stream stops the download, whether or not a read is pending.
  */
 export function sourceStream(url: string, response: Response): Readable {
   const body = response.body;
   if (!body) throw new Error(`No body for ${url}`);
   const reader = body.getReader();
-  async function* chunks() {
-    try {
-      for (;;) {
-        const result = await reader.read().catch((error: unknown) => {
-          throw new FetchBodyError(url, response.status, error);
-        });
-        if (result.done) return;
-        yield result.value;
-      }
-    } finally {
-      // Stops the download when the stream is destroyed before the end.
-      await reader.cancel().catch(() => {});
-    }
-  }
-  return Readable.from(chunks(), { objectMode: false });
+  return new Readable({
+    read() {
+      reader.read().then(
+        (result) => {
+          // Destroying cancels the body, which settles a pending read.
+          if (this.destroyed) return;
+          this.push(result.done ? null : result.value);
+        },
+        (error: unknown) => {
+          if (this.destroyed) return;
+          this.destroy(new FetchBodyError(url, response.status, error));
+        },
+      );
+    },
+    destroy(error, callback) {
+      reader
+        .cancel()
+        .catch(() => {})
+        .then(() => callback(error));
+    },
+  });
 }

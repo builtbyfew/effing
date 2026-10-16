@@ -37,9 +37,13 @@ export class FetchError extends Error {
     public readonly url: string,
     public readonly status: number,
     statusText: string,
-    options?: ErrorOptions,
+    /** `message` replaces the one made from the status. */
+    options?: ErrorOptions & { message?: string },
   ) {
-    super(`Failed to fetch ${url}: ${status} ${statusText}`, options);
+    super(
+      options?.message ?? `Failed to fetch ${url}: ${status} ${statusText}`,
+      options,
+    );
     this.name = "FetchError";
   }
 }
@@ -50,9 +54,12 @@ export class FetchError extends Error {
  */
 export class FetchBodyError extends FetchError {
   constructor(url: string, status: number, cause: unknown) {
-    super(url, status, "", { cause });
     const reason = cause instanceof Error ? cause.message : String(cause);
-    this.message = `Failed to fetch ${url}: response body failed: ${reason}`;
+    super(url, status, "", {
+      cause,
+      message: `Failed to fetch ${url}: response body failed: ${reason}`,
+    });
+    this.name = "FetchBodyError";
   }
 }
 
@@ -63,8 +70,9 @@ export class BackendError extends Error {
     public readonly status: number,
     public readonly code: ErrorCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 

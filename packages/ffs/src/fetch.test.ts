@@ -34,17 +34,15 @@ describe("sourceStream", () => {
         controller.error(terminated);
       },
     });
-    const chunks: Buffer[] = [];
-    const error = await (async () => {
-      for await (const chunk of sourceStream(url, new Response(body)))
-        chunks.push(chunk as Buffer);
-    })().then(
-      () => undefined,
-      (err: unknown) => err,
-    );
-    expect(Buffer.concat(chunks)).toEqual(Buffer.from([1, 2, 3]));
+    const error = await sourceStream(url, new Response(body))
+      .toArray()
+      .then(
+        () => undefined,
+        (err: unknown) => err,
+      );
     expect(error).toBeInstanceOf(FetchError);
     expect(error).toMatchObject({
+      name: "FetchBodyError",
       url,
       status: 200,
       message: `Failed to fetch ${url}: response body failed: terminated`,
@@ -102,6 +100,44 @@ describe("sourceStream", () => {
       stream.once("data", () => stream.destroy());
     });
     expect(onError).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  /** A body that sends `chunks`, then stalls, as a slow connection does. */
+  function stallingBody(cancel: () => void, ...chunks: Uint8Array[]) {
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks) controller.enqueue(chunk);
+      },
+      pull: () => new Promise<void>(() => {}),
+      cancel,
+    });
+  }
+
+  test("stops the download when destroyed before it's read", async () => {
+    const cancel = vi.fn();
+    const stream = sourceStream(url, new Response(stallingBody(cancel)));
+    const closed = new Promise((resolve) => stream.on("close", resolve));
+    stream.destroy();
+    await closed;
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  test("stops the download when destroyed while waiting for the body", async () => {
+    const cancel = vi.fn();
+    const stream = sourceStream(
+      url,
+      new Response(stallingBody(cancel, new Uint8Array(16))),
+    );
+    const error = new Promise((resolve) => stream.on("error", resolve));
+    const closed = new Promise((resolve) => stream.on("close", resolve));
+    await new Promise((resolve) => stream.once("data", resolve));
+    // Let the stream ask for the next chunk, which the body doesn't have yet.
+    await new Promise(setImmediate);
+    const aborted = new Error("consumer failed");
+    stream.destroy(aborted);
+    await closed;
+    expect(await error).toBe(aborted);
     expect(cancel).toHaveBeenCalledOnce();
   });
 });

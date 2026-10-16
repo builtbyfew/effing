@@ -23,7 +23,15 @@ export type RenderOptions = {
   height?: number;
   resolution?: string;
   scale?: number;
+  skipValidation?: boolean;
+  allowLocalFiles?: boolean;
 };
+
+/** The `effing render` options that pass through to `ffs render`. */
+export type EffieRenderOptions = Pick<
+  RenderOptions,
+  "scale" | "skipValidation" | "allowLocalFiles"
+>;
 
 type Bounds = { width: number; height: number };
 
@@ -81,8 +89,16 @@ export async function runRender(
   if (!id) {
     throw new Error("Missing fn id.");
   }
-  if (options.scale !== undefined && kind !== "effie") {
-    throw new Error("--scale only applies to effie renders.");
+  if (kind !== "effie") {
+    if (options.scale !== undefined) {
+      throw new Error("--scale only applies to effie renders.");
+    }
+    if (options.skipValidation) {
+      throw new Error("--skip-validation only applies to effie renders.");
+    }
+    if (options.allowLocalFiles) {
+      throw new Error("--allow-local-files only applies to effie renders.");
+    }
   }
   if (
     options.scale !== undefined &&
@@ -134,7 +150,7 @@ export async function runRender(
     let output: string;
     if (kind === "effie") {
       output = options.output ?? defaultOutputPath("effie", id);
-      await renderEffie(configDir, url, output, options.scale ?? 1);
+      await renderEffie(configDir, url, output, options);
     } else {
       output = await download(url, kind as FnKind, id, options.output);
     }
@@ -180,6 +196,24 @@ async function errorDetail(response: Response): Promise<string> {
 }
 
 /**
+ * The arguments for the `ffs render` invocation behind an effie render.
+ * Options are only passed when they change ffs's defaults.
+ */
+export function ffsRenderArgs(
+  url: string,
+  output: string,
+  options: EffieRenderOptions = {},
+): string[] {
+  const args = ["render", url, output];
+  if (options.scale !== undefined && options.scale !== 1) {
+    args.push("--scale", String(options.scale));
+  }
+  if (options.skipValidation) args.push("--skip-validation");
+  if (options.allowLocalFiles) args.push("--allow-local-files");
+  return args;
+}
+
+/**
  * Render an effie by delegating to the project-local `ffs render` bin — the
  * same discovery the FFS sidecar in `effing dev` uses. Keeps @effing/dev free
  * of a hard dependency on @effing/ffs (and its ffmpeg baggage).
@@ -188,7 +222,7 @@ async function renderEffie(
   configDir: string,
   url: string,
   output: string,
-  scale: number,
+  options: EffieRenderOptions,
 ): Promise<void> {
   const ffsBin = path.resolve(configDir, "node_modules/.bin/ffs");
   if (!fs.existsSync(ffsBin)) {
@@ -203,10 +237,11 @@ async function renderEffie(
   // don't let FFS's SSRF protection (on when NODE_ENV=production) block them.
   env.FFS_ALLOW_PRIVATE_NETWORKS ??= "true";
 
-  const args = ["render", url, output];
-  if (scale !== 1) args.push("--scale", String(scale));
-
-  const child = spawn(ffsBin, args, { cwd: configDir, stdio: "inherit", env });
+  const child = spawn(ffsBin, ffsRenderArgs(url, output, options), {
+    cwd: configDir,
+    stdio: "inherit",
+    env,
+  });
   const code = await new Promise<number>((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (c) => resolve(c ?? 1));

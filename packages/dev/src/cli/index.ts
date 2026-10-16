@@ -121,6 +121,11 @@ program
     "output scale factor, effie only (default: 1)",
     (v) => parseFloat(v),
   )
+  .option("--skip-validation", "skip Effie schema validation, effie only")
+  .option(
+    "--allow-local-files",
+    "allow file:// sources in the composition, effie only",
+  )
   .action(
     wrap(async (kind: string, id: string, options: RenderOptions) => {
       await runRender(kind, id, options);

@@ -1,5 +1,15 @@
 # @effing/ffs
 
+## 0.45.1
+
+### Patch Changes
+
+- f6996b8: Validate `ffs render --allow-local-files` compositions instead of rejecting their `file:` sources
+
+  `--allow-local-files` had no effect without `--skip-validation`, because the composition was validated against the web-only Effie schema before the flag was checked. With the flag, `ffs render` now validates against `effieDataWithFilesSchema`, which also accepts `file:` URLs for layer, background, audio and `sources` entries; the cover must still be a web URL, and everything else is checked as before.
+  - @effing/annie@0.45.1
+  - @effing/effie@0.45.1
+
 ## 0.45.0
 
 ### Patch Changes

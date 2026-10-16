@@ -10,7 +10,7 @@ import {
 } from "@effing/effie";
 import type { EffieSourceWithType } from "@effing/effie";
 import type { WarmupEventMap, WarmupEventSender } from "../sse";
-import type { ServerContext, WarmupJob } from "./shared";
+import type { EventSender, ServerContext, WarmupJob } from "./shared";
 import {
   parseEffieData,
   setupCORSHeaders,
@@ -18,7 +18,13 @@ import {
   createEventSender,
 } from "./shared";
 import { proxyRemoteSSE } from "./shared";
-import { sendError, ErrorCode, FetchError } from "./errors";
+import {
+  sendError,
+  ErrorCode,
+  FetchError,
+  toError,
+  toErrorCode,
+} from "./errors";
 
 /**
  * Check if a source should be skipped during warmup.
@@ -118,16 +124,36 @@ export async function streamWarmupProgress(
       if (backend) {
         setupSSEResponse(res);
         const sendEvent = createEventSender(res);
+        // The client's stream must end with a complete or error event: the
+        // backend's own, else an error of ours.
+        let ended = false;
+        const forward: EventSender = (event, data) => {
+          if (event === "complete" || event === "error") ended = true;
+          sendEvent(event, data);
+        };
         try {
           await proxyRemoteSSE(
             `${backend.baseUrl}/warmup/${jobId}/progress`,
-            sendEvent,
+            forward,
             "",
             res,
             backend.apiKey
               ? { Authorization: `Bearer ${backend.apiKey}` }
               : undefined,
           );
+          if (!ended && !res.destroyed) {
+            sendEvent("error", {
+              message: "The warmup backend's stream ended without a result",
+              code: ErrorCode.BACKEND_FAILED,
+            });
+          }
+        } catch (error) {
+          if (!ended && !res.destroyed) {
+            sendEvent("error", {
+              message: toError(error).message,
+              code: toErrorCode(error),
+            });
+          }
         } finally {
           res.end();
         }

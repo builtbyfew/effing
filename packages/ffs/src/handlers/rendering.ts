@@ -34,19 +34,13 @@ import {
 import { FetchError } from "./errors";
 import { SsrfError } from "../url";
 import { warmupSources, purgeCachedSources } from "./caching";
-import { sendError, ErrorCode, BackendError, backendError } from "./errors";
-import type { ErrorCode as ErrorCodeType } from "./errors";
-
-function toError(value: unknown): Error {
-  return value instanceof Error ? value : new Error(String(value));
-}
-
-function toErrorCode(error: unknown): ErrorCodeType {
-  if (error instanceof BackendError) return error.code;
-  if (error instanceof FetchError || error instanceof SsrfError)
-    return ErrorCode.FETCH_FAILED;
-  return ErrorCode.INTERNAL_ERROR;
-}
+import {
+  sendError,
+  ErrorCode,
+  backendError,
+  toError,
+  toErrorCode,
+} from "./errors";
 
 async function notifyRenderError(
   ctx: ServerContext,

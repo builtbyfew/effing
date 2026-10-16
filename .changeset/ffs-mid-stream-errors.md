@@ -9,3 +9,4 @@ Fail cleanly when a source or a video stream fails partway
 - A warmup fetch whose source fails partway (a dropped connection, or an annie whose fn failed mid-stream) now fails, caching nothing. Before, the error was uncaught, which stopped the FFS server, and the warmup waited forever.
 - A source whose download fails partway is reported as a fetch failure that names it, `Failed to fetch <url>: response body failed: terminated`, with code `FETCH_FAILED` (and a 422 from `GET /render/:id/video`), instead of a bare `terminated` with `INTERNAL_ERROR`. The read error is kept as the error's `cause`.
 - A source whose download failed before the renderer started reading it no longer raises an uncaught exception, which stopped the FFS server; the render fails instead.
+- `GET /warmup/:id/progress` proxied to a warmup backend always ends with a `complete` or `error` event. When the backend's stream failed, or ended without either, the client's stream ended without one.

@@ -2,11 +2,107 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import express from "express";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { LocalTransientStore } from "../storage";
-import { fetchAndCache } from "./caching";
+import { fetchAndCache, streamWarmupProgress } from "./caching";
 import { FetchError } from "./errors";
 import type { ServerContext } from "./shared";
+
+function listen(server: http.Server): Promise<string> {
+  return new Promise((resolve) =>
+    server.listen(0, "127.0.0.1", () =>
+      resolve(
+        `http://127.0.0.1:${(server.address() as { port: number }).port}`,
+      ),
+    ),
+  );
+}
+
+describe("streamWarmupProgress via a warmup backend", () => {
+  let backend: http.Server;
+  let ffs: http.Server;
+  let ffsUrl: string;
+
+  beforeAll(async () => {
+    // The backend's progress stream for job `drop`, `end` or `complete`: a
+    // progress event, then the connection cut, a clean end without a result,
+    // or the backend's own complete event.
+    backend = http.createServer((req, res) => {
+      const job = req.url?.split("/")[2];
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      let events = `event: start\ndata: {"total":1}\n\n`;
+      if (job === "complete") {
+        events += `event: complete\ndata: {"status":"ready"}\n\n`;
+      }
+      res.write(events, () => {
+        if (job === "drop") res.destroy();
+        else res.end();
+      });
+    });
+    const backendUrl = await listen(backend);
+
+    const ctx = {
+      transientStore: { getJson: async () => ({ sources: [] }) },
+      warmupBackendResolver: () => ({ baseUrl: backendUrl }),
+    } as unknown as ServerContext;
+    const app = express();
+    app.get("/warmup/:id/progress", (req, res) => {
+      void streamWarmupProgress(req, res, ctx);
+    });
+    ffs = http.createServer(app);
+    ffsUrl = await listen(ffs);
+  });
+
+  afterAll(() => {
+    backend.close();
+    ffs.close();
+  });
+
+  async function events(job: string) {
+    const response = await fetch(`${ffsUrl}/warmup/${job}/progress`);
+    return (await response.text())
+      .split("\n\n")
+      .filter(Boolean)
+      .map((block) => {
+        const [event, data] = block.split("\n");
+        return {
+          event: event.slice("event: ".length),
+          data: JSON.parse(data.slice("data: ".length)) as unknown,
+        };
+      });
+  }
+
+  test("ends with an error event when the backend's stream fails", async () => {
+    expect(await events("drop")).toEqual([
+      { event: "start", data: { total: 1 } },
+      {
+        event: "error",
+        data: { message: "terminated", code: "INTERNAL_ERROR" },
+      },
+    ]);
+  });
+
+  test("ends with an error event when the backend's stream ends without a result", async () => {
+    expect(await events("end")).toEqual([
+      { event: "start", data: { total: 1 } },
+      {
+        event: "error",
+        data: {
+          message: "The warmup backend's stream ended without a result",
+          code: "BACKEND_FAILED",
+        },
+      },
+    ]);
+  });
+
+  test("passes the backend's own result on, and nothing after it", async () => {
+    expect(await events("complete")).toEqual([
+      { event: "start", data: { total: 1 } },
+      { event: "complete", data: { status: "ready" } },
+    ]);
+  });
+});
 
 describe("fetchAndCache", () => {
   let server: http.Server;

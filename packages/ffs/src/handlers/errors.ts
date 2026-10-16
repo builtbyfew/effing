@@ -1,5 +1,6 @@
 import type express from "express";
 import type { Response as UndiciResponse } from "undici";
+import { SsrfError } from "../url";
 
 export const ErrorCode = {
   UNAUTHORIZED: "UNAUTHORIZED",
@@ -91,4 +92,16 @@ export async function backendError(
     // Response wasn't JSON — use defaults
   }
   return new BackendError(response.status, code, message);
+}
+
+export function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
+/** The code to report an error with, e.g. in an SSE `error` event. */
+export function toErrorCode(error: unknown): ErrorCode {
+  if (error instanceof BackendError) return error.code;
+  if (error instanceof FetchError || error instanceof SsrfError)
+    return ErrorCode.FETCH_FAILED;
+  return ErrorCode.INTERNAL_ERROR;
 }

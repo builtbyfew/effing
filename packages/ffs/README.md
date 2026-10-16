@@ -48,6 +48,8 @@ npx @effing/ffs render ./composition.json output.mp4 --scale 0.5
 
 Options: `--scale <n>`, `--skip-validation`, `--allow-local-files`, `-h`/`--help`.
 
+`--allow-local-files` lets the composition's sources (layers, backgrounds, audio and `sources` entries) be `file:` URLs, read from the local filesystem. The composition is then validated against `effieDataWithFilesSchema` from `@effing/effie` instead of `effieDataSchema`, so it doesn't need `--skip-validation`. The cover must still be an HTTP(S) or data URL. Only use it for compositions you trust.
+
 ### As an HTTP Server
 
 ```bash
@@ -127,9 +129,11 @@ class EffieRenderer {
 
 | Option            | Type             | Default     | Description                                                                                     |
 | ----------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| `allowLocalFiles` | `boolean`        | `false`     | Allow reading from local file paths. Only enable for trusted internal operations.               |
+| `allowLocalFiles` | `boolean`        | `false`     | Allow reading `file:` URL sources. Only enable for trusted internal operations.                 |
 | `transientStore`  | `TransientStore` | _(network)_ | Transient store for source lookups. If omitted, sources are fetched directly from the network.  |
 | `httpProxy`       | `HttpProxy`      | —           | Routes HTTP(S) video/audio URLs through a proxy so Node.js handles DNS (e.g. Alpine/musl libc). |
+
+The renderer doesn't validate its input. To validate a composition with `file:` sources, use `effieDataWithFilesSchema` from `@effing/effie`, as `ffs render --allow-local-files` does. The HTTP server never enables `allowLocalFiles`.
 
 ### FFmpegCommand & FFmpegRunner
 

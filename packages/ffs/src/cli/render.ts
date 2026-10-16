@@ -107,7 +107,11 @@ export async function runRender(args: RenderArgs): Promise<void> {
   process.stderr.write(`fetching ${args.input}\n`);
   const body = await loadEffieBody(args.input);
 
-  const parsed = parseEffieData(body, args.skipValidation);
+  const parsed = parseEffieData(
+    body,
+    args.skipValidation,
+    args.allowLocalFiles,
+  );
   if ("error" in parsed) {
     const issues = parsed.issues
       ? "\n" + parsed.issues.map((i) => `  ${i.path}: ${i.message}`).join("\n")

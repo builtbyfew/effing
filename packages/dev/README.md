@@ -133,8 +133,6 @@ Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of
 | `--skip-validation`        | Skip Effie schema validation, effie only.                             |
 | `--allow-local-files`      | Allow `file://` sources in the composition, effie only.               |
 
-The Effie schema only accepts HTTP(S) and data URLs, so `--allow-local-files` needs `--skip-validation` too.
-
 ### `effing url`
 
 Prints a signed fn URL for the given props — handy for agents or `curl` fetching a specific propped variant without going through the HTML preview pages.

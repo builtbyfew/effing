@@ -8,10 +8,13 @@ import type { TypedEventSender, EventSender } from "../sse";
 export type { EventSender } from "../sse";
 import type {
   EffieData,
+  EffieFileUrl,
   EffieSources,
   EffieSourceWithType,
+  EffieWebUrl,
 } from "@effing/effie";
-import { effieDataSchema } from "@effing/effie";
+import { effieDataSchema, effieDataWithFilesSchema } from "@effing/effie";
+import type { z } from "zod";
 import { BackendError, ErrorCode, backendError } from "./errors";
 import type { ErrorCode as ErrorCodeType } from "./errors";
 
@@ -96,8 +99,8 @@ export type ServerContext = {
   onRenderError?: OnRenderError;
 };
 
-export type ParseEffieResult =
-  | { effie: EffieData<EffieSources> }
+export type ParseEffieResult<U extends string = EffieWebUrl> =
+  | { effie: EffieData<EffieSources<U>, U> }
   | {
       error: string;
       code: ErrorCodeType;
@@ -137,19 +140,40 @@ export async function createServerContext(options?: {
 }
 
 /**
- * Parse and validate Effie data from request body
+ * Parse and validate Effie data from request body.
+ *
+ * With `allowLocalFiles`, sources may also be `file:` URLs, validated against
+ * `effieDataWithFilesSchema` (the cover stays web-only). Only pass it where
+ * the renderer gets `allowLocalFiles` too.
  */
 export function parseEffieData(
   body: unknown,
   skipValidation: boolean,
-): ParseEffieResult {
+  allowLocalFiles?: false,
+): ParseEffieResult;
+export function parseEffieData(
+  body: unknown,
+  skipValidation: boolean,
+  allowLocalFiles: boolean,
+): ParseEffieResult<EffieWebUrl | EffieFileUrl>;
+export function parseEffieData(
+  body: unknown,
+  skipValidation: boolean,
+  allowLocalFiles = false,
+): ParseEffieResult<EffieWebUrl | EffieFileUrl> {
   // Wrapped format has `effie` property
   const isWrapped =
     typeof body === "object" && body !== null && "effie" in body;
   const rawEffieData = isWrapped ? (body as { effie: unknown }).effie : body;
 
   if (!skipValidation) {
-    const result = effieDataSchema.safeParse(rawEffieData);
+    const schema: z.ZodType<
+      EffieData<
+        EffieSources<EffieWebUrl | EffieFileUrl>,
+        EffieWebUrl | EffieFileUrl
+      >
+    > = allowLocalFiles ? effieDataWithFilesSchema : effieDataSchema;
+    const result = schema.safeParse(rawEffieData);
     if (!result.success) {
       return {
         error: "Invalid effie data",

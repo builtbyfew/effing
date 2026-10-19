@@ -922,6 +922,97 @@ describe("streamRenderProgress with upload", () => {
     expect(mockRenderer.close).toHaveBeenCalledOnce();
   });
 
+  test.each([
+    ["PNG", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], "image/png"],
+    ["JPEG", [0xff, 0xd8, 0xff, 0xe0], "image/jpeg"],
+    [
+      "QOI",
+      [0x71, 0x6f, 0x69, 0x66, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0],
+      "image/qoi",
+    ],
+  ])(
+    "uploads a %s cover with the Content-Type sniffed from its bytes",
+    async (_, magic, contentType) => {
+      const { Readable } = await import("stream");
+      const mockRenderer = {
+        render: vi.fn(async () => Readable.from([Buffer.from("mp4")])),
+        close: vi.fn(),
+      };
+      const { EffieRenderer } = await import("../renderer");
+      vi.mocked(EffieRenderer).mockImplementation(
+        () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
+      );
+
+      const cover = Buffer.from([...magic, 1, 2, 3]);
+      const { ffsFetch } = await import("../fetch");
+      const coverPuts: Array<{
+        headers: Record<string, string>;
+        body: unknown;
+      }> = [];
+      vi.mocked(ffsFetch).mockImplementation(async (url, options) => {
+        if (url === "https://example.com/cover") {
+          // The response claims PNG; the bytes decide.
+          return new Response(cover, {
+            headers: { "Content-Type": "image/png" },
+          }) as unknown as Awaited<ReturnType<typeof ffsFetch>>;
+        }
+        if (options?.method === "PUT" && url.endsWith("/cover")) {
+          coverPuts.push({
+            headers: options.headers ?? {},
+            body: options.body,
+          });
+        } else if (options?.method === "PUT") {
+          // Drain the video's file stream, so its temp file can go.
+          for await (const chunk of options.body as AsyncIterable<unknown>) {
+            void chunk;
+          }
+        }
+        return { ok: true } as unknown as Awaited<ReturnType<typeof ffsFetch>>;
+      });
+
+      // An HTTP cover and a data URL cover, both claiming to be PNG.
+      const coverSources = [
+        "https://example.com/cover",
+        `data:image/png;base64,${cover.toString("base64")}`,
+      ];
+      for (const [i, coverSource] of coverSources.entries()) {
+        const jobId = `cover-upload-${i}`;
+        const storeData = {
+          [storeKeys.renderJob(jobId)]: {
+            kind: "resolved",
+            effie: { ...effie, cover: coverSource as typeof effie.cover },
+            sources: [],
+            scale: 1,
+            upload: {
+              videoUrl: "https://s3.example.com/video.mp4",
+              coverUrl: "https://s3.example.com/cover",
+            },
+            purge: false,
+            warmupJobId: `${jobId}-warmup`,
+            createdAt: Date.now(),
+          } satisfies ResolvedRenderJob,
+        };
+        const { streamRenderProgress } = await import("./rendering");
+        const res = mockResponse();
+        await streamRenderProgress(
+          mockRequest({ id: jobId }),
+          res,
+          mockContext(storeData),
+        );
+        const events = parseSSEEvents(res);
+        expect(events.find((e) => e.event === "error")).toBeUndefined();
+        expect(events.find((e) => e.event === "complete")).toBeDefined();
+      }
+
+      expect(coverPuts).toHaveLength(coverSources.length);
+      for (const put of coverPuts) {
+        expect(put.headers["Content-Type"]).toBe(contentType);
+        expect(put.headers["Content-Length"]).toBe(cover.length.toString());
+        expect(Buffer.from(put.body as Buffer)).toEqual(cover);
+      }
+    },
+  );
+
   test("reports a source that failed mid-body as a fetch failure", async () => {
     const { FetchBodyError } = await import("./errors");
     const url = "https://example.com/anim.tar";

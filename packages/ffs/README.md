@@ -172,6 +172,8 @@ type RenderOptions = {
 };
 ```
 
+With `coverUrl`, FFS fetches the composition's `cover` and uploads it with a `Content-Type` sniffed from its bytes: `image/png`, `image/jpeg` or `image/qoi`, else the image type the cover's source declared, else `application/octet-stream`. If you presign `coverUrl` with a fixed `Content-Type`, it must match. Covers are usually shown in browsers, which can't display QOI, so make covers PNG or JPEG.
+
 Alternatively, raw `EffieData` can be sent directly as the request body. When using the raw format, `scale` and `purge` can be passed as query parameters: `?scale=0.5&purge=true`.
 
 When `effie` is a URL, the fetch is deferred to the progress stream (`GET /render/:id/progress`). The POST returns immediately, and the `effie:fetching`/`effie:fetched` SSE events report fetch progress. Any fetch or validation errors are reported as SSE `error` events with `phase: "effie"`.

@@ -18,6 +18,7 @@ describe("defaultOutputPath", () => {
   test("image extension follows content type", () => {
     expect(defaultOutputPath("image", "cover", "image/jpeg")).toBe("cover.jpg");
     expect(defaultOutputPath("image", "cover", "image/png")).toBe("cover.png");
+    expect(defaultOutputPath("image", "cover", "image/qoi")).toBe("cover.qoi");
   });
 
   test("image content type with charset parameter still matches", () => {

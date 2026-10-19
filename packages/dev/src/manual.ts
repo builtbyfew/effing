@@ -164,7 +164,7 @@ ${
   sections.push(`## What you can build
 
 - **Effing Images** — single-frame stills (slideshow covers, thumbnails, social cards).
-- **Effing Annies** — frame-based animations streamed as TAR archives of PNG/JPEG frames (typewriter text, zooms, animated overlays).
+- **Effing Annies** — frame-based animations streamed as TAR archives of PNG, JPEG or QOI frames (typewriter text, zooms, animated overlays).
 - **Effing Effies** — video compositions assembling images, annies, audio, and effects into an MP4.
 
 The typical effie composes several images and annies as separate layers rather than baking everything into one big annie. Small single-purpose annies combine flexibly, cache independently, render in parallel, and are cheap to re-render while iterating. If an annie animates conceptually independent things — or one element holds still while another moves — split it up.`);
@@ -234,7 +234,7 @@ Each page renders the fn with its \`previewProps\` and lets you tweak bounds via
 
 HTML previews are for humans clicking through. As an agent, pick your path by whether a dev server is already running:
 
-**No dev server? Render to a file — the zero-setup default.** \`${pm.effing("render <kind> <id>")}\` writes the artifact directly (image → PNG/JPEG, annie → TAR of frames, effie → MP4; effies need \`@effing/ffs\` installed) by spinning up an ephemeral server internally. No env vars needed — a missing \`SECRET_KEY\` is replaced by a throwaway key. It renders \`previewProps\` by default; pass \`--props '{...}'\` for custom props, \`-o <path>\` for the output file, and \`--width\`/\`--height\` — or \`--resolution "<label>"\` to pick a \`dev.resolutions\` preset — for bounds.
+**No dev server? Render to a file — the zero-setup default.** \`${pm.effing("render <kind> <id>")}\` writes the artifact directly (image → PNG, JPEG or QOI, annie → TAR of frames, effie → MP4; effies need \`@effing/ffs\` installed) by spinning up an ephemeral server internally. No env vars needed — a missing \`SECRET_KEY\` is replaced by a throwaway key. It renders \`previewProps\` by default; pass \`--props '{...}'\` for custom props, \`-o <path>\` for the output file, and \`--width\`/\`--height\` — or \`--resolution "<label>"\` to pick a \`dev.resolutions\` preset — for bounds.
 
 **Dev server already running? Fetch instead of re-rendering.** Each kind has a machine-readable endpoint that delivers the artifact directly — no HTML scraping, no URL signing required:
 
@@ -244,7 +244,7 @@ HTML previews are for humans clicking through. As an agent, pick your path by wh
 /preview/effie/:effieId.json
 \`\`\`
 
-The image and annie endpoints stream encoded bytes (a JPEG/PNG still, or a TAR of frames). The effie endpoint returns JSON — an effie *is* JSON, a description of how to compose other fns, not rendered pixels. These endpoints are pinned to each fn's \`previewProps\`; to inspect custom props you mint a signed URL (see below).
+The image and annie endpoints stream encoded bytes (a PNG, JPEG or QOI still, or a TAR of frames). The effie endpoint returns JSON — an effie *is* JSON, a description of how to compose other fns, not rendered pixels. These endpoints are pinned to each fn's \`previewProps\`; to inspect custom props you mint a signed URL (see below).
 
 When something looks wrong in a composition, it's usually quickest to work down from that description before reaching for a full render:
 
@@ -292,7 +292,7 @@ FFS_API_KEY=your-ffs-api-key
 | Command | What it does |
 | --- | --- |
 | \`${pm.effing("dev")}\` | Start the dev server (and a local FFS sidecar if installed). |
-| \`${pm.effing("render <kind> <id>")}\` | Render a fn to a file (image → PNG/JPEG, annie → TAR, effie → MP4) with no dev server running — spins up an ephemeral one internally. Effies additionally need \`@effing/ffs\` installed. Run with \`--help\` for options. |
+| \`${pm.effing("render <kind> <id>")}\` | Render a fn to a file (image → PNG/JPEG/QOI, annie → TAR, effie → MP4) with no dev server running — spins up an ephemeral one internally. Effies additionally need \`@effing/ffs\` installed. Run with \`--help\` for options. |
 | \`${pm.effing("build")}\` | Bundle a production server to \`dist/server.js\`. Run with \`node dist/server.js\`. |
 | \`${pm.effing("url <kind> <id>")}\` | Mint a signed fn URL for given props (requires a configured \`SECRET_KEY\`). |
 | \`${pm.bin("ffs", "render <effie-json-or-url> <out.mp4>")}\` | Render an effie to an MP4, no HTTP API needed (the \`@effing/ffs\` bin; present when the FFS sidecar is installed). Run with \`--help\` for options. |
@@ -378,7 +378,7 @@ export async function runner({
 
 \`renderReactElement\` lays out a React element with CSS flexbox and rasterizes onto the canvas — JSX in, image bytes out. \`@effing/canvas\` is satori-like, but a separate implementation with its own feature set — don't assume satori-only props or features carry over. It supports a subset of CSS; \`node_modules/@effing/canvas/README.md\` documents the subset in detail. You can also draw directly to \`ctx\` with the standard 2D canvas API; \`renderReactElement\` is a layout convenience, not the only way in.
 
-Encode as \`"jpeg"\` for photo-heavy stills, \`"png"\` when you need transparency or crisp text on solid backgrounds.
+Encode as \`"jpeg"\` for photo-heavy stills, \`"png"\` when you need transparency or crisp text on solid backgrounds. \`"qoi"\` is lossless with alpha like PNG and much faster to encode, but its files are larger and browsers can't display it, so use it for a still only when FFS is its sole consumer (a layer source) — never for an effie's \`cover\` or an image a page shows.
 
 Endpoints:
 
@@ -445,7 +445,11 @@ The runner is an async generator that yields one encoded frame at a time. \`twee
 
 Multi-phase animations chain \`yield* tween(...)\` blocks back-to-back — one tween per phase, e.g. a typing phase followed by a blinking-cursor phase in a typewriter animation.
 
-Encode each frame as \`"png"\` for text/alpha-heavy frames, \`"jpeg"\` for photo-heavy frames — JPEG is typically faster to encode and smaller on the wire, which adds up across an animation.
+Pick the frame format by content. FFS renders all three about equally fast; what differs is encode time in the runner, and the bytes that travel to FFS and sit in its cache. Measured for a 150-frame 1080×1920 annie with \`tween\`'s default concurrency:
+
+- \`"qoi"\` for text, shapes and transparency: lossless with alpha like PNG, but 8–20× faster to encode, at up to ~2× PNG's size. Text on transparency: QOI 0.1 s and 8.6 MB, PNG 0.9 s and 4.1 MB (0.7 s vs 5.6 s with one frame in flight, as on a small instance).
+- \`"jpeg"\` for photo-heavy frames: PNG and QOI make photo frames 6–14× larger, and QOI encodes them no faster than JPEG. A photo zoom: JPEG 0.8 s and 51 MB, QOI 0.9 s and 363 MB, PNG 6.8 s and 302 MB.
+- \`"png"\` when bytes matter more than encode time, e.g. a short annie on a slow link to FFS.
 
 ### Load images once, outside the tween
 

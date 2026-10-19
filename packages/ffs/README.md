@@ -398,7 +398,7 @@ const renderer = new EffieRenderer(video);
 const previewStream = await renderer.render(0.5);
 ```
 
-The frame and every layer are scaled by the same factor inside FFmpeg, so a scaled render composes like a downscaled full-size one. Image and animation layers shrink to `floor(width * scale)` by `floor(height * scale)` pixels, with premultiplied alpha for sources that have an alpha channel.
+The frame and every layer are scaled by the same factor inside FFmpeg, so a scaled render composes like a downscaled full-size one. Image and animation layers shrink to `floor(width * scale)` by `floor(height * scale)` pixels, with premultiplied alpha for sources that have an alpha channel. Images are still decoded at full size, so scaling cuts peak memory much less than the frame size: in benchmarks with large images, renders at scale 0.5 still peaked at half to nine-tenths of the memory of a full-size render.
 
 ### Distributed Rendering
 

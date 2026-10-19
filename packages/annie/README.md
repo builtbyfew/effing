@@ -127,7 +127,7 @@ The source can be a `Uint8Array`/`ArrayBuffer`, an (async) iterable of byte chun
 
 #### `sniffImageContentType(bytes)`
 
-Detect a PNG, JPEG or QOI image from its magic bytes, the same way `annieFrames` does. Returns `"image/png"`, `"image/jpeg"`, `"image/qoi"` or `undefined`.
+Detect a PNG, JPEG or QOI image from its leading bytes, the same way `annieFrames` does: the full 8-byte PNG signature, `FF D8 FF` for JPEG, or `qoif` for QOI (with 3 or 4 channels and colorspace 0 or 1 when the 14-byte header is there). Returns `"image/png"`, `"image/jpeg"`, `"image/qoi"` or `undefined`.
 
 ```typescript
 function sniffImageContentType(bytes: Uint8Array): ImageContentType | undefined;

@@ -172,12 +172,18 @@ describe("annieFrames", () => {
         Buffer.from("not an image"),
         // Only the first three bytes of the QOI magic
         Buffer.from("qoi!"),
+        // Too short for the PNG signature
+        Buffer.from(PNG_MAGIC.slice(0, 4)),
+        // A QOI header with 5 channels
+        Buffer.from([...QOI_MAGIC.slice(0, 12), 5, 0, 1, 2, 3]),
       ]),
     );
 
     const frames = await collect(new Uint8Array(annie));
 
     expect(frames.map((f) => f.contentType)).toEqual([
+      "application/octet-stream",
+      "application/octet-stream",
       "application/octet-stream",
       "application/octet-stream",
     ]);

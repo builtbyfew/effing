@@ -20,7 +20,7 @@ Use this when you need the stream but want to customize the Response yourself.
 
 `AsyncIterable`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Async iterator yielding PNG or JPEG frame buffers
+Async iterator yielding PNG, JPEG or QOI frame buffers
 
 ### options?
 

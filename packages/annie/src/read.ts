@@ -1,5 +1,5 @@
 /**
- * Annie reading utilities (parse TAR archives of PNG/JPEG frames)
+ * Annie reading utilities (parse TAR archives of PNG, JPEG or QOI frames)
  *
  * This is the canonical reader for the format produced by the writers in
  * `generate.ts`: a TAR archive whose frame entries are named
@@ -12,6 +12,8 @@
  * `Readable` streams), and Web `ReadableStream`s.
  */
 
+import { sniffImageContentType } from "./sniff";
+
 const TAR_BLOCK_SIZE = 512;
 
 const FRAME_NAME_PATTERN = /^frame_(\d+)$/;
@@ -19,21 +21,21 @@ const FRAME_NAME_PATTERN = /^frame_(\d+)$/;
 /**
  * Upper bound on a single entry's claimed size. A malformed or malicious
  * header could otherwise make the reader buffer an absurd amount of memory
- * before hitting the end of the input; real annie frames are single
- * PNG/JPEG images, orders of magnitude smaller than this.
+ * before hitting the end of the input. Real annie frames are single PNG,
+ * JPEG or QOI images, which fit with room to spare: QOI's worst case (5
+ * bytes per pixel) is about 41 MB for a 4K frame.
  */
 const MAX_FRAME_SIZE = 64 * 1024 * 1024;
 
 /**
  * Content type of a frame, sniffed from its magic bytes.
  *
- * Annie frames are expected to be PNG or JPEG; anything else is reported
- * as `application/octet-stream` and left for the consumer to handle.
+ * Annie frames are expected to be PNG, JPEG or QOI; anything else is
+ * reported as `application/octet-stream` and left for the consumer to
+ * handle.
  */
 export type AnnieFrameContentType =
-  | "image/png"
-  | "image/jpeg"
-  | "application/octet-stream";
+  "image/png" | "image/jpeg" | "image/qoi" | "application/octet-stream";
 
 /**
  * A single frame read from an annie.
@@ -64,9 +66,7 @@ export type AnnieSource =
   | ReadableStream<Uint8Array>;
 
 function sniffContentType(bytes: Uint8Array): AnnieFrameContentType {
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
-  return "application/octet-stream";
+  return sniffImageContentType(bytes) ?? "application/octet-stream";
 }
 
 async function* streamChunks(

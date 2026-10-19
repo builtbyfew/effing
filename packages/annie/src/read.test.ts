@@ -6,6 +6,10 @@ import { annieFrames } from "./read";
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const JPEG_MAGIC = [0xff, 0xd8, 0xff, 0xe0];
+// "qoif", then a 1920x1080 RGBA header
+const QOI_MAGIC = [
+  0x71, 0x6f, 0x69, 0x66, 0, 0, 0x07, 0x80, 0, 0, 0x04, 0x38, 4, 0,
+];
 
 /** Build a fake frame: magic bytes followed by filler of the given length */
 function fakeFrame(magic: number[], filler: number, length: number): Buffer {
@@ -125,15 +129,58 @@ describe("annieFrames", () => {
     expect(Buffer.from(frames[0].data).equals(written[0])).toBe(true);
   });
 
-  test("reports unrecognized frame bytes as application/octet-stream", async () => {
+  test("recognises QOI frames, also mixed with PNG and JPEG ones", async () => {
+    const written = [
+      fakeFrame(QOI_MAGIC, 1, 300),
+      fakeFrame(PNG_MAGIC, 2, 200),
+      fakeFrame(QOI_MAGIC, 3, 513),
+      fakeFrame(JPEG_MAGIC, 4, 100),
+    ];
+    const annie = await annieBuffer(toAsyncIterable(written));
+
+    const frames = await collect(chunked(annie, 7));
+
+    expect(frames.map((f) => f.contentType)).toEqual([
+      "image/qoi",
+      "image/png",
+      "image/qoi",
+      "image/jpeg",
+    ]);
+    for (const [i, frame] of frames.entries()) {
+      expect(Buffer.from(frame.data).equals(written[i])).toBe(true);
+    }
+  });
+
+  test("reads a frame the size of a worst-case 4K QOI image", async () => {
+    // 14-byte header, 5 bytes per pixel (every pixel a QOI_OP_RGBA) and
+    // the 8-byte end marker: about 41 MB, under the 64 MiB entry limit.
+    const size = 14 + 3840 * 2160 * 5 + 8;
     const annie = await annieBuffer(
-      toAsyncIterable([Buffer.from("not an image")]),
+      toAsyncIterable([fakeFrame(QOI_MAGIC, 0xff, size)]),
     );
 
     const frames = await collect(new Uint8Array(annie));
 
     expect(frames).toHaveLength(1);
-    expect(frames[0].contentType).toBe("application/octet-stream");
+    expect(frames[0].contentType).toBe("image/qoi");
+    expect(frames[0].data.length).toBe(size);
+  });
+
+  test("reports unrecognized frame bytes as application/octet-stream", async () => {
+    const annie = await annieBuffer(
+      toAsyncIterable([
+        Buffer.from("not an image"),
+        // Only the first three bytes of the QOI magic
+        Buffer.from("qoi!"),
+      ]),
+    );
+
+    const frames = await collect(new Uint8Array(annie));
+
+    expect(frames.map((f) => f.contentType)).toEqual([
+      "application/octet-stream",
+      "application/octet-stream",
+    ]);
   });
 
   test("frame data does not alias the source bytes", async () => {

@@ -18,7 +18,7 @@ Collect all frames into a single annie Buffer (TAR archive)
 
 `AsyncIterable`\<`Buffer`\<`ArrayBufferLike`\>\>
 
-Async iterator yielding PNG or JPEG frame buffers
+Async iterator yielding PNG, JPEG or QOI frame buffers
 
 ## Returns
 

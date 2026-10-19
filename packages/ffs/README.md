@@ -12,7 +12,7 @@ Takes an `EffieData` composition and renders it to an MP4 video using FFmpeg. Us
 npm install @effing/ffs
 ```
 
-FFmpeg is bundled via `@effing/ffmpeg` (currently 9.0.2) — no system installation required. If you point `FFMPEG` at your own binary, it must be FFmpeg 8.0 or newer: 6.1 still renders but drops the final frame of layered segments, and 7.x is not supported because its `xfade` rejects the segment chains as variable frame rate. A warning is logged once per process when the resolved binary is older than 8.0.
+FFmpeg is bundled via `@effing/ffmpeg` (currently 9.0.2) — no system installation required. If you point `FFMPEG` at your own binary, it must be FFmpeg 8.1 or newer: 6.1 still renders but drops the final frame of layered segments, 7.x is not supported because its `xfade` rejects the segment chains as variable frame rate, and 8.0 renders at scale 1 but fails scaled renders, which shrink layers with premultiplied alpha through the alpha mode negotiation added in 8.1. A warning is logged once per process when the resolved binary is older than 8.1.
 
 ## Quick Start
 
@@ -145,7 +145,7 @@ import { FFmpegCommand, FFmpegRunner } from "@effing/ffs";
 const cmd = new FFmpegCommand(globalArgs, inputs, filterComplex, outputArgs);
 const runner = new FFmpegRunner(cmd);
 
-// run(sourceFetcher, imageTransformer?, referenceResolver?, urlTransformer?)
+// run(sourceFetcher, referenceResolver?, urlTransformer?)
 // where sourceFetcher: ({ type, src }) => Promise<Readable>
 const output = await runner.run(sourceFetcher);
 ```
@@ -397,6 +397,8 @@ const renderer = new EffieRenderer(video);
 // Render at 50% resolution
 const previewStream = await renderer.render(0.5);
 ```
+
+The frame and every layer are scaled by the same factor inside FFmpeg, so a scaled render composes like a downscaled full-size one. Image and animation layers shrink to `floor(width * scale)` by `floor(height * scale)` pixels, with premultiplied alpha for sources that have an alpha channel.
 
 ### Distributed Rendering
 

@@ -497,6 +497,107 @@ describe("EffieRenderer static images", () => {
   });
 });
 
+describe("EffieRenderer layer scaling", () => {
+  // A scaled render shrinks image and animation layers inside the filter
+  // graph, by the render's scale factor, with premultiplied alpha.
+  type Command = {
+    inputs: { index: number; preArgs: string[]; type: string }[];
+    filterComplex: string;
+  };
+
+  function buildCommand(effie: EffieData<EffieSources>, scale: number) {
+    const renderer = new EffieRenderer(effie);
+    return (
+      renderer as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand("out.mp4", scale);
+  }
+
+  function layersEffie(): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+      segments: [
+        {
+          duration: 2,
+          layers: [
+            {
+              type: "image",
+              source: "https://example.com/img.png",
+              effects: [{ type: "fade-in", start: 0, duration: 1 }],
+            },
+            { type: "image", source: "https://example.com/photo.jpg" },
+            {
+              type: "animation",
+              source: "https://example.com/anim.tar",
+              delay: 0.5,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  const scaleFilters = (f: string) =>
+    "format=alpha_modes=premultiplied," +
+    `scale=w='max(1,trunc(iw*${f}))':h='max(1,trunc(ih*${f}))',` +
+    "format=alpha_modes=straight";
+
+  test("an image layer is scaled once, before it is converted and looped", () => {
+    const { filterComplex } = buildCommand(layersEffie(), 0.5);
+    expect(filterComplex).toContain(
+      `[1:v]${scaleFilters("0.5")},format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]`,
+    );
+  });
+
+  test("an animation layer is scaled after the trim, before its effects", () => {
+    const { filterComplex } = buildCommand(layersEffie(), 0.25);
+    expect(filterComplex).toContain(
+      `[3:v]trim=start=0:duration=1.5,${scaleFilters("0.25")},setsar=1,setpts=PTS-STARTPTS[seg0_layer2]`,
+    );
+  });
+
+  test("layer inputs are unchanged by scaling", () => {
+    const layerInputs = (scale: number) =>
+      buildCommand(layersEffie(), scale).inputs.filter(
+        (input) => input.type !== "color",
+      );
+    expect(layerInputs(0.5)).toHaveLength(3);
+    expect(layerInputs(0.5)).toEqual(layerInputs(1));
+  });
+
+  test("premultiplying is left to FFmpeg, so a JPEG layer isn't premultiplied", () => {
+    // No explicit premultiply filter, which would convert every source,
+    // including an opaque JPEG, to a full-size alpha format first. The
+    // alpha_modes of the format filters only make FFmpeg premultiply frames
+    // that have an alpha channel, so the PNG and the JPEG layer get the same
+    // chain, and only the PNG is premultiplied when the graph runs (see the
+    // integration tests).
+    const { filterComplex } = buildCommand(layersEffie(), 0.5);
+    expect(filterComplex).not.toMatch(/premultiply|unpremultiply/);
+    expect(filterComplex).toContain(
+      `[2:v]${scaleFilters("0.5")},format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
+    );
+  });
+
+  test("at scale 1 layers aren't scaled", () => {
+    const { filterComplex } = buildCommand(layersEffie(), 1);
+    expect(filterComplex).not.toContain("alpha_modes");
+    expect(filterComplex).toContain(
+      "[1:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]",
+    );
+    expect(filterComplex).toContain(
+      "[3:v]trim=start=0:duration=1.5,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]",
+    );
+    // Only the background chain scales anything.
+    expect(filterComplex.match(/scale=/g)).toHaveLength(1);
+  });
+});
+
 describe("EffieRenderer source failures", () => {
   let server: http.Server;
   let url: string;

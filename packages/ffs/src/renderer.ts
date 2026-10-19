@@ -34,6 +34,42 @@ const IMAGE_LOOP_FILTER = "loop=loop=-1:size=1";
  */
 const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
 
+/**
+ * Filters that shrink an image or animation layer by the render's scale
+ * factor, or none at scale 1.
+ *
+ * Layers are composed at their own pixel size (overlaid at an offset, with
+ * motion relative to the frame and layer size), so a scaled render must
+ * shrink every layer by the same factor as the frame. The size is truncated
+ * (at least 1 px), like the frame size is.
+ *
+ * Bicubic scaling (FFmpeg's default) interpolates colour and alpha
+ * separately, so the colour of fully transparent pixels (usually black) would
+ * bleed into the edges of opaque shapes as a dark fringe. The layer is
+ * therefore scaled with premultiplied alpha: the `alpha_modes` of the first
+ * `format` makes FFmpeg premultiply frames with an alpha channel before
+ * scaling, and the second makes it unpremultiply them again for the effects
+ * and the overlay, which expect straight alpha. FFmpeg (8.1 or newer) inserts
+ * these conversions while negotiating the graph, from the decoded pixel
+ * format, so a source without alpha (e.g. a JPEG, or an RGB PNG) isn't
+ * premultiplied: it is scaled straight from its own format, rather than
+ * first converted to an alpha format at full size as an explicit
+ * `premultiply` filter would. Only its scaled frame passes the (no-op)
+ * unpremultiply on the way to the overlay's alpha format.
+ *
+ * The scale filter adjusts the SAR to keep the aspect ratio when the size
+ * rounds; the setsar=1 later in the layer chain resets it.
+ */
+function layerScaleFilters(scaleFactor: number): string[] {
+  if (scaleFactor === 1) return [];
+  const size = (dim: "iw" | "ih") => `'max(1,trunc(${dim}*${scaleFactor}))'`;
+  return [
+    "format=alpha_modes=premultiplied",
+    `scale=w=${size("iw")}:h=${size("ih")}`,
+    "format=alpha_modes=straight",
+  ];
+}
+
 export type EffieRendererOptions = {
   /**
    * Allow reading from local file paths.
@@ -294,6 +330,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
    * @param frameWidth - Frame width, used by frame-relative effects
    * @param frameHeight - Frame height, used by frame-relative effects
    * @param outputLabel - Label for the final video output
+   * @param scaleFactor - Scale factor of the render, applied to every layer
    * @returns Array of filter parts to add to the filter chain
    */
   private buildLayerFilters(
@@ -304,6 +341,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     frameWidth: number,
     frameHeight: number,
     outputLabel: string,
+    scaleFactor: number,
   ): string[] {
     const filterParts: string[] = [];
     let currentVidLabel = bgLabel;
@@ -321,19 +359,26 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
             frameHeight,
           )
         : "";
-      // An image layer is a single frame (see imageInputArgs). Repeat it ahead
-      // of the trim, which ends the endless stream at the same frame as
-      // before, so the layer keeps its frame count and timestamps. Convert it
-      // to yuva420p first, while it is still one frame: overlay (format=yuv420)
-      // takes its overlay input in yuva420p, so FFmpeg converts every frame to
-      // it anyway, and pinning the format here keeps time-based effects (e.g.
-      // fades) running on yuva420p, as they did with a looped input, rather
-      // than on the source's format (e.g. rgba for a PNG).
+      const trim = `trim=start=0:duration=${segment.duration - delay}`;
+      // An image layer is a single frame (see imageInputArgs). Scale it and
+      // convert it to yuva420p while it is still one frame, then repeat it
+      // ahead of the trim, which ends the endless stream at the same frame as
+      // before, so the layer keeps its frame count and timestamps. Overlay
+      // (format=yuv420) takes its overlay input in yuva420p, so FFmpeg
+      // converts every frame to it anyway, and pinning the format here keeps
+      // time-based effects (e.g. fades) running on yuva420p, as they did with
+      // a looped input, rather than on the source's format (e.g. rgba for a
+      // PNG). An animation is scaled after the trim, so frames past the end
+      // of the segment aren't scaled.
       const sourceChain = [
         ...(layer.type === "image"
-          ? ["format=yuva420p", IMAGE_LOOP_FILTER]
-          : [ANIMATION_FRAME_FILTER]),
-        `trim=start=0:duration=${segment.duration - delay}`,
+          ? [
+              ...layerScaleFilters(scaleFactor),
+              "format=yuva420p",
+              IMAGE_LOOP_FILTER,
+              trim,
+            ]
+          : [ANIMATION_FRAME_FILTER, trim, ...layerScaleFilters(scaleFactor)]),
         ...(effectChain ? [effectChain] : []),
         "setsar=1",
         "setpts=PTS-STARTPTS",
@@ -646,6 +691,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
           frameWidth,
           frameHeight,
           vidLabel,
+          scaleFactor,
         ),
       );
       layerInputOffset += segment.layers.length;
@@ -705,50 +751,6 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     return new FFmpegCommand(globalArgs, inputs, filterComplex, outputArgs);
   }
 
-  private createImageTransformer(scaleFactor: number) {
-    const sharpPromise =
-      scaleFactor !== 1
-        ? import("sharp").catch(() => {
-            throw new Error(
-              "sharp is required for image scaling but is not installed. Install it with: pnpm add sharp",
-            );
-          })
-        : null;
-
-    return async (imageStream: Readable): Promise<Readable> => {
-      if (scaleFactor === 1) return imageStream;
-
-      const { default: sharp } = await sharpPromise!;
-      const sharpTransformer = sharp();
-      imageStream.on("error", (err: Error) => {
-        if (!sharpTransformer.destroyed) {
-          sharpTransformer.destroy(err);
-        }
-      });
-      sharpTransformer.on("error", (err: Error) => {
-        if (!imageStream.destroyed) {
-          imageStream.destroy(err);
-        }
-      });
-      imageStream.pipe(sharpTransformer);
-      try {
-        const metadata = await sharpTransformer.metadata();
-        const imageWidth = metadata.width ?? this.effieData.width;
-        const imageHeight = metadata.height ?? this.effieData.height;
-        return sharpTransformer.resize({
-          width: Math.floor(imageWidth * scaleFactor),
-          height: Math.floor(imageHeight * scaleFactor),
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        if (!sharpTransformer.destroyed) {
-          sharpTransformer.destroy(error);
-        }
-        throw error;
-      }
-    };
-  }
-
   /**
    * Resolves a source reference to its actual URL.
    * If the source is a #reference, returns the resolved URL.
@@ -779,7 +781,6 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
 
     return this.ffmpegRunner.run(
       async ({ src }) => this.fetchSource(src),
-      this.createImageTransformer(scaleFactor),
       (src) => this.resolveReference(src),
       urlTransformer,
     );

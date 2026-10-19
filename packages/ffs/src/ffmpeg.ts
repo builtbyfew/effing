@@ -12,27 +12,26 @@ import { promisify } from "util";
 const pump = promisify(pipeline);
 
 /**
- * Save a stream to a file, optionally routing it through a transformer
- * first. Errors on the (transformed) stream destroy the file write so the
+ * Save a stream to a file. Errors on the stream destroy the file write so the
  * failure propagates instead of leaving a truncated file behind.
  */
 async function saveStreamToFile(
   stream: Readable,
   outputPath: string,
-  transformer?: (stream: Readable) => Promise<Readable>,
 ): Promise<void> {
-  const source = transformer ? await transformer(stream) : stream;
   const writeStream = createWriteStream(outputPath);
-  source.on("error", (e) => writeStream.destroy(e));
-  await pump(source, writeStream);
+  stream.on("error", (e) => writeStream.destroy(e));
+  await pump(stream, writeStream);
 }
 
 /**
- * Oldest FFmpeg major the filter graphs are built for (see the README): 6.1
- * still renders but drops the final frame of layered segments, and 7.x
- * rejects segment transitions.
+ * Oldest FFmpeg version the filter graphs are built for (see the README): 6.1
+ * still renders but drops the final frame of layered segments, 7.x rejects
+ * segment transitions, and 8.0 lacks the alpha mode negotiation (the
+ * `alpha_modes` option of `format`) that scaled renders use to shrink layers
+ * with premultiplied alpha.
  */
-const MIN_FFMPEG_MAJOR = 8;
+const MIN_FFMPEG_VERSION = { major: 8, minor: 1 };
 
 let resolvedBin: Promise<string> | undefined;
 
@@ -64,7 +63,7 @@ async function resolveFFmpegBin(): Promise<string> {
 }
 
 /**
- * Warn once when the resolved binary predates MIN_FFMPEG_MAJOR, so a stale
+ * Warn once when the resolved binary predates MIN_FFMPEG_VERSION, so a stale
  * or distro FFmpeg shows up here rather than as a cryptic filter error.
  */
 async function warnIfUnsupportedVersion(bin: string): Promise<void> {
@@ -77,11 +76,17 @@ async function warnIfUnsupportedVersion(bin: string): Promise<void> {
     return; // Missing or broken binary: the spawn in run() reports that.
   }
   const version = /^ffmpeg version (\S+)/.exec(stdout)?.[1];
-  const major = version ? parseInt(version, 10) : NaN;
-  if (Number.isNaN(major) || major >= MIN_FFMPEG_MAJOR) return;
+  // Release builds report e.g. "9.0.1" or "8.0"; git builds ("N-...") don't
+  // parse and aren't checked.
+  const match = version ? /^(\d+)\.(\d+)/.exec(version) : null;
+  if (!match) return;
+  const [major, minor] = [parseInt(match[1], 10), parseInt(match[2], 10)];
+  const { major: minMajor, minor: minMinor } = MIN_FFMPEG_VERSION;
+  if (major > minMajor || (major === minMajor && minor >= minMinor)) return;
   console.warn(
-    `@effing/ffs: FFmpeg ${version} (${bin}) is older than the supported ${MIN_FFMPEG_MAJOR}.0; ` +
-      "6.1 drops the final frame of layered segments and 7.x rejects transitions",
+    `@effing/ffs: FFmpeg ${version} (${bin}) is older than the supported ${minMajor}.${minMinor}; ` +
+      "6.1 drops the final frame of layered segments, 7.x rejects transitions " +
+      "and 8.0 fails renders with a scale other than 1",
   );
 }
 
@@ -154,7 +159,6 @@ export class FFmpegRunner {
       type: FFmpegInput["type"];
       src: string;
     }) => Promise<Readable>,
-    imageTransformer?: (imageStream: Readable) => Promise<Readable>,
     referenceResolver?: (src: string) => string,
     urlTransformer?: (url: string) => string,
   ): Promise<Readable> {
@@ -180,34 +184,18 @@ export class FFmpegRunner {
         // which are a TAR that needs to be extracted
         const extractionDir = path.join(tempDir, inputName);
         await fs.mkdir(extractionDir, { recursive: true });
-        // Any error below (a malformed archive, a failing frame transform)
-        // propagates out of the loop, destroys the source stream via the
-        // reader's cleanup, and rejects this fetch instead of stalling.
+        // Any error below (e.g. a malformed archive) propagates out of the
+        // loop, destroys the source stream via the reader's cleanup, and
+        // rejects this fetch instead of stalling.
         for await (const frame of annieFrames(stream)) {
           // Keep the on-disk names identical to the archive entry names so
           // the ffmpeg `frame_%05d` input pattern keeps matching.
-          const outputPath = path.join(extractionDir, frame.name);
-          if (imageTransformer) {
-            const frameStream = Readable.from(
-              Buffer.from(
-                frame.data.buffer,
-                frame.data.byteOffset,
-                frame.data.byteLength,
-              ),
-            );
-            await saveStreamToFile(frameStream, outputPath, imageTransformer);
-          } else {
-            await fs.writeFile(outputPath, frame.data);
-          }
+          await fs.writeFile(path.join(extractionDir, frame.name), frame.data);
         }
         return extractionDir;
       } else {
         const tempFile = path.join(tempDir, inputName);
-        await saveStreamToFile(
-          stream,
-          tempFile,
-          input.type === "image" ? imageTransformer : undefined,
-        );
+        await saveStreamToFile(stream, tempFile);
         return tempFile;
       }
     };

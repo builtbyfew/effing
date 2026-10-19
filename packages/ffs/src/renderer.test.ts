@@ -375,6 +375,128 @@ describe("EffieRenderer background cover-scale", () => {
   });
 });
 
+describe("EffieRenderer static images", () => {
+  // Static images are opened as a single frame and repeated with the loop
+  // filter, so FFmpeg decodes (and converts or cover-scales) each image once
+  // rather than once per output frame, as it did with `-loop 1` inputs.
+  type Command = {
+    inputs: { index: number; preArgs: string[]; type: string }[];
+    filterComplex: string;
+  };
+
+  function buildCommand(effie: EffieData<EffieSources>, scale = 1): Command {
+    const renderer = new EffieRenderer(effie);
+    return (
+      renderer as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand("out.mp4", scale);
+  }
+
+  function imageEffie(): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "image", source: "https://example.com/bg.png" },
+      segments: [
+        {
+          duration: 2,
+          layers: [
+            {
+              type: "image",
+              source: "https://example.com/img.png",
+              effects: [{ type: "fade-in", start: 0, duration: 1 }],
+            },
+            {
+              type: "animation",
+              source: "https://example.com/anim.tar",
+            },
+          ],
+        },
+        {
+          duration: 1,
+          background: { type: "image", source: "https://example.com/seg.jpg" },
+          transition: { type: "fade", duration: 0.5 },
+          layers: [
+            {
+              type: "image",
+              source: "https://example.com/img.png",
+              delay: 0.25,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  test("image inputs are opened as a single frame, without -loop or -t", () => {
+    const { inputs } = buildCommand(imageEffie());
+    const images = inputs.filter((input) => input.type === "image");
+    // Global background, segment background, two image layers.
+    expect(images).toHaveLength(4);
+    for (const input of images) {
+      // -framerate gives the frame a 1/fps duration, which the loop filter
+      // uses to space the repeated frames.
+      expect(input.preArgs).toEqual(["-framerate", "30"]);
+    }
+  });
+
+  test("animation inputs keep the filter graph when frame properties change", () => {
+    // A rebuilt graph would restart every chain's timing and starve the
+    // single-frame image inputs, so frames that change format or size are
+    // normalised at the head of the layer chain instead.
+    const { inputs, filterComplex } = buildCommand(imageEffie());
+    const animation = inputs.find((input) => input.type === "animation")!;
+    expect(animation.preArgs).toEqual([
+      "-reinit_filter",
+      "0",
+      "-f",
+      "image2",
+      "-framerate",
+      "30",
+    ]);
+    expect(filterComplex).toContain(
+      `[${animation.index}:v]scale=w=iw:h=ih:eval=init,format=yuva420p,trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
+    );
+  });
+
+  test("an image layer is converted once, looped, then trimmed to the segment", () => {
+    const { filterComplex } = buildCommand(imageEffie());
+    expect(filterComplex).toContain(
+      "[2:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]",
+    );
+  });
+
+  test("a delayed image layer is looped before the delay-reduced trim", () => {
+    const { filterComplex } = buildCommand(imageEffie());
+    expect(filterComplex).toContain(
+      "[4:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=0.75,setsar=1,setpts=PTS-STARTPTS[seg1_layer0]",
+    );
+    expect(filterComplex).toContain(
+      "[seg1_layer0]fps=30,format=yuva420p,tpad=start_duration=0.25:color=black@0,fps=30,trim=duration=1[delayed_seg1_layer0]",
+    );
+  });
+
+  test("an image background is cover-scaled once, then looped", () => {
+    const { filterComplex } = buildCommand(imageEffie());
+    expect(filterComplex).toContain(
+      "[0:v]scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,loop=loop=-1:size=1,fps=30,split=1[bg_split_0]",
+    );
+    expect(filterComplex).toContain(
+      "[1:v]scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,loop=loop=-1:size=1,fps=30,trim=start=0:duration=1,setpts=PTS-STARTPTS[bg_seg1]",
+    );
+  });
+
+  test("a scaled render covers the background to the scaled frame before looping", () => {
+    const { filterComplex } = buildCommand(imageEffie(), 0.5);
+    expect(filterComplex).toContain(
+      "[0:v]scale=50x50:force_original_aspect_ratio=increase,crop=50:50,setsar=1,loop=loop=-1:size=1,fps=30,split=1[bg_split_0]",
+    );
+  });
+});
+
 describe("EffieRenderer source failures", () => {
   let server: http.Server;
   let url: string;

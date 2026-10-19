@@ -14,6 +14,26 @@ import type { HttpProxy } from "./proxy";
 
 import { FetchError } from "./handlers/errors";
 
+/**
+ * Repeats a single-frame image input (see EffieRenderer.imageInputArgs)
+ * forever, one frame per 1/fps, so whatever runs before it in the chain runs
+ * once per image instead of once per output frame. The stream is endless,
+ * just like a `-loop 1` input, so a trim downstream must end it.
+ */
+const IMAGE_LOOP_FILTER = "loop=loop=-1:size=1";
+
+/**
+ * Gives every frame of an animation (annie) input the pixel format and size
+ * of its first frame, so a frame that differs (an rgba PNG after rgb24 ones,
+ * say) can't reach filters configured for the first. Animation inputs are
+ * read with `-reinit_filter 0`, so FFmpeg passes such frames on instead of
+ * rebuilding the filter graph. `scale` reconfigures its input side when a
+ * frame's properties change, and with `eval=init` it keeps the output size
+ * it computed for the first frame (a frame of another size is resized to it);
+ * the output format is yuva420p, which overlay takes anyway.
+ */
+const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
+
 export type EffieRendererOptions = {
   /**
    * Allow reading from local file paths.
@@ -138,6 +158,20 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   /**
+   * Input arguments for a static image (an image layer or background).
+   *
+   * The image is opened as a single frame, not looped on the input with
+   * `-loop 1`, which would make FFmpeg decode the full-size image again for
+   * every output frame. The filter graph repeats the decoded frame instead
+   * (see IMAGE_LOOP_FILTER). `-framerate` still matters: it gives that frame
+   * a duration of 1/fps, which the loop filter uses to space the repeated
+   * frames, so the stream has the same timestamps a looped input had.
+   */
+  private imageInputArgs(): string[] {
+    return ["-framerate", this.effieData.fps.toString()];
+  }
+
+  /**
    * Builds an FFmpeg input for a background (global or segment).
    */
   private buildBackgroundInput(
@@ -147,10 +181,12 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     frameHeight: number,
   ): FFmpegInput {
     if (background.type === "image") {
+      // A single frame, cover-scaled once and then repeated by the background
+      // chain (see buildFFmpegCommand).
       return {
         index: inputIndex,
         source: background.source,
-        preArgs: ["-loop", "1", "-framerate", this.effieData.fps.toString()],
+        preArgs: this.imageInputArgs(),
         type: "image",
       };
     } else if (background.type === "video") {
@@ -219,21 +255,27 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
 
   private buildLayerInput(
     layer: EffieData<EffieSources<U>, U>["segments"][0]["layers"][0],
-    duration: number,
     inputIndex: number,
   ): FFmpegInput {
     let preArgs: string[] = [];
     if (layer.type === "image") {
+      // A single frame, repeated by the layer chain (see buildLayerFilters).
+      preArgs = this.imageInputArgs();
+    } else if (layer.type === "animation") {
       preArgs = [
-        "-loop",
-        "1",
-        "-t",
-        duration.toString(),
+        // Annie frames may change pixel format (e.g. rgb24 and rgba PNGs) or
+        // size mid-stream. By default FFmpeg then rebuilds the whole filter
+        // graph, which restarts every chain's timing (trims, fps, padding)
+        // and leaves single-frame image inputs with nothing to send. Keep the
+        // graph instead and normalise the frames at the head of the layer
+        // chain (see ANIMATION_FRAME_FILTER).
+        "-reinit_filter",
+        "0",
+        "-f",
+        "image2",
         "-framerate",
         this.effieData.fps.toString(),
       ];
-    } else if (layer.type === "animation") {
-      preArgs = ["-f", "image2", "-framerate", this.effieData.fps.toString()];
     }
     return {
       index: inputIndex,
@@ -279,10 +321,25 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
             frameHeight,
           )
         : "";
+      // An image layer is a single frame (see imageInputArgs). Repeat it ahead
+      // of the trim, which ends the endless stream at the same frame as
+      // before, so the layer keeps its frame count and timestamps. Convert it
+      // to yuva420p first, while it is still one frame: overlay (format=yuv420)
+      // takes its overlay input in yuva420p, so FFmpeg converts every frame to
+      // it anyway, and pinning the format here keeps time-based effects (e.g.
+      // fades) running on yuva420p, as they did with a looped input, rather
+      // than on the source's format (e.g. rgba for a PNG).
+      const sourceChain = [
+        ...(layer.type === "image"
+          ? ["format=yuva420p", IMAGE_LOOP_FILTER]
+          : [ANIMATION_FRAME_FILTER]),
+        `trim=start=0:duration=${segment.duration - delay}`,
+        ...(effectChain ? [effectChain] : []),
+        "setsar=1",
+        "setpts=PTS-STARTPTS",
+      ];
       filterParts.push(
-        `[${inputIdx}:v]trim=start=0:duration=${segment.duration - delay},${
-          effectChain ? effectChain + "," : ""
-        }setsar=1,setpts=PTS-STARTPTS[${layerLabel}]`,
+        `[${inputIdx}:v]${sourceChain.join(",")}[${layerLabel}]`,
       );
       let overlayInputLabel = layerLabel;
       if (delay > 0) {
@@ -478,7 +535,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     // Layer inputs:
     for (const segment of this.effieData.segments) {
       for (const layer of segment.layers) {
-        inputs.push(this.buildLayerInput(layer, segment.duration, inputIndex));
+        inputs.push(this.buildLayerInput(layer, inputIndex));
         inputIndex++;
       }
     }
@@ -531,7 +588,16 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     // 3413x1920 for a 1080x1920 frame gives SAR 10240:10239), and crop keeps
     // that SAR. Reset it to 1:1 so every segment carries the same SAR (concat
     // rejects mismatches) and the output isn't tagged with a bogus DAR.
-    const bgFilter = `fps=${this.effieData.fps},scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
+    // An image background is a single frame (see imageInputArgs), so it is
+    // cover-scaled once and only then repeated; the fps= after the loop keeps
+    // the stream on the same 1/fps timebase as every other background.
+    const coverFilter = `scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
+    const bgFilter = (
+      background: EffieData<EffieSources<U>, U>["background"],
+    ): string =>
+      background.type === "image"
+        ? `${coverFilter},${IMAGE_LOOP_FILTER},fps=${this.effieData.fps}`
+        : `fps=${this.effieData.fps},${coverFilter}`;
 
     // Split the global background into one output per segment that uses it
     // (no explicit fifo: libavfilter buffers on links itself, and the fifo
@@ -542,7 +608,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     );
     if (globalBgLabels.size > 0) {
       filterParts.push(
-        `[${globalBgInputIdx}:v]${bgFilter},split=${globalBgLabels.size}${[...globalBgLabels.values()].map((l) => `[${l}]`).join("")}`,
+        `[${globalBgInputIdx}:v]${bgFilter(this.effieData.background)},split=${globalBgLabels.size}${[...globalBgLabels.values()].map((l) => `[${l}]`).join("")}`,
       );
     }
 
@@ -559,7 +625,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
             ? (segment.background.seek ?? 0)
             : 0;
         filterParts.push(
-          `[${segBgInputIdx}:v]${bgFilter},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          `[${segBgInputIdx}:v]${bgFilter(segment.background)},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
         );
       } else {
         // Use the global background's split output for this segment; bgFilter

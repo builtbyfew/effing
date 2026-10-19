@@ -425,6 +425,49 @@ describe("AnniePlayerCore", () => {
     expect(frames.pending()).toBe(1);
   });
 
+  it.each([0, -5, NaN, Infinity])(
+    "rejects an fps of %s, in the options and in setFps()",
+    (fps) => {
+      expect(
+        () => new AnniePlayerCore({ src: "animation.annie", fps }),
+      ).toThrow(RangeError);
+      const player = new AnniePlayerCore({ src: "animation.annie" });
+      expect(() => player.setFps(fps)).toThrow(
+        `fps must be a finite number above 0, not ${fps}`,
+      );
+    },
+  );
+
+  it("keeps its frame rate when setFps() is given a bad one", async () => {
+    stubFetchWith(buildTar(["frame_00000", "frame_00001", "frame_00002"]));
+    const frames = stubAnimationFrames();
+    const player = new AnniePlayerCore({ src: "animation.annie", fps: 10 });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+    expect(() => player.setFps(0)).toThrow(RangeError);
+
+    player.play();
+    frames.run(1000);
+    frames.run(1050); // half a frame at 10 fps
+    expect(player.getState().currentFrame).toBe(0);
+    frames.run(1100);
+    expect(player.getState().currentFrame).toBe(1);
+  });
+
+  it("applies a new frame rate from setFps()", async () => {
+    stubFetchWith(buildTar(["frame_00000", "frame_00001", "frame_00002"]));
+    const frames = stubAnimationFrames();
+    const player = new AnniePlayerCore({ src: "animation.annie", fps: 10 });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+
+    player.setFps(20);
+    player.play();
+    frames.run(1000);
+    frames.run(1050); // a frame at 20 fps
+    expect(player.getState().currentFrame).toBe(1);
+  });
+
   it("unsubscribes listeners via the function returned by on()", async () => {
     stubFetchWith(buildTar(["frame_00000"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });

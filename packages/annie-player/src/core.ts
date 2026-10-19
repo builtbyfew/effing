@@ -19,11 +19,23 @@ export type AnniePlayerEvents = {
 
 export type AnniePlayerOptions = {
   src: string;
+  /** Playback frame rate, a finite number above 0 (default 30) */
   fps?: number;
   autoPlay?: boolean;
 };
 
 type EventCallback<T> = (data: T) => void;
+
+/**
+ * Check a frame rate. 0 or NaN would never advance a frame while the player
+ * reports playing, and a negative one would advance on every repaint.
+ */
+function checkFps(fps: number): number {
+  if (!Number.isFinite(fps) || fps <= 0) {
+    throw new RangeError(`fps must be a finite number above 0, not ${fps}`);
+  }
+  return fps;
+}
 
 /**
  * A loaded frame. PNG and JPEG frames are images the browser decodes;
@@ -119,9 +131,13 @@ export class AnniePlayerCore {
     Set<EventCallback<AnniePlayerEvents[keyof AnniePlayerEvents]>>
   > = new Map();
 
+  /**
+   * @throws RangeError if `options.fps` is given and isn't a finite number
+   *   greater than 0
+   */
   constructor(options: AnniePlayerOptions) {
     this.src = options.src;
-    this.fps = options.fps ?? 30;
+    this.fps = checkFps(options.fps ?? 30);
     this.autoPlay = options.autoPlay ?? false;
     this.frameInterval = 1000 / this.fps;
   }
@@ -129,9 +145,11 @@ export class AnniePlayerCore {
   /**
    * Change the playback frame rate. It applies from the next frame, without
    * reloading or interrupting playback.
+   *
+   * @throws RangeError if `fps` isn't a finite number greater than 0
    */
   setFps(fps: number): void {
-    this.fps = fps;
+    this.fps = checkFps(fps);
     this.frameInterval = 1000 / fps;
   }
 

@@ -200,6 +200,8 @@ class AnniePlayerCore {
 | `fps`      | `number`  | `30`     | Playback frame rate      |
 | `autoPlay` | `boolean` | `false`  | Start playing after load |
 
+`fps` must be a finite number above 0: the constructor and `setFps()` throw a `RangeError` otherwise. `setFps()` changes the frame rate of a player without reloading it.
+
 **State:**
 
 ```typescript
@@ -241,6 +243,7 @@ The React component:
 
 - Manages core lifecycle automatically
 - Adjusts canvas width based on loaded frame aspect ratio
+- Shows an invalid `fps` (0, negative or not finite) as the player's error rather than throwing
 - Shows load/play/pause buttons with built-in styling
 - Displays status overlay on hover
 

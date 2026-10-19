@@ -250,6 +250,40 @@ describe("AnniePlayer.Root", () => {
     expect(latest(states)).toMatchObject({ frameCount: 2, isLoading: false });
   });
 
+  it("shows a bad fps as the player's error instead of throwing, and recovers", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    let states = renderPlayer({ src: "/a.annie", autoLoad: true, fps: 0 });
+    await settle();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(latest(states)).toMatchObject({
+      error: "fps must be a finite number above 0, not 0",
+      status: "Error: fps must be a finite number above 0, not 0",
+      frameCount: 0,
+    });
+
+    states = renderPlayer({ src: "/a.annie", autoLoad: true, fps: 24 });
+    await settle();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(latest(states)).toMatchObject({ error: null, frameCount: 2 });
+  });
+
+  it("drops a loaded player for a bad fps, showing the error", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    renderPlayer({ src: "/a.annie", autoLoad: true, fps: 30 });
+    await settle();
+
+    const states = renderPlayer({ src: "/a.annie", autoLoad: true, fps: NaN });
+    await settle();
+
+    expect(latest(states)).toMatchObject({
+      error: "fps must be a finite number above 0, not NaN",
+      frameCount: 0,
+      isPlaying: false,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("resizes the canvas for a new height without reloading, and redraws it", async () => {
     responses.set("/a.annie", Promise.resolve(annie(2)));
     renderPlayer({ src: "/a.annie", autoLoad: true, height: 100 });

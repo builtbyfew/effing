@@ -56,6 +56,16 @@ export type AnniePlayerRootProps = {
     | ((value: AnniePlayerContextValue) => React.ReactNode);
 };
 
+const initialState: AnniePlayerState = {
+  status: "Ready to load animation.",
+  error: null,
+  isLoading: false,
+  isPlaying: false,
+  frameCount: 0,
+  currentFrame: 0,
+  dimensions: null,
+};
+
 function AnniePlayerRoot({
   src,
   height,
@@ -69,15 +79,7 @@ function AnniePlayerRoot({
 }: AnniePlayerRootProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<AnniePlayerCore | null>(null);
-  const [state, setState] = useState<AnniePlayerState>({
-    status: "Ready to load animation.",
-    error: null,
-    isLoading: false,
-    isPlaying: false,
-    frameCount: 0,
-    currentFrame: 0,
-    dimensions: null,
-  });
+  const [state, setState] = useState<AnniePlayerState>(initialState);
   const [isHovering, setIsHovering] = useState(false);
 
   // The canvas is `height` tall, and as wide as the frames' aspect ratio
@@ -100,8 +102,24 @@ function AnniePlayerRoot({
   // dimensions wouldn't get it below), and loads if autoLoad is on. Under
   // StrictMode, the first player is destroyed, which aborts its load,
   // before the second one loads.
+  //
+  // An fps the player rejects (0, negative, NaN) is shown as the player's
+  // error rather than thrown, so one bad preview doesn't take down the page
+  // around it; there's no player until the fps is valid again.
+  const fpsValid = Number.isFinite(fps) && fps > 0;
   useEffect(() => {
-    const player = new AnniePlayerCore({ src, fps, autoPlay });
+    let player: AnniePlayerCore;
+    try {
+      player = new AnniePlayerCore({ src, fps, autoPlay });
+    } catch (err) {
+      if (!(err instanceof RangeError)) throw err;
+      setState({
+        ...initialState,
+        error: err.message,
+        status: `Error: ${err.message}`,
+      });
+      return;
+    }
     playerRef.current = player;
     setState(player.getState());
 
@@ -123,14 +141,14 @@ function AnniePlayerRoot({
         playerRef.current = null;
       }
     };
-    // fps is applied to the existing player below. autoLoad is read when a
-    // player is created; turning it on later is handled below, and turning
-    // it off shouldn't discard a loaded player.
-  }, [src, autoPlay]);
+    // A valid fps is applied to the existing player below. autoLoad is read
+    // when a player is created; turning it on later is handled below, and
+    // turning it off shouldn't discard a loaded player.
+  }, [src, autoPlay, fpsValid]);
 
   useEffect(() => {
-    playerRef.current?.setFps(fps);
-  }, [fps]);
+    if (fpsValid) playerRef.current?.setFps(fps);
+  }, [fps, fpsValid]);
 
   // Attach the canvas to the player, and redraw the current frame when a
   // new height resizes the canvas, which clears it. (A resize for newly

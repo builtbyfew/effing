@@ -6,7 +6,7 @@ import type {
   EffieSources,
   EffieWebUrl,
 } from "@effing/effie";
-import { AnniePlayer } from "@effing/annie-player/react";
+import { AnniePlayer, QoiAwareImg } from "@effing/annie-player/react";
 import type { EffieSourceResolver, EffieValidationIssue } from "../core";
 import { connectEffieWarmupStream, type EffieWarmupState } from "../warmup";
 import { hashUrlToId } from "../utils";
@@ -102,7 +102,8 @@ export type EffieCoverPreviewProps = {
 /**
  * Displays the effie cover image, or a video if provided.
  * When a video URL is given, renders an {@link EffieVideoPreview} with the
- * cover as poster image. Otherwise renders a static `<img>`.
+ * cover as poster image. Otherwise renders a static `<img>`, which also
+ * shows a QOI cover.
  */
 export function EffieCoverPreview({
   cover,
@@ -127,7 +128,7 @@ export function EffieCoverPreview({
   }
 
   return (
-    <img
+    <QoiAwareImg
       src={cover}
       alt="Cover"
       className={className}
@@ -184,7 +185,7 @@ function EffieBackgroundPreviewMedia({
 
   if (background.type === "image") {
     return (
-      <img
+      <QoiAwareImg
         src={resolveSource(background.source)}
         alt="Background"
         className={className}
@@ -360,7 +361,7 @@ function EffieLayerPreviewMedia({
   }
 
   return (
-    <img
+    <QoiAwareImg
       src={resolveSource(layer.source)}
       alt={`Layer ${index + 1}`}
       className={className}

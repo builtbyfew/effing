@@ -20,7 +20,7 @@ export type EffieData<
   width: number; // frame width
   height: number; // frame height
   fps: number; // frames per second
-  cover: EffieWebUrl; // cover image has to be a direct URL
+  cover: EffieWebUrl; // cover image has to be a direct URL (png or jpeg, as browsers show it)
   sources?: S; // common sources, to avoid duplication
   background: EffieBackground<S, U>; // all-encompassing background
   audio?: EffieAudio<S, U>; // general soundtrack audio
@@ -72,7 +72,7 @@ export type EffieLayer<
   U extends string = EffieWebUrl,
 > = {
   type:
-    | "image" // png or jpeg
+    | "image" // png, jpeg or qoi
     | "animation"; // annie
   source: EffieSource<S, U>;
   delay?: number; // defer content start by this many seconds (segment time; defaults to 0)

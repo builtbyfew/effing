@@ -4,7 +4,7 @@
 
 Effing is a TypeScript monorepo for programmatic video creation:
 
-- **Annie** — Streamable animation format (TAR of PNG/JPEG frames)
+- **Annie** — Streamable animation format (TAR of PNG, JPEG or QOI frames)
 - **Effie** — Declarative video composition format (JSON)
 - **FFS** — FFmpeg service that renders Effie compositions to MP4
 

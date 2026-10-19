@@ -6,7 +6,7 @@
 
 # Class: EffieRenderer\<U\>
 
-Defined in: [ffs/src/renderer.ts:95](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L95)
+Defined in: [ffs/src/renderer.ts:142](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L142)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [ffs/src/renderer.ts:95](https://github.com/builtbyfew/effing/blob/m
 
 > **new EffieRenderer**\<`U`\>(`effieData`, `options?`): `EffieRenderer`\<`U`\>
 
-Defined in: [ffs/src/renderer.ts:102](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L102)
+Defined in: [ffs/src/renderer.ts:149](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L149)
 
 #### Parameters
 
@@ -42,7 +42,7 @@ Defined in: [ffs/src/renderer.ts:102](https://github.com/builtbyfew/effing/blob/
 
 > **close**(): `void`
 
-Defined in: [ffs/src/renderer.ts:789](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L789)
+Defined in: [ffs/src/renderer.ts:835](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L835)
 
 #### Returns
 
@@ -54,7 +54,7 @@ Defined in: [ffs/src/renderer.ts:789](https://github.com/builtbyfew/effing/blob/
 
 > **render**(`scaleFactor?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/renderer.ts:773](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L773)
+Defined in: [ffs/src/renderer.ts:819](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L819)
 
 Renders the effie data to a video stream.
 

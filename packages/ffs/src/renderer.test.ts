@@ -542,10 +542,10 @@ describe("EffieRenderer layer scaling", () => {
     };
   }
 
+  const scale = (f: string) =>
+    `scale=w='max(1,trunc(iw*${f}))':h='max(1,trunc(ih*${f}))'`;
   const scaleFilters = (f: string) =>
-    "format=alpha_modes=premultiplied," +
-    `scale=w='max(1,trunc(iw*${f}))':h='max(1,trunc(ih*${f}))',` +
-    "format=alpha_modes=straight";
+    `format=alpha_modes=premultiplied,${scale(f)},format=alpha_modes=straight`;
 
   test("an image layer is scaled once, before it is converted and looped", () => {
     const { filterComplex } = buildCommand(layersEffie(), 0.5);
@@ -554,11 +554,16 @@ describe("EffieRenderer layer scaling", () => {
     );
   });
 
-  test("an animation layer is scaled after the trim, before its effects", () => {
+  test("an animation layer is normalised, premultiplied and scaled after the trim", () => {
+    // No yuva420p normaliser ahead of the trim, as at scale 1: the
+    // normaliser converts to whatever alpha format premultiply takes, and
+    // the explicit premultiply/unpremultiply run on every frame, whatever
+    // its format (see animationChainHead).
     const { filterComplex } = buildCommand(layersEffie(), 0.25);
     expect(filterComplex).toContain(
-      `[3:v]trim=start=0:duration=1.5,${scaleFilters("0.25")},setsar=1,setpts=PTS-STARTPTS[seg0_layer2]`,
+      `[3:v]trim=start=0:duration=1.5,scale=w=iw:h=ih:eval=init,premultiply=inplace=1,${scale("0.25")},unpremultiply=inplace=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]`,
     );
+    expect(filterComplex).not.toContain("format=yuva420p,trim");
   });
 
   test("layer inputs are unchanged by scaling", () => {
@@ -570,15 +575,21 @@ describe("EffieRenderer layer scaling", () => {
     expect(layerInputs(0.5)).toEqual(layerInputs(1));
   });
 
-  test("premultiplying is left to FFmpeg, so a JPEG layer isn't premultiplied", () => {
-    // No explicit premultiply filter, which would convert every source,
-    // including an opaque JPEG, to a full-size alpha format first. The
-    // alpha_modes of the format filters only make FFmpeg premultiply frames
-    // that have an alpha channel, so the PNG and the JPEG layer get the same
-    // chain, and only the PNG is premultiplied when the graph runs (see the
-    // integration tests).
+  test("premultiplying image layers is left to FFmpeg, so a JPEG layer isn't premultiplied", () => {
+    // No explicit premultiply filter on image layers, which would convert
+    // every image, including an opaque JPEG, to a full-size alpha format
+    // first. The alpha_modes of the format filters only make FFmpeg
+    // premultiply frames that have an alpha channel, so the PNG and the JPEG
+    // layer get the same chain, and only the PNG is premultiplied when the
+    // graph runs (see the integration tests).
     const { filterComplex } = buildCommand(layersEffie(), 0.5);
-    expect(filterComplex).not.toMatch(/premultiply|unpremultiply/);
+    const imageChains = filterComplex
+      .split(";")
+      .filter((part) => /^\[[12]:v\]/.test(part));
+    expect(imageChains).toHaveLength(2);
+    for (const chain of imageChains) {
+      expect(chain).not.toMatch(/premultiply=/);
+    }
     expect(filterComplex).toContain(
       `[2:v]${scaleFilters("0.5")},format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
     );
@@ -590,11 +601,11 @@ describe("EffieRenderer layer scaling", () => {
     expect(filterComplex).toContain(
       "[1:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]",
     );
+    // The animation keeps its yuva420p normaliser ahead of the trim.
     expect(filterComplex).toContain(
-      "[3:v]trim=start=0:duration=1.5,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]",
+      "[3:v]scale=w=iw:h=ih:eval=init,format=yuva420p,trim=start=0:duration=1.5,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]",
     );
-    // Only the background chain scales anything.
-    expect(filterComplex.match(/scale=/g)).toHaveLength(1);
+    expect(filterComplex).not.toMatch(/premultiply|trunc/);
   });
 });
 

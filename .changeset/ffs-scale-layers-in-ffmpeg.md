@@ -8,9 +8,9 @@ Renders with a scale other than 1 used to downscale every image layer, image bac
 
 - Scaled JPEG layers and image backgrounds look sharper: sharp re-encoded them at JPEG quality 80, which added visible block artifacts.
 - JPEG layers and backgrounds tagged with an EXIF orientation are now rotated in scaled renders too, as they already were at scale 1.
-- Animations render faster at reduced scale, since their frames are no longer resized one by one before FFmpeg starts: in benchmarks, a 150-frame 1080p animation rendered at half scale in 0.5 s instead of 2.1 s (PNG frames) and 0.9 s instead of 1.7 s (JPEG frames).
+- Animations render faster at reduced scale, since their frames are no longer resized one by one before FFmpeg starts: in benchmarks, a 150-frame 1080p animation rendered at half scale in 0.5 s instead of 2.1 s (PNG frames) and 1.0 s instead of 1.7 s (JPEG frames).
 - Scaled renders now decode images at full size, where sharp used to shrink them before FFmpeg read them, so their peak memory stays close to that of a full-size render: in a benchmark with eight 4000×3000 image layers, FFmpeg peaked at 877 MB at scale 0.25 and 1212 MB at scale 0.5 (129 MB and 371 MB before), against 1333 MB at scale 1. Compositions of only static images also take slightly longer (about 0.2 s for nine 1080p image layers).
-- Layers keep their sizes (`floor(width * scale)` by `floor(height * scale)` pixels), positions and motion. They are scaled with premultiplied alpha, so transparent edges don't darken, but only when the source has an alpha channel: opaque sources such as JPEGs are scaled directly.
+- Layers keep their sizes (`floor(width * scale)` by `floor(height * scale)` pixels), positions and motion. They are scaled with premultiplied alpha, so transparent edges don't darken. Images without an alpha channel, such as JPEGs, are scaled directly instead; animation frames are always premultiplied, as an animation's frames may switch between formats with and without alpha.
 
 Breaking changes:
 

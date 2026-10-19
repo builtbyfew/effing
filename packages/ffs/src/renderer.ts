@@ -23,20 +23,34 @@ import { FetchError } from "./handlers/errors";
 const IMAGE_LOOP_FILTER = "loop=loop=-1:size=1";
 
 /**
- * Gives every frame of an animation (annie) input the pixel format and size
- * of its first frame, so a frame that differs (an rgba PNG after rgb24 ones,
- * say) can't reach filters configured for the first. Animation inputs are
- * read with `-reinit_filter 0`, so FFmpeg passes such frames on instead of
- * rebuilding the filter graph. `scale` reconfigures its input side when a
- * frame's properties change, and with `eval=init` it keeps the output size
- * it computed for the first frame (a frame of another size is resized to it);
- * the output format is yuva420p, which overlay takes anyway.
+ * Gives every frame of an animation (annie) input the size of its first
+ * frame, and the pixel format the next filter was configured for, so a frame
+ * that differs (an rgba PNG after rgb24 ones, say) can't reach filters
+ * configured for the first. Animation inputs are read with
+ * `-reinit_filter 0`, so FFmpeg passes such frames on instead of rebuilding
+ * the filter graph. `scale` reconfigures its input side when a frame's
+ * properties change, and with `eval=init` it keeps the output size it
+ * computed for the first frame (a frame of another size is resized to it).
+ * When a frame already has that size and format, scale passes it through.
  */
-const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
+const ANIMATION_FRAME_NORMALISER = "scale=w=iw:h=ih:eval=init";
 
 /**
- * Filters that shrink an image or animation layer by the render's scale
- * factor, or none at scale 1.
+ * ANIMATION_FRAME_NORMALISER with yuva420p as its output format (which
+ * overlay takes anyway): the head of an animation's chain at scale 1 (see
+ * animationChainHead).
+ */
+const ANIMATION_FRAME_FILTER = `${ANIMATION_FRAME_NORMALISER},format=yuva420p`;
+
+/** Scales a layer to floor(w * scaleFactor) x floor(h * scaleFactor), min 1. */
+function layerScaleFilter(scaleFactor: number): string {
+  const size = (dim: "iw" | "ih") => `'max(1,trunc(${dim}*${scaleFactor}))'`;
+  return `scale=w=${size("iw")}:h=${size("ih")}`;
+}
+
+/**
+ * Filters that shrink an image layer by the render's scale factor, or none
+ * at scale 1 (see animationChainHead for animations).
  *
  * Layers are composed at their own pixel size (overlaid at an offset, with
  * motion relative to the frame and layer size), so a scaled render must
@@ -51,7 +65,7 @@ const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
  * scaling, and the second makes it unpremultiply them again for the effects
  * and the overlay, which expect straight alpha. FFmpeg (8.1 or newer) inserts
  * these conversions while negotiating the graph, from the decoded pixel
- * format, so a source without alpha (e.g. a JPEG, or an RGB PNG) isn't
+ * format, so an image without alpha (e.g. a JPEG, or an RGB PNG) isn't
  * premultiplied: it is scaled straight from its own format, rather than
  * first converted to an alpha format at full size as an explicit
  * `premultiply` filter would. Only its scaled frame passes the (no-op)
@@ -60,13 +74,46 @@ const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
  * The scale filter adjusts the SAR to keep the aspect ratio when the size
  * rounds; the setsar=1 later in the layer chain resets it.
  */
-function layerScaleFilters(scaleFactor: number): string[] {
+function imageScaleFilters(scaleFactor: number): string[] {
   if (scaleFactor === 1) return [];
-  const size = (dim: "iw" | "ih") => `'max(1,trunc(${dim}*${scaleFactor}))'`;
   return [
     "format=alpha_modes=premultiplied",
-    `scale=w=${size("iw")}:h=${size("ih")}`,
+    layerScaleFilter(scaleFactor),
     "format=alpha_modes=straight",
+  ];
+}
+
+/**
+ * The head of an animation layer's chain: the segment's trim, the filters
+ * that keep every frame at the first frame's size and format (see
+ * ANIMATION_FRAME_NORMALISER), and in a scaled render the layer's scale.
+ *
+ * At scale 1 that's ANIMATION_FRAME_FILTER, then the trim.
+ *
+ * In a scaled render the layer is shrunk like an image layer (see
+ * imageScaleFilters), after the trim so frames past the end of the segment
+ * aren't scaled, but with an explicit premultiply/unpremultiply around the
+ * scale. FFmpeg's alpha mode negotiation decides once, from the first
+ * frame's pixel format, whether to premultiply, and tags the scaled frames
+ * as premultiplied either way: an annie whose first frame has no alpha but a
+ * later one has (an rgb24 PNG, then an rgba one) would have that frame
+ * scaled with straight alpha and then unpremultiplied all the same, which
+ * brightens its translucent pixels. premultiply instead runs on every frame;
+ * the normaliser in front of it converts each frame, whatever its format, to
+ * the alpha format premultiply was configured for (planar RGB for a PNG,
+ * YUV 4:4:4 for a JPEG, so chroma isn't subsampled before the scale), at the
+ * first frame's size. The scale keeps its output size and format from graph
+ * configuration (scale's default `eval=init`). The cost is that an annie
+ * without alpha (JPEG frames) is premultiplied too, a no-op at full size.
+ */
+function animationChainHead(trim: string, scaleFactor: number): string[] {
+  if (scaleFactor === 1) return [ANIMATION_FRAME_FILTER, trim];
+  return [
+    trim,
+    ANIMATION_FRAME_NORMALISER,
+    "premultiply=inplace=1",
+    layerScaleFilter(scaleFactor),
+    "unpremultiply=inplace=1",
   ];
 }
 
@@ -304,7 +351,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         // graph, which restarts every chain's timing (trims, fps, padding)
         // and leaves single-frame image inputs with nothing to send. Keep the
         // graph instead and normalise the frames at the head of the layer
-        // chain (see ANIMATION_FRAME_FILTER).
+        // chain (see animationChainHead).
         "-reinit_filter",
         "0",
         "-f",
@@ -368,17 +415,16 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       // converts every frame to it anyway, and pinning the format here keeps
       // time-based effects (e.g. fades) running on yuva420p, as they did with
       // a looped input, rather than on the source's format (e.g. rgba for a
-      // PNG). An animation is scaled after the trim, so frames past the end
-      // of the segment aren't scaled.
+      // PNG). An animation starts with animationChainHead.
       const sourceChain = [
         ...(layer.type === "image"
           ? [
-              ...layerScaleFilters(scaleFactor),
+              ...imageScaleFilters(scaleFactor),
               "format=yuva420p",
               IMAGE_LOOP_FILTER,
               trim,
             ]
-          : [ANIMATION_FRAME_FILTER, trim, ...layerScaleFilters(scaleFactor)]),
+          : animationChainHead(trim, scaleFactor)),
         ...(effectChain ? [effectChain] : []),
         "setsar=1",
         "setpts=PTS-STARTPTS",

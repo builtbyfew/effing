@@ -127,6 +127,15 @@ export class AnniePlayerCore {
   }
 
   /**
+   * Change the playback frame rate. It applies from the next frame, without
+   * reloading or interrupting playback.
+   */
+  setFps(fps: number): void {
+    this.fps = fps;
+    this.frameInterval = 1000 / fps;
+  }
+
+  /**
    * Attach a canvas element to render the animation on.
    */
   attachCanvas(canvas: HTMLCanvasElement): void {

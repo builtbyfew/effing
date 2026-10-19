@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AnniePlayerCore, type AnniePlayerState } from "../core";
 export { QoiAwareImg, type QoiAwareImgProps } from "./qoi-aware-img";
 
@@ -71,18 +78,28 @@ function AnniePlayerRoot({
     currentFrame: 0,
     dimensions: null,
   });
-  const [canvasDimensions, setCanvasDimensions] = useState({
-    width: defaultWidth ?? height,
-    height,
-  });
   const [isHovering, setIsHovering] = useState(false);
 
-  // Initialize the core player
-  // A new player for every src, fps, autoPlay and height. It starts from
-  // its own state, gets the canvas straight away (a new player with the
-  // same canvas dimensions wouldn't get it below), and loads if autoLoad is
-  // on. Under StrictMode, the first player is destroyed, which aborts its
-  // load, before the second one loads.
+  // The canvas is `height` tall, and as wide as the frames' aspect ratio
+  // makes it once they're loaded (defaultWidth, or square, before then).
+  // Derived rather than set on load, so a new height resizes the canvas
+  // without a new player.
+  const { dimensions } = state;
+  const canvasDimensions = useMemo(
+    () => ({
+      width: dimensions
+        ? (dimensions.width / dimensions.height) * height
+        : (defaultWidth ?? height),
+      height,
+    }),
+    [dimensions, defaultWidth, height],
+  );
+
+  // A new player for every src and autoPlay. It starts from its own state,
+  // gets the canvas straight away (a new player with the same canvas
+  // dimensions wouldn't get it below), and loads if autoLoad is on. Under
+  // StrictMode, the first player is destroyed, which aborts its load,
+  // before the second one loads.
   useEffect(() => {
     const player = new AnniePlayerCore({ src, fps, autoPlay });
     playerRef.current = player;
@@ -90,13 +107,6 @@ function AnniePlayerRoot({
 
     const unsubscribeState = player.on("statechange", (newState) => {
       setState(newState);
-    });
-
-    const unsubscribeLoad = player.on("load", ({ dimensions }) => {
-      setCanvasDimensions({
-        width: (dimensions.width / dimensions.height) * height,
-        height,
-      });
     });
 
     if (canvasRef.current) {
@@ -108,22 +118,35 @@ function AnniePlayerRoot({
 
     return () => {
       unsubscribeState();
-      unsubscribeLoad();
       player.destroy();
       if (playerRef.current === player) {
         playerRef.current = null;
       }
     };
-    // autoLoad is read when a player is created; turning it on later is
-    // handled below, and turning it off shouldn't discard a loaded player.
-  }, [src, fps, autoPlay, height]);
+    // fps is applied to the existing player below. autoLoad is read when a
+    // player is created; turning it on later is handled below, and turning
+    // it off shouldn't discard a loaded player.
+  }, [src, autoPlay]);
 
-  // Attach canvas to player when ready
   useEffect(() => {
+    playerRef.current?.setFps(fps);
+  }, [fps]);
+
+  // Attach the canvas to the player, and redraw the current frame when a
+  // new height resizes the canvas, which clears it. (A resize for newly
+  // loaded frames draws nothing, as before: the player draws on play.)
+  const drawnHeightRef = useRef(height);
+  useEffect(() => {
+    const heightChanged = drawnHeightRef.current !== height;
+    drawnHeightRef.current = height;
     const player = playerRef.current;
     const canvas = canvasRef.current;
     if (player && canvas) {
       player.attachCanvas(canvas);
+      const { frameCount, currentFrame } = player.getState();
+      if (heightChanged && frameCount > 0) {
+        player.seek(currentFrame);
+      }
     }
   }, [canvasDimensions]);
 

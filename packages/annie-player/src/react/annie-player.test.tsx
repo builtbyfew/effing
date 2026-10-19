@@ -2,7 +2,7 @@
 import { StrictMode, act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AnniePlayerState } from "../core";
+import { AnniePlayerCore, type AnniePlayerState } from "../core";
 import { AnniePlayer, type AnniePlayerRootProps } from "./index";
 
 declare global {
@@ -105,15 +105,23 @@ afterEach(() => {
 
 /** Render a Root with a canvas, recording every state it renders. */
 function renderPlayer(
-  props: Omit<AnniePlayerRootProps, "children" | "height">,
+  props: Omit<AnniePlayerRootProps, "children" | "height"> & {
+    height?: number;
+  },
   { strict = false } = {},
 ) {
   const states: AnniePlayerState[] = [];
   const element = (
     <AnniePlayer.Root height={100} {...props}>
-      {({ state, canvasRef }) => {
+      {({ state, canvasRef, canvasDimensions }) => {
         states.push(state);
-        return <canvas ref={canvasRef} />;
+        return (
+          <canvas
+            ref={canvasRef}
+            width={canvasDimensions.width}
+            height={canvasDimensions.height}
+          />
+        );
       }}
     </AnniePlayer.Root>
   );
@@ -208,27 +216,62 @@ describe("AnniePlayer.Root", () => {
     expect((drawImage.mock.calls[0][0] as FakeImage).src).toBe("blob:mock-2");
   });
 
-  it.each([
-    ["fps", { fps: 24 }],
-    ["autoPlay", { autoPlay: true }],
-  ])(
-    "reloads when %s recreates the player",
-    async (_option, change: Partial<AnniePlayerRootProps>) => {
-      responses.set("/a.annie", Promise.resolve(annie(2)));
-      renderPlayer({ src: "/a.annie", autoLoad: true });
-      await settle();
+  it("reloads when autoPlay recreates the player", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    renderPlayer({ src: "/a.annie", autoLoad: true });
+    await settle();
 
-      const states = renderPlayer({
-        src: "/a.annie",
-        autoLoad: true,
-        ...change,
-      });
-      await settle();
+    const states = renderPlayer({
+      src: "/a.annie",
+      autoLoad: true,
+      autoPlay: true,
+    });
+    await settle();
 
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(latest(states)).toMatchObject({ frameCount: 2, isLoading: false });
-    },
-  );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(latest(states)).toMatchObject({
+      frameCount: 2,
+      isLoading: false,
+      isPlaying: true,
+    });
+  });
+
+  it("applies a new fps to the player without reloading", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    const setFps = vi.spyOn(AnniePlayerCore.prototype, "setFps");
+    renderPlayer({ src: "/a.annie", autoLoad: true, fps: 30 });
+    await settle();
+
+    const states = renderPlayer({ src: "/a.annie", autoLoad: true, fps: 12 });
+    await settle();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(setFps).toHaveBeenLastCalledWith(12);
+    expect(latest(states)).toMatchObject({ frameCount: 2, isLoading: false });
+  });
+
+  it("resizes the canvas for a new height without reloading, and redraws it", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    renderPlayer({ src: "/a.annie", autoLoad: true, height: 100 });
+    await settle();
+    const canvas = container.querySelector("canvas")!;
+    // The stand-in frames are 200 × 100.
+    expect([canvas.width, canvas.height]).toEqual([200, 100]);
+    drawImage.mockClear();
+
+    const states = renderPlayer({
+      src: "/a.annie",
+      autoLoad: true,
+      height: 50,
+    });
+    await settle();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect([canvas.width, canvas.height]).toEqual([100, 50]);
+    expect(latest(states)).toMatchObject({ frameCount: 2, isLoading: false });
+    // Resizing clears a canvas, so the current frame is drawn again.
+    expect(drawImage).toHaveBeenCalledOnce();
+  });
 
   it("loads once under StrictMode", async () => {
     responses.set("/a.annie", Promise.resolve(annie(2)));

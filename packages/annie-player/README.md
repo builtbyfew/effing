@@ -179,6 +179,7 @@ class AnniePlayerCore {
   pause(): void;
   stop(): void;
   seek(frameIndex: number): void;
+  setFps(fps: number): void;
 
   // State
   getState(): AnniePlayerState;

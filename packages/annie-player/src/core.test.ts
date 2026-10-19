@@ -120,6 +120,35 @@ function fakeCanvas(): {
   return { canvas, drawImage };
 }
 
+/**
+ * Animation frames with real ids and cancellation, to count the loops that
+ * are running: each loop has one frame pending.
+ */
+function stubAnimationFrames() {
+  let nextId = 1;
+  const pending = new Map<number, FrameRequestCallback>();
+  vi.stubGlobal(
+    "requestAnimationFrame",
+    vi.fn((callback: FrameRequestCallback) => {
+      pending.set(nextId, callback);
+      return nextId++;
+    }),
+  );
+  vi.stubGlobal(
+    "cancelAnimationFrame",
+    vi.fn((id: number) => pending.delete(id)),
+  );
+  return {
+    pending: () => pending.size,
+    /** Run every pending frame once. */
+    run(timestamp: number) {
+      const callbacks = [...pending.values()];
+      pending.clear();
+      callbacks.forEach((callback) => callback(timestamp));
+    },
+  };
+}
+
 beforeEach(() => {
   let urlCounter = 0;
   createObjectURL = vi.fn(() => `blob:mock-${urlCounter++}`);
@@ -366,6 +395,34 @@ describe("AnniePlayerCore", () => {
     const revoked = revokeObjectURL.mock.calls.map((call) => call[0] as string);
     expect(created).toHaveLength(2);
     expect(revoked.sort()).toEqual(created.sort());
+  });
+
+  it("runs one loop when a status listener pauses and plays again", async () => {
+    stubFetchWith(buildTar(["frame_00000", "frame_00001"]));
+    const frames = stubAnimationFrames();
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+    let restarted = false;
+    player.on("statechange", (state) => {
+      if (state.status === "Playing..." && !restarted) {
+        restarted = true;
+        player.pause();
+        player.play();
+      }
+    });
+
+    player.play();
+
+    expect(restarted).toBe(true);
+    expect(player.getState()).toMatchObject({
+      isPlaying: true,
+      status: "Playing...",
+    });
+    expect(frames.pending()).toBe(1);
+    frames.run(1000);
+    frames.run(1040);
+    expect(frames.pending()).toBe(1);
   });
 
   it("unsubscribes listeners via the function returned by on()", async () => {
@@ -641,6 +698,40 @@ describe("AnniePlayerCore with QOI frames", () => {
       status: `Error: ${message}`,
     });
     expect(drawImage).toHaveBeenCalledOnce();
+  });
+
+  it("runs one loop when an error listener restarts playback on the frame play() draws", async () => {
+    const corrupt = qoiImage(2, 1, [
+      [9, 9, 9],
+      [9, 9, 9],
+    ]);
+    corrupt[corrupt.length - 1] = 0; // corrupt the end marker
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", corrupt],
+        ["frame_00001", red],
+      ]),
+    );
+    const frames = stubAnimationFrames();
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+    const onError = vi.fn(() => {
+      if (onError.mock.calls.length > 1) return;
+      player.seek(1);
+      player.play();
+    });
+    player.on("error", onError);
+
+    player.play(); // frame 0 fails; the listener plays from frame 1
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(player.getState()).toMatchObject({
+      isPlaying: true,
+      currentFrame: 1,
+      status: "Playing...",
+    });
+    expect(frames.pending()).toBe(1);
   });
 
   it("ends the animation loop whose frame failed, even when an error listener restarts playback", async () => {

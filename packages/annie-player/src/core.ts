@@ -199,11 +199,14 @@ export class AnniePlayerCore {
     this.emitStateChange();
   }
 
-  private setError(error: string | null): void {
+  /**
+   * Record an error, and its status, before telling listeners, so the state
+   * they see (and the one a listener that reacts leaves behind) is final.
+   */
+  private reportError(error: string): void {
     this._error = error;
-    if (error) {
-      this.emit("error", new Error(error));
-    }
+    this._status = `Error: ${error}`;
+    this.emit("error", new Error(error));
     this.emitStateChange();
   }
 
@@ -216,8 +219,9 @@ export class AnniePlayerCore {
     this.stop();
     this._isLoading = true;
     this._error = null;
-    this.setStatus("Loading Annie file...");
+    // Drop the old frames before telling listeners, so none can play them.
     this.cleanup();
+    this.setStatus("Loading Annie file...");
 
     const loadedFrames: { index: number; frame: Frame }[] = [];
     const imageLoadPromises: Promise<void>[] = [];
@@ -319,8 +323,7 @@ export class AnniePlayerCore {
       this.loadController = null;
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this._isLoading = false;
-      this.setError(errorMessage);
-      this.setStatus(`Error: ${errorMessage}`);
+      this.reportError(errorMessage);
     }
   }
 
@@ -330,13 +333,18 @@ export class AnniePlayerCore {
   play(): void {
     if (this._isPlaying || this.frames.length === 0) return;
 
+    // Settle the playing state, frame request included, before anything
+    // that tells listeners, so a listener that pauses or plays again
+    // (synchronously) finds it consistent and no second loop starts.
     this._isPlaying = true;
     this.lastFrameTime = 0;
+    const frameId = requestAnimationFrame(this.animate);
+    this.animationFrameId = frameId;
     this.drawFrame(this.currentFrameIndex);
-    // A frame that fails to decode pauses playback and reports an error.
-    if (!this._isPlaying) return;
+    // A frame that fails to decode pauses playback and reports an error,
+    // and a listener may have played again; either way, this call is done.
+    if (this.animationFrameId !== frameId) return;
     this.setStatus("Playing...");
-    this.animationFrameId = requestAnimationFrame(this.animate);
   }
 
   /**
@@ -345,12 +353,17 @@ export class AnniePlayerCore {
   pause(): void {
     if (!this._isPlaying) return;
 
+    this.haltPlayback();
+    this.setStatus("Paused.");
+  }
+
+  /** Stop the animation loop without telling listeners. */
+  private haltPlayback(): void {
     this._isPlaying = false;
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    this.setStatus("Paused.");
   }
 
   /**
@@ -400,9 +413,8 @@ export class AnniePlayerCore {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const errorMessage = `Could not decode frame ${index} (${message})`;
-        this.pause();
-        this.setError(errorMessage);
-        this.setStatus(`Error: ${errorMessage}`);
+        this.haltPlayback();
+        this.reportError(errorMessage);
         return;
       }
     }

@@ -30,9 +30,13 @@ async function expectedLayeredFrames(
   fps: number,
   duration: number,
 ): Promise<number> {
+  return fps * duration - ((await renderFFmpegMajor()) < 7 ? 1 : 0);
+}
+
+/** Major version of the FFmpeg binary EffieRenderer will use. */
+async function renderFFmpegMajor(): Promise<number> {
   const { stdout } = await execFileP(renderFFmpegBin, ["-version"]);
-  const major = parseInt(/^ffmpeg version (\d+)/.exec(stdout)?.[1] ?? "", 10);
-  return fps * duration - (major < 7 ? 1 : 0);
+  return parseInt(/^ffmpeg version (\d+)/.exec(stdout)?.[1] ?? "", 10);
 }
 
 /**
@@ -1009,7 +1013,11 @@ describe("distributed rendering integration", () => {
             { duration: 0.5, layers: [] },
           ],
         };
-        const expectedDuration = 3.5;
+        // Segment 0 up to the transition, segment 1 (layered), segment 2. On
+        // FFmpeg 6.1 segment 1 loses its final frame (see
+        // expectedLayeredFrames); segment 0's falls inside the transition.
+        const expectedFrames =
+          fps * (2 - 0.5) + (await expectedLayeredFrames(fps, 1.5)) + fps * 0.5;
 
         const renderer = new EffieRenderer(effieData, {
           allowLocalFiles: true,
@@ -1046,18 +1054,41 @@ describe("distributed rendering integration", () => {
         );
         expect(raw.length % frameBytes).toBe(0);
         const frameCount = raw.length / frameBytes;
-        expect(frameCount).toBe(fps * expectedDuration);
+        expect(frameCount).toBe(expectedFrames);
 
-        // The container ends with the last video frame; the video stream
-        // starts at the B-frame delay.
-        const probe = info.toString();
-        expect(probe).toMatch(
+        expect(info.toString()).toMatch(
           new RegExp(`${frameWidth}x${frameHeight} \\[SAR 1:1 DAR 16:9\\]`),
         );
-        const [, h, m, s] = /Duration: (\d+):(\d+):([\d.]+)/.exec(probe)!;
-        const end = Number(h) * 3600 + Number(m) * 60 + Number(s);
-        const start = Number(/Video: .*, start ([\d.]+)/.exec(probe)![1]);
-        expect(end - start).toBeCloseTo(expectedDuration, 1);
+
+        // The video stream's duration, from its packets' timestamps: the
+        // first frame's pts to the last frame's pts plus its duration.
+        const { stdout: crc } = await execFileP(ffmpegBin, [
+          "-v",
+          "error",
+          "-i",
+          outPath,
+          "-map",
+          "0:v:0",
+          "-c",
+          "copy",
+          "-f",
+          "framecrc",
+          "-",
+        ]);
+        const [tbNum, tbDen] = /^#tb 0: (\d+)\/(\d+)$/m
+          .exec(crc)!
+          .slice(1)
+          .map(Number);
+        const packets = crc
+          .split("\n")
+          .filter((line) => /^0,/.test(line))
+          .map((line) => line.split(",").map((f) => Number(f.trim())));
+        const firstPts = Math.min(...packets.map(([, , pts]) => pts));
+        const endPts = Math.max(...packets.map(([, , pts, d]) => pts + d));
+        expect(((endPts - firstPts) * tbNum) / tbDen).toBeCloseTo(
+          expectedFrames / fps,
+          3,
+        );
 
         // RGB at the centre of the left (layer) or right (background) half.
         const pixel = (frame: number, side: "left" | "right") => {
@@ -1119,51 +1150,164 @@ describe("distributed rendering integration", () => {
     30000,
   );
 
-  test("static images keep one frame per 1/fps in very short segments and frame-based effects", async () => {
-    // A repeated image must still produce exactly one frame per 1/fps, as a
-    // looped input did: two- and one-frame segments must keep their frame
-    // counts, and the scroll effect, which moves the image a fixed distance
-    // per frame, must keep its speed. Without -framerate on the image input
+  // Helpers for the tests below: a 64x36 single-frame image, a render to
+  // disk, and every frame of the output decoded as rgb24.
+  const smallWidth = 64;
+  const smallHeight = 36;
+
+  async function smallImage(
+    tempDir: string,
+    name: string,
+    color: string,
+    filter = "null",
+  ): Promise<EffieFileUrl> {
+    const filePath = path.join(tempDir, name);
+    await execFileP(renderFFmpegBin, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      `color=c=${color}:s=${smallWidth}x${smallHeight}`,
+      "-vf",
+      filter,
+      "-frames:v",
+      "1",
+      filePath,
+    ]);
+    return effieFileUrl(pathToFileURL(filePath).toString());
+  }
+
+  async function renderSmallFrames(
+    tempDir: string,
+    effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+  ): Promise<Buffer[]> {
+    const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
+    const outPath = path.join(tempDir, "out.mp4");
+    const stream = await renderer.render();
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c);
+    await fs.writeFile(outPath, Buffer.concat(chunks));
+    renderer.close();
+
+    // Passthrough: see the static image layers and backgrounds test.
+    const { stdout: raw } = await execFileP(
+      renderFFmpegBin,
+      [
+        "-i",
+        outPath,
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-",
+      ],
+      { encoding: "buffer", maxBuffer: 1 << 26 },
+    );
+    const frameBytes = smallWidth * smallHeight * 3;
+    expect(raw.length % frameBytes).toBe(0);
+    const frames: Buffer[] = [];
+    for (let i = 0; i < raw.length; i += frameBytes) {
+      frames.push(raw.subarray(i, i + frameBytes));
+    }
+    return frames;
+  }
+
+  /** Dominant colour of the pixel at column x, mid-height. */
+  function colorAt(frame: Buffer, x: number): string {
+    const i = ((smallHeight / 2) * smallWidth + x) * 3;
+    const [r, g, b] = [frame[i], frame[i + 1], frame[i + 2]];
+    return r > 150 && g < 100 && b < 100
+      ? "red"
+      : g > 150 && r < 100 && b < 100
+        ? "green"
+        : b > 150 && r < 100 && g < 100
+          ? "blue"
+          : `rgb(${r},${g},${b})`;
+  }
+
+  test("a static image layer keeps one frame per 1/fps for frame-based effects", async () => {
+    // The scroll effect moves the image a fixed distance per frame, so it
+    // only keeps its speed if the repeated image has exactly one frame per
+    // 1/fps, as a looped input did. Without -framerate on the image input
     // the frames would be spaced at FFmpeg's default 25 fps, which this
     // catches.
-    const ffmpegBin = renderFFmpegBin;
+    const tempDir = await createTestOutputDir("static-images-scroll");
+
+    try {
+      const fps = 30;
+      const sources: EffieSources<EffieFileUrl> = {
+        // Left half red, right half blue.
+        halves: await smallImage(
+          tempDir,
+          "halves.png",
+          "red",
+          `drawbox=x=${smallWidth / 2}:y=0:w=${smallWidth / 2}:h=${smallHeight}:color=blue:t=fill`,
+        ),
+      };
+      const duration = 0.5;
+      const frames = await renderSmallFrames(tempDir, {
+        width: smallWidth,
+        height: smallHeight,
+        fps,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "black" },
+        sources,
+        segments: [
+          {
+            duration,
+            layers: [
+              {
+                type: "image",
+                source: "#halves",
+                // Left by half the image over the segment.
+                effects: [
+                  { type: "scroll", direction: "left", duration, distance: 1 },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      expect(frames.length).toBe(await expectedLayeredFrames(fps, duration));
+
+      // The red/blue edge starts at the centre and moves left by
+      // (width / 2) / (fps * duration) px per frame.
+      const step = smallWidth / 2 / (fps * duration);
+      frames.forEach((frame, n) => {
+        let edge = 0;
+        while (edge < smallWidth && colorAt(frame, edge) !== "blue") edge++;
+        const expected = smallWidth / 2 - n * step;
+        expect(
+          Math.abs(edge - expected),
+          `frame ${n}: edge ${edge}`,
+        ).toBeLessThanOrEqual(1);
+      });
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("static images keep their frame counts in very short segments", async (context) => {
+    // FFmpeg 6.1 drops a two-frame layered segment and a one-frame segment
+    // that are followed by another segment entirely, not just their final
+    // frame (see expectedLayeredFrames), so these counts only hold on the
+    // supported FFmpeg (>= 8.0).
+    if ((await renderFFmpegMajor()) < 8) context.skip();
     const tempDir = await createTestOutputDir("static-images-short");
 
     try {
       const fps = 30;
-      const width = 64;
-      const height = 36;
-
-      async function image(name: string, color: string, filter = "null") {
-        const filePath = path.join(tempDir, name);
-        await execFileP(ffmpegBin, [
-          "-y",
-          "-f",
-          "lavfi",
-          "-i",
-          `color=c=${color}:s=${width}x${height}`,
-          "-vf",
-          filter,
-          "-frames:v",
-          "1",
-          filePath,
-        ]);
-        return effieFileUrl(pathToFileURL(filePath).toString());
-      }
       const sources: EffieSources<EffieFileUrl> = {
-        red: await image("red.png", "red"),
-        green: await image("green.png", "lime"),
-        // Left half red, right half blue.
-        halves: await image(
-          "halves.png",
-          "red",
-          `drawbox=x=${width / 2}:y=0:w=${width / 2}:h=${height}:color=blue:t=fill`,
-        ),
+        red: await smallImage(tempDir, "red.png", "red"),
+        green: await smallImage(tempDir, "green.png", "lime"),
       };
-
-      const effieData: EffieData<typeof sources, EffieFileUrl> = {
-        width,
-        height,
+      const frames = await renderSmallFrames(tempDir, {
+        width: smallWidth,
+        height: smallHeight,
         fps,
         cover: "https://example.com/cover.png",
         background: { type: "color", color: "black" },
@@ -1177,81 +1321,18 @@ describe("distributed rendering integration", () => {
             background: { type: "image", source: "#green" },
             layers: [],
           },
-          // 15 frames, scrolling left by half the image over 0.5 s.
-          {
-            duration: 0.5,
-            layers: [
-              {
-                type: "image",
-                source: "#halves",
-                effects: [
-                  {
-                    type: "scroll",
-                    direction: "left",
-                    duration: 0.5,
-                    distance: 1,
-                  },
-                ],
-              },
-            ],
-          },
+          // Three frames.
+          { duration: 0.1, layers: [{ type: "image", source: "#red" }] },
         ],
-      };
-
-      const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
-      const outPath = path.join(tempDir, "out.mp4");
-      const stream = await renderer.render();
-      const chunks: Buffer[] = [];
-      for await (const c of stream) chunks.push(c);
-      await fs.writeFile(outPath, Buffer.concat(chunks));
-      renderer.close();
-
-      const frameBytes = width * height * 3;
-      const { stdout: raw } = await execFileP(
-        ffmpegBin,
-        [
-          "-i",
-          outPath,
-          "-map",
-          "0:v:0",
-          "-fps_mode",
-          "passthrough",
-          "-f",
-          "rawvideo",
-          "-pix_fmt",
-          "rgb24",
-          "-",
-        ],
-        { encoding: "buffer", maxBuffer: 1 << 26 },
-      );
-      expect(raw.length / frameBytes).toBe(2 + 1 + 15);
-
-      // Dominant channel of the pixel at column x, mid-height.
-      const colorAt = (frame: number, x: number) => {
-        const i = frame * frameBytes + ((height / 2) * width + x) * 3;
-        const [r, g, b] = [raw[i], raw[i + 1], raw[i + 2]];
-        return r > 150 && g < 100 && b < 100
-          ? "red"
-          : g > 150 && r < 100 && b < 100
-            ? "green"
-            : b > 150 && r < 100 && g < 100
-              ? "blue"
-              : `rgb(${r},${g},${b})`;
-      };
-      expect(colorAt(0, width / 2)).toBe("red");
-      expect(colorAt(1, width / 2)).toBe("red");
-      expect(colorAt(2, width / 2)).toBe("green");
-
-      // The scroll moves the image left by width/30 px per frame (half the
-      // image over 15 frames), wrapping around: the red/blue edge starts at
-      // the centre and ends near the left edge.
-      const scrollStart = 3;
-      expect(colorAt(scrollStart, 8)).toBe("red");
-      expect(colorAt(scrollStart, 40)).toBe("blue");
-      expect(colorAt(scrollStart + 7, 8)).toBe("red");
-      expect(colorAt(scrollStart + 7, 24)).toBe("blue");
-      expect(colorAt(scrollStart + 14, 8)).toBe("blue");
-      expect(colorAt(scrollStart + 14, 40)).toBe("red");
+      });
+      expect(frames.map((frame) => colorAt(frame, smallWidth / 2))).toEqual([
+        "red",
+        "red",
+        "green",
+        "red",
+        "red",
+        "red",
+      ]);
     } finally {
       await cleanupTestOutput(tempDir);
     }

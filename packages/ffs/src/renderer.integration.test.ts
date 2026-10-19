@@ -1,4 +1,4 @@
-import { describe, test, expect, afterAll } from "vitest";
+import { describe, test, expect, afterAll, beforeAll } from "vitest";
 import { EffieRenderer } from "./renderer";
 import {
   effieDataForSegment,
@@ -6,10 +6,17 @@ import {
   effieFileUrl,
   effieWebUrl,
 } from "@effing/effie";
-import type { EffieData, EffieSources, EffieFileUrl } from "@effing/effie";
+import type {
+  EffieData,
+  EffieSources,
+  EffieFileUrl,
+  EffieWebUrl,
+} from "@effing/effie";
 import { annieBuffer } from "@effing/annie";
 import { pathToFFmpeg } from "@effing/ffmpeg";
 import { execFile } from "child_process";
+import http from "http";
+import type { AddressInfo } from "net";
 import { promisify } from "util";
 import fs from "fs/promises";
 import os from "os";
@@ -2066,4 +2073,494 @@ describe("scaled renders", () => {
       await cleanupTestOutput(tempDir);
     }
   }, 30000);
+});
+
+describe("QOI sources", () => {
+  // QOI image layers, image backgrounds and annie frames. FFS saves every
+  // source to an extensionless temp file, so FFmpeg has to recognise QOI by
+  // probing: a static image opens with the qoi_pipe demuxer, and an annie's
+  // image2 input probes its frames' codec. QOI decodes to rgb24 or rgba
+  // depending on the header's channel count (3 or 4), so an annie whose
+  // frames switch between the two changes pixel format mid-stream, like
+  // one mixing rgb24 and rgba PNGs.
+  //
+  // Each test renders at scale 1 and at 0.5 (a composition twice the size,
+  // so the output and every position checked are the same), from data: URLs
+  // and from a local HTTP server.
+  const fps = 10;
+  // Output size
+  const W = 128;
+  const H = 72;
+
+  type SourceKind = "data" | "http";
+  const cases: Array<[number, SourceKind]> = [
+    [1, "data"],
+    [1, "http"],
+    [0.5, "data"],
+    [0.5, "http"],
+  ];
+
+  let server: http.Server;
+  let baseUrl: string;
+  const served = new Map<string, Buffer>();
+
+  beforeAll(async () => {
+    server = http.createServer((req, res) => {
+      const body = served.get(req.url ?? "");
+      if (!body) {
+        res.writeHead(404).end();
+        return;
+      }
+      // No image Content-Type: FFS and FFmpeg go by the bytes.
+      res.writeHead(200, {
+        "Content-Type": "application/octet-stream",
+        "Content-Length": body.length,
+      });
+      res.end(body);
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  let nextSourceId = 0;
+  function sourceUrl(
+    kind: SourceKind,
+    bytes: Buffer,
+    mediaType: string,
+  ): EffieWebUrl {
+    if (kind === "data") {
+      return effieWebUrl(
+        `data:${mediaType};base64,${bytes.toString("base64")}`,
+      );
+    }
+    const urlPath = `/source-${nextSourceId++}`;
+    served.set(urlPath, bytes);
+    return effieWebUrl(`${baseUrl}${urlPath}`);
+  }
+
+  /**
+   * Encodes the single frame a lavfi filter graph makes as QOI, and checks
+   * its header's channel count.
+   */
+  async function qoi(
+    dir: string,
+    name: string,
+    graph: string,
+    channels: 3 | 4,
+  ): Promise<Buffer> {
+    const filePath = path.join(dir, name);
+    await execFileP(renderFFmpegBin, [
+      "-y",
+      "-filter_complex",
+      graph,
+      "-frames:v",
+      "1",
+      "-c:v",
+      "qoi",
+      "-f",
+      "image2",
+      filePath,
+    ]);
+    const bytes = await fs.readFile(filePath);
+    expect(bytes.subarray(0, 4).toString("latin1")).toBe("qoif");
+    expect(bytes[12], `${name}: channels`).toBe(channels);
+    return bytes;
+  }
+
+  /** Builds an annie from frames. */
+  async function annie(frames: Buffer[]): Promise<Buffer> {
+    return annieBuffer(
+      (async function* () {
+        yield* frames;
+      })(),
+    );
+  }
+
+  /** Renders and decodes every frame of the W x H output as rgb24. */
+  async function renderFrames(
+    dir: string,
+    effieData: EffieData<EffieSources>,
+    scale: number,
+  ): Promise<Buffer[]> {
+    const renderer = new EffieRenderer(effieData);
+    const outPath = path.join(dir, `out-${scale}.mp4`);
+    const stream = await renderer.render(scale);
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c);
+    await fs.writeFile(outPath, Buffer.concat(chunks));
+    renderer.close();
+
+    // Passthrough: see the static image layers and backgrounds test.
+    const { stdout: raw, stderr: info } = await execFileP(
+      renderFFmpegBin,
+      [
+        "-i",
+        outPath,
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "-",
+      ],
+      { encoding: "buffer", maxBuffer: 1 << 26 },
+    );
+    expect(info.toString()).toMatch(new RegExp(`${W}x${H} \\[SAR 1:1`));
+    const frameBytes = W * H * 3;
+    expect(raw.length % frameBytes).toBe(0);
+    return Array.from({ length: raw.length / frameBytes }, (_, i) =>
+      raw.subarray(i * frameBytes, (i + 1) * frameBytes),
+    );
+  }
+
+  type RGB = [number, number, number];
+
+  function rgb(frame: Buffer, x: number, y: number): RGB {
+    const i = (y * W + x) * 3;
+    return [frame[i], frame[i + 1], frame[i + 2]];
+  }
+
+  /** Bounding box of the pixels of an rgb24 frame that pass `test`. */
+  function bbox(
+    frame: Buffer,
+    test: (pixel: RGB) => boolean,
+  ): { x: [number, number]; y: [number, number] } | undefined {
+    let [x0, x1, y0, y1] = [Infinity, -1, Infinity, -1];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (!test(rgb(frame, x, y))) continue;
+        [x0, x1, y0, y1] = [
+          Math.min(x0, x),
+          Math.max(x1, x),
+          Math.min(y0, y),
+          Math.max(y1, y),
+        ];
+      }
+    }
+    return x1 < 0 ? undefined : { x: [x0, x1], y: [y0, y1] };
+  }
+
+  /** Expects each channel within 30 of `expected`. */
+  function expectColor(actual: RGB, expected: RGB, label: string) {
+    for (let c = 0; c < 3; c++) {
+      expect(
+        Math.abs(actual[c] - expected[c]),
+        `${label}: ${JSON.stringify(actual)}`,
+      ).toBeLessThan(30);
+    }
+  }
+
+  const BLUE: RGB = [0, 0, 255];
+  const RED: RGB = [255, 0, 0];
+  const LIME: RGB = [0, 255, 0];
+  const WHITE: RGB = [255, 255, 255];
+  const YELLOW: RGB = [255, 255, 0];
+  // Half-transparent red or lime over the blue background
+  const RED_OVER_BLUE: RGB = [128, 0, 128];
+  const LIME_OVER_BLUE: RGB = [0, 128, 128];
+  /** Anything but the blue background (or white). */
+  const notBlue = ([r, g, b]: RGB) => (r > 64 || g > 64) && b < 200;
+
+  test.for(cases)(
+    "QOI image layers with and without alpha at scale %s from %s sources",
+    { timeout: 30000 },
+    async ([scale, kind]) => {
+      const tempDir = await createTestOutputDir(`qoi-layers-${scale}-${kind}`);
+      // A size at output scale, for a composition rendered at `scale`.
+      const px = (n: number) => n / scale;
+
+      try {
+        // RGBA, 40x30: 20 px of opaque red, 10 px of half-transparent red
+        // and 10 px of transparent black.
+        const rgba = await qoi(
+          tempDir,
+          "rgba",
+          `color=c=red:s=${px(20)}x${px(30)},format=rgba[a];` +
+            `color=c=red@0.5:s=${px(10)}x${px(30)},format=rgba[b];` +
+            `color=c=black@0:s=${px(10)}x${px(30)},format=rgba[c];` +
+            `[a][b][c]hstack=inputs=3`,
+          4,
+        );
+        // RGB, 30x20: lime.
+        const rgb24 = await qoi(
+          tempDir,
+          "rgb",
+          `color=c=lime:s=${px(30)}x${px(20)},format=rgb24`,
+          3,
+        );
+
+        const sources = {
+          rgba: sourceUrl(kind, rgba, "image/qoi"),
+          rgb: sourceUrl(kind, rgb24, "image/qoi"),
+        };
+        const frames = await renderFrames(
+          tempDir,
+          {
+            width: px(W),
+            height: px(H),
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "blue" },
+            sources,
+            segments: [
+              { duration: 0.3, layers: [{ type: "image", source: "#rgba" }] },
+              { duration: 0.3, layers: [{ type: "image", source: "#rgb" }] },
+            ],
+          },
+          scale,
+        );
+        expect(frames).toHaveLength(6);
+
+        for (const n of [0, 1, 2]) {
+          const frame = frames[n];
+          expectColor(rgb(frame, 10, 15), RED, `frame ${n}: opaque`);
+          expectColor(rgb(frame, 25, 15), RED_OVER_BLUE, `frame ${n}: half`);
+          expectColor(rgb(frame, 35, 15), BLUE, `frame ${n}: transparent`);
+          expectColor(rgb(frame, 100, 50), BLUE, `frame ${n}: background`);
+          // Of the 40x30 layer, all but the transparent 10 px show.
+          expect(bbox(frame, notBlue)).toEqual({ x: [0, 29], y: [0, 29] });
+        }
+        for (const n of [3, 4, 5]) {
+          const frame = frames[n];
+          expectColor(rgb(frame, 15, 10), LIME, `frame ${n}: rgb layer`);
+          expectColor(rgb(frame, 100, 50), BLUE, `frame ${n}: background`);
+          expect(bbox(frame, notBlue)).toEqual({ x: [0, 29], y: [0, 19] });
+        }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+
+  test.for(cases)(
+    "QOI image backgrounds at scale %s from %s sources",
+    { timeout: 30000 },
+    async ([scale, kind]) => {
+      const tempDir = await createTestOutputDir(`qoi-bg-${scale}-${kind}`);
+      const px = (n: number) => n / scale;
+
+      try {
+        // Global background: RGB, twice the frame size, so it's cover-scaled
+        // to the frame: red on the left half, lime on the right.
+        const global = await qoi(
+          tempDir,
+          "global",
+          `color=c=red:s=${px(W)}x${px(H * 2)},format=rgb24[l];` +
+            `color=c=lime:s=${px(W)}x${px(H * 2)},format=rgb24[r];` +
+            `[l][r]hstack`,
+          3,
+        );
+        // Segment background: opaque RGBA, the frame size, yellow on top
+        // and blue below.
+        const segment = await qoi(
+          tempDir,
+          "segment",
+          `color=c=yellow:s=${px(W)}x${px(H / 2)},format=rgba[t];` +
+            `color=c=blue:s=${px(W)}x${px(H / 2)},format=rgba[b];` +
+            `[t][b]vstack`,
+          4,
+        );
+
+        const sources = {
+          global: sourceUrl(kind, global, "image/qoi"),
+          segment: sourceUrl(kind, segment, "image/qoi"),
+        };
+        const frames = await renderFrames(
+          tempDir,
+          {
+            width: px(W),
+            height: px(H),
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "image", source: "#global" },
+            sources,
+            segments: [
+              { duration: 0.3, layers: [] },
+              {
+                duration: 0.3,
+                background: { type: "image", source: "#segment" },
+                layers: [],
+              },
+              { duration: 0.2, layers: [] },
+            ],
+          },
+          scale,
+        );
+        expect(frames).toHaveLength(8);
+
+        for (const n of [0, 1, 2, 6, 7]) {
+          expectColor(rgb(frames[n], 20, 36), RED, `frame ${n}: left`);
+          expectColor(rgb(frames[n], 108, 36), LIME, `frame ${n}: right`);
+        }
+        for (const n of [3, 4, 5]) {
+          expectColor(rgb(frames[n], 64, 10), YELLOW, `frame ${n}: top`);
+          expectColor(rgb(frames[n], 64, 60), BLUE, `frame ${n}: bottom`);
+        }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+
+  test.for(cases)(
+    "QOI annies at scale %s from %s sources",
+    { timeout: 30000 },
+    async ([scale, kind]) => {
+      const tempDir = await createTestOutputDir(`qoi-annie-${scale}-${kind}`);
+      const px = (n: number) => n / scale;
+
+      try {
+        // 40x30 RGBA frames: 30 px of opaque red or lime, then 10 px of
+        // transparent black.
+        const frame = (color: string) =>
+          qoi(
+            tempDir,
+            color,
+            `color=c=${color}:s=${px(30)}x${px(30)},format=rgba[a];` +
+              `color=c=black@0:s=${px(10)}x${px(30)},format=rgba[b];` +
+              `[a][b]hstack`,
+            4,
+          );
+        const [red, lime] = [await frame("red"), await frame("lime")];
+        const expected = [RED, LIME, RED, LIME, LIME];
+        const anim = await annie(expected.map((c) => (c === RED ? red : lime)));
+
+        const sources = { anim: sourceUrl(kind, anim, "application/x-tar") };
+        const frames = await renderFrames(
+          tempDir,
+          {
+            width: px(W),
+            height: px(H),
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "blue" },
+            sources,
+            segments: [
+              {
+                duration: 0.5,
+                layers: [{ type: "animation", source: "#anim" }],
+              },
+              { duration: 0.2, layers: [] },
+            ],
+          },
+          scale,
+        );
+        expect(frames).toHaveLength(7);
+
+        expected.forEach((color, n) => {
+          expectColor(rgb(frames[n], 15, 15), color, `frame ${n}: annie`);
+          expectColor(rgb(frames[n], 35, 15), BLUE, `frame ${n}: transparent`);
+          expect(bbox(frames[n], notBlue)).toEqual({ x: [0, 29], y: [0, 29] });
+        });
+        for (const n of [5, 6]) {
+          expect(bbox(frames[n], notBlue), `frame ${n}`).toBeUndefined();
+        }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+
+  test.for(cases)(
+    "a QOI annie whose frames switch between 3 and 4 channels at scale %s from %s sources",
+    { timeout: 30000 },
+    async ([scale, kind]) => {
+      const tempDir = await createTestOutputDir(
+        `qoi-channels-${scale}-${kind}`,
+      );
+      const px = (n: number) => n / scale;
+
+      try {
+        // 40x30 frames: opaque red with 3 channels (decoded as rgb24), or
+        // half-transparent lime with 4 (rgba).
+        const red = await qoi(
+          tempDir,
+          "red",
+          `color=c=red:s=${px(40)}x${px(30)},format=rgb24`,
+          3,
+        );
+        const lime = await qoi(
+          tempDir,
+          "lime",
+          `color=c=lime@0.5:s=${px(40)}x${px(30)},format=rgba`,
+          4,
+        );
+        // A white 14x10 box in the top-right corner, clear of the annie, on
+        // an otherwise transparent RGBA image the size of the frame.
+        const square = await qoi(
+          tempDir,
+          "square",
+          `color=c=black@0:s=${px(W - 14)}x${px(10)},format=rgba[l];` +
+            `color=c=white:s=${px(14)}x${px(10)},format=rgba[r];` +
+            `color=c=black@0:s=${px(W)}x${px(H - 10)},format=rgba[b];` +
+            `[l][r]hstack[t];[t][b]vstack`,
+          4,
+        );
+        const expected = [
+          RED,
+          RED,
+          LIME_OVER_BLUE,
+          LIME_OVER_BLUE,
+          RED,
+          LIME_OVER_BLUE,
+        ];
+        const anim = await annie(expected.map((c) => (c === RED ? red : lime)));
+
+        const sources = {
+          anim: sourceUrl(kind, anim, "application/x-tar"),
+          square: sourceUrl(kind, square, "image/qoi"),
+        };
+        const frames = await renderFrames(
+          tempDir,
+          {
+            width: px(W),
+            height: px(H),
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "blue" },
+            sources,
+            segments: [
+              {
+                duration: 0.6,
+                layers: [
+                  { type: "image", source: "#square" },
+                  { type: "animation", source: "#anim" },
+                ],
+              },
+              { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
+            ],
+          },
+          scale,
+        );
+        expect(frames).toHaveLength(9);
+
+        frames.forEach((frame, n) => {
+          // The image layer is on every frame, in both segments.
+          expectColor(rgb(frame, W - 7, 5), WHITE, `frame ${n}: box`);
+          if (n < expected.length) {
+            // Each annie frame shows when it's due, with its own alpha, at
+            // its full 40x30 size.
+            expectColor(rgb(frame, 20, 15), expected[n], `frame ${n}: annie`);
+            expect(bbox(frame, notBlue), `frame ${n}`).toEqual({
+              x: [0, 39],
+              y: [0, 29],
+            });
+          } else {
+            expect(bbox(frame, notBlue), `frame ${n}`).toBeUndefined();
+          }
+        });
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
 });

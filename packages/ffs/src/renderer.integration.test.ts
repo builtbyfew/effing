@@ -1275,7 +1275,10 @@ describe("distributed rendering integration", () => {
       expect(frames.length).toBe(await expectedLayeredFrames(fps, duration));
 
       // The red/blue edge starts at the centre and moves left by
-      // (width / 2) / (fps * duration) px per frame.
+      // (width / 2) / (fps * duration) px per frame. The tolerance is 2 px:
+      // with 4:2:0 chroma the measured edge lands on even columns, so it is
+      // up to ~1 px off already and an encoder may shift it by one more
+      // pixel. Frames spaced at 25 fps instead are ~5 px off.
       const step = smallWidth / 2 / (fps * duration);
       frames.forEach((frame, n) => {
         let edge = 0;
@@ -1284,7 +1287,7 @@ describe("distributed rendering integration", () => {
         expect(
           Math.abs(edge - expected),
           `frame ${n}: edge ${edge}`,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(2);
       });
     } finally {
       await cleanupTestOutput(tempDir);

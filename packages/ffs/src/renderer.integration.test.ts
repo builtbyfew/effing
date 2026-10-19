@@ -2249,13 +2249,13 @@ describe("QOI sources", () => {
     return x1 < 0 ? undefined : { x: [x0, x1], y: [y0, y1] };
   }
 
-  /** Expects each channel within 30 of `expected`. */
+  /** Expects each channel within 10 of `expected`. */
   function expectColor(actual: RGB, expected: RGB, label: string) {
     for (let c = 0; c < 3; c++) {
       expect(
         Math.abs(actual[c] - expected[c]),
         `${label}: ${JSON.stringify(actual)}`,
-      ).toBeLessThan(30);
+      ).toBeLessThanOrEqual(10);
     }
   }
 
@@ -2264,9 +2264,13 @@ describe("QOI sources", () => {
   const LIME: RGB = [0, 255, 0];
   const WHITE: RGB = [255, 255, 255];
   const YELLOW: RGB = [255, 255, 0];
-  // Half-transparent red or lime over the blue background
-  const RED_OVER_BLUE: RGB = [128, 0, 128];
-  const LIME_OVER_BLUE: RGB = [0, 128, 128];
+  // A half-transparent mid-tone, and what it composites to over the blue
+  // background. Saturated primaries wouldn't do: scaling a frame with
+  // straight alpha and then unpremultiplying it brightens it, which clips
+  // red@0.5 and lime@0.5 back to 255 and hides the error, while this colour
+  // comes out visibly wrong (about [64, 255, 192] at half alpha).
+  const HALF_GREEN = "0x20c060@0.5";
+  const HALF_GREEN_OVER_BLUE: RGB = [16, 96, 176];
   /** Anything but the blue background (or white). */
   const notBlue = ([r, g, b]: RGB) => (r > 64 || g > 64) && b < 200;
 
@@ -2279,13 +2283,13 @@ describe("QOI sources", () => {
       const px = (n: number) => n / scale;
 
       try {
-        // RGBA, 40x30: 20 px of opaque red, 10 px of half-transparent red
+        // RGBA, 40x30: 20 px of opaque red, 10 px of half-transparent green
         // and 10 px of transparent black.
         const rgba = await qoi(
           tempDir,
           "rgba",
           `color=c=red:s=${px(20)}x${px(30)},format=rgba[a];` +
-            `color=c=red@0.5:s=${px(10)}x${px(30)},format=rgba[b];` +
+            `color=c=${HALF_GREEN}:s=${px(10)}x${px(30)},format=rgba[b];` +
             `color=c=black@0:s=${px(10)}x${px(30)},format=rgba[c];` +
             `[a][b][c]hstack=inputs=3`,
           4,
@@ -2323,7 +2327,11 @@ describe("QOI sources", () => {
         for (const n of [0, 1, 2]) {
           const frame = frames[n];
           expectColor(rgb(frame, 10, 15), RED, `frame ${n}: opaque`);
-          expectColor(rgb(frame, 25, 15), RED_OVER_BLUE, `frame ${n}: half`);
+          expectColor(
+            rgb(frame, 25, 15),
+            HALF_GREEN_OVER_BLUE,
+            `frame ${n}: half`,
+          );
           expectColor(rgb(frame, 35, 15), BLUE, `frame ${n}: transparent`);
           expectColor(rgb(frame, 100, 50), BLUE, `frame ${n}: background`);
           // Of the 40x30 layer, all but the transparent 10 px show.
@@ -2335,6 +2343,67 @@ describe("QOI sources", () => {
           expectColor(rgb(frame, 100, 50), BLUE, `frame ${n}: background`);
           expect(bbox(frame, notBlue)).toEqual({ x: [0, 29], y: [0, 19] });
         }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+
+  test.for(cases)(
+    "a transparent QOI layer has no dark fringe at scale %s from %s sources",
+    { timeout: 30000 },
+    async ([scale, kind]) => {
+      // Inside a band of uniform alpha, scaling with straight alpha gives
+      // the right colour, so the test above can't tell it from scaling with
+      // premultiplied alpha; at a transparent edge it can. As in the PNG
+      // fringe test: opaque yellow shapes, at odd positions, on transparent
+      // black over cyan. Every output pixel should be a mix of yellow and
+      // cyan, so its luma lies between theirs, give or take the ringing of
+      // the bicubic filter and the encoder. Scaled with straight alpha, the
+      // black of the transparent pixels would darken the edges below cyan.
+      const tempDir = await createTestOutputDir(`qoi-fringe-${scale}-${kind}`);
+      const px = (n: number) => n / scale;
+
+      try {
+        const shapes = await qoi(
+          tempDir,
+          "shapes",
+          `color=c=black@0:s=${px(W)}x${px(H)},format=rgba,` +
+            "drawbox=x=41:y=17:w=51:h=31:color=yellow:t=fill:replace=1," +
+            "drawbox=x=13:y=55:w=97:h=5:color=yellow:t=fill:replace=1",
+          4,
+        );
+        const frames = await renderFrames(
+          tempDir,
+          {
+            width: px(W),
+            height: px(H),
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "cyan" },
+            sources: { shapes: sourceUrl(kind, shapes, "image/qoi") },
+            segments: [
+              { duration: 0.3, layers: [{ type: "image", source: "#shapes" }] },
+            ],
+          },
+          scale,
+        );
+        expect(frames).toHaveLength(3);
+
+        const luma = ([r, g, b]: RGB) => 0.299 * r + 0.587 * g + 0.114 * b;
+        const cyan = luma(rgb(frames[0], W - 4, H - 4));
+        // The first box's centre, at (66, 32) in composition pixels
+        const yellow = luma(
+          rgb(frames[0], Math.floor(66 * scale), Math.floor(32 * scale)),
+        );
+        expect(yellow - cyan).toBeGreaterThan(30);
+        let darkest = Infinity;
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            darkest = Math.min(darkest, luma(rgb(frames[0], x, y)));
+          }
+        }
+        expect(darkest).toBeGreaterThanOrEqual(cyan - 20);
       } finally {
         await cleanupTestOutput(tempDir);
       }
@@ -2481,17 +2550,17 @@ describe("QOI sources", () => {
 
       try {
         // 40x30 frames: opaque red with 3 channels (decoded as rgb24), or
-        // half-transparent lime with 4 (rgba).
+        // half-transparent green with 4 (rgba).
         const red = await qoi(
           tempDir,
           "red",
           `color=c=red:s=${px(40)}x${px(30)},format=rgb24`,
           3,
         );
-        const lime = await qoi(
+        const green = await qoi(
           tempDir,
-          "lime",
-          `color=c=lime@0.5:s=${px(40)}x${px(30)},format=rgba`,
+          "green",
+          `color=c=${HALF_GREEN}:s=${px(40)}x${px(30)},format=rgba`,
           4,
         );
         // A white 14x10 box in the top-right corner, clear of the annie, on
@@ -2508,12 +2577,14 @@ describe("QOI sources", () => {
         const expected = [
           RED,
           RED,
-          LIME_OVER_BLUE,
-          LIME_OVER_BLUE,
+          HALF_GREEN_OVER_BLUE,
+          HALF_GREEN_OVER_BLUE,
           RED,
-          LIME_OVER_BLUE,
+          HALF_GREEN_OVER_BLUE,
         ];
-        const anim = await annie(expected.map((c) => (c === RED ? red : lime)));
+        const anim = await annie(
+          expected.map((c) => (c === RED ? red : green)),
+        );
 
         const sources = {
           anim: sourceUrl(kind, anim, "application/x-tar"),

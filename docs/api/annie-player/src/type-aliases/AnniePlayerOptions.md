@@ -16,7 +16,7 @@ Defined in: [annie-player/src/core.ts:20](https://github.com/builtbyfew/effing/b
 
 > `optional` **autoPlay?**: `boolean`
 
-Defined in: [annie-player/src/core.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L23)
+Defined in: [annie-player/src/core.ts:24](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L24)
 
 ***
 
@@ -24,7 +24,9 @@ Defined in: [annie-player/src/core.ts:23](https://github.com/builtbyfew/effing/b
 
 > `optional` **fps?**: `number`
 
-Defined in: [annie-player/src/core.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L22)
+Defined in: [annie-player/src/core.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L23)
+
+Playback frame rate, a finite number above 0 (default 30)
 
 ***
 

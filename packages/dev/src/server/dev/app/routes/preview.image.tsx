@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
+import { QoiAwareImg } from "@effing/annie-player/react";
 import { fnModule, fnUrl } from "@effing/fn";
 import { ensureFnRuntime } from "../fn.server";
 import { parseBoundsFromUrl } from "../urls.server";
@@ -76,7 +77,7 @@ export default function ImagePreviewPage() {
           gap: "1.5rem",
         }}
       >
-        <img
+        <QoiAwareImg
           src={imageUrl}
           width={scaled.width}
           height={scaled.height}

@@ -82,11 +82,17 @@ function AnniePlayerRoot({
   const [state, setState] = useState<AnniePlayerState>(initialState);
   const [isHovering, setIsHovering] = useState(false);
 
+  // The last frames' dimensions loaded, kept while a new src loads so the
+  // canvas doesn't jump back to defaultWidth in between
+  const [dimensions, setDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
   // The canvas is `height` tall, and as wide as the frames' aspect ratio
   // makes it once they're loaded (defaultWidth, or square, before then).
   // Derived rather than set on load, so a new height resizes the canvas
   // without a new player.
-  const { dimensions } = state;
   const canvasDimensions = useMemo(
     () => ({
       width: dimensions
@@ -125,6 +131,7 @@ function AnniePlayerRoot({
 
     const unsubscribeState = player.on("statechange", (newState) => {
       setState(newState);
+      if (newState.dimensions) setDimensions(newState.dimensions);
     });
 
     if (canvasRef.current) {
@@ -150,19 +157,17 @@ function AnniePlayerRoot({
     if (fpsValid) playerRef.current?.setFps(fps);
   }, [fps, fpsValid]);
 
-  // Attach the canvas to the player, and redraw the current frame when a
-  // new height resizes the canvas, which clears it. (A resize for newly
-  // loaded frames draws nothing, as before: the player draws on play.)
-  const drawnHeightRef = useRef(height);
+  // Attach the canvas to the player, and draw the current frame whenever
+  // the canvas is resized, which clears it: for a new height, and when
+  // frames load, which shows a loaded player's first frame as a poster
+  // (and keeps an autoPlay player's first frame, drawn before the resize).
   useEffect(() => {
-    const heightChanged = drawnHeightRef.current !== height;
-    drawnHeightRef.current = height;
     const player = playerRef.current;
     const canvas = canvasRef.current;
     if (player && canvas) {
       player.attachCanvas(canvas);
       const { frameCount, currentFrame } = player.getState();
-      if (heightChanged && frameCount > 0) {
+      if (frameCount > 0) {
         player.seek(currentFrame);
       }
     }

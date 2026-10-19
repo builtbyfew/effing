@@ -211,9 +211,48 @@ describe("AnniePlayer.Root", () => {
     await settle();
 
     expect(latest(states)).toMatchObject({ frameCount: 3, isPlaying: true });
-    // play() draws the first frame of the new annie straight away.
+    // play() draws the first frame of the new annie straight away, and it's
+    // drawn again once the canvas takes the new annie's dimensions.
+    expect(drawImage).toHaveBeenCalled();
+    for (const [image] of drawImage.mock.calls) {
+      expect((image as FakeImage).src).toBe("blob:mock-2");
+    }
+  });
+
+  it("draws the first frame as a poster once loaded, without playing", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    const states = renderPlayer({ src: "/a.annie", autoLoad: true });
+    await settle();
+
+    expect(latest(states)).toMatchObject({ frameCount: 2, isPlaying: false });
     expect(drawImage).toHaveBeenCalledOnce();
-    expect((drawImage.mock.calls[0][0] as FakeImage).src).toBe("blob:mock-2");
+    expect((drawImage.mock.calls[0][0] as FakeImage).src).toBe("blob:mock-0");
+  });
+
+  it("keeps the last loaded width while a new src loads", async () => {
+    let resolveB!: (bytes: Uint8Array<ArrayBuffer>) => void;
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    responses.set("/b.annie", new Promise((resolve) => (resolveB = resolve)));
+    renderPlayer({ src: "/a.annie", autoLoad: true, defaultWidth: 50 });
+    const canvas = container.querySelector("canvas")!;
+    expect(canvas.width).toBe(50);
+    await settle();
+    // The stand-in frames are 200 × 100.
+    expect(canvas.width).toBe(200);
+
+    const states = renderPlayer({
+      src: "/b.annie",
+      autoLoad: true,
+      defaultWidth: 50,
+    });
+    await settle();
+    expect(latest(states)).toMatchObject({ isLoading: true, frameCount: 0 });
+    expect(canvas.width).toBe(200);
+
+    resolveB(annie(3));
+    await settle();
+    expect(latest(states)).toMatchObject({ frameCount: 3 });
+    expect(canvas.width).toBe(200);
   });
 
   it("reloads when autoPlay recreates the player", async () => {

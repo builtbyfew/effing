@@ -34,11 +34,14 @@ type EventCallback<T> = (data: T) => void;
  * 1080p frame takes 8 MB, so decoding a 300-frame annie upfront (to
  * `ImageBitmap`s, say) would hold 2.4 GB, while its QOI bytes take a
  * fraction of that: a few percent of it for flat motion graphics, around
- * half for photographic content. Decoding a 1080p frame takes about 0.5-1 ms
- * for flat graphics and 6-12 ms for photographic content or noise in V8 on a
- * recent laptop, within the 33 ms a frame lasts at 30 fps. A cache of
- * decoded frames wouldn't help playback, which loops through every frame in
- * turn, so only the most recent one is kept, to redraw it for free.
+ * half for photographic content. On a recent laptop, decoding a 1080p frame
+ * takes about 1 ms for flat graphics and about 15 ms for photographic
+ * content in V8, and drawing it takes a few ms more, within the 33 ms a
+ * frame lasts at 30 fps. 4K photographic content (about 45 ms a frame) and
+ * slower devices can exceed that, and playback then slows down rather than
+ * skipping frames. A cache of decoded frames wouldn't help playback, which
+ * loops through every frame in turn, so only the most recent one is kept,
+ * to redraw it for free.
  */
 type Frame =
   | { kind: "image"; image: HTMLImageElement }
@@ -440,6 +443,8 @@ export class AnniePlayerCore {
   }
 
   private animate = (timestamp: number): void => {
+    // The id of the frame this callback runs in
+    const frameId = this.animationFrameId;
     if (!this._isPlaying || this.frames.length === 0) {
       this.animationFrameId = null;
       return;
@@ -460,6 +465,14 @@ export class AnniePlayerCore {
       this.lastFrameTime = timestamp - (elapsed % this.frameInterval);
       const nextIndex = (this.currentFrameIndex + 1) % this.frames.length;
       this.drawFrame(nextIndex);
+      // A frame that fails to decode pauses playback, which can't cancel
+      // the frame this callback runs in, and a listener may even have
+      // started a new loop already (seek(0) and play() on error, say).
+      // Either way, this loop ends here.
+      if (this.animationFrameId !== frameId) {
+        if (!this._isPlaying) this.animationFrameId = null;
+        return;
+      }
     }
 
     this.animationFrameId = requestAnimationFrame(this.animate);
@@ -486,6 +499,8 @@ export class AnniePlayerCore {
     this.loadController?.abort();
     this.loadController = null;
     this._isLoading = false;
+    // Frames are gone too, so don't report loading or playing any more.
+    this._status = "Ready to load animation.";
     this.stop();
     this.cleanup();
     this.detachCanvas();

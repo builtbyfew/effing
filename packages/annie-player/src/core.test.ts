@@ -356,7 +356,12 @@ describe("AnniePlayerCore", () => {
     await loading;
 
     expect(onLoad).not.toHaveBeenCalled();
-    expect(player.getState()).toMatchObject({ frameCount: 0, error: null });
+    expect(player.getState()).toMatchObject({
+      frameCount: 0,
+      error: null,
+      isLoading: false,
+      status: "Ready to load animation.",
+    });
     const created = createObjectURL.mock.results.map((r) => r.value as string);
     const revoked = revokeObjectURL.mock.calls.map((call) => call[0] as string);
     expect(created).toHaveLength(2);
@@ -636,6 +641,44 @@ describe("AnniePlayerCore with QOI frames", () => {
       status: `Error: ${message}`,
     });
     expect(drawImage).toHaveBeenCalledOnce();
+  });
+
+  it("ends the animation loop whose frame failed, even when an error listener restarts playback", async () => {
+    const corrupt = new Uint8Array([
+      ...qoiImage(4, 1, [[9, 9, 9]]).subarray(0, 18),
+      ...[0, 0, 0, 0, 0, 0, 0, 1],
+    ]);
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", corrupt],
+      ]),
+    );
+    // Real ids, so the player can tell its loops apart.
+    const callbacks: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((callback: FrameRequestCallback) => callbacks.push(callback)),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+    const onError = vi.fn(() => {
+      player.seek(0);
+      player.play();
+    });
+    player.on("error", onError);
+
+    player.play(); // requests frame 1
+    callbacks[0](1000); // requests frame 2
+    callbacks[1](1040); // frame 1 fails; the listener's play() requests frame 3
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(player.getState().isPlaying).toBe(true);
+    // Only the restarted loop goes on: frame 2's callback requested none.
+    expect(callbacks).toHaveLength(3);
+    callbacks[2](2000);
+    expect(callbacks).toHaveLength(4);
   });
 
   it("reports an error when seeking to a QOI frame that fails to decode, and still draws others", async () => {

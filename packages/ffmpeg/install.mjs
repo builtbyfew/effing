@@ -45,7 +45,7 @@ const binaryName = platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 const binaryPath = path.join(__dirname, binaryName);
 
 // FFmpeg version to download. Keep checksums.json in sync when bumping.
-const FFMPEG_VERSION = "9.0.1";
+const FFMPEG_VERSION = "9.0.2";
 
 const baseUrl =
   process.env.FFMPEG_BINARIES_URL ||

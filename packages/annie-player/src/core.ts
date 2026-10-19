@@ -27,13 +27,21 @@ export type AnniePlayerOptions = {
 type EventCallback<T> = (data: T) => void;
 
 /**
- * Check a frame rate. 0 or NaN would never advance a frame while the player
- * reports playing, and a negative one would advance on every repaint.
+ * What's wrong with a frame rate, or null if nothing is. 0 or NaN would
+ * never advance a frame while the player reports playing, and a negative
+ * one would advance on every repaint.
+ *
+ * @internal Shared with the React player, not exported from the package.
  */
+export function fpsProblem(fps: number): string | null {
+  return Number.isFinite(fps) && fps > 0
+    ? null
+    : `fps must be a finite number above 0, not ${fps}`;
+}
+
 function checkFps(fps: number): number {
-  if (!Number.isFinite(fps) || fps <= 0) {
-    throw new RangeError(`fps must be a finite number above 0, not ${fps}`);
-  }
+  const problem = fpsProblem(fps);
+  if (problem) throw new RangeError(problem);
   return fps;
 }
 

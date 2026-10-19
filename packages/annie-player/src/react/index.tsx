@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { AnniePlayerCore, type AnniePlayerState } from "../core";
+import { AnniePlayerCore, fpsProblem, type AnniePlayerState } from "../core";
 export { QoiAwareImg, type QoiAwareImgProps } from "./qoi-aware-img";
 
 // ============ Context ============
@@ -109,23 +109,15 @@ function AnniePlayerRoot({
   // StrictMode, the first player is destroyed, which aborts its load,
   // before the second one loads.
   //
-  // An fps the player rejects (0, negative, NaN) is shown as the player's
-  // error rather than thrown, so one bad preview doesn't take down the page
-  // around it; there's no player until the fps is valid again.
-  const fpsValid = Number.isFinite(fps) && fps > 0;
+  // An fps the player would reject (0, negative, NaN) is shown as the
+  // player's error (see shownState below) rather than thrown, so one bad
+  // preview doesn't take down the page around it; there's no player until
+  // the fps is valid again.
+  const fpsError = fpsProblem(fps);
+  const fpsValid = fpsError === null;
   useEffect(() => {
-    let player: AnniePlayerCore;
-    try {
-      player = new AnniePlayerCore({ src, fps, autoPlay });
-    } catch (err) {
-      if (!(err instanceof RangeError)) throw err;
-      setState({
-        ...initialState,
-        error: err.message,
-        status: `Error: ${err.message}`,
-      });
-      return;
-    }
+    if (!fpsValid) return;
+    const player = new AnniePlayerCore({ src, fps, autoPlay });
     playerRef.current = player;
     setState(player.getState());
 
@@ -194,8 +186,14 @@ function AnniePlayerRoot({
     seek: (frameIndex: number) => playerRef.current?.seek(frameIndex),
   };
 
+  // A bad fps shows as an idle player with that error, naming the current
+  // value; the last player's state is left behind.
+  const shownState: AnniePlayerState = fpsError
+    ? { ...initialState, error: fpsError, status: `Error: ${fpsError}` }
+    : state;
+
   const value: AnniePlayerContextValue = {
-    state,
+    state: shownState,
     actions,
     canvasRef,
     canvasDimensions,

@@ -323,6 +323,21 @@ describe("AnniePlayer.Root", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it("names the current fps when one bad fps replaces another", async () => {
+    responses.set("/a.annie", Promise.resolve(annie(2)));
+    renderPlayer({ src: "/a.annie", autoLoad: true, fps: 0 });
+    await settle();
+
+    const states = renderPlayer({ src: "/a.annie", autoLoad: true, fps: NaN });
+    await settle();
+
+    expect(latest(states)).toMatchObject({
+      error: "fps must be a finite number above 0, not NaN",
+      status: "Error: fps must be a finite number above 0, not NaN",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("resizes the canvas for a new height without reloading, and redraws it", async () => {
     responses.set("/a.annie", Promise.resolve(annie(2)));
     renderPlayer({ src: "/a.annie", autoLoad: true, height: 100 });

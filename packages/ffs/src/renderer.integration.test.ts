@@ -936,4 +936,324 @@ describe("distributed rendering integration", () => {
       await cleanupTestOutput(tempDir);
     }
   }, 30000);
+
+  // Static images are read as a single frame and repeated in the filter graph
+  // (see imageInputArgs in renderer.ts), so these check that image layers and
+  // backgrounds keep their timing: the frame count and duration of the
+  // output, a fade's progress frame by frame, a delayed layer's start, and
+  // which background shows in each segment. At 0.5 the images are downscaled
+  // with sharp before FFmpeg reads them.
+  test.each([1, 0.5])(
+    "static image layers and backgrounds keep their timing at scale %s",
+    async (scale) => {
+      const ffmpegBin = renderFFmpegBin;
+      const tempDir = await createTestOutputDir(`static-images-${scale}`);
+
+      try {
+        const fps = 30;
+        const width = 128;
+        const height = 72;
+
+        // A JPEG global background twice the frame size (so it's
+        // cover-scaled), a PNG segment background, and a red PNG covering the
+        // left half of the frame, used as a layer in two segments.
+        async function solid(name: string, color: string, size: string) {
+          const filePath = path.join(tempDir, name);
+          await execFileP(ffmpegBin, [
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            `color=c=${color}:s=${size}`,
+            "-frames:v",
+            "1",
+            filePath,
+          ]);
+          return effieFileUrl(pathToFileURL(filePath).toString());
+        }
+        const sources: EffieSources<EffieFileUrl> = {
+          blue: await solid("blue.jpg", "blue", `${width * 2}x${height * 2}`),
+          green: await solid("green.png", "lime", `${width}x${height}`),
+          red: await solid("red.png", "red", `${width / 2}x${height}`),
+        };
+
+        // Segment 0 (2 s): the red layer fades in over the first second.
+        // Segment 1 (1.5 s, entered with a 0.5 s fade): its own background,
+        //   and the red layer only from 1 s in (delay).
+        // Segment 2 (0.5 s): back on the global background.
+        // Output: 2 + 1.5 - 0.5 + 0.5 = 3.5 s.
+        const effieData: EffieData<typeof sources, EffieFileUrl> = {
+          width,
+          height,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "image", source: "#blue" },
+          sources,
+          segments: [
+            {
+              duration: 2,
+              layers: [
+                {
+                  type: "image",
+                  source: "#red",
+                  effects: [{ type: "fade-in", start: 0, duration: 1 }],
+                },
+              ],
+            },
+            {
+              duration: 1.5,
+              background: { type: "image", source: "#green" },
+              transition: { type: "fade", duration: 0.5 },
+              layers: [{ type: "image", source: "#red", delay: 1 }],
+            },
+            { duration: 0.5, layers: [] },
+          ],
+        };
+        const expectedDuration = 3.5;
+
+        const renderer = new EffieRenderer(effieData, {
+          allowLocalFiles: true,
+        });
+        const outPath = path.join(tempDir, "out.mp4");
+        const stream = await renderer.render(scale);
+        const chunks: Buffer[] = [];
+        for await (const c of stream) chunks.push(c);
+        await fs.writeFile(outPath, Buffer.concat(chunks));
+        renderer.close();
+
+        // Decode every frame as rgb24, as stored (passthrough: the rawvideo
+        // muxer would otherwise pad the start of the stream, which begins at
+        // the B-frame delay rather than 0, with duplicates).
+        const frameWidth = width * scale;
+        const frameHeight = height * scale;
+        const frameBytes = frameWidth * frameHeight * 3;
+        const { stdout: raw, stderr: info } = await execFileP(
+          ffmpegBin,
+          [
+            "-i",
+            outPath,
+            "-map",
+            "0:v:0",
+            "-fps_mode",
+            "passthrough",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+          ],
+          { encoding: "buffer", maxBuffer: 1 << 26 },
+        );
+        expect(raw.length % frameBytes).toBe(0);
+        const frameCount = raw.length / frameBytes;
+        expect(frameCount).toBe(fps * expectedDuration);
+
+        // The container ends with the last video frame; the video stream
+        // starts at the B-frame delay.
+        const probe = info.toString();
+        expect(probe).toMatch(
+          new RegExp(`${frameWidth}x${frameHeight} \\[SAR 1:1 DAR 16:9\\]`),
+        );
+        const [, h, m, s] = /Duration: (\d+):(\d+):([\d.]+)/.exec(probe)!;
+        const end = Number(h) * 3600 + Number(m) * 60 + Number(s);
+        const start = Number(/Video: .*, start ([\d.]+)/.exec(probe)![1]);
+        expect(end - start).toBeCloseTo(expectedDuration, 1);
+
+        // RGB at the centre of the left (layer) or right (background) half.
+        const pixel = (frame: number, side: "left" | "right") => {
+          const x = Math.floor(frameWidth * (side === "left" ? 0.25 : 0.75));
+          const y = Math.floor(frameHeight / 2);
+          const i = frame * frameBytes + (y * frameWidth + x) * 3;
+          return { r: raw[i], g: raw[i + 1], b: raw[i + 2] };
+        };
+        const tolerance = 24;
+        const expectRGB = (
+          frame: number,
+          side: "left" | "right",
+          expected: { r: number; g: number; b: number },
+        ) => {
+          const actual = pixel(frame, side);
+          const label = `frame ${frame} ${side}: ${JSON.stringify(actual)}`;
+          expect(Math.abs(actual.r - expected.r), label).toBeLessThan(
+            tolerance,
+          );
+          expect(Math.abs(actual.g - expected.g), label).toBeLessThan(
+            tolerance,
+          );
+          expect(Math.abs(actual.b - expected.b), label).toBeLessThan(
+            tolerance,
+          );
+        };
+        const blue = { r: 0, g: 0, b: 255 };
+        const green = { r: 0, g: 255, b: 0 };
+        const red = { r: 255, g: 0, b: 0 };
+
+        // Segment 0: the fade-in's opacity is t/1s at every frame up to 1 s,
+        // over the cover-scaled background.
+        for (const frame of [0, 6, 15, 24]) {
+          const alpha = frame / fps;
+          expectRGB(frame, "left", {
+            r: 255 * alpha,
+            g: 0,
+            b: 255 * (1 - alpha),
+          });
+        }
+        expectRGB(35, "left", red);
+        expectRGB(35, "right", blue);
+
+        // Segment 1 starts at 1.5 s (frame 45); its fade transition ends at
+        // 2 s. The delayed layer appears 1 s in, at 2.5 s (frame 75).
+        expectRGB(62, "left", green);
+        expectRGB(74, "left", green);
+        expectRGB(75, "left", red);
+        expectRGB(88, "left", red);
+        expectRGB(88, "right", green);
+
+        // Segment 2 (from 3 s, frame 90): the global background again.
+        expectRGB(90, "left", blue);
+        expectRGB(frameCount - 1, "right", blue);
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+    30000,
+  );
+
+  test("static images keep one frame per 1/fps in very short segments and frame-based effects", async () => {
+    // A repeated image must still produce exactly one frame per 1/fps, as a
+    // looped input did: two- and one-frame segments must keep their frame
+    // counts, and the scroll effect, which moves the image a fixed distance
+    // per frame, must keep its speed. Without -framerate on the image input
+    // the frames would be spaced at FFmpeg's default 25 fps, which this
+    // catches.
+    const ffmpegBin = renderFFmpegBin;
+    const tempDir = await createTestOutputDir("static-images-short");
+
+    try {
+      const fps = 30;
+      const width = 64;
+      const height = 36;
+
+      async function image(name: string, color: string, filter = "null") {
+        const filePath = path.join(tempDir, name);
+        await execFileP(ffmpegBin, [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          `color=c=${color}:s=${width}x${height}`,
+          "-vf",
+          filter,
+          "-frames:v",
+          "1",
+          filePath,
+        ]);
+        return effieFileUrl(pathToFileURL(filePath).toString());
+      }
+      const sources: EffieSources<EffieFileUrl> = {
+        red: await image("red.png", "red"),
+        green: await image("green.png", "lime"),
+        // Left half red, right half blue.
+        halves: await image(
+          "halves.png",
+          "red",
+          `drawbox=x=${width / 2}:y=0:w=${width / 2}:h=${height}:color=blue:t=fill`,
+        ),
+      };
+
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width,
+        height,
+        fps,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "black" },
+        sources,
+        segments: [
+          // Two frames.
+          { duration: 2 / fps, layers: [{ type: "image", source: "#red" }] },
+          // One frame, on an image background.
+          {
+            duration: 1 / fps,
+            background: { type: "image", source: "#green" },
+            layers: [],
+          },
+          // 15 frames, scrolling left by half the image over 0.5 s.
+          {
+            duration: 0.5,
+            layers: [
+              {
+                type: "image",
+                source: "#halves",
+                effects: [
+                  {
+                    type: "scroll",
+                    direction: "left",
+                    duration: 0.5,
+                    distance: 1,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
+      const outPath = path.join(tempDir, "out.mp4");
+      const stream = await renderer.render();
+      const chunks: Buffer[] = [];
+      for await (const c of stream) chunks.push(c);
+      await fs.writeFile(outPath, Buffer.concat(chunks));
+      renderer.close();
+
+      const frameBytes = width * height * 3;
+      const { stdout: raw } = await execFileP(
+        ffmpegBin,
+        [
+          "-i",
+          outPath,
+          "-map",
+          "0:v:0",
+          "-fps_mode",
+          "passthrough",
+          "-f",
+          "rawvideo",
+          "-pix_fmt",
+          "rgb24",
+          "-",
+        ],
+        { encoding: "buffer", maxBuffer: 1 << 26 },
+      );
+      expect(raw.length / frameBytes).toBe(2 + 1 + 15);
+
+      // Dominant channel of the pixel at column x, mid-height.
+      const colorAt = (frame: number, x: number) => {
+        const i = frame * frameBytes + ((height / 2) * width + x) * 3;
+        const [r, g, b] = [raw[i], raw[i + 1], raw[i + 2]];
+        return r > 150 && g < 100 && b < 100
+          ? "red"
+          : g > 150 && r < 100 && b < 100
+            ? "green"
+            : b > 150 && r < 100 && g < 100
+              ? "blue"
+              : `rgb(${r},${g},${b})`;
+      };
+      expect(colorAt(0, width / 2)).toBe("red");
+      expect(colorAt(1, width / 2)).toBe("red");
+      expect(colorAt(2, width / 2)).toBe("green");
+
+      // The scroll moves the image left by width/30 px per frame (half the
+      // image over 15 frames), wrapping around: the red/blue edge starts at
+      // the centre and ends near the left edge.
+      const scrollStart = 3;
+      expect(colorAt(scrollStart, 8)).toBe("red");
+      expect(colorAt(scrollStart, 40)).toBe("blue");
+      expect(colorAt(scrollStart + 7, 8)).toBe("red");
+      expect(colorAt(scrollStart + 7, 24)).toBe("blue");
+      expect(colorAt(scrollStart + 14, 8)).toBe("blue");
+      expect(colorAt(scrollStart + 14, 40)).toBe("red");
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
 });

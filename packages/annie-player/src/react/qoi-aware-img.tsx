@@ -30,7 +30,9 @@ function credentialsFor(
  * cross-origin. The fetch sends credentials as `crossOrigin` says.
  *
  * `onError` is called when the image can't be shown either way: it isn't
- * QOI, it can't be fetched, or it's an invalid QOI image.
+ * QOI, it can't be fetched, or it's an invalid QOI image. An image that
+ * fails before hydration is still converted if it's QOI, but otherwise
+ * doesn't reach `onError`, just as with a plain `<img>` under React.
  */
 export function QoiAwareImg({
   src,

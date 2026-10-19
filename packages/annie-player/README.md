@@ -256,7 +256,7 @@ import { QoiAwareImg } from "@effing/annie-player/react";
 <QoiAwareImg src={url} alt="Preview" style={{ height: 540 }} />;
 ```
 
-It renders a plain `<img>`, so other images load exactly as before. Only when the browser can't show the image does it fetch it again and, if it's QOI, swap in a PNG converted from it. A cross-origin QOI image therefore needs CORS.
+It renders a plain `<img>`, so other images load exactly as before. Only when the browser can't show the image does it fetch it again and, if it's QOI, swap in a PNG converted from it. A cross-origin QOI image therefore needs CORS. `onError` is called when the image can't be shown either way; an image that fails before hydration is still converted if it's QOI, but otherwise doesn't reach `onError`, just as with a plain `<img>` under React.
 
 Without React, use `fetchQoiAsPngUrl(url)`, which returns an object URL for a PNG of a QOI image (or `null` for other images), `qoiToPngBlob(bytes)`, or the decoder itself, `decodeQoi(bytes)`, which returns RGBA pixels for an `ImageData`.
 

@@ -20,7 +20,7 @@ Every function module produces one of three output types:
 
 | Kind      | Output                  | Description                     |
 | --------- | ----------------------- | ------------------------------- |
-| `"image"` | `Promise<Buffer>`       | A single PNG or JPEG image      |
+| `"image"` | `Promise<Buffer>`       | A single PNG, JPEG or QOI image |
 | `"annie"` | `AsyncIterable<Buffer>` | A stream of animation frames    |
 | `"effie"` | `Promise<EffieData>`    | A declarative video composition |
 
@@ -39,7 +39,7 @@ const myImageFn: ImageFnModule = {
   }),
   previewProps: { title: "Hello", color: "#ff0000" },
   runner: async ({ props, bounds }) => {
-    // Generate and return PNG/JPEG bytes
+    // Generate and return PNG, JPEG or QOI bytes
     return renderImage(props, bounds);
   },
 };
@@ -158,7 +158,7 @@ Convenience functions for returning function output as HTTP responses.
 
 #### `imageResponse(bytes, options?)`
 
-Create a `Response` with auto-detected MIME type (PNG or JPEG).
+Create a `Response` with its MIME type detected from the bytes: `image/png`, `image/jpeg` or `image/qoi`. Throws for any other format. Browsers can't display a QOI image in an `<img>`, so use QOI only for images that FFS renders, such as layer sources, not for ones a page shows.
 
 ```typescript
 function imageResponse(
@@ -239,5 +239,5 @@ type FnUrlBuilder = {
 
 - [`@effing/annie`](../annie) — Annie animation format used by `"annie"` functions
 - [`@effing/effie`](../effie) — Effie composition format used by `"effie"` functions
-- [`@effing/canvas`](../canvas) — Render JSX to PNG for image function runners
+- [`@effing/canvas`](../canvas) — Render JSX to PNG, JPEG or QOI for image and annie function runners
 - [`@effing/tween`](../tween) — Step iteration and easing for animation runners

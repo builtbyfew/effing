@@ -15,9 +15,26 @@ describe("imageResponse", () => {
     expect(res.headers.get("Content-Type")).toBe("image/jpeg");
   });
 
+  test("detects QOI from magic bytes", () => {
+    // "qoif", a 1x1 RGBA header, one QOI_OP_RGBA pixel and the end marker
+    const qoi = Buffer.from([
+      0x71, 0x6f, 0x69, 0x66, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0xff, 1, 2, 3, 4, 0,
+      0, 0, 0, 0, 0, 0, 1,
+    ]);
+    const res = imageResponse(qoi);
+    expect(res.headers.get("Content-Type")).toBe("image/qoi");
+  });
+
   test("throws on unknown format", () => {
     const unknown = Buffer.from([0x00, 0x00, 0x00, 0x00]);
-    expect(() => imageResponse(unknown)).toThrow("Unsupported image format");
+    expect(() => imageResponse(unknown)).toThrow(
+      "Unsupported image format: expected PNG, JPEG or QOI",
+    );
+  });
+
+  test("throws on WebP", () => {
+    const webp = Buffer.from("RIFF\0\0\0\0WEBPVP8 ", "latin1");
+    expect(() => imageResponse(webp)).toThrow("Unsupported image format");
   });
 
   test("sets default Cache-Control", () => {

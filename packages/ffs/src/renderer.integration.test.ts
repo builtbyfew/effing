@@ -1138,6 +1138,7 @@ describe("distributed rendering integration", () => {
     name: string,
     color: string,
     filter = "null",
+    size = `${smallWidth}x${smallHeight}`,
   ): Promise<EffieFileUrl> {
     const filePath = path.join(tempDir, name);
     await execFileP(renderFFmpegBin, [
@@ -1145,7 +1146,7 @@ describe("distributed rendering integration", () => {
       "-f",
       "lavfi",
       "-i",
-      `color=c=${color}:s=${smallWidth}x${smallHeight}`,
+      `color=c=${color}:s=${size}`,
       "-vf",
       filter,
       "-frames:v",
@@ -1155,13 +1156,18 @@ describe("distributed rendering integration", () => {
     return effieFileUrl(pathToFileURL(filePath).toString());
   }
 
+  /**
+   * Renders at `scale` (a composition `1 / scale` times the small size, so
+   * the output is always smallWidth x smallHeight).
+   */
   async function renderSmallFrames(
     tempDir: string,
     effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+    scale = 1,
   ): Promise<Buffer[]> {
     const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
     const outPath = path.join(tempDir, "out.mp4");
-    const stream = await renderer.render();
+    const stream = await renderer.render(scale);
     const chunks: Buffer[] = [];
     for await (const c of stream) chunks.push(c);
     await fs.writeFile(outPath, Buffer.concat(chunks));
@@ -1314,18 +1320,29 @@ describe("distributed rendering integration", () => {
     }
   }, 30000);
 
-  test.for<"format" | "size">(["format", "size"])(
-    "an annie whose frames change %s mid-stream keeps the image layers and timing",
+  test.for<["format" | "size", number]>([
+    ["format", 1],
+    ["size", 1],
+    ["format", 0.5],
+    ["size", 0.5],
+  ])(
+    "an annie whose frames change %s mid-stream keeps the image layers and timing at scale %s",
     { timeout: 30000 },
-    async (change) => {
+    async ([change, scale]) => {
       // Annie frames can differ in pixel format (an rgba PNG after rgb24
       // ones) or size. By default FFmpeg rebuilds the whole filter graph when
       // that happens, which left the single-frame image inputs with nothing
       // to send (image layers vanished from then on, in every segment) and
       // restarted every chain's timing (frames came out early and the frame
       // count was off). The animation input now keeps the graph, and its
-      // chain gives every frame the first frame's format and size.
-      const tempDir = await createTestOutputDir(`annie-${change}-change`);
+      // chain gives every frame the first frame's format and size. At scale
+      // 0.5 the composition is twice the size, so the output and every
+      // position checked below are the same.
+      const tempDir = await createTestOutputDir(
+        `annie-${change}-change-${scale}`,
+      );
+      // A size at scale 1, for a composition rendered at `scale`.
+      const sized = (w: number, h: number) => `${w / scale}x${h / scale}`;
 
       try {
         const fps = 10;
@@ -1349,11 +1366,11 @@ describe("distributed rendering integration", () => {
         }
         // Three opaque red rgb24 frames, then three green frames: rgba and
         // half transparent, or opaque but larger.
-        const red = await frame("red.png", "red", "47x33");
+        const red = await frame("red.png", "red", sized(47, 33));
         const green =
           change === "format"
-            ? await frame("green.png", "lime@0.5", "47x33")
-            : await frame("green.png", "lime", "81x61");
+            ? await frame("green.png", "lime@0.5", sized(47, 33))
+            : await frame("green.png", "lime", sized(81, 61));
         const anniePath = path.join(tempDir, "anim.tar");
         await fs.writeFile(
           anniePath,
@@ -1369,29 +1386,34 @@ describe("distributed rendering integration", () => {
             tempDir,
             "square.png",
             "black@0",
-            `format=rgba,drawbox=x=50:y=0:w=14:h=10:color=blue:t=fill`,
+            `format=rgba,drawbox=x=${50 / scale}:y=0:w=${14 / scale}:h=${10 / scale}:color=blue:t=fill`,
+            sized(smallWidth, smallHeight),
           ),
           anim: effieFileUrl(pathToFileURL(anniePath).toString()),
         };
 
-        const frames = await renderSmallFrames(tempDir, {
-          width: smallWidth,
-          height: smallHeight,
-          fps,
-          cover: "https://example.com/cover.png",
-          background: { type: "color", color: "black" },
-          sources,
-          segments: [
-            {
-              duration: 0.6,
-              layers: [
-                { type: "image", source: "#square" },
-                { type: "animation", source: "#anim" },
-              ],
-            },
-            { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
-          ],
-        });
+        const frames = await renderSmallFrames(
+          tempDir,
+          {
+            width: smallWidth / scale,
+            height: smallHeight / scale,
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "black" },
+            sources,
+            segments: [
+              {
+                duration: 0.6,
+                layers: [
+                  { type: "image", source: "#square" },
+                  { type: "animation", source: "#anim" },
+                ],
+              },
+              { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
+            ],
+          },
+          scale,
+        );
         const segment0Frames = fps * 0.6;
         expect(frames.length).toBe(fps * (0.6 + 0.3));
 
@@ -1431,9 +1453,9 @@ describe("distributed rendering integration", () => {
 
 describe("scaled renders", () => {
   // A scaled render shrinks image and animation layers inside the filter
-  // graph (see layerScaleFilters in renderer.ts). These check the layers'
-  // sizes and positions, alpha edges, EXIF orientation, and which sources get
-  // premultiplied.
+  // graph (see imageScaleFilters and animationChainHead in renderer.ts).
+  // These check the layers' sizes and positions, alpha edges, EXIF
+  // orientation, and which sources get premultiplied, and how.
   const ffmpegBin = renderFFmpegBin;
 
   /** Writes a single-frame image made by a lavfi source graph. */
@@ -1753,13 +1775,147 @@ describe("scaled renders", () => {
     30000,
   );
 
-  test("only sources with an alpha channel are premultiplied", async () => {
-    // Every layer gets the same scale chain (see layerScaleFilters); FFmpeg
-    // inserts the premultiplication while negotiating the graph, only for
-    // inputs decoded into a pixel format with alpha. An opaque JPEG or RGB
-    // PNG is scaled as is, not first converted to an alpha format at full
-    // size. Checked in the negotiated graph FFmpeg dumps as JSON
-    // (-print_graphs_file) when it runs the render's own command.
+  test.each([1, 0.5])(
+    "an annie whose later frames gain alpha keeps their translucency at scale %s",
+    async (scale) => {
+      // Three opaque rgb24 frames, then three rgba frames of half
+      // transparent dark green (0, 100, 0) over black: those should composite
+      // to (0, 50, 0). Premultiplying for the scale only when the first frame
+      // has alpha would scale them with straight alpha and unpremultiply them
+      // anyway, doubling their colour to (0, 100, 0).
+      const tempDir = await createTestOutputDir(`scaled-annie-alpha-${scale}`);
+
+      try {
+        const size = `${48 / scale}x${32 / scale}`;
+        const red = await fs.readFile(
+          await lavfiImage(
+            tempDir,
+            "red",
+            `color=c=red:s=${size},format=rgb24`,
+          ),
+        );
+        const green = await fs.readFile(
+          await lavfiImage(
+            tempDir,
+            "green",
+            `color=c=0x006400@0.5:s=${size},format=rgba`,
+          ),
+        );
+        const anniePath = path.join(tempDir, "anim.annie");
+        await fs.writeFile(
+          anniePath,
+          await annieBuffer(
+            (async function* () {
+              for (const f of [red, red, red, green, green, green]) yield f;
+            })(),
+          ),
+        );
+        const sources: EffieSources<EffieFileUrl> = {
+          anim: fileUrl(anniePath),
+        };
+        const effieData: EffieData<typeof sources, EffieFileUrl> = {
+          width: 64 / scale,
+          height: 36 / scale,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            { duration: 0.6, layers: [{ type: "animation", source: "#anim" }] },
+          ],
+        };
+
+        const outPath = await renderToFile(tempDir, effieData, scale);
+        const frames = await decodeLuma(outPath, 64, 36);
+        expect(frames).toHaveLength(6);
+        // Luma (full range) of red is about 76, of (0, 50, 0) about 29 and
+        // of (0, 100, 0) about 59.
+        const luma = frames.map((frame) => frame[10 * 64 + 10]);
+        for (const n of [0, 1, 2]) {
+          expect(luma[n], `frame ${n}: red`).toBeGreaterThan(60);
+        }
+        for (const n of [3, 4, 5]) {
+          expect(luma[n], `frame ${n}: half transparent`).toBeGreaterThan(15);
+          expect(luma[n], `frame ${n}: half transparent`).toBeLessThan(45);
+        }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+    30000,
+  );
+
+  /**
+   * Runs the render's own FFmpeg command (as buildFFmpegCommand builds it)
+   * with the negotiated filter graph dumped as JSON (-print_graphs_file),
+   * and returns the input link of every filter in it, auto-inserted ones
+   * included, keyed by filter id (e.g. in_1_v -> G0_auto_scale_5 ->
+   * G0_auto_premultiply_dynamic_0 -> G0_Parsed_format_0 -> ...).
+   */
+  async function negotiatedGraph(
+    tempDir: string,
+    effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+    scale: number,
+  ) {
+    type Command = {
+      inputs: { index: number; source: string }[];
+      buildArgs(resolve: (input: { source: string }) => string): string[];
+    };
+    const command = (
+      new EffieRenderer(effieData) as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand(path.join(tempDir, "out.mp4"), scale);
+    const args = command.buildArgs(({ source }) =>
+      fileURLToPath(effieData.sources![source.slice(1)]),
+    );
+    const graphFile = path.join(tempDir, "graph.json");
+    args.unshift("-print_graphs_format", "json");
+    args.unshift("-print_graphs_file", graphFile);
+    await execFileP(ffmpegBin, args);
+
+    type Link = {
+      filter_id: string;
+      source_filter_id: string;
+      format: string;
+      width: number;
+      height: number;
+    };
+    type Filter = { filter_name: string; filter_inputs?: Link[] };
+    const graph = JSON.parse(await fs.readFile(graphFile, "utf8")) as {
+      graphs: { filters: Filter[] }[];
+    };
+    const links = graph.graphs[0].filters.flatMap((filter) =>
+      (filter.filter_inputs ?? []).map((link) => ({
+        ...link,
+        filter_name: filter.filter_name,
+      })),
+    );
+    const linkTo = new Map(links.map((link) => [link.filter_id, link]));
+    /** The input (in_<N>_v buffer source) a filter reads, and its path. */
+    const upstream = (filterId: string) => {
+      const path: string[] = [];
+      for (let id = filterId; ;) {
+        const link = linkTo.get(id);
+        if (!link) throw new Error(`no input link for ${id}`);
+        const source = link.source_filter_id;
+        const input = /^in_(\d+)_v$/.exec(source);
+        if (input) return { input: Number(input[1]), path };
+        path.push(source);
+        id = source;
+      }
+    };
+    const inputIndex = (ref: string) =>
+      command.inputs.find((input) => input.source === ref)!.index;
+    return { links, upstream, inputIndex };
+  }
+
+  test("only images with an alpha channel are premultiplied", async () => {
+    // Every image layer gets the same scale chain (see imageScaleFilters);
+    // FFmpeg inserts the premultiplication while negotiating the graph, only
+    // for images decoded into a pixel format with alpha. An opaque JPEG or
+    // RGB PNG is scaled as is, not first converted to an alpha format at
+    // full size.
     const tempDir = await createTestOutputDir("scaled-premultiply");
 
     try {
@@ -1782,90 +1938,35 @@ describe("scaled renders", () => {
           await lavfiImage(tempDir, "photo.jpg", "color=c=blue:s=64x64"),
         ),
       };
-      const effieData: EffieData<typeof sources, EffieFileUrl> = {
-        width: 64,
-        height: 64,
-        fps: 10,
-        cover: "https://example.com/cover.png",
-        background: { type: "color", color: "black" },
-        sources,
-        segments: [
-          {
-            duration: 0.2,
-            layers: [
-              { type: "image", source: "#rgba" },
-              { type: "image", source: "#rgb" },
-              { type: "image", source: "#jpeg" },
-            ],
-          },
-        ],
-      };
-
-      type Command = {
-        inputs: { index: number; source: string }[];
-        buildArgs(resolve: (input: { source: string }) => string): string[];
-      };
-      const command = (
-        new EffieRenderer(effieData) as unknown as {
-          buildFFmpegCommand: (out: string, scale: number) => Command;
-        }
-      ).buildFFmpegCommand(path.join(tempDir, "out.mp4"), 0.5);
-      const args = command.buildArgs(({ source }) =>
-        fileURLToPath(sources[source.slice(1)]),
+      const { links, upstream, inputIndex } = await negotiatedGraph(
+        tempDir,
+        {
+          width: 64,
+          height: 64,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            {
+              duration: 0.2,
+              layers: [
+                { type: "image", source: "#rgba" },
+                { type: "image", source: "#rgb" },
+                { type: "image", source: "#jpeg" },
+              ],
+            },
+          ],
+        },
+        0.5,
       );
-      const graphFile = path.join(tempDir, "graph.json");
-      args.unshift("-print_graphs_format", "json");
-      args.unshift("-print_graphs_file", graphFile);
-      await execFileP(ffmpegBin, args);
 
-      // Every filter of the negotiated graph, auto-inserted ones included,
-      // with the source of each input link (e.g. in_1_v -> G0_auto_scale_5 ->
-      // G0_auto_premultiply_dynamic_0 -> G0_Parsed_format_0 -> ...).
-      type Link = {
-        filter_id: string;
-        source_filter_id: string;
-        format: string;
-        width: number;
-        height: number;
-      };
-      type Filter = { filter_name: string; filter_inputs?: Link[] };
-      const graph = JSON.parse(await fs.readFile(graphFile, "utf8")) as {
-        graphs: { filters: Filter[] }[];
-      };
-      const inputLinks = new Map<string, Link>();
-      for (const filter of graph.graphs[0].filters) {
-        const link = filter.filter_inputs?.[0];
-        if (link) inputLinks.set(link.filter_id, link);
-      }
-      const filterName = new Map(
-        graph.graphs[0].filters.flatMap((filter) =>
-          (filter.filter_inputs ?? []).map(
-            (link) => [link.filter_id, filter.filter_name] as const,
-          ),
-        ),
-      );
-      // Walks upstream from a filter to the input it reads (an in_<N>_v
-      // buffer source), noting whether it passes the layer's own scale.
-      const upstream = (filterId: string) => {
-        let afterScale = false;
-        for (let id = filterId; ;) {
-          const source = inputLinks.get(id)!.source_filter_id;
-          const input = /^in_(\d+)_v$/.exec(source);
-          if (input) return { input: Number(input[1]), afterScale };
-          afterScale ||= /_Parsed_scale_\d+$/.test(source);
-          id = source;
-        }
-      };
-
-      const inputIndex = (ref: string) =>
-        command.inputs.find((input) => input.source === ref)!.index;
       // Premultiplications ahead of a layer's scale, i.e. at full size: the
       // ones FFmpeg inserts (premultiply_dynamic) or an explicit premultiply.
-      const premultiplied = [...inputLinks.values()]
-        .filter((link) =>
-          /^premultiply(_dynamic)?$/.test(filterName.get(link.filter_id)!),
-        )
-        .filter((link) => !upstream(link.filter_id).afterScale)
+      const isScale = (id: string) => /_Parsed_scale_\d+$/.test(id);
+      const premultiplied = links
+        .filter((link) => /^premultiply(_dynamic)?$/.test(link.filter_name))
+        .filter((link) => !upstream(link.filter_id).path.some(isScale))
         .map((link) => ({
           input: upstream(link.filter_id).input,
           size: `${link.width}x${link.height}`,
@@ -1877,13 +1978,90 @@ describe("scaled renders", () => {
       // The layers' own scale filters read the decoded format: an alpha
       // format only for the RGBA PNG (converted for the premultiply).
       const scaled = new Map(
-        [...inputLinks.values()]
-          .filter((link) => /_Parsed_scale_\d+$/.test(link.filter_id))
+        links
+          .filter((link) => isScale(link.filter_id))
           .map((link) => [upstream(link.filter_id).input, link.format]),
       );
       expect(scaled.get(inputIndex("#rgba"))).toBe("gbrap");
       expect(scaled.get(inputIndex("#rgb"))).toBe("rgb24");
       expect(scaled.get(inputIndex("#jpeg"))).toBe("yuvj420p");
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("animations are premultiplied at full size without chroma subsampling", async () => {
+    // A scaled animation is premultiplied explicitly, every frame (see
+    // animationChainHead), after a normaliser that converts it to the alpha
+    // format premultiply takes: planar RGB for PNG frames, and YUV 4:4:4 for
+    // JPEG frames, not the yuva420p a scale-1 render normalises to.
+    const tempDir = await createTestOutputDir("scaled-annie-premultiply");
+
+    try {
+      // The frames as FFmpegRunner extracts an annie: a directory of
+      // frame_NNNNN files, read with the image2 frame_%05d pattern.
+      async function annie(name: string, frameName: string, graph: string) {
+        const frame = await fs.readFile(
+          await lavfiImage(tempDir, frameName, graph),
+        );
+        const dir = path.join(tempDir, name);
+        await fs.mkdir(dir);
+        await fs.writeFile(path.join(dir, "frame_00000"), frame);
+        await fs.writeFile(path.join(dir, "frame_00001"), frame);
+        return fileUrl(dir);
+      }
+      const sources: EffieSources<EffieFileUrl> = {
+        png: await annie(
+          "png.annie",
+          "frame",
+          "color=c=red:s=64x48,format=rgb24",
+        ),
+        jpeg: await annie("jpeg.annie", "frame.jpg", "color=c=blue:s=64x48"),
+      };
+      const { links, upstream, inputIndex } = await negotiatedGraph(
+        tempDir,
+        {
+          width: 64,
+          height: 64,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            {
+              duration: 0.2,
+              layers: [
+                { type: "animation", source: "#png" },
+                { type: "animation", source: "#jpeg" },
+              ],
+            },
+          ],
+        },
+        0.5,
+      );
+
+      const premultiplied = new Map(
+        links
+          .filter((link) => link.filter_name === "premultiply")
+          .map((link) => [
+            upstream(link.filter_id).input,
+            `${link.format} ${link.width}x${link.height}`,
+          ]),
+      );
+      expect(premultiplied).toEqual(
+        new Map([
+          [inputIndex("#png"), "gbrap 64x48"],
+          [inputIndex("#jpeg"), "yuva444p 64x48"],
+        ]),
+      );
+      expect(
+        links.some(
+          (link) =>
+            link.format === "yuva420p" &&
+            link.width === 64 &&
+            link.height === 48,
+        ),
+      ).toBe(false);
     } finally {
       await cleanupTestOutput(tempDir);
     }

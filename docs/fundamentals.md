@@ -432,7 +432,7 @@ The `lower` property gives you the progress at the start of each frame interval 
 
 ### Choosing a Frame Format
 
-`canvas.encode()` takes `"png"`, `"jpeg"` or `"qoi"`, and FFS renders all three about equally fast. What differs is how long your code takes to encode the frames, and how many bytes then travel to FFS, which also caches them:
+`canvas.encode()` takes `"png"`, `"jpeg"` or `"qoi"`. Pick one per annie: frames may vary in size and alpha, but FFS can't render an annie that mixes formats. FFS renders all three about equally fast. What differs is how long your code takes to encode the frames, and how many bytes then travel to FFS, which also caches them:
 
 - **QOI** for text, shapes and anything with transparency, when encoding time matters. It's lossless with alpha, like PNG, but encodes 8 to 20 times faster, and its files are up to about twice PNG's size.
 - **JPEG** for photos and other opaque frames with lots of detail. It's lossy and has no alpha, but PNG and QOI make photo frames 6 to 14 times larger, and QOI encodes them no faster than JPEG.

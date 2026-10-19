@@ -25,6 +25,8 @@ frame_00002
 ...
 ```
 
+Frames may vary in pixel format, channels (with or without alpha) and size, but all frames of an annie must be one format: all PNG, all JPEG or all QOI. FFS and FFmpeg decode an annie with the decoder for its first frame.
+
 This format is:
 
 - **Streamable** — frames can be written as they're generated

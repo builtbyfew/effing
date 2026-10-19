@@ -135,7 +135,7 @@ class EffieRenderer {
 
 The renderer doesn't validate its input. To validate a composition with `file:` sources, use `effieDataWithFilesSchema` from `@effing/effie`, as `ffs render --allow-local-files` does. The HTTP server never enables `allowLocalFiles`.
 
-Image layers, image backgrounds and annie frames can be PNG, JPEG or [QOI](https://qoiformat.org), with or without alpha. FFmpeg recognises the format from the bytes, so URLs need no file extension and responses no particular `Content-Type`. An annie's frames may mix formats.
+Image layers, image backgrounds and annie frames can be PNG, JPEG or [QOI](https://qoiformat.org), with or without alpha. FFmpeg recognises the format from the bytes, so URLs need no file extension and responses no particular `Content-Type`. An annie's frames may vary in pixel format, channels (with or without alpha) and size, but must all be one format: all PNG, all JPEG or all QOI. FFmpeg decodes an annie with the decoder for its first frame, so frames in another format fail to decode, and the render doesn't fail but shows the wrong frames.
 
 ### FFmpegCommand & FFmpegRunner
 

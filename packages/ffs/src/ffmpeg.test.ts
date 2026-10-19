@@ -1,5 +1,9 @@
 import { describe, test, expect, vi } from "vitest";
-import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
+import {
+  FFmpegCommand,
+  FFmpegRunner,
+  isSupportedFFmpegVersion,
+} from "./ffmpeg";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import fsp from "fs/promises";
@@ -311,4 +315,38 @@ describe("FFmpegRunner", () => {
       },
     );
   });
+});
+
+describe("isSupportedFFmpegVersion", () => {
+  test.each([
+    "9.0.2",
+    "9.0.1",
+    "8.1",
+    "8.1-static",
+    "8.1.1",
+    "n8.1.1",
+    "10.0",
+    "8.10",
+  ])("%s is supported", (version) => {
+    expect(isSupportedFFmpegVersion(version)).toBe(true);
+  });
+
+  test.each([
+    "8.0",
+    "8.0.1",
+    "n8.0",
+    "7.1.1",
+    "n7.1",
+    "6.1.1-3ubuntu5",
+    "4.4.2-0ubuntu0.22.04.1",
+  ])("%s is too old", (version) => {
+    expect(isSupportedFFmpegVersion(version)).toBe(false);
+  });
+
+  test.each(["N-120000-gabcdef", "git-2026-01-01-abcdef"])(
+    "%s isn't checked",
+    (version) => {
+      expect(isSupportedFFmpegVersion(version)).toBeUndefined();
+    },
+  );
 });

@@ -63,6 +63,19 @@ async function resolveFFmpegBin(): Promise<string> {
 }
 
 /**
+ * Whether an FFmpeg version string (as `ffmpeg -version` reports it, e.g.
+ * "9.0.2", "n8.1.1" or "6.1.1-3ubuntu5") is at least MIN_FFMPEG_VERSION, or
+ * undefined when it isn't a release version (e.g. a git build, "N-...").
+ */
+export function isSupportedFFmpegVersion(version: string): boolean | undefined {
+  const match = /^n?(\d+)\.(\d+)/.exec(version);
+  if (!match) return undefined;
+  const [major, minor] = [parseInt(match[1], 10), parseInt(match[2], 10)];
+  const { major: minMajor, minor: minMinor } = MIN_FFMPEG_VERSION;
+  return major > minMajor || (major === minMajor && minor >= minMinor);
+}
+
+/**
  * Warn once when the resolved binary predates MIN_FFMPEG_VERSION, so a stale
  * or distro FFmpeg shows up here rather than as a cryptic filter error.
  */
@@ -76,13 +89,9 @@ async function warnIfUnsupportedVersion(bin: string): Promise<void> {
     return; // Missing or broken binary: the spawn in run() reports that.
   }
   const version = /^ffmpeg version (\S+)/.exec(stdout)?.[1];
-  // Release builds report e.g. "9.0.1" or "8.0"; git builds ("N-...") don't
-  // parse and aren't checked.
-  const match = version ? /^(\d+)\.(\d+)/.exec(version) : null;
-  if (!match) return;
-  const [major, minor] = [parseInt(match[1], 10), parseInt(match[2], 10)];
+  // Git builds ("N-...") aren't checked.
+  if (!version || isSupportedFFmpegVersion(version) !== false) return;
   const { major: minMajor, minor: minMinor } = MIN_FFMPEG_VERSION;
-  if (major > minMajor || (major === minMajor && minor >= minMinor)) return;
   console.warn(
     `@effing/ffs: FFmpeg ${version} (${bin}) is older than the supported ${minMajor}.${minMinor}; ` +
       "6.1 drops the final frame of layered segments, 7.x rejects transitions " +

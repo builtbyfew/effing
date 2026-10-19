@@ -22,24 +22,6 @@ const execFileP = promisify(execFile);
 const renderFFmpegBin = process.env.FFMPEG ?? pathToFFmpeg ?? "ffmpeg";
 
 /**
- * Frames a rendered segment of `duration` seconds with layers is expected to
- * have. That is fps * duration on the supported FFmpeg (>= 8.0), but FFmpeg
- * 6.1 drops the final frame of every layered segment (see the README).
- */
-async function expectedLayeredFrames(
-  fps: number,
-  duration: number,
-): Promise<number> {
-  return fps * duration - ((await renderFFmpegMajor()) < 7 ? 1 : 0);
-}
-
-/** Major version of the FFmpeg binary EffieRenderer will use. */
-async function renderFFmpegMajor(): Promise<number> {
-  const { stdout } = await execFileP(renderFFmpegBin, ["-version"]);
-  return parseInt(/^ffmpeg version (\d+)/.exec(stdout)?.[1] ?? "", 10);
-}
-
-/**
  * Integration tests for distributed rendering.
  * These tests require FFmpeg and will actually render video.
  *
@@ -566,14 +548,14 @@ describe("distributed rendering integration", () => {
 
       // 6. Verify the decoded stream has exactly fps * duration frames. The
       //    pre-fix nullsrc's 25fps default introduced a frame-rate boundary
-      //    at the concat point that produced extra frames, and with FFmpeg
-      //    >= 8.0 an un-normalised padding chain makes the trailing fps=
+      //    at the concat point that produced extra frames, and since FFmpeg
+      //    8.0 an un-normalised padding chain makes the trailing fps=
       //    filter run away for ~1e6 frames (see the delay padding comment in
       //    renderer.ts). Count frames from ffmpeg's final progress line.
       const frameMatches = [...probe.stderr.matchAll(/frame=\s*(\d+)/g)];
       expect(frameMatches.length).toBeGreaterThan(0);
       const frames = parseInt(frameMatches[frameMatches.length - 1][1], 10);
-      expect(frames).toBe(await expectedLayeredFrames(fps, segmentDuration));
+      expect(frames).toBe(fps * segmentDuration);
     } finally {
       await cleanupTestOutput(tempDir);
     }
@@ -597,8 +579,7 @@ describe("distributed rendering integration", () => {
       const fps = 30;
       const segmentDuration = 1.0;
       const frameSize = 64;
-      const expectedFrames =
-        2 * (await expectedLayeredFrames(fps, segmentDuration));
+      const expectedFrames = 2 * fps * segmentDuration;
       const cases = [
         { delay: 0.25, size: frameSize },
         { delay: 0.35, size: frameSize },
@@ -1013,11 +994,8 @@ describe("distributed rendering integration", () => {
             { duration: 0.5, layers: [] },
           ],
         };
-        // Segment 0 up to the transition, segment 1 (layered), segment 2. On
-        // FFmpeg 6.1 segment 1 loses its final frame (see
-        // expectedLayeredFrames); segment 0's falls inside the transition.
-        const expectedFrames =
-          fps * (2 - 0.5) + (await expectedLayeredFrames(fps, 1.5)) + fps * 0.5;
+        // Segment 0 up to the transition, segment 1, segment 2.
+        const expectedFrames = fps * (2 - 0.5) + fps * 1.5 + fps * 0.5;
 
         const renderer = new EffieRenderer(effieData, {
           allowLocalFiles: true,
@@ -1272,7 +1250,7 @@ describe("distributed rendering integration", () => {
           },
         ],
       });
-      expect(frames.length).toBe(await expectedLayeredFrames(fps, duration));
+      expect(frames.length).toBe(fps * duration);
 
       // The red/blue edge starts at the centre and moves left by
       // (width / 2) / (fps * duration) px per frame. The tolerance is 2 px:
@@ -1294,12 +1272,7 @@ describe("distributed rendering integration", () => {
     }
   }, 30000);
 
-  test("static images keep their frame counts in very short segments", async (context) => {
-    // FFmpeg 6.1 drops a two-frame layered segment and a one-frame segment
-    // that are followed by another segment entirely, not just their final
-    // frame (see expectedLayeredFrames), so these counts only hold on the
-    // supported FFmpeg (>= 8.0).
-    if ((await renderFFmpegMajor()) < 8) context.skip();
+  test("static images keep their frame counts in very short segments", async () => {
     const tempDir = await createTestOutputDir("static-images-short");
 
     try {
@@ -1344,7 +1317,7 @@ describe("distributed rendering integration", () => {
   test.for<"format" | "size">(["format", "size"])(
     "an annie whose frames change %s mid-stream keeps the image layers and timing",
     { timeout: 30000 },
-    async (change, context) => {
+    async (change) => {
       // Annie frames can differ in pixel format (an rgba PNG after rgb24
       // ones) or size. By default FFmpeg rebuilds the whole filter graph when
       // that happens, which left the single-frame image inputs with nothing
@@ -1352,10 +1325,6 @@ describe("distributed rendering integration", () => {
       // restarted every chain's timing (frames came out early and the frame
       // count was off). The animation input now keeps the graph, and its
       // chain gives every frame the first frame's format and size.
-      // FFmpeg 6.1 sizes the layer from a later, larger frame instead.
-      if (change === "size" && (await renderFFmpegMajor()) < 8) {
-        context.skip();
-      }
       const tempDir = await createTestOutputDir(`annie-${change}-change`);
 
       try {
@@ -1423,10 +1392,8 @@ describe("distributed rendering integration", () => {
             { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
           ],
         });
-        const segment0Frames = await expectedLayeredFrames(fps, 0.6);
-        expect(frames.length).toBe(
-          segment0Frames + (await expectedLayeredFrames(fps, 0.3)),
-        );
+        const segment0Frames = fps * 0.6;
+        expect(frames.length).toBe(fps * (0.6 + 0.3));
 
         const rgb = (n: number, x: number, y: number) => {
           const i = (y * smallWidth + x) * 3;
@@ -1791,7 +1758,8 @@ describe("scaled renders", () => {
     // inserts the premultiplication while negotiating the graph, only for
     // inputs decoded into a pixel format with alpha. An opaque JPEG or RGB
     // PNG is scaled as is, not first converted to an alpha format at full
-    // size. Checked in FFmpeg's debug log for the render's own command.
+    // size. Checked in the negotiated graph FFmpeg dumps as JSON
+    // (-print_graphs_file) when it runs the render's own command.
     const tempDir = await createTestOutputDir("scaled-premultiply");
 
     try {
@@ -1845,21 +1813,77 @@ describe("scaled renders", () => {
       const args = command.buildArgs(({ source }) =>
         fileURLToPath(sources[source.slice(1)]),
       );
-      args.splice(args.indexOf("-loglevel"), 2, "-loglevel", "debug");
-      const { stderr } = await execFileP(ffmpegBin, args, {
-        maxBuffer: 1 << 26,
-      });
+      const graphFile = path.join(tempDir, "graph.json");
+      args.unshift("-print_graphs_format", "json");
+      args.unshift("-print_graphs_file", graphFile);
+      await execFileP(ffmpegBin, args);
 
-      // e.g. "auto-inserting filter 'auto_premultiply_dynamic_0' between the
-      // filter 'graph 0 input from stream 1:0' and the filter 'Parsed_format_3'"
-      const premultipliedInputs = [
-        ...stderr.matchAll(
-          /auto-inserting filter 'auto_premultiply_dynamic_\d+' between the filter 'graph \d+ input from stream (\d+):0'/g,
+      // Every filter of the negotiated graph, auto-inserted ones included,
+      // with the source of each input link (e.g. in_1_v -> G0_auto_scale_5 ->
+      // G0_auto_premultiply_dynamic_0 -> G0_Parsed_format_0 -> ...).
+      type Link = {
+        filter_id: string;
+        source_filter_id: string;
+        format: string;
+        width: number;
+        height: number;
+      };
+      type Filter = { filter_name: string; filter_inputs?: Link[] };
+      const graph = JSON.parse(await fs.readFile(graphFile, "utf8")) as {
+        graphs: { filters: Filter[] }[];
+      };
+      const inputLinks = new Map<string, Link>();
+      for (const filter of graph.graphs[0].filters) {
+        const link = filter.filter_inputs?.[0];
+        if (link) inputLinks.set(link.filter_id, link);
+      }
+      const filterName = new Map(
+        graph.graphs[0].filters.flatMap((filter) =>
+          (filter.filter_inputs ?? []).map(
+            (link) => [link.filter_id, filter.filter_name] as const,
+          ),
         ),
-      ].map((m) => Number(m[1]));
+      );
+      // Walks upstream from a filter to the input it reads (an in_<N>_v
+      // buffer source), noting whether it passes the layer's own scale.
+      const upstream = (filterId: string) => {
+        let afterScale = false;
+        for (let id = filterId; ;) {
+          const source = inputLinks.get(id)!.source_filter_id;
+          const input = /^in_(\d+)_v$/.exec(source);
+          if (input) return { input: Number(input[1]), afterScale };
+          afterScale ||= /_Parsed_scale_\d+$/.test(source);
+          id = source;
+        }
+      };
+
       const inputIndex = (ref: string) =>
         command.inputs.find((input) => input.source === ref)!.index;
-      expect(premultipliedInputs).toEqual([inputIndex("#rgba")]);
+      // Premultiplications ahead of a layer's scale, i.e. at full size: the
+      // ones FFmpeg inserts (premultiply_dynamic) or an explicit premultiply.
+      const premultiplied = [...inputLinks.values()]
+        .filter((link) =>
+          /^premultiply(_dynamic)?$/.test(filterName.get(link.filter_id)!),
+        )
+        .filter((link) => !upstream(link.filter_id).afterScale)
+        .map((link) => ({
+          input: upstream(link.filter_id).input,
+          size: `${link.width}x${link.height}`,
+        }));
+      expect(premultiplied).toEqual([
+        { input: inputIndex("#rgba"), size: "64x64" },
+      ]);
+
+      // The layers' own scale filters read the decoded format: an alpha
+      // format only for the RGBA PNG (converted for the premultiply).
+      const scaled = new Map(
+        [...inputLinks.values()]
+          .filter((link) => /_Parsed_scale_\d+$/.test(link.filter_id))
+          .map((link) => [upstream(link.filter_id).input, link.format]),
+      );
+      expect(scaled.get(inputIndex("#rgba"))).toBe("gbrap");
+      expect(scaled.get(inputIndex("#rgb"))).toBe("rgb24");
+      expect(scaled.get(inputIndex("#jpeg"))).toBe("yuvj420p");
     } finally {
       await cleanupTestOutput(tempDir);
     }

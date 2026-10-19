@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { pathToFFmpeg } from "@effing/ffmpeg";
 import { describe, expect, it } from "vitest";
 import { QOI_MAX_PIXELS, decodeQoi, isQoi, readQoiHeader } from "./qoi";
@@ -469,9 +468,14 @@ describe("decodeQoi", () => {
 
 // --- Round trip through FFmpeg's encoder -------------------------------------
 
+// The FFMPEG override may be a path or a command on the PATH, so check that
+// it runs rather than that a file exists.
+const ffmpegCandidate = process.env.FFMPEG ?? pathToFFmpeg;
 const ffmpeg =
-  process.env.FFMPEG ??
-  (pathToFFmpeg && existsSync(pathToFFmpeg) ? pathToFFmpeg : null);
+  ffmpegCandidate &&
+  spawnSync(ffmpegCandidate, ["-hide_banner", "-version"]).status === 0
+    ? ffmpegCandidate
+    : null;
 
 function ffmpegEncodeQoi(
   pixels: Uint8Array,

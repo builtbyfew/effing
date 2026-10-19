@@ -447,6 +447,7 @@ const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
+  ".qoi": "image/qoi",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".ico": "image/x-icon",

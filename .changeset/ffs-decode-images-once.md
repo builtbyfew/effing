@@ -8,4 +8,4 @@ Image layers and image backgrounds were read with `-loop 1`, so FFmpeg decoded t
 
 A corrupt or truncated PNG now fails the render right away. Before, FFmpeg could keep re-reading it and the render never finished.
 
-Annies whose frames change pixel format partway (rgb24 and rgba PNGs mixed, say) or size now render with the right timing and frame count. Before, the change restarted FFmpeg's filter graph: the annie's later frames showed up early and the segment came out a frame or two too long. A frame of a different size is now shown at the size of the annie's first frame.
+Annies whose frames change pixel format partway (rgb24 and rgba PNGs mixed, say) or size now render with the right timing and frame count. Before, the change restarted FFmpeg's filter graph: the annie's later frames showed up early and the segment came out a frame or two too long. A frame of a different size is now resized to the size of the annie's first frame, without keeping its aspect ratio.

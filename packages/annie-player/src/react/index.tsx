@@ -78,9 +78,15 @@ function AnniePlayerRoot({
   const [isHovering, setIsHovering] = useState(false);
 
   // Initialize the core player
+  // A new player for every src, fps, autoPlay and height. It starts from
+  // its own state, gets the canvas straight away (a new player with the
+  // same canvas dimensions wouldn't get it below), and loads if autoLoad is
+  // on. Under StrictMode, the first player is destroyed, which aborts its
+  // load, before the second one loads.
   useEffect(() => {
     const player = new AnniePlayerCore({ src, fps, autoPlay });
     playerRef.current = player;
+    setState(player.getState());
 
     const unsubscribeState = player.on("statechange", (newState) => {
       setState(newState);
@@ -93,11 +99,23 @@ function AnniePlayerRoot({
       });
     });
 
+    if (canvasRef.current) {
+      player.attachCanvas(canvasRef.current);
+    }
+    if (autoLoad) {
+      player.load();
+    }
+
     return () => {
       unsubscribeState();
       unsubscribeLoad();
       player.destroy();
+      if (playerRef.current === player) {
+        playerRef.current = null;
+      }
     };
+    // autoLoad is read when a player is created; turning it on later is
+    // handled below, and turning it off shouldn't discard a loaded player.
   }, [src, fps, autoPlay, height]);
 
   // Attach canvas to player when ready
@@ -109,10 +127,17 @@ function AnniePlayerRoot({
     }
   }, [canvasDimensions]);
 
-  // Auto-load if enabled
+  // Load the current player when autoLoad is turned on, unless it's loaded
+  // or loading already
+  const previousAutoLoadRef = useRef(autoLoad);
   useEffect(() => {
-    if (autoLoad && playerRef.current) {
-      playerRef.current.load();
+    const turnedOn = autoLoad && !previousAutoLoadRef.current;
+    previousAutoLoadRef.current = autoLoad;
+    const player = playerRef.current;
+    if (!turnedOn || !player) return;
+    const { frameCount, isLoading } = player.getState();
+    if (frameCount === 0 && !isLoading) {
+      player.load();
     }
   }, [autoLoad]);
 

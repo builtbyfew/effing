@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { AnniePlayerCore, type AnniePlayerState } from "../core";
+export { QoiAwareImg, type QoiAwareImgProps } from "./qoi-aware-img";
 
 // ============ Context ============
 

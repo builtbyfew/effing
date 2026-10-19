@@ -1,0 +1,201 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchQoiAsPngUrl } from "../qoi-image";
+import { QoiAwareImg } from "./qoi-aware-img";
+
+vi.mock("../qoi-image", () => ({ fetchQoiAsPngUrl: vi.fn() }));
+
+declare global {
+  var IS_REACT_ACT_ENVIRONMENT: boolean;
+}
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const fetchQoi = vi.mocked(fetchQoiAsPngUrl);
+const originalRevokeObjectURL = URL.revokeObjectURL;
+let revokeObjectURL: ReturnType<typeof vi.fn<(url: string) => void>>;
+let container: HTMLDivElement;
+let root: Root | null;
+
+beforeEach(() => {
+  fetchQoi.mockReset();
+  revokeObjectURL = vi.fn();
+  URL.revokeObjectURL = revokeObjectURL;
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = null;
+});
+
+afterEach(() => {
+  act(() => root?.unmount());
+  container.remove();
+  URL.revokeObjectURL = originalRevokeObjectURL;
+});
+
+function render(element: React.ReactElement): HTMLImageElement {
+  root ??= createRoot(container);
+  act(() => root!.render(element));
+  return container.querySelector("img")!;
+}
+
+/** Fire an image event and let the fallback's promise settle. */
+async function fire(img: HTMLImageElement, type: "load" | "error") {
+  await act(async () => {
+    img.dispatchEvent(new Event(type));
+  });
+}
+
+describe("QoiAwareImg", () => {
+  it("renders the same markup as a plain <img> on the server", () => {
+    const props = {
+      src: "/image.png",
+      alt: "An image",
+      className: "preview",
+      style: { height: 10 },
+    };
+    const html = renderToString(<QoiAwareImg {...props} />);
+    expect(html).toBe(renderToString(<img {...props} />));
+    expect(html).toContain(
+      '<img src="/image.png" alt="An image" class="preview" style="height:10px"/>',
+    );
+  });
+
+  it("doesn't fetch an image the browser shows", async () => {
+    const img = render(<QoiAwareImg src="/image.png" alt="An image" />);
+
+    await fire(img, "load");
+
+    expect(img.getAttribute("src")).toBe("/image.png");
+    expect(fetchQoi).not.toHaveBeenCalled();
+  });
+
+  it("shows a QOI image as PNG when the browser can't decode it", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const onError = vi.fn();
+    const img = render(
+      <QoiAwareImg
+        src="/image.qoi"
+        alt="An image"
+        className="preview"
+        onError={onError}
+      />,
+    );
+
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledExactlyOnceWith("/image.qoi", {
+      signal: expect.any(AbortSignal),
+    });
+    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(img.getAttribute("alt")).toBe("An image");
+    expect(img.className).toBe("preview");
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("calls onError for a broken image that isn't QOI", async () => {
+    fetchQoi.mockResolvedValue(null);
+    const onError = vi.fn();
+    const img = render(<QoiAwareImg src="/broken.png" onError={onError} />);
+
+    await fire(img, "error");
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(img.getAttribute("src")).toBe("/broken.png");
+  });
+
+  it("calls onError when the image can't be fetched", async () => {
+    fetchQoi.mockRejectedValue(new Error("Failed to fetch image: Not Found"));
+    const onError = vi.fn();
+    const img = render(<QoiAwareImg src="/missing.qoi" onError={onError} />);
+
+    await fire(img, "error");
+
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("tries the fallback once per src", async () => {
+    fetchQoi.mockResolvedValue(null);
+    const onError = vi.fn();
+    const img = render(<QoiAwareImg src="/broken.png" onError={onError} />);
+
+    await fire(img, "error");
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledTimes(2);
+  });
+
+  it("calls onError when the converted PNG fails too", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const onError = vi.fn();
+    const img = render(<QoiAwareImg src="/image.qoi" onError={onError} />);
+    await fire(img, "error");
+
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("revokes the PNG and starts over when the src changes", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    let img = render(<QoiAwareImg src="/first.qoi" />);
+    await fire(img, "error");
+    expect(img.getAttribute("src")).toBe("blob:png");
+
+    img = render(<QoiAwareImg src="/second.png" />);
+
+    expect(img.getAttribute("src")).toBe("/second.png");
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:png");
+
+    fetchQoi.mockResolvedValue("blob:second");
+    await fire(img, "error");
+    expect(fetchQoi).toHaveBeenLastCalledWith("/second.png", {
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("revokes the PNG on unmount", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(<QoiAwareImg src="/image.qoi" />);
+    await fire(img, "error");
+
+    act(() => root!.unmount());
+    root = null;
+
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:png");
+  });
+
+  it("aborts a conversion still running on unmount, and revokes its PNG", async () => {
+    let resolve!: (url: string) => void;
+    fetchQoi.mockReturnValue(new Promise((r) => (resolve = r)));
+    const img = render(<QoiAwareImg src="/image.qoi" />);
+    await fire(img, "error");
+    const { signal } = fetchQoi.mock.calls[0][1]!;
+
+    act(() => root!.unmount());
+    root = null;
+    expect(signal!.aborted).toBe(true);
+
+    await act(async () => resolve("blob:late"));
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:late");
+  });
+
+  it("converts a QOI image that failed before hydration", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const element = <QoiAwareImg src="/image.qoi" alt="An image" />;
+    container.innerHTML = renderToString(element);
+    const img = container.querySelector("img")!;
+    // The browser gave up on it before React was listening.
+    Object.defineProperty(img, "complete", { value: true });
+
+    await act(async () => {
+      root = hydrateRoot(container, element);
+    });
+
+    expect(fetchQoi).toHaveBeenCalledOnce();
+    expect(img.getAttribute("src")).toBe("blob:png");
+  });
+});

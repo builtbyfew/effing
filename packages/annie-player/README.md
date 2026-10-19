@@ -247,7 +247,17 @@ The React component:
 
 Browsers can't decode [QOI](https://qoiformat.org) images, so the player decodes QOI frames itself, recognising them by their bytes. To keep memory down, it holds on to the QOI bytes and decodes each frame when it's drawn, rather than holding every frame decoded (8 MB per 1080p frame). An annie can mix QOI frames with PNG and JPEG ones.
 
-The decoder itself, `decodeQoi(bytes)`, returns RGBA pixels for an `ImageData`.
+For still images, `QoiAwareImg` from `@effing/annie-player/react` is an `<img>` that can also show QOI:
+
+```tsx
+import { QoiAwareImg } from "@effing/annie-player/react";
+
+<QoiAwareImg src={url} alt="Preview" style={{ height: 540 }} />;
+```
+
+It renders a plain `<img>`, so other images load exactly as before. Only when the browser can't show the image does it fetch it again and, if it's QOI, swap in a PNG converted from it. A cross-origin QOI image therefore needs CORS.
+
+Without React, use `fetchQoiAsPngUrl(url)`, which returns an object URL for a PNG of a QOI image (or `null` for other images), `qoiToPngBlob(bytes)`, or the decoder itself, `decodeQoi(bytes)`, which returns RGBA pixels for an `ImageData`.
 
 ## Examples
 

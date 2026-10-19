@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Play TAR archives of PNG or JPEG frames in the browser using canvas. Framework-agnostic core with optional React component.
+Play TAR archives of PNG, JPEG or QOI frames in the browser using canvas. Framework-agnostic core with optional React component.
 
 ## Installation
 
@@ -242,6 +242,12 @@ The React component:
 - Adjusts canvas width based on loaded frame aspect ratio
 - Shows load/play/pause buttons with built-in styling
 - Displays status overlay on hover
+
+### QOI
+
+Browsers can't decode [QOI](https://qoiformat.org) images, so the player decodes QOI frames itself, recognising them by their bytes. To keep memory down, it holds on to the QOI bytes and decodes each frame when it's drawn, rather than holding every frame decoded (8 MB per 1080p frame). An annie can mix QOI frames with PNG and JPEG ones.
+
+The decoder itself, `decodeQoi(bytes)`, returns RGBA pixels for an `ImageData`.
 
 ## Examples
 

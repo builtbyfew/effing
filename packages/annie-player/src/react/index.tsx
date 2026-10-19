@@ -628,7 +628,7 @@ function AnniePlayerSimple({
 }
 
 /**
- * AnniePlayer - Play TAR archives of PNG/JPEG frames in the browser.
+ * AnniePlayer - Play TAR archives of PNG, JPEG or QOI frames in the browser.
  *
  * Usage:
  * - Simple: `<AnniePlayer src={url} height={540} />`

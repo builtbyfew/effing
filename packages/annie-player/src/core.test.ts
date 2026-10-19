@@ -25,8 +25,14 @@ function tarEntry(name: string, data: Uint8Array): Uint8Array {
   return entry;
 }
 
-function buildTar(names: string[]): ArrayBuffer {
-  const entries = names.map((name) => tarEntry(name, encoder.encode(name)));
+function buildTar(
+  names: (string | [name: string, data: Uint8Array])[],
+): ArrayBuffer {
+  const entries = names.map((entry) =>
+    typeof entry === "string"
+      ? tarEntry(entry, encoder.encode(entry))
+      : tarEntry(...entry),
+  );
   const totalSize =
     entries.reduce((sum, entry) => sum + entry.length, 0) + 1024;
   const tar = new Uint8Array(totalSize);
@@ -36,6 +42,25 @@ function buildTar(names: string[]): ArrayBuffer {
     offset += entry.length;
   }
   return tar.buffer;
+}
+
+// --- Minimal QOI builder -----------------------------------------------------
+// A width × height image whose pixels are all QOI_OP_RGB ops, so the decoded
+// pixels are exactly the given colours, opaque.
+
+function qoiImage(
+  width: number,
+  height: number,
+  rgb: [number, number, number][],
+): Uint8Array {
+  return new Uint8Array([
+    ...encoder.encode("qoif"),
+    ...[0, 0, width >> 8, width & 0xff, 0, 0, height >> 8, height & 0xff],
+    4, // channels
+    0, // colorspace
+    ...rgb.flatMap(([r, g, b]) => [0xfe, r, g, b]),
+    ...[0, 0, 0, 0, 0, 0, 0, 1],
+  ]);
 }
 
 // --- Browser API stubs -------------------------------------------------------
@@ -304,6 +329,40 @@ describe("AnniePlayerCore", () => {
     expect(player.getState().status).toBe("Paused.");
   });
 
+  it("stops a load that's still running on destroy, revoking its URLs", async () => {
+    const images: DeferredImage[] = [];
+    // Loads only when the test calls its onload.
+    class DeferredImage {
+      onload: (() => void) | null = null;
+      onerror: ((err: unknown) => void) | null = null;
+      naturalWidth = 320;
+      naturalHeight = 240;
+      src = "";
+
+      constructor() {
+        images.push(this);
+      }
+    }
+    vi.stubGlobal("Image", DeferredImage);
+    stubFetchWith(buildTar(["frame_00000", "frame_00001"]));
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    const onLoad = vi.fn();
+    player.on("load", onLoad);
+
+    const loading = player.load();
+    await vi.waitFor(() => expect(images).toHaveLength(2));
+    player.destroy();
+    images.forEach((image) => image.onload?.());
+    await loading;
+
+    expect(onLoad).not.toHaveBeenCalled();
+    expect(player.getState()).toMatchObject({ frameCount: 0, error: null });
+    const created = createObjectURL.mock.results.map((r) => r.value as string);
+    const revoked = revokeObjectURL.mock.calls.map((call) => call[0] as string);
+    expect(created).toHaveLength(2);
+    expect(revoked.sort()).toEqual(created.sort());
+  });
+
   it("unsubscribes listeners via the function returned by on()", async () => {
     stubFetchWith(buildTar(["frame_00000"]));
     const player = new AnniePlayerCore({ src: "animation.annie" });
@@ -314,5 +373,293 @@ describe("AnniePlayerCore", () => {
     await player.load();
 
     expect(onLoad).not.toHaveBeenCalled();
+  });
+});
+
+describe("AnniePlayerCore with QOI frames", () => {
+  // jsdom has no OffscreenCanvas (nor a 2D context for its canvases), so the
+  // canvas QOI frames are decoded onto is stubbed. putImageData records a
+  // copy of the pixels, since the player reuses its ImageData.
+  let surfaces: FakeOffscreenCanvas[];
+
+  class FakeOffscreenCanvas {
+    puts: number[][] = [];
+    context = {
+      createImageData: (width: number, height: number) => ({
+        width,
+        height,
+        data: new Uint8ClampedArray(width * height * 4),
+      }),
+      putImageData: (imageData: { data: Uint8ClampedArray }) => {
+        this.puts.push([...imageData.data]);
+      },
+    };
+
+    constructor(
+      public width: number,
+      public height: number,
+    ) {
+      surfaces.push(this);
+    }
+
+    getContext(): unknown {
+      return this.context;
+    }
+  }
+
+  beforeEach(() => {
+    surfaces = [];
+    vi.stubGlobal("OffscreenCanvas", FakeOffscreenCanvas);
+  });
+
+  const red = qoiImage(2, 1, [
+    [255, 0, 0],
+    [255, 0, 0],
+  ]);
+  const green = qoiImage(2, 1, [
+    [0, 255, 0],
+    [0, 128, 0],
+  ]);
+
+  it("loads QOI frames without creating object URLs", async () => {
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", green],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    const onLoad = vi.fn();
+    player.on("load", onLoad);
+
+    await player.load();
+
+    expect(onLoad).toHaveBeenCalledExactlyOnceWith({
+      frameCount: 2,
+      dimensions: { width: 2, height: 1 },
+    });
+    expect(player.getState().error).toBeNull();
+    expect(createObjectURL).not.toHaveBeenCalled();
+    // Nothing is decoded until a frame is drawn.
+    expect(surfaces).toHaveLength(0);
+  });
+
+  it("decodes a QOI frame when it's drawn and scales it onto the canvas", async () => {
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", green],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    const { canvas, drawImage } = fakeCanvas();
+    player.attachCanvas(canvas);
+
+    player.seek(1);
+
+    expect(surfaces).toHaveLength(1);
+    const [surface] = surfaces;
+    expect([surface.width, surface.height]).toEqual([2, 1]);
+    expect(surface.puts).toEqual([[0, 255, 0, 255, 0, 128, 0, 255]]);
+    expect(drawImage).toHaveBeenCalledExactlyOnceWith(surface, 0, 0, 320, 240);
+  });
+
+  it("reuses the decode surface and redraws the same frame without decoding", async () => {
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", green],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    const { canvas, drawImage } = fakeCanvas();
+    player.attachCanvas(canvas);
+
+    player.seek(0);
+    player.seek(0);
+    player.seek(1);
+    player.seek(0);
+
+    expect(surfaces).toHaveLength(1);
+    expect(surfaces[0].puts).toEqual([
+      [255, 0, 0, 255, 255, 0, 0, 255],
+      [0, 255, 0, 255, 0, 128, 0, 255],
+      [255, 0, 0, 255, 255, 0, 0, 255],
+    ]);
+    expect(drawImage).toHaveBeenCalledTimes(4);
+  });
+
+  it("makes a new surface for QOI frames of another size", async () => {
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", qoiImage(1, 1, [[1, 2, 3]])],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    player.attachCanvas(fakeCanvas().canvas);
+
+    player.seek(0);
+    player.seek(1);
+
+    expect(surfaces.map((s) => [s.width, s.height])).toEqual([
+      [2, 1],
+      [1, 1],
+    ]);
+    expect(surfaces[1].puts).toEqual([[1, 2, 3, 255]]);
+  });
+
+  it("plays an annie that mixes QOI and other frames", async () => {
+    stubFetchWith(
+      buildTar([
+        "frame_00000", // a stand-in PNG, loaded through an <img>
+        ["frame_00001", red],
+        "frame_00002",
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    const onLoad = vi.fn();
+    player.on("load", onLoad);
+    await player.load();
+    const { canvas, drawImage } = fakeCanvas();
+    player.attachCanvas(canvas);
+
+    // Dimensions come from the first frame, here an image.
+    expect(onLoad).toHaveBeenCalledExactlyOnceWith({
+      frameCount: 3,
+      dimensions: { width: 320, height: 240 },
+    });
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+
+    player.seek(0);
+    player.seek(1);
+    player.seek(2);
+
+    const sources = drawImage.mock.calls.map((call) => call[0] as unknown);
+    expect(sources[0]).toBeInstanceOf(FakeImage);
+    expect(sources[1]).toBe(surfaces[0]);
+    expect(sources[2]).toBeInstanceOf(FakeImage);
+    expect((sources[2] as FakeImage).src).toBe("blob:mock-1");
+
+    player.destroy();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to a detached canvas without an OffscreenCanvas 2D context", async () => {
+    class NoContextOffscreenCanvas {
+      getContext(): null {
+        return null;
+      }
+    }
+    vi.stubGlobal("OffscreenCanvas", NoContextOffscreenCanvas);
+    const fallback = new FakeOffscreenCanvas(0, 0);
+    const createElement = vi
+      .spyOn(document, "createElement")
+      .mockImplementation(() => fallback as unknown as HTMLElement);
+    try {
+      stubFetchWith(buildTar([["frame_00000", red]]));
+      const player = new AnniePlayerCore({ src: "animation.annie" });
+      await player.load();
+      const { canvas, drawImage } = fakeCanvas();
+      player.attachCanvas(canvas);
+
+      player.seek(0);
+
+      expect(createElement).toHaveBeenCalledWith("canvas");
+      expect([fallback.width, fallback.height]).toEqual([2, 1]);
+      expect(fallback.puts).toEqual([[255, 0, 0, 255, 255, 0, 0, 255]]);
+      expect(drawImage).toHaveBeenCalledWith(fallback, 0, 0, 320, 240);
+    } finally {
+      createElement.mockRestore();
+    }
+  });
+
+  it("reports a QOI frame with an invalid header as a load error", async () => {
+    const bad = red.slice();
+    bad[12] = 5; // channels
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", bad],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    const onError = vi.fn();
+    player.on("error", onError);
+
+    await player.load();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(player.getState()).toMatchObject({
+      error:
+        "Could not load image: frame_00001 (Invalid QOI image: 5 channels)",
+      frameCount: 0,
+      isLoading: false,
+    });
+  });
+
+  it("stops playing and reports an error when a QOI frame fails to decode", async () => {
+    // A valid header, but chunks for only one of the four pixels.
+    const corrupt = new Uint8Array([
+      ...qoiImage(4, 1, [[9, 9, 9]]).subarray(0, 18),
+      ...[0, 0, 0, 0, 0, 0, 0, 1],
+    ]);
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", corrupt],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    const { canvas, drawImage } = fakeCanvas();
+    player.attachCanvas(canvas);
+    const onError = vi.fn();
+    player.on("error", onError);
+
+    player.play();
+    expect(drawImage).toHaveBeenCalledOnce(); // frame 0
+    const animate = vi.mocked(requestAnimationFrame).mock.calls[0][0];
+    animate(1000);
+    animate(1040); // a frame later: frame 1, which fails to decode
+
+    const message =
+      "Could not decode frame 1 (Invalid QOI image: data is truncated after 1 of 4 pixels)";
+    expect(onError).toHaveBeenCalledOnce();
+    expect(player.getState()).toMatchObject({
+      isPlaying: false,
+      currentFrame: 0,
+      error: message,
+      status: `Error: ${message}`,
+    });
+    expect(drawImage).toHaveBeenCalledOnce();
+  });
+
+  it("reports an error when seeking to a QOI frame that fails to decode, and still draws others", async () => {
+    const corrupt = qoiImage(2, 1, [
+      [9, 9, 9],
+      [9, 9, 9],
+    ]);
+    corrupt[corrupt.length - 1] = 0; // corrupt the end marker
+    stubFetchWith(
+      buildTar([
+        ["frame_00000", red],
+        ["frame_00001", corrupt],
+      ]),
+    );
+    const player = new AnniePlayerCore({ src: "animation.annie" });
+    await player.load();
+    const { canvas, drawImage } = fakeCanvas();
+    player.attachCanvas(canvas);
+
+    player.seek(1);
+    expect(player.getState().error).toMatch(/^Could not decode frame 1/);
+    expect(drawImage).not.toHaveBeenCalled();
+
+    player.seek(0);
+    expect(drawImage).toHaveBeenCalledOnce();
   });
 });

@@ -443,12 +443,22 @@ describe("EffieRenderer static images", () => {
     }
   });
 
-  test("animation inputs are unchanged", () => {
+  test("animation inputs keep the filter graph when frame properties change", () => {
+    // A rebuilt graph would restart every chain's timing and starve the
+    // single-frame image inputs, so frames that change format or size are
+    // normalised at the head of the layer chain instead.
     const { inputs, filterComplex } = buildCommand(imageEffie());
     const animation = inputs.find((input) => input.type === "animation")!;
-    expect(animation.preArgs).toEqual(["-f", "image2", "-framerate", "30"]);
+    expect(animation.preArgs).toEqual([
+      "-reinit_filter",
+      "0",
+      "-f",
+      "image2",
+      "-framerate",
+      "30",
+    ]);
     expect(filterComplex).toContain(
-      `[${animation.index}:v]trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
+      `[${animation.index}:v]scale=w=iw:h=ih:eval=init,format=yuva420p,trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
     );
   });
 

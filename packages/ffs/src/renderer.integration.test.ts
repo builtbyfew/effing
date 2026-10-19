@@ -1340,4 +1340,124 @@ describe("distributed rendering integration", () => {
       await cleanupTestOutput(tempDir);
     }
   }, 30000);
+
+  test.for<"format" | "size">(["format", "size"])(
+    "an annie whose frames change %s mid-stream keeps the image layers and timing",
+    { timeout: 30000 },
+    async (change, context) => {
+      // Annie frames can differ in pixel format (an rgba PNG after rgb24
+      // ones) or size. By default FFmpeg rebuilds the whole filter graph when
+      // that happens, which left the single-frame image inputs with nothing
+      // to send (image layers vanished from then on, in every segment) and
+      // restarted every chain's timing (frames came out early and the frame
+      // count was off). The animation input now keeps the graph, and its
+      // chain gives every frame the first frame's format and size.
+      // FFmpeg 6.1 sizes the layer from a later, larger frame instead.
+      if (change === "size" && (await renderFFmpegMajor()) < 8) {
+        context.skip();
+      }
+      const tempDir = await createTestOutputDir(`annie-${change}-change`);
+
+      try {
+        const fps = 10;
+        async function frame(name: string, color: string, size: string) {
+          const filePath = path.join(tempDir, name);
+          await execFileP(renderFFmpegBin, [
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            `color=c=${color}:s=${size},format=${color.includes("@") ? "rgba" : "rgb24"}`,
+            "-frames:v",
+            "1",
+            "-f",
+            "image2",
+            "-c:v",
+            "png",
+            filePath,
+          ]);
+          return fs.readFile(filePath);
+        }
+        // Three opaque red rgb24 frames, then three green frames: rgba and
+        // half transparent, or opaque but larger.
+        const red = await frame("red.png", "red", "47x33");
+        const green =
+          change === "format"
+            ? await frame("green.png", "lime@0.5", "47x33")
+            : await frame("green.png", "lime", "81x61");
+        const anniePath = path.join(tempDir, "anim.tar");
+        await fs.writeFile(
+          anniePath,
+          await annieBuffer(
+            (async function* () {
+              for (const f of [red, red, red, green, green, green]) yield f;
+            })(),
+          ),
+        );
+        const sources: EffieSources<EffieFileUrl> = {
+          // A blue square in the top-right corner, clear of the annie.
+          square: await smallImage(
+            tempDir,
+            "square.png",
+            "black@0",
+            `format=rgba,drawbox=x=50:y=0:w=14:h=10:color=blue:t=fill`,
+          ),
+          anim: effieFileUrl(pathToFileURL(anniePath).toString()),
+        };
+
+        const frames = await renderSmallFrames(tempDir, {
+          width: smallWidth,
+          height: smallHeight,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            {
+              duration: 0.6,
+              layers: [
+                { type: "image", source: "#square" },
+                { type: "animation", source: "#anim" },
+              ],
+            },
+            { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
+          ],
+        });
+        const segment0Frames = await expectedLayeredFrames(fps, 0.6);
+        expect(frames.length).toBe(
+          segment0Frames + (await expectedLayeredFrames(fps, 0.3)),
+        );
+
+        const rgb = (n: number, x: number, y: number) => {
+          const i = (y * smallWidth + x) * 3;
+          return [frames[n][i], frames[n][i + 1], frames[n][i + 2]];
+        };
+        frames.forEach((_, n) => {
+          // The image layer is on every frame, in both segments.
+          expect(rgb(n, 56, 5)[2], `frame ${n}: square`).toBeGreaterThan(150);
+          const [r, g] = rgb(n, 10, 10);
+          if (n < 3) {
+            expect(r, `frame ${n}: red annie frame`).toBeGreaterThan(200);
+          } else if (n < segment0Frames) {
+            // The changed frames show up when they're due, as the annie's
+            // own (half transparent) frames, at the first frame's size.
+            expect(r, `frame ${n}: green annie frame`).toBeLessThan(60);
+            if (change === "format") {
+              expect(g, `frame ${n}: half transparent`).toBeGreaterThan(90);
+              expect(g, `frame ${n}: half transparent`).toBeLessThan(170);
+            } else {
+              expect(g, `frame ${n}: green annie frame`).toBeGreaterThan(200);
+              expect(rgb(n, 55, 30)[1], `frame ${n}: first size`).toBeLessThan(
+                60,
+              );
+            }
+          } else {
+            expect(r + g, `frame ${n}: no annie`).toBeLessThan(60);
+          }
+        });
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
 });

@@ -22,6 +22,18 @@ import { FetchError } from "./handlers/errors";
  */
 const IMAGE_LOOP_FILTER = "loop=loop=-1:size=1";
 
+/**
+ * Gives every frame of an animation (annie) input the pixel format and size
+ * of its first frame, so a frame that differs (an rgba PNG after rgb24 ones,
+ * say) can't reach filters configured for the first. Animation inputs are
+ * read with `-reinit_filter 0`, so FFmpeg passes such frames on instead of
+ * rebuilding the filter graph. `scale` reconfigures its input side when a
+ * frame's properties change, and with `eval=init` it keeps the output size
+ * it computed for the first frame (a frame of another size is resized to it);
+ * the output format is yuva420p, which overlay takes anyway.
+ */
+const ANIMATION_FRAME_FILTER = "scale=w=iw:h=ih:eval=init,format=yuva420p";
+
 export type EffieRendererOptions = {
   /**
    * Allow reading from local file paths.
@@ -250,7 +262,20 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       // A single frame, repeated by the layer chain (see buildLayerFilters).
       preArgs = this.imageInputArgs();
     } else if (layer.type === "animation") {
-      preArgs = ["-f", "image2", "-framerate", this.effieData.fps.toString()];
+      preArgs = [
+        // Annie frames may change pixel format (e.g. rgb24 and rgba PNGs) or
+        // size mid-stream. By default FFmpeg then rebuilds the whole filter
+        // graph, which restarts every chain's timing (trims, fps, padding)
+        // and leaves single-frame image inputs with nothing to send. Keep the
+        // graph instead and normalise the frames at the head of the layer
+        // chain (see ANIMATION_FRAME_FILTER).
+        "-reinit_filter",
+        "0",
+        "-f",
+        "image2",
+        "-framerate",
+        this.effieData.fps.toString(),
+      ];
     }
     return {
       index: inputIndex,
@@ -307,7 +332,7 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       const sourceChain = [
         ...(layer.type === "image"
           ? ["format=yuva420p", IMAGE_LOOP_FILTER]
-          : []),
+          : [ANIMATION_FRAME_FILTER]),
         `trim=start=0:duration=${segment.duration - delay}`,
         ...(effectChain ? [effectChain] : []),
         "setsar=1",

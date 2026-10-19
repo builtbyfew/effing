@@ -198,4 +198,82 @@ describe("QoiAwareImg", () => {
     expect(fetchQoi).toHaveBeenCalledOnce();
     expect(img.getAttribute("src")).toBe("blob:png");
   });
+
+  it("holds back an error event while a conversion is running, dropping it when the conversion succeeds", async () => {
+    let resolve!: (url: string) => void;
+    fetchQoi.mockReturnValue(new Promise((r) => (resolve = r)));
+    const onError = vi.fn();
+    const element = <QoiAwareImg src="/image.qoi" onError={onError} />;
+    container.innerHTML = renderToString(element);
+    const img = container.querySelector("img")!;
+    Object.defineProperty(img, "complete", { value: true });
+    await act(async () => {
+      root = hydrateRoot(container, element);
+    });
+    expect(fetchQoi).toHaveBeenCalledOnce();
+
+    // The error event the browser queued arrives after the check on mount.
+    await fire(img, "error");
+    await act(async () => resolve("blob:png"));
+
+    expect(fetchQoi).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
+    expect(img.getAttribute("src")).toBe("blob:png");
+  });
+
+  it("forwards a held-back error event once when the image isn't QOI", async () => {
+    let resolve!: (url: string | null) => void;
+    fetchQoi.mockReturnValue(new Promise((r) => (resolve = r)));
+    const onError = vi.fn();
+    const img = render(<QoiAwareImg src="/broken.png" onError={onError} />);
+
+    await fire(img, "error");
+    await fire(img, "error");
+    expect(onError).not.toHaveBeenCalled();
+    await act(async () => resolve(null));
+
+    expect(fetchQoi).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it("drops srcSet and sizes once the PNG stands in, so the browser doesn't pick the QOI again", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg
+        src="/image.qoi"
+        srcSet="/image.qoi 1x, /image@2x.qoi 2x"
+        sizes="100vw"
+        alt="An image"
+      />,
+    );
+    expect(img.getAttribute("srcset")).toBe("/image.qoi 1x, /image@2x.qoi 2x");
+    expect(img.getAttribute("sizes")).toBe("100vw");
+
+    await fire(img, "error");
+
+    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(img.hasAttribute("srcset")).toBe(false);
+    expect(img.hasAttribute("sizes")).toBe(false);
+    expect(img.getAttribute("alt")).toBe("An image");
+  });
+
+  it("fetches with the credentials crossOrigin asks for", async () => {
+    fetchQoi.mockResolvedValue(null);
+    const cases = [
+      [undefined, undefined],
+      ["use-credentials", "include"],
+      ["anonymous", "same-origin"],
+      ["", "same-origin"],
+    ] as const;
+
+    for (const [i, [crossOrigin, credentials]] of cases.entries()) {
+      const img = render(
+        <QoiAwareImg src={`/image-${i}.qoi`} crossOrigin={crossOrigin} />,
+      );
+      await fire(img, "error");
+      const init = fetchQoi.mock.calls[i][1]!;
+      expect(init.credentials).toBe(credentials);
+      expect("credentials" in init).toBe(credentials !== undefined);
+    }
+  });
 });

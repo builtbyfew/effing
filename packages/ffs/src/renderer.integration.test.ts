@@ -2488,20 +2488,30 @@ describe("QOI sources", () => {
       const px = (n: number) => n / scale;
 
       try {
-        // 40x30 RGBA frames: 30 px of opaque red or lime, then 10 px of
-        // transparent black.
-        const frame = (color: string) =>
+        // 40x30 RGBA frames: 30 px of opaque red or of the half-transparent
+        // mid-tone (which shows a frame scaled with straight alpha and then
+        // unpremultiplied, see HALF_GREEN), then 10 px of transparent black.
+        const frame = (name: string, color: string) =>
           qoi(
             tempDir,
-            color,
+            name,
             `color=c=${color}:s=${px(30)}x${px(30)},format=rgba[a];` +
               `color=c=black@0:s=${px(10)}x${px(30)},format=rgba[b];` +
               `[a][b]hstack`,
             4,
           );
-        const [red, lime] = [await frame("red"), await frame("lime")];
-        const expected = [RED, LIME, RED, LIME, LIME];
-        const anim = await annie(expected.map((c) => (c === RED ? red : lime)));
+        const red = await frame("red", "red");
+        const green = await frame("green", HALF_GREEN);
+        const expected = [
+          RED,
+          HALF_GREEN_OVER_BLUE,
+          RED,
+          HALF_GREEN_OVER_BLUE,
+          HALF_GREEN_OVER_BLUE,
+        ];
+        const anim = await annie(
+          expected.map((c) => (c === RED ? red : green)),
+        );
 
         const sources = { anim: sourceUrl(kind, anim, "application/x-tar") };
         const frames = await renderFrames(

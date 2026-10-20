@@ -16,6 +16,11 @@ Defined in: [effie/src/types.ts:124](https://github.com/builtbyfew/effing/blob/m
 
 > `optional` **duration?**: `number`
 
+How long the motion lasts, in seconds (default 1).
+
 ### start?
 
 > `optional` **start?**: `number`
+
+When the motion begins (default 0), in seconds from when the layer's
+content starts at segment time `delay`.

@@ -122,7 +122,12 @@ export type EffieEffect = {
 );
 
 export type EffieMotion = {
+  /**
+   * When the motion begins (default 0), in seconds from when the layer's
+   * content starts at segment time `delay`.
+   */
   start?: number;
+  /** How long the motion lasts, in seconds (default 1). */
   duration?: number;
 } & (
   | { type: "bounce"; amplitude?: number }
@@ -133,6 +138,11 @@ export type EffieMotion = {
        * (default 10). Scaled renders scale it with the frame.
        */
       intensity?: number;
+      /**
+       * Speed of the shake in half-turns per second, not in Hz: the layer
+       * completes one circle every 2/frequency seconds (default 4, i.e. two
+       * circles per second).
+       */
       frequency?: number;
     }
   | {

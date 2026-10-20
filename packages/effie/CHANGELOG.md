@@ -1,5 +1,16 @@
 # @effing/effie
 
+## 0.46.0
+
+### Patch Changes
+
+- e3525d7: Document QOI image layers and backgrounds
+
+  Image layers and image backgrounds can be PNG, JPEG or QOI images. The cover should stay a PNG or JPEG, since it is meant to be shown in browsers, which can't display QOI.
+
+- f87422e: Document that a shake's `frequency` is its speed in half-turns per second, not in Hz (one circle every 2/frequency seconds, default 4), and the defaults of the motion `start` (0) and `duration` (1)
+- 9519ba3: Document that a shake's `intensity` is its maximum offset along each axis in pixels of the full-size frame (default 10), scaled with the render
+
 ## 0.45.1
 
 ## 0.45.0

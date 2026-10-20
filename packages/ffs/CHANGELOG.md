@@ -1,5 +1,57 @@
 # @effing/ffs
 
+## 0.46.0
+
+### Minor Changes
+
+- e3525d7: Render QOI image layers, image backgrounds and annie frames
+
+  FFS renders [QOI](https://qoiformat.org) images (with 3 or 4 channels) as image layers and image backgrounds, and annies with QOI frames, at every scale. It needed no code changes, as FFmpeg's QOI decoder and its probing of FFS's extensionless source files already handled them; integration tests now cover QOI from data URLs and over HTTP, at scale 1 and 0.5, including annies whose frames switch between 3 and 4 channels.
+
+- 41d4075: Scale image and animation layers in FFmpeg instead of sharp (requires FFmpeg 8.1 or newer)
+
+  Renders with a scale other than 1 used to downscale every image layer, image background and animation frame with sharp before FFmpeg read it. The layers are now scaled inside the FFmpeg filter graph, and sharp is no longer a dependency, so scaled renders no longer need it installed:
+
+  - Scaled JPEG layers and image backgrounds look sharper: sharp re-encoded them at JPEG quality 80, which added visible block artifacts.
+  - JPEG layers and backgrounds tagged with an EXIF orientation are now rotated in scaled renders too, as they already were at scale 1.
+  - Animations render faster at reduced scale, since their frames are no longer resized one by one before FFmpeg starts: in benchmarks, a 150-frame 1080p animation rendered at half scale in 0.5 s instead of 2.1 s (PNG frames) and 1.0 s instead of 1.7 s (JPEG frames).
+  - Scaled renders now decode images at full size, where sharp used to shrink them before FFmpeg read them, so their peak memory stays close to that of a full-size render: in a benchmark with eight 4000×3000 image layers, FFmpeg peaked at 877 MB at scale 0.25 and 1212 MB at scale 0.5 (129 MB and 371 MB before), against 1333 MB at scale 1. Compositions of only static images also take slightly longer (about 0.2 s for nine 1080p image layers).
+  - Layers keep their sizes (`floor(width * scale)` by `floor(height * scale)` pixels), positions and motion. They are scaled with premultiplied alpha, so transparent edges don't darken. Images without an alpha channel, such as JPEGs, are scaled directly instead; animation frames are always premultiplied, as an animation's frames may switch between formats with and without alpha.
+
+  Breaking changes:
+
+  - Scaled renders need FFmpeg 8.1 or newer, which added the alpha mode negotiation they use. The bundled FFmpeg is 9.0.2; if you point `FFMPEG` at your own binary, FFmpeg 8.0 still renders at scale 1 but fails scaled renders. The one-time version warning now fires below 8.1.
+  - `FFmpegRunner.run` no longer takes an `imageTransformer`: its signature is now `run(sourceFetcher, referenceResolver?, urlTransformer?)`. Callers that passed a reference resolver or URL transformer positionally must drop the `imageTransformer` argument.
+
+### Patch Changes
+
+- e3525d7: Upload covers with the Content-Type of their format
+
+  With `upload.coverUrl`, FFS uploaded every cover as `image/png`, whatever its format. It now sniffs the cover's bytes and uploads PNG, JPEG and QOI covers as `image/png`, `image/jpeg` and `image/qoi`. For other formats it uses the image type the cover's source declared (a data URL's media type or the response's `Content-Type`), or `application/octet-stream` if there is none.
+
+  If you presign `coverUrl` with a fixed `Content-Type` that doesn't match the cover's actual format, the upload now fails. A URL presigned for `image/png` with a JPEG cover, for example, used to succeed and store a mislabelled object, and is now rejected by the storage service because the signed and sent `Content-Type` differ. Presign `coverUrl` without a fixed `Content-Type`, or with the cover's real one.
+
+  Covers are usually shown in browsers, which can't display QOI, so make covers PNG or JPEG.
+
+- 1a89e43: Decode static images once instead of for every frame
+
+  Image layers and image backgrounds were read with `-loop 1`, so FFmpeg decoded the full-size image again for every output frame, and converted or cover-scaled it every time too. Each image is now decoded once, converted (layers) or cover-scaled (backgrounds) once, and repeated inside the filter graph. In benchmarks, compositions with 1080p and 4K images rendered two to three times as fast at full scale, and faster at smaller scales too, while FFmpeg's peak memory roughly halved. Durations, frame counts, timing and effects are unchanged, and so is the rendered video.
+
+  A corrupt or truncated PNG now fails the render right away. Before, FFmpeg could keep re-reading it and the render never finished.
+
+  Annies whose frames change pixel format partway (rgb24 and rgba PNGs mixed, say) or size now render with the right timing and frame count. Before, the change restarted FFmpeg's filter graph: the annie's later frames showed up early and the segment came out a frame or two too long. A frame of a different size is now resized to the size of the annie's first frame, without keeping its aspect ratio.
+
+- 9519ba3: Scale shake motion with the render, so scaled renders look like the full render
+
+  A shake's `intensity` is in pixels, but scaled renders (`render(scale)` with a scale other than 1) used it as is, so at scale 0.5 a shaking layer moved twice as far relative to the frame and the layer as in the full-size render. The intensity is now multiplied by the render's scale, so scaled renders with shake motion look like the full render, downscaled. Slide and bounce were already relative to the frame and layer size, and no effect or transition takes a size in pixels. Full-size renders are unchanged.
+
+- Updated dependencies [e3525d7]
+- Updated dependencies [e3525d7]
+- Updated dependencies [f87422e]
+- Updated dependencies [9519ba3]
+  - @effing/annie@0.46.0
+  - @effing/effie@0.46.0
+
 ## 0.45.1
 
 ### Patch Changes

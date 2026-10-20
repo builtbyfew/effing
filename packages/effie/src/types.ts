@@ -126,7 +126,15 @@ export type EffieMotion = {
   duration?: number;
 } & (
   | { type: "bounce"; amplitude?: number }
-  | { type: "shake"; intensity?: number; frequency?: number }
+  | {
+      type: "shake";
+      /**
+       * Maximum offset along each axis, in pixels of the full-size frame
+       * (default 10). Scaled renders scale it with the frame.
+       */
+      intensity?: number;
+      frequency?: number;
+    }
   | {
       type: "slide";
       direction: "left" | "right" | "up" | "down";

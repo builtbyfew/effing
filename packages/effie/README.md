@@ -302,6 +302,8 @@ All motion variants share optional `start` and `duration` (in seconds). Variant-
 
 `direction` is required for `slide` only; `bounce` and `shake` need no required fields beyond `type`.
 
+A shake's `intensity` is its maximum offset along each axis, in pixels of the full-size frame (default 10). A scaled render scales it with the frame, so the shake looks the same relative to the frame at any scale.
+
 ## Runtime Constraints
 
 ### Enforced by `effieDataSchema`

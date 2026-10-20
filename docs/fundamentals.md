@@ -146,7 +146,7 @@ Here we're using a wider image (1.5x the video width) and scrolling it to the le
 **Motion** animates the layer's position:
 
 - `bounce` — vertical bouncing
-- `shake` — random jittering
+- `shake` — moves the layer in a steady circle around its position (a sine/cosine oscillation)
 - `slide` — moves in a direction, with optional easing (`ease-in`, `ease-out`, `ease-in-out`)
 
 You can combine multiple effects with one motion on the same layer. This covers a lot of common video animations — you only need to generate custom frames when you want something more specific.

@@ -497,6 +497,118 @@ describe("EffieRenderer static images", () => {
   });
 });
 
+describe("EffieRenderer layer scaling", () => {
+  // A scaled render shrinks image and animation layers inside the filter
+  // graph, by the render's scale factor, with premultiplied alpha.
+  type Command = {
+    inputs: { index: number; preArgs: string[]; type: string }[];
+    filterComplex: string;
+  };
+
+  function buildCommand(effie: EffieData<EffieSources>, scale: number) {
+    const renderer = new EffieRenderer(effie);
+    return (
+      renderer as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand("out.mp4", scale);
+  }
+
+  function layersEffie(): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+      segments: [
+        {
+          duration: 2,
+          layers: [
+            {
+              type: "image",
+              source: "https://example.com/img.png",
+              effects: [{ type: "fade-in", start: 0, duration: 1 }],
+            },
+            { type: "image", source: "https://example.com/photo.jpg" },
+            {
+              type: "animation",
+              source: "https://example.com/anim.tar",
+              delay: 0.5,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  const scale = (f: string) =>
+    `scale=w='max(1,trunc(iw*${f}))':h='max(1,trunc(ih*${f}))'`;
+  const scaleFilters = (f: string) =>
+    `format=alpha_modes=premultiplied,${scale(f)},format=alpha_modes=straight`;
+
+  test("an image layer is scaled once, before it is converted and looped", () => {
+    const { filterComplex } = buildCommand(layersEffie(), 0.5);
+    expect(filterComplex).toContain(
+      `[1:v]${scaleFilters("0.5")},format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]`,
+    );
+  });
+
+  test("an animation layer is normalised, premultiplied and scaled after the trim", () => {
+    // No yuva420p normaliser ahead of the trim, as at scale 1: the
+    // normaliser converts to whatever alpha format premultiply takes, and
+    // the explicit premultiply/unpremultiply run on every frame, whatever
+    // its format (see animationChainHead).
+    const { filterComplex } = buildCommand(layersEffie(), 0.25);
+    expect(filterComplex).toContain(
+      `[3:v]trim=start=0:duration=1.5,scale=w=iw:h=ih:eval=init,premultiply=inplace=1,${scale("0.25")},unpremultiply=inplace=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]`,
+    );
+    expect(filterComplex).not.toContain("format=yuva420p,trim");
+  });
+
+  test("layer inputs are unchanged by scaling", () => {
+    const layerInputs = (scale: number) =>
+      buildCommand(layersEffie(), scale).inputs.filter(
+        (input) => input.type !== "color",
+      );
+    expect(layerInputs(0.5)).toHaveLength(3);
+    expect(layerInputs(0.5)).toEqual(layerInputs(1));
+  });
+
+  test("premultiplying image layers is left to FFmpeg, so a JPEG layer isn't premultiplied", () => {
+    // No explicit premultiply filter on image layers, which would convert
+    // every image, including an opaque JPEG, to a full-size alpha format
+    // first. The alpha_modes of the format filters only make FFmpeg
+    // premultiply frames that have an alpha channel, so the PNG and the JPEG
+    // layer get the same chain, and only the PNG is premultiplied when the
+    // graph runs (see the integration tests).
+    const { filterComplex } = buildCommand(layersEffie(), 0.5);
+    const imageChains = filterComplex
+      .split(";")
+      .filter((part) => /^\[[12]:v\]/.test(part));
+    expect(imageChains).toHaveLength(2);
+    for (const chain of imageChains) {
+      expect(chain).not.toMatch(/premultiply=/);
+    }
+    expect(filterComplex).toContain(
+      `[2:v]${scaleFilters("0.5")},format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,setsar=1,setpts=PTS-STARTPTS[seg0_layer1]`,
+    );
+  });
+
+  test("at scale 1 layers aren't scaled", () => {
+    const { filterComplex } = buildCommand(layersEffie(), 1);
+    expect(filterComplex).not.toContain("alpha_modes");
+    expect(filterComplex).toContain(
+      "[1:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=2,fade=t=in:st=0:d=1:alpha=1,setsar=1,setpts=PTS-STARTPTS[seg0_layer0]",
+    );
+    // The animation keeps its yuva420p normaliser ahead of the trim.
+    expect(filterComplex).toContain(
+      "[3:v]scale=w=iw:h=ih:eval=init,format=yuva420p,trim=start=0:duration=1.5,setsar=1,setpts=PTS-STARTPTS[seg0_layer2]",
+    );
+    expect(filterComplex).not.toMatch(/premultiply|trunc/);
+  });
+});
+
 describe("EffieRenderer source failures", () => {
   let server: http.Server;
   let url: string;

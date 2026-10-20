@@ -1,5 +1,9 @@
 import { describe, test, expect, vi } from "vitest";
-import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
+import {
+  FFmpegCommand,
+  FFmpegRunner,
+  isSupportedFFmpegVersion,
+} from "./ffmpeg";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import fsp from "fs/promises";
@@ -62,12 +66,7 @@ describe("FFmpegRunner", () => {
       const runner = new FFmpegRunner(command);
 
       // The run will fail when FFmpeg tries to spawn, but source resolution happens first
-      await runUntilSettled(
-        runner,
-        sourceFetcher,
-        undefined,
-        referenceResolver,
-      );
+      await runUntilSettled(runner, sourceFetcher, referenceResolver);
 
       // Should only be called twice (once per unique #reference), not 4 times
       expect(sourceFetcher).toHaveBeenCalledTimes(2);
@@ -143,12 +142,7 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      await runUntilSettled(
-        runner,
-        sourceFetcher,
-        undefined,
-        referenceResolver,
-      );
+      await runUntilSettled(runner, sourceFetcher, referenceResolver);
 
       // #__segment_0 once (cached), HTTP audio URL passed directly (no call)
       expect(sourceFetcher).toHaveBeenCalledTimes(1);
@@ -231,12 +225,7 @@ describe("FFmpegRunner", () => {
 
       const runner = new FFmpegRunner(command);
 
-      await runUntilSettled(
-        runner,
-        sourceFetcher,
-        undefined,
-        referenceResolver,
-      );
+      await runUntilSettled(runner, sourceFetcher, referenceResolver);
 
       // Only the #reference should be fetched (as resolved URL), not the color input
       expect(sourceFetcher).toHaveBeenCalledTimes(1);
@@ -285,20 +274,23 @@ describe("FFmpegRunner", () => {
     });
 
     test(
-      "rejects when an animation frame transform fails",
+      "rejects when an animation archive is truncated",
       { timeout: 5000 },
       async () => {
-        // Build a minimal annie (TAR of frames) in memory; the pack stream
-        // is a Readable, so it can be returned from the sourceFetcher as-is.
+        // A minimal annie (TAR of frames), cut off after the header of its
+        // second frame (each frame takes a 512-byte header and 1024 bytes of
+        // padded data).
         const pack = tar.pack();
-        pack.entry({ name: "frame_00001" }, Buffer.from("frame-data"));
-        pack.entry({ name: "frame_00002" }, Buffer.from("frame-data"));
+        pack.entry({ name: "frame_00001" }, Buffer.alloc(600, 1));
+        pack.entry({ name: "frame_00002" }, Buffer.alloc(600, 2));
         pack.finalize();
+        const chunks: Buffer[] = [];
+        for await (const chunk of pack) chunks.push(chunk as Buffer);
+        const truncated = Buffer.concat(chunks).subarray(0, 2048);
 
-        const sourceFetcher = vi.fn().mockResolvedValue(pack);
-        const imageTransformer = vi
+        const sourceFetcher = vi
           .fn()
-          .mockRejectedValue(new Error("cannot decode frame"));
+          .mockImplementation(async () => Readable.from([truncated]));
 
         const command = new FFmpegCommand(
           ["-y"],
@@ -316,12 +308,45 @@ describe("FFmpegRunner", () => {
 
         const runner = new FFmpegRunner(command);
 
-        // Must reject (not hang) when a frame can't be transformed.
-        await expect(
-          runner.run(sourceFetcher, imageTransformer),
-        ).rejects.toThrow("cannot decode frame");
-        expect(imageTransformer).toHaveBeenCalled();
+        // Must reject (not hang) when the archive ends partway through.
+        await expect(runner.run(sourceFetcher)).rejects.toThrow(
+          "Unexpected end of annie archive",
+        );
       },
     );
   });
+});
+
+describe("isSupportedFFmpegVersion", () => {
+  test.each([
+    "9.0.2",
+    "9.0.1",
+    "8.1",
+    "8.1-static",
+    "8.1.1",
+    "n8.1.1",
+    "10.0",
+    "8.10",
+  ])("%s is supported", (version) => {
+    expect(isSupportedFFmpegVersion(version)).toBe(true);
+  });
+
+  test.each([
+    "8.0",
+    "8.0.1",
+    "n8.0",
+    "7.1.1",
+    "n7.1",
+    "6.1.1-3ubuntu5",
+    "4.4.2-0ubuntu0.22.04.1",
+  ])("%s is too old", (version) => {
+    expect(isSupportedFFmpegVersion(version)).toBe(false);
+  });
+
+  test.each(["N-120000-gabcdef", "git-2026-01-01-abcdef"])(
+    "%s isn't checked",
+    (version) => {
+      expect(isSupportedFFmpegVersion(version)).toBeUndefined();
+    },
+  );
 });

@@ -22,24 +22,6 @@ const execFileP = promisify(execFile);
 const renderFFmpegBin = process.env.FFMPEG ?? pathToFFmpeg ?? "ffmpeg";
 
 /**
- * Frames a rendered segment of `duration` seconds with layers is expected to
- * have. That is fps * duration on the supported FFmpeg (>= 8.0), but FFmpeg
- * 6.1 drops the final frame of every layered segment (see the README).
- */
-async function expectedLayeredFrames(
-  fps: number,
-  duration: number,
-): Promise<number> {
-  return fps * duration - ((await renderFFmpegMajor()) < 7 ? 1 : 0);
-}
-
-/** Major version of the FFmpeg binary EffieRenderer will use. */
-async function renderFFmpegMajor(): Promise<number> {
-  const { stdout } = await execFileP(renderFFmpegBin, ["-version"]);
-  return parseInt(/^ffmpeg version (\d+)/.exec(stdout)?.[1] ?? "", 10);
-}
-
-/**
  * Integration tests for distributed rendering.
  * These tests require FFmpeg and will actually render video.
  *
@@ -566,14 +548,14 @@ describe("distributed rendering integration", () => {
 
       // 6. Verify the decoded stream has exactly fps * duration frames. The
       //    pre-fix nullsrc's 25fps default introduced a frame-rate boundary
-      //    at the concat point that produced extra frames, and with FFmpeg
-      //    >= 8.0 an un-normalised padding chain makes the trailing fps=
+      //    at the concat point that produced extra frames, and since FFmpeg
+      //    8.0 an un-normalised padding chain makes the trailing fps=
       //    filter run away for ~1e6 frames (see the delay padding comment in
       //    renderer.ts). Count frames from ffmpeg's final progress line.
       const frameMatches = [...probe.stderr.matchAll(/frame=\s*(\d+)/g)];
       expect(frameMatches.length).toBeGreaterThan(0);
       const frames = parseInt(frameMatches[frameMatches.length - 1][1], 10);
-      expect(frames).toBe(await expectedLayeredFrames(fps, segmentDuration));
+      expect(frames).toBe(fps * segmentDuration);
     } finally {
       await cleanupTestOutput(tempDir);
     }
@@ -597,8 +579,7 @@ describe("distributed rendering integration", () => {
       const fps = 30;
       const segmentDuration = 1.0;
       const frameSize = 64;
-      const expectedFrames =
-        2 * (await expectedLayeredFrames(fps, segmentDuration));
+      const expectedFrames = 2 * fps * segmentDuration;
       const cases = [
         { delay: 0.25, size: frameSize },
         { delay: 0.35, size: frameSize },
@@ -945,8 +926,8 @@ describe("distributed rendering integration", () => {
   // (see imageInputArgs in renderer.ts), so these check that image layers and
   // backgrounds keep their timing: the frame count and duration of the
   // output, a fade's progress frame by frame, a delayed layer's start, and
-  // which background shows in each segment. At 0.5 the images are downscaled
-  // with sharp before FFmpeg reads them.
+  // which background shows in each segment. At 0.5 the layer is scaled in
+  // the filter graph before it is looped.
   test.each([1, 0.5])(
     "static image layers and backgrounds keep their timing at scale %s",
     async (scale) => {
@@ -1013,11 +994,8 @@ describe("distributed rendering integration", () => {
             { duration: 0.5, layers: [] },
           ],
         };
-        // Segment 0 up to the transition, segment 1 (layered), segment 2. On
-        // FFmpeg 6.1 segment 1 loses its final frame (see
-        // expectedLayeredFrames); segment 0's falls inside the transition.
-        const expectedFrames =
-          fps * (2 - 0.5) + (await expectedLayeredFrames(fps, 1.5)) + fps * 0.5;
+        // Segment 0 up to the transition, segment 1, segment 2.
+        const expectedFrames = fps * (2 - 0.5) + fps * 1.5 + fps * 0.5;
 
         const renderer = new EffieRenderer(effieData, {
           allowLocalFiles: true,
@@ -1160,6 +1138,7 @@ describe("distributed rendering integration", () => {
     name: string,
     color: string,
     filter = "null",
+    size = `${smallWidth}x${smallHeight}`,
   ): Promise<EffieFileUrl> {
     const filePath = path.join(tempDir, name);
     await execFileP(renderFFmpegBin, [
@@ -1167,7 +1146,7 @@ describe("distributed rendering integration", () => {
       "-f",
       "lavfi",
       "-i",
-      `color=c=${color}:s=${smallWidth}x${smallHeight}`,
+      `color=c=${color}:s=${size}`,
       "-vf",
       filter,
       "-frames:v",
@@ -1177,13 +1156,18 @@ describe("distributed rendering integration", () => {
     return effieFileUrl(pathToFileURL(filePath).toString());
   }
 
+  /**
+   * Renders at `scale` (a composition `1 / scale` times the small size, so
+   * the output is always smallWidth x smallHeight).
+   */
   async function renderSmallFrames(
     tempDir: string,
     effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+    scale = 1,
   ): Promise<Buffer[]> {
     const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
     const outPath = path.join(tempDir, "out.mp4");
-    const stream = await renderer.render();
+    const stream = await renderer.render(scale);
     const chunks: Buffer[] = [];
     for await (const c of stream) chunks.push(c);
     await fs.writeFile(outPath, Buffer.concat(chunks));
@@ -1272,7 +1256,7 @@ describe("distributed rendering integration", () => {
           },
         ],
       });
-      expect(frames.length).toBe(await expectedLayeredFrames(fps, duration));
+      expect(frames.length).toBe(fps * duration);
 
       // The red/blue edge starts at the centre and moves left by
       // (width / 2) / (fps * duration) px per frame. The tolerance is 2 px:
@@ -1294,12 +1278,7 @@ describe("distributed rendering integration", () => {
     }
   }, 30000);
 
-  test("static images keep their frame counts in very short segments", async (context) => {
-    // FFmpeg 6.1 drops a two-frame layered segment and a one-frame segment
-    // that are followed by another segment entirely, not just their final
-    // frame (see expectedLayeredFrames), so these counts only hold on the
-    // supported FFmpeg (>= 8.0).
-    if ((await renderFFmpegMajor()) < 8) context.skip();
+  test("static images keep their frame counts in very short segments", async () => {
     const tempDir = await createTestOutputDir("static-images-short");
 
     try {
@@ -1341,22 +1320,29 @@ describe("distributed rendering integration", () => {
     }
   }, 30000);
 
-  test.for<"format" | "size">(["format", "size"])(
-    "an annie whose frames change %s mid-stream keeps the image layers and timing",
+  test.for<["format" | "size", number]>([
+    ["format", 1],
+    ["size", 1],
+    ["format", 0.5],
+    ["size", 0.5],
+  ])(
+    "an annie whose frames change %s mid-stream keeps the image layers and timing at scale %s",
     { timeout: 30000 },
-    async (change, context) => {
+    async ([change, scale]) => {
       // Annie frames can differ in pixel format (an rgba PNG after rgb24
       // ones) or size. By default FFmpeg rebuilds the whole filter graph when
       // that happens, which left the single-frame image inputs with nothing
       // to send (image layers vanished from then on, in every segment) and
       // restarted every chain's timing (frames came out early and the frame
       // count was off). The animation input now keeps the graph, and its
-      // chain gives every frame the first frame's format and size.
-      // FFmpeg 6.1 sizes the layer from a later, larger frame instead.
-      if (change === "size" && (await renderFFmpegMajor()) < 8) {
-        context.skip();
-      }
-      const tempDir = await createTestOutputDir(`annie-${change}-change`);
+      // chain gives every frame the first frame's format and size. At scale
+      // 0.5 the composition is twice the size, so the output and every
+      // position checked below are the same.
+      const tempDir = await createTestOutputDir(
+        `annie-${change}-change-${scale}`,
+      );
+      // A size at scale 1, for a composition rendered at `scale`.
+      const sized = (w: number, h: number) => `${w / scale}x${h / scale}`;
 
       try {
         const fps = 10;
@@ -1380,11 +1366,11 @@ describe("distributed rendering integration", () => {
         }
         // Three opaque red rgb24 frames, then three green frames: rgba and
         // half transparent, or opaque but larger.
-        const red = await frame("red.png", "red", "47x33");
+        const red = await frame("red.png", "red", sized(47, 33));
         const green =
           change === "format"
-            ? await frame("green.png", "lime@0.5", "47x33")
-            : await frame("green.png", "lime", "81x61");
+            ? await frame("green.png", "lime@0.5", sized(47, 33))
+            : await frame("green.png", "lime", sized(81, 61));
         const anniePath = path.join(tempDir, "anim.tar");
         await fs.writeFile(
           anniePath,
@@ -1400,33 +1386,36 @@ describe("distributed rendering integration", () => {
             tempDir,
             "square.png",
             "black@0",
-            `format=rgba,drawbox=x=50:y=0:w=14:h=10:color=blue:t=fill`,
+            `format=rgba,drawbox=x=${50 / scale}:y=0:w=${14 / scale}:h=${10 / scale}:color=blue:t=fill`,
+            sized(smallWidth, smallHeight),
           ),
           anim: effieFileUrl(pathToFileURL(anniePath).toString()),
         };
 
-        const frames = await renderSmallFrames(tempDir, {
-          width: smallWidth,
-          height: smallHeight,
-          fps,
-          cover: "https://example.com/cover.png",
-          background: { type: "color", color: "black" },
-          sources,
-          segments: [
-            {
-              duration: 0.6,
-              layers: [
-                { type: "image", source: "#square" },
-                { type: "animation", source: "#anim" },
-              ],
-            },
-            { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
-          ],
-        });
-        const segment0Frames = await expectedLayeredFrames(fps, 0.6);
-        expect(frames.length).toBe(
-          segment0Frames + (await expectedLayeredFrames(fps, 0.3)),
+        const frames = await renderSmallFrames(
+          tempDir,
+          {
+            width: smallWidth / scale,
+            height: smallHeight / scale,
+            fps,
+            cover: "https://example.com/cover.png",
+            background: { type: "color", color: "black" },
+            sources,
+            segments: [
+              {
+                duration: 0.6,
+                layers: [
+                  { type: "image", source: "#square" },
+                  { type: "animation", source: "#anim" },
+                ],
+              },
+              { duration: 0.3, layers: [{ type: "image", source: "#square" }] },
+            ],
+          },
+          scale,
         );
+        const segment0Frames = fps * 0.6;
+        expect(frames.length).toBe(fps * (0.6 + 0.3));
 
         const rgb = (n: number, x: number, y: number) => {
           const i = (y * smallWidth + x) * 3;
@@ -1460,4 +1449,621 @@ describe("distributed rendering integration", () => {
       }
     },
   );
+});
+
+describe("scaled renders", () => {
+  // A scaled render shrinks image and animation layers inside the filter
+  // graph (see imageScaleFilters and animationChainHead in renderer.ts).
+  // These check the layers' sizes and positions, alpha edges, EXIF
+  // orientation, and which sources get premultiplied, and how.
+  const ffmpegBin = renderFFmpegBin;
+
+  /** Writes a single-frame image made by a lavfi source graph. */
+  async function lavfiImage(
+    dir: string,
+    name: string,
+    graph: string,
+  ): Promise<string> {
+    const filePath = path.join(dir, name);
+    await execFileP(ffmpegBin, [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      graph,
+      "-frames:v",
+      "1",
+      // Write the file as named, e.g. extensionless annie frames.
+      "-f",
+      "image2",
+      "-c:v",
+      name.endsWith(".jpg") ? "mjpeg" : "png",
+      filePath,
+    ]);
+    return filePath;
+  }
+
+  const fileUrl = (filePath: string) =>
+    effieFileUrl(pathToFileURL(filePath).toString());
+
+  /** Renders to an MP4 in `dir` and returns its path. */
+  async function renderToFile(
+    dir: string,
+    effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+    scale: number,
+  ): Promise<string> {
+    const renderer = new EffieRenderer(effieData, { allowLocalFiles: true });
+    const outPath = path.join(dir, `out-${scale}.mp4`);
+    const stream = await renderer.render(scale);
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c);
+    await fs.writeFile(outPath, Buffer.concat(chunks));
+    renderer.close();
+    return outPath;
+  }
+
+  /** Decodes every frame of an MP4 to raw 8-bit luma. */
+  async function decodeLuma(
+    file: string,
+    width: number,
+    height: number,
+  ): Promise<Buffer[]> {
+    const { stdout } = await execFileP(
+      ffmpegBin,
+      [
+        "-i",
+        file,
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "gray",
+        "-",
+      ],
+      { encoding: "buffer", maxBuffer: 1 << 26 },
+    );
+    const frameBytes = width * height;
+    expect(stdout.length % frameBytes).toBe(0);
+    return Array.from({ length: stdout.length / frameBytes }, (_, i) =>
+      stdout.subarray(i * frameBytes, (i + 1) * frameBytes),
+    );
+  }
+
+  /** Bounding box of the pixels of a luma frame that pass `test`. */
+  function bbox(
+    frame: Buffer,
+    width: number,
+    test: (luma: number) => boolean,
+  ): { x: [number, number]; y: [number, number] } | undefined {
+    let [x0, x1, y0, y1] = [Infinity, -1, Infinity, -1];
+    for (let i = 0; i < frame.length; i++) {
+      if (!test(frame[i])) continue;
+      const [x, y] = [i % width, Math.floor(i / width)];
+      [x0, x1, y0, y1] = [
+        Math.min(x0, x),
+        Math.max(x1, x),
+        Math.min(y0, y),
+        Math.max(y1, y),
+      ];
+    }
+    return x1 < 0 ? undefined : { x: [x0, x1], y: [y0, y1] };
+  }
+
+  test("image and animation layers shrink to floor(w*scale) x floor(h*scale) and keep their positions", async () => {
+    const tempDir = await createTestOutputDir("scaled-layer-geometry");
+
+    try {
+      // Odd sizes, so the scaled sizes are truncated: a 61x41 image and a
+      // 47x33 animation, opaque white in an alpha format, over black.
+      const box = await lavfiImage(
+        tempDir,
+        "box.png",
+        "color=c=white:s=61x41,format=rgba",
+      );
+      const frame = await fs.readFile(
+        await lavfiImage(tempDir, "frame", "color=c=white:s=47x33,format=rgba"),
+      );
+      const anniePath = path.join(tempDir, "anim.annie");
+      await fs.writeFile(
+        anniePath,
+        await annieBuffer(
+          (async function* () {
+            for (let i = 0; i < 5; i++) yield frame;
+          })(),
+        ),
+      );
+
+      const sources: EffieSources<EffieFileUrl> = {
+        box: fileUrl(box),
+        anim: fileUrl(anniePath),
+      };
+      // Five 0.5 s segments of 5 frames. The motions that haven't started
+      // yet hold their initial offsets: the slide 0.3 of the frame width to
+      // the right, the bounce half the layer height up. The shake moves the
+      // layer `intensity` px (not scaled) times cos(0) = 1 down at the
+      // segment's first frame. (Overlay rounds offsets down to even pixels
+      // for yuv420, so these are all even.)
+      const notYet = 100;
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width: 200,
+        height: 120,
+        fps: 10,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "black" },
+        sources,
+        segments: [
+          { duration: 0.5, layers: [{ type: "image", source: "#box" }] },
+          { duration: 0.5, layers: [{ type: "animation", source: "#anim" }] },
+          {
+            duration: 0.5,
+            layers: [
+              {
+                type: "image",
+                source: "#box",
+                motion: {
+                  type: "slide",
+                  direction: "left",
+                  distance: 0.3,
+                  start: notYet,
+                },
+              },
+            ],
+          },
+          {
+            duration: 0.5,
+            layers: [
+              {
+                type: "image",
+                source: "#box",
+                motion: { type: "shake", intensity: 6, duration: notYet },
+              },
+            ],
+          },
+          {
+            duration: 0.5,
+            layers: [
+              {
+                type: "animation",
+                source: "#anim",
+                motion: { type: "bounce", amplitude: 0.5, start: notYet },
+              },
+            ],
+          },
+        ],
+      };
+
+      const outPath = await renderToFile(tempDir, effieData, 0.5);
+      const [width, height] = [100, 60];
+      const frames = await decodeLuma(outPath, width, height);
+      expect(frames).toHaveLength(25);
+
+      const white = (frameIndex: number) =>
+        bbox(frames[frameIndex], width, (luma) => luma > 128);
+      // The 61x41 image is 30x20, the 47x33 animation 23x16.
+      expect(white(2)).toEqual({ x: [0, 29], y: [0, 19] });
+      expect(white(7)).toEqual({ x: [0, 22], y: [0, 15] });
+      // Slid right by round(0.3 * 100) = 30 px.
+      expect(white(12)).toEqual({ x: [30, 59], y: [0, 19] });
+      // Shaken 6 px down at the segment's first frame.
+      expect(white(15)).toEqual({ x: [0, 29], y: [6, 25] });
+      // Bounced up by half the scaled animation's height, 8 px.
+      expect(white(22)).toEqual({ x: [0, 22], y: [0, 7] });
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("a transparent PNG layer has no dark fringe along its edges", async () => {
+    // Opaque yellow shapes on fully transparent black, over a cyan
+    // background: every output pixel should be a mix of yellow and cyan, so
+    // its luma lies between theirs, give or take the ringing of the bicubic
+    // filter and the encoder (about 10 below cyan). Scaled with straight
+    // alpha, bicubic would blend the black of the transparent pixels into the
+    // edge pixels and composite them darker than either: about 40 below cyan
+    // at scale 0.5 and 0.25.
+    const tempDir = await createTestOutputDir("scaled-alpha-edges");
+
+    try {
+      const shape = await lavfiImage(
+        tempDir,
+        "shape.png",
+        "color=c=black@0:s=160x160,format=rgba," +
+          "drawbox=x=41:y=37:w=70:h=81:color=yellow:t=fill:replace=1," +
+          "drawbox=x=19:y=125:w=121:h=9:color=yellow:t=fill:replace=1",
+      );
+      const sources: EffieSources<EffieFileUrl> = { shape: fileUrl(shape) };
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width: 160,
+        height: 160,
+        fps: 10,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "cyan" },
+        sources,
+        segments: [
+          { duration: 0.3, layers: [{ type: "image", source: "#shape" }] },
+        ],
+      };
+
+      for (const scale of [0.5, 0.25]) {
+        const size = 160 * scale;
+        const outPath = await renderToFile(tempDir, effieData, scale);
+        const [frame] = await decodeLuma(outPath, size, size);
+        // Luma at a point given in full-size layer coordinates.
+        const at = (x: number, y: number) =>
+          frame[Math.floor(y * scale) * size + Math.floor(x * scale)];
+        const yellow = at(76, 77);
+        const cyan = at(4, 4);
+        expect(yellow - cyan).toBeGreaterThan(30);
+        expect(Math.min(...frame), `scale ${scale}`).toBeGreaterThanOrEqual(
+          cyan - 20,
+        );
+      }
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test.each([1, 0.5])(
+    "a JPEG layer is shown as its EXIF orientation says at scale %s",
+    async (scale) => {
+      // A 64x32 JPEG, white on the left and black on the right, tagged
+      // "rotate 90° clockwise" (orientation 6): shown 32x64, white on top.
+      const tempDir = await createTestOutputDir(`scaled-exif-${scale}`);
+
+      try {
+        const plain = await fs.readFile(
+          await lavfiImage(
+            tempDir,
+            "plain.jpg",
+            "color=c=white:s=64x32,drawbox=x=32:y=0:w=32:h=32:color=black:t=fill",
+          ),
+        );
+        // An APP1 Exif segment with a big-endian TIFF header and a single
+        // IFD entry: Orientation (0x0112), SHORT, count 1, value 6.
+        const exif = Buffer.concat([
+          Buffer.from("Exif\0\0", "latin1"),
+          Buffer.from([
+            0x4d, 0x4d, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, 0x01,
+            0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+          ]),
+        ]);
+        const app1 = Buffer.alloc(4);
+        app1.writeUInt16BE(0xffe1, 0);
+        app1.writeUInt16BE(exif.length + 2, 2);
+        // Right after the SOI marker.
+        const rotatedPath = path.join(tempDir, "rotated.jpg");
+        await fs.writeFile(
+          rotatedPath,
+          Buffer.concat([plain.subarray(0, 2), app1, exif, plain.subarray(2)]),
+        );
+
+        const sources: EffieSources<EffieFileUrl> = {
+          photo: fileUrl(rotatedPath),
+        };
+        const effieData: EffieData<typeof sources, EffieFileUrl> = {
+          width: 96,
+          height: 96,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "gray" },
+          sources,
+          segments: [
+            { duration: 0.3, layers: [{ type: "image", source: "#photo" }] },
+          ],
+        };
+
+        const outPath = await renderToFile(tempDir, effieData, scale);
+        const size = 96 * scale;
+        const [frame] = await decodeLuma(outPath, size, size);
+        const [w, h] = [32 * scale, 64 * scale];
+        expect(bbox(frame, size, (luma) => luma > 200)).toEqual({
+          x: [0, w - 1],
+          y: [0, h / 2 - 1],
+        });
+        expect(bbox(frame, size, (luma) => luma < 50)).toEqual({
+          x: [0, w - 1],
+          y: [h / 2, h - 1],
+        });
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+    30000,
+  );
+
+  test.each([1, 0.5])(
+    "an annie whose later frames gain alpha keeps their translucency at scale %s",
+    async (scale) => {
+      // Three opaque rgb24 frames, then three rgba frames of half
+      // transparent dark green (0, 100, 0) over black: those should composite
+      // to (0, 50, 0). Premultiplying for the scale only when the first frame
+      // has alpha would scale them with straight alpha and unpremultiply them
+      // anyway, doubling their colour to (0, 100, 0).
+      const tempDir = await createTestOutputDir(`scaled-annie-alpha-${scale}`);
+
+      try {
+        const size = `${48 / scale}x${32 / scale}`;
+        const red = await fs.readFile(
+          await lavfiImage(
+            tempDir,
+            "red",
+            `color=c=red:s=${size},format=rgb24`,
+          ),
+        );
+        const green = await fs.readFile(
+          await lavfiImage(
+            tempDir,
+            "green",
+            `color=c=0x006400@0.5:s=${size},format=rgba`,
+          ),
+        );
+        const anniePath = path.join(tempDir, "anim.annie");
+        await fs.writeFile(
+          anniePath,
+          await annieBuffer(
+            (async function* () {
+              for (const f of [red, red, red, green, green, green]) yield f;
+            })(),
+          ),
+        );
+        const sources: EffieSources<EffieFileUrl> = {
+          anim: fileUrl(anniePath),
+        };
+        const effieData: EffieData<typeof sources, EffieFileUrl> = {
+          width: 64 / scale,
+          height: 36 / scale,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            { duration: 0.6, layers: [{ type: "animation", source: "#anim" }] },
+          ],
+        };
+
+        const outPath = await renderToFile(tempDir, effieData, scale);
+        const frames = await decodeLuma(outPath, 64, 36);
+        expect(frames).toHaveLength(6);
+        // Luma (full range) of red is about 76, of (0, 50, 0) about 29 and
+        // of (0, 100, 0) about 59.
+        const luma = frames.map((frame) => frame[10 * 64 + 10]);
+        for (const n of [0, 1, 2]) {
+          expect(luma[n], `frame ${n}: red`).toBeGreaterThan(60);
+        }
+        for (const n of [3, 4, 5]) {
+          expect(luma[n], `frame ${n}: half transparent`).toBeGreaterThan(15);
+          expect(luma[n], `frame ${n}: half transparent`).toBeLessThan(45);
+        }
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+    30000,
+  );
+
+  /**
+   * Runs the render's own FFmpeg command (as buildFFmpegCommand builds it)
+   * with the negotiated filter graph dumped as JSON (-print_graphs_file),
+   * and returns the input link of every filter in it, auto-inserted ones
+   * included, keyed by filter id (e.g. in_1_v -> G0_auto_scale_5 ->
+   * G0_auto_premultiply_dynamic_0 -> G0_Parsed_format_0 -> ...).
+   */
+  async function negotiatedGraph(
+    tempDir: string,
+    effieData: EffieData<EffieSources<EffieFileUrl>, EffieFileUrl>,
+    scale: number,
+  ) {
+    type Command = {
+      inputs: { index: number; source: string }[];
+      buildArgs(resolve: (input: { source: string }) => string): string[];
+    };
+    const command = (
+      new EffieRenderer(effieData) as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand(path.join(tempDir, "out.mp4"), scale);
+    const args = command.buildArgs(({ source }) =>
+      fileURLToPath(effieData.sources![source.slice(1)]),
+    );
+    const graphFile = path.join(tempDir, "graph.json");
+    args.unshift("-print_graphs_format", "json");
+    args.unshift("-print_graphs_file", graphFile);
+    await execFileP(ffmpegBin, args);
+
+    type Link = {
+      filter_id: string;
+      source_filter_id: string;
+      format: string;
+      width: number;
+      height: number;
+    };
+    type Filter = { filter_name: string; filter_inputs?: Link[] };
+    const graph = JSON.parse(await fs.readFile(graphFile, "utf8")) as {
+      graphs: { filters: Filter[] }[];
+    };
+    const links = graph.graphs[0].filters.flatMap((filter) =>
+      (filter.filter_inputs ?? []).map((link) => ({
+        ...link,
+        filter_name: filter.filter_name,
+      })),
+    );
+    const linkTo = new Map(links.map((link) => [link.filter_id, link]));
+    /** The input (in_<N>_v buffer source) a filter reads, and its path. */
+    const upstream = (filterId: string) => {
+      const path: string[] = [];
+      for (let id = filterId; ;) {
+        const link = linkTo.get(id);
+        if (!link) throw new Error(`no input link for ${id}`);
+        const source = link.source_filter_id;
+        const input = /^in_(\d+)_v$/.exec(source);
+        if (input) return { input: Number(input[1]), path };
+        path.push(source);
+        id = source;
+      }
+    };
+    const inputIndex = (ref: string) =>
+      command.inputs.find((input) => input.source === ref)!.index;
+    return { links, upstream, inputIndex };
+  }
+
+  test("only images with an alpha channel are premultiplied", async () => {
+    // Every image layer gets the same scale chain (see imageScaleFilters);
+    // FFmpeg inserts the premultiplication while negotiating the graph, only
+    // for images decoded into a pixel format with alpha. An opaque JPEG or
+    // RGB PNG is scaled as is, not first converted to an alpha format at
+    // full size.
+    const tempDir = await createTestOutputDir("scaled-premultiply");
+
+    try {
+      const sources: EffieSources<EffieFileUrl> = {
+        rgba: fileUrl(
+          await lavfiImage(
+            tempDir,
+            "alpha.png",
+            "color=c=red@0.5:s=64x64,format=rgba",
+          ),
+        ),
+        rgb: fileUrl(
+          await lavfiImage(
+            tempDir,
+            "opaque.png",
+            "color=c=green:s=64x64,format=rgb24",
+          ),
+        ),
+        jpeg: fileUrl(
+          await lavfiImage(tempDir, "photo.jpg", "color=c=blue:s=64x64"),
+        ),
+      };
+      const { links, upstream, inputIndex } = await negotiatedGraph(
+        tempDir,
+        {
+          width: 64,
+          height: 64,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            {
+              duration: 0.2,
+              layers: [
+                { type: "image", source: "#rgba" },
+                { type: "image", source: "#rgb" },
+                { type: "image", source: "#jpeg" },
+              ],
+            },
+          ],
+        },
+        0.5,
+      );
+
+      // Premultiplications ahead of a layer's scale, i.e. at full size: the
+      // ones FFmpeg inserts (premultiply_dynamic) or an explicit premultiply.
+      const isScale = (id: string) => /_Parsed_scale_\d+$/.test(id);
+      const premultiplied = links
+        .filter((link) => /^premultiply(_dynamic)?$/.test(link.filter_name))
+        .filter((link) => !upstream(link.filter_id).path.some(isScale))
+        .map((link) => ({
+          input: upstream(link.filter_id).input,
+          size: `${link.width}x${link.height}`,
+        }));
+      expect(premultiplied).toEqual([
+        { input: inputIndex("#rgba"), size: "64x64" },
+      ]);
+
+      // The layers' own scale filters read the decoded format: an alpha
+      // format only for the RGBA PNG (converted for the premultiply).
+      const scaled = new Map(
+        links
+          .filter((link) => isScale(link.filter_id))
+          .map((link) => [upstream(link.filter_id).input, link.format]),
+      );
+      expect(scaled.get(inputIndex("#rgba"))).toBe("gbrap");
+      expect(scaled.get(inputIndex("#rgb"))).toBe("rgb24");
+      expect(scaled.get(inputIndex("#jpeg"))).toBe("yuvj420p");
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("animations are premultiplied at full size without chroma subsampling", async () => {
+    // A scaled animation is premultiplied explicitly, every frame (see
+    // animationChainHead), after a normaliser that converts it to the alpha
+    // format premultiply takes: planar RGB for PNG frames, and YUV 4:4:4 for
+    // JPEG frames, not the yuva420p a scale-1 render normalises to.
+    const tempDir = await createTestOutputDir("scaled-annie-premultiply");
+
+    try {
+      // The frames as FFmpegRunner extracts an annie: a directory of
+      // frame_NNNNN files, read with the image2 frame_%05d pattern.
+      async function annie(name: string, frameName: string, graph: string) {
+        const frame = await fs.readFile(
+          await lavfiImage(tempDir, frameName, graph),
+        );
+        const dir = path.join(tempDir, name);
+        await fs.mkdir(dir);
+        await fs.writeFile(path.join(dir, "frame_00000"), frame);
+        await fs.writeFile(path.join(dir, "frame_00001"), frame);
+        return fileUrl(dir);
+      }
+      const sources: EffieSources<EffieFileUrl> = {
+        png: await annie(
+          "png.annie",
+          "frame",
+          "color=c=red:s=64x48,format=rgb24",
+        ),
+        jpeg: await annie("jpeg.annie", "frame.jpg", "color=c=blue:s=64x48"),
+      };
+      const { links, upstream, inputIndex } = await negotiatedGraph(
+        tempDir,
+        {
+          width: 64,
+          height: 64,
+          fps: 10,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "black" },
+          sources,
+          segments: [
+            {
+              duration: 0.2,
+              layers: [
+                { type: "animation", source: "#png" },
+                { type: "animation", source: "#jpeg" },
+              ],
+            },
+          ],
+        },
+        0.5,
+      );
+
+      const premultiplied = new Map(
+        links
+          .filter((link) => link.filter_name === "premultiply")
+          .map((link) => [
+            upstream(link.filter_id).input,
+            `${link.format} ${link.width}x${link.height}`,
+          ]),
+      );
+      expect(premultiplied).toEqual(
+        new Map([
+          [inputIndex("#png"), "gbrap 64x48"],
+          [inputIndex("#jpeg"), "yuva444p 64x48"],
+        ]),
+      );
+      expect(
+        links.some(
+          (link) =>
+            link.format === "yuva420p" &&
+            link.width === 64 &&
+            link.height === 48,
+        ),
+      ).toBe(false);
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
 });

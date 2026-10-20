@@ -63,21 +63,15 @@ export function resolveInheritedStyle(
       parent?.stroke,
     strokeWidth:
       ((merged.strokeWidth ?? merged["stroke-width"]) as
-        | string
-        | number
-        | undefined) ?? parent?.strokeWidth,
+        string | number | undefined) ?? parent?.strokeWidth,
     strokeLinecap:
       ((merged.strokeLinecap ?? merged["stroke-linecap"]) as
-        | string
-        | undefined) ?? parent?.strokeLinecap,
+        string | undefined) ?? parent?.strokeLinecap,
     strokeLinejoin:
       ((merged.strokeLinejoin ?? merged["stroke-linejoin"]) as
-        | string
-        | undefined) ?? parent?.strokeLinejoin,
+        string | undefined) ?? parent?.strokeLinejoin,
     strokeOpacity:
       ((merged.strokeOpacity ?? merged["stroke-opacity"]) as
-        | string
-        | number
-        | undefined) ?? parent?.strokeOpacity,
+        string | number | undefined) ?? parent?.strokeOpacity,
   };
 }

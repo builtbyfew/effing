@@ -236,6 +236,73 @@ describe("QoiAwareImg", () => {
     expect(onError).toHaveBeenCalledOnce();
   });
 
+  it("fetches the srcSet candidate the browser selected, not src", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg src="/image.png" srcSet="/image.png 1x, /image@2x.qoi 2x" />,
+    );
+    // At 2x, the browser picked the QOI candidate.
+    Object.defineProperty(img, "currentSrc", {
+      value: "http://localhost/image@2x.qoi",
+    });
+
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledExactlyOnceWith(
+      "http://localhost/image@2x.qoi",
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(img.hasAttribute("srcset")).toBe(false);
+  });
+
+  it("fetches src when no candidate was selected yet", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg src="/image.qoi" srcSet="/image.qoi 1x, /image@2x.qoi 2x" />,
+    );
+    expect(img.currentSrc).toBe("");
+
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledExactlyOnceWith("/image.qoi", {
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("falls back for an image with only a srcSet", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(<QoiAwareImg srcSet="/image.qoi 1x" />);
+    Object.defineProperty(img, "currentSrc", {
+      value: "http://localhost/image.qoi",
+    });
+
+    await fire(img, "error");
+
+    expect(fetchQoi).toHaveBeenCalledWith("http://localhost/image.qoi", {
+      signal: expect.any(AbortSignal),
+    });
+    expect(img.getAttribute("src")).toBe("blob:png");
+  });
+
+  it("starts over when srcSet changes", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    let img = render(<QoiAwareImg src="/image.qoi" srcSet="/image.qoi 1x" />);
+    await fire(img, "error");
+    expect(img.getAttribute("src")).toBe("blob:png");
+
+    img = render(
+      <QoiAwareImg src="/image.qoi" srcSet="/image.qoi 1x, /image@2x.qoi 2x" />,
+    );
+
+    expect(img.getAttribute("src")).toBe("/image.qoi");
+    expect(img.getAttribute("srcset")).toBe("/image.qoi 1x, /image@2x.qoi 2x");
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:png");
+
+    await fire(img, "error");
+    expect(fetchQoi).toHaveBeenCalledTimes(2);
+  });
+
   it("drops srcSet and sizes once the PNG stands in, so the browser doesn't pick the QOI again", async () => {
     fetchQoi.mockResolvedValue("blob:png");
     const img = render(

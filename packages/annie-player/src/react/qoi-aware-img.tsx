@@ -22,10 +22,12 @@ function credentialsFor(
  * It renders a plain `<img>` with the given `src` first, so other images
  * load exactly as they would without it: no extra request, and the same
  * markup on the server. Only when the browser fails to show the image is
- * it fetched again; if the bytes are QOI, they're converted to a PNG that
- * takes the original's place, keeping the `<img>`'s sizing, `alt` and
- * styles (but not `srcSet` and `sizes`, which would make the browser pick
- * a QOI candidate again). A QOI image is therefore fetched twice (the
+ * it fetched again (the image the browser tried: with `srcSet`, the
+ * candidate it selected, else `src`); if the bytes are QOI, they're
+ * converted to a PNG that takes the original's place, keeping the `<img>`'s
+ * sizing, `alt` and styles (but not `srcSet` and `sizes`, which would make
+ * the browser pick a QOI candidate again, so the PNG shows at the selected
+ * candidate's resolution). A QOI image is therefore fetched twice (the
  * second time usually from the HTTP cache), and it needs CORS when it's
  * cross-origin. The fetch sends credentials as `crossOrigin` says.
  *
@@ -46,24 +48,31 @@ export function QoiAwareImg({
   useEffect(() => {
     onErrorRef.current = onError;
   });
-  // The PNG standing in for a QOI src, keyed by that src
+  // What the <img> was asked to show. A new src, srcSet or sizes may
+  // select another image, so it starts the fallback over.
+  const sourceKey = JSON.stringify([src, srcSet, sizes]);
+  // The PNG standing in for a QOI image, keyed by the source it stands in for
   const [converted, setConverted] = useState<{
-    src: string;
+    sourceKey: string;
     url: string;
   } | null>(null);
-  // The fallback attempted for a src: how to abort it, whether it has
-  // finished, and an error event held back until it has, in case the
+  // The fallback attempted for an image URL: how to abort it, whether it
+  // has finished, and an error event held back until it has, in case the
   // conversion succeeds after all
   const attemptRef = useRef<{
-    src: string;
+    url: string;
     controller: AbortController;
     settled: boolean;
     heldEvent: ImgErrorEvent | null;
   } | null>(null);
 
   const startFallback = (event: ImgErrorEvent | null) => {
+    // The image the browser tried: with srcSet, the candidate it selected
+    // (a 2x one, say), which may not be src. currentSrc is empty if no
+    // image was selected yet, so fall back to src then.
+    const url = imgRef.current?.currentSrc || src;
     const attempt = attemptRef.current;
-    if (attempt && attempt.src === src) {
+    if (attempt && attempt.url === url) {
       if (!attempt.settled) {
         attempt.heldEvent = event ?? attempt.heldEvent;
       } else if (event) {
@@ -71,12 +80,13 @@ export function QoiAwareImg({
       }
       return;
     }
-    if (!src) {
+    if (!url) {
       if (event) onErrorRef.current?.(event);
       return;
     }
+    attemptRef.current?.controller.abort();
     const controller = new AbortController();
-    const current = { src, controller, settled: false, heldEvent: event };
+    const current = { url, controller, settled: false, heldEvent: event };
     attemptRef.current = current;
     const failed = () => {
       current.settled = true;
@@ -87,17 +97,18 @@ export function QoiAwareImg({
     const init: RequestInit = { signal: controller.signal };
     const credentials = credentialsFor(props.crossOrigin);
     if (credentials) init.credentials = credentials;
-    fetchQoiAsPngUrl(src, init).then((url) => {
-      if (!url) return failed();
+    fetchQoiAsPngUrl(url, init).then((pngUrl) => {
+      if (!pngUrl) return failed();
       current.settled = true;
-      if (controller.signal.aborted) URL.revokeObjectURL(url);
-      else setConverted({ src, url });
+      if (controller.signal.aborted) URL.revokeObjectURL(pngUrl);
+      else setConverted({ sourceKey, url: pngUrl });
     }, failed);
   };
 
   useEffect(() => {
     // An image that failed before hydration fired its error event before
-    // React listened for it, so check for one when the src is first shown.
+    // React listened for it, so check for one when the source is first
+    // shown.
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth === 0) {
       startFallback(null);
@@ -107,9 +118,9 @@ export function QoiAwareImg({
       attemptRef.current = null;
       setConverted(null);
     };
-    // Only a new src starts over; startFallback is this render's, with its
-    // props.
-  }, [src]);
+    // Only a new source starts over; startFallback is this render's, with
+    // its props.
+  }, [sourceKey]);
 
   useEffect(() => {
     if (!converted) return;
@@ -117,8 +128,8 @@ export function QoiAwareImg({
     return () => URL.revokeObjectURL(url);
   }, [converted]);
 
-  const shown = converted && converted.src === src ? converted.url : src;
-  const isConverted = shown !== src;
+  const isConverted = converted !== null && converted.sourceKey === sourceKey;
+  const shown = isConverted ? converted.url : src;
 
   return (
     <img

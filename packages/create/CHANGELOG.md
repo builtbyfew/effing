@@ -1,5 +1,13 @@
 # @effing/create
 
+## 0.46.0
+
+### Patch Changes
+
+- 2762cb7: Encode the starter's typewriter annie as QOI
+
+  New projects' `text-typewriter` annie now yields QOI frames instead of PNG. Its frames are text on transparency, which QOI encodes many times faster than PNG, losslessly and with alpha, at the cost of larger frames. The rendered video looks the same.
+
 ## 0.45.1
 
 ## 0.45.0

@@ -1,5 +1,31 @@
 # @effing/dev
 
+## 0.46.0
+
+### Minor Changes
+
+- 711f9bb: Show QOI images and annies in the dev previews
+
+  The image preview shows an image fn's QOI output, through `QoiAwareImg` from `@effing/annie-player`, and the annie and effie previews play QOI annies and show QOI images. The annie preview's APNG recipe works for QOI annies as is.
+
+- e3525d7: Write QOI images from `effing render`, and advise on frame formats
+
+  `effing render image <id>` now names its output `<id>.qoi` when the fn serves a QOI image (`image/qoi`). The agent manual (`effing manual`) lists QOI next to PNG and JPEG, and says when to pick which: QOI for text, shapes and transparency in annies, where it encodes many times faster than PNG at about 1.5 to 3 times PNG's size for such frames, more for mostly transparent ones; JPEG for photo-heavy frames; and PNG or JPEG for anything a browser shows, such as an effie's cover.
+
+### Patch Changes
+
+- Updated dependencies [711f9bb]
+- Updated dependencies [711f9bb]
+- Updated dependencies [e3525d7]
+- Updated dependencies [f87422e]
+- Updated dependencies [9519ba3]
+- Updated dependencies [e3525d7]
+  - @effing/annie-player@0.46.0
+  - @effing/effie-preview@0.46.0
+  - @effing/effie@0.46.0
+  - @effing/fn@0.46.0
+  - @effing/serde@0.46.0
+
 ## 0.45.1
 
 ### Patch Changes

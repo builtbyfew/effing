@@ -1,5 +1,23 @@
 # @effing/fn
 
+## 0.46.0
+
+### Minor Changes
+
+- e3525d7: Serve QOI images from image fns
+
+  `imageResponse` now accepts [QOI](https://qoiformat.org) bytes (`canvas.encode("qoi")`) and serves them as `image/qoi`. It used to throw for them. Like `annieFrames`, it now requires the full 8-byte PNG signature or `FF D8 FF` for JPEG, where it used to check the first 2 bytes; valid PNG and JPEG images always pass. Other formats still throw, with the message `Unsupported image format: expected PNG, JPEG or QOI`.
+
+### Patch Changes
+
+- Updated dependencies [e3525d7]
+- Updated dependencies [e3525d7]
+- Updated dependencies [f87422e]
+- Updated dependencies [9519ba3]
+  - @effing/annie@0.46.0
+  - @effing/effie@0.46.0
+  - @effing/serde@0.46.0
+
 ## 0.45.1
 
 ### Patch Changes

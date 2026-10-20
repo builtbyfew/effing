@@ -7,8 +7,8 @@ Generate images with a server-side canvas that renders JSX and flexbox to pixels
 
 Effing is a modular TypeScript toolkit. It splits image and video creation into four independent pieces:
 
-- **Image** — A single PNG or JPEG, generated with canvas drawing, JSX-to-canvas, or anything else that produces image bytes
-- **Annie** — A streamable animation format (TAR archive of PNG or JPEG frames) that can be generated server-side and played in the browser
+- **Image** — A single PNG, JPEG or QOI image, generated with canvas drawing, JSX-to-canvas, or anything else that produces image bytes
+- **Annie** — A streamable animation format (TAR archive of PNG, JPEG or QOI frames) that can be generated server-side and played in the browser
 - **Effie** — A declarative composition format that describes (in JSON) how to combine images, annies, audio, transitions, and effects into a final video
 - **FFS** — An FFmpeg-based rendering service that takes an Effie composition and produces an MP4 video, usable as a library or standalone HTTP server
 
@@ -53,7 +53,7 @@ More worked examples live in the [effing-examples](https://github.com/builtbyfew
 | [`@effing/create`](packages/create/README.md)               | Scaffold a new Effing project                       |
 | [`@effing/dev`](packages/dev/README.md)                     | Dev server and build tooling for Effing projects    |
 | [`@effing/effie`](packages/effie/README.md)                 | Types and helpers for defining video compositions   |
-| [`@effing/annie`](packages/annie/README.md)                 | Generate TARs of PNG or JPEG frames for animations  |
+| [`@effing/annie`](packages/annie/README.md)                 | Generate and read TARs of PNG, JPEG or QOI frames   |
 | [`@effing/ffs`](packages/ffs/README.md)                     | FFmpeg render Service (library or HTTP server)      |
 | [`@effing/ffmpeg`](packages/ffmpeg/README.md)               | Self-managed FFmpeg binary download                 |
 | [`@effing/annie-player`](packages/annie-player/README.md)   | Browser player for Annie animations                 |

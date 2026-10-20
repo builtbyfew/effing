@@ -23,7 +23,7 @@ type EffieData = {
   width: number; // Frame width in pixels (positive)
   height: number; // Frame height in pixels (positive)
   fps: number; // Frames per second (positive)
-  cover: EffieWebUrl; // Cover image URL — direct URL only, NOT a #ref
+  cover: EffieWebUrl; // Cover image URL (PNG or JPEG) — direct URL only, NOT a #ref
   sources?: EffieSources; // Named source references (for reuse)
   background: EffieBackground; // All-encompassing background
   audio?: EffieAudio; // Global soundtrack
@@ -31,7 +31,7 @@ type EffieData = {
 };
 ```
 
-All required fields above must be present. `cover` is a direct URL — unlike other source-bearing fields, it does **not** accept `#ref`.
+All required fields above must be present. `cover` is a direct URL — unlike other source-bearing fields, it does **not** accept `#ref`. Make the cover a PNG or JPEG: it is meant to be shown in pages and players, and browsers can't display QOI.
 
 ### Backgrounds
 
@@ -52,7 +52,7 @@ type EffieBackground =
 
 `color` accepts a CSS color name or a hex string (`RRGGBB`, `#RRGGBB`, `0xRRGGBB`, optionally with `AA` alpha). The format is **not** runtime-validated — pass strings your renderer accepts.
 
-A segment-level `background` overrides the top-level background for that segment only.
+An `image` background, like an image layer, can be a PNG, JPEG or QOI image. A segment-level `background` overrides the top-level background for that segment only.
 
 ### Audio
 
@@ -82,7 +82,7 @@ type EffieSegment = {
 };
 
 type EffieLayer = {
-  type: "image" | "animation"; // PNG/JPEG or Annie TAR
+  type: "image" | "animation"; // PNG, JPEG or QOI image, or Annie TAR
   source: EffieSource; // URL or #reference
   delay?: number; // Defer when the layer's content starts playing (non-negative; defaults to 0)
   from?: number; // Hide the layer until this segment time; its content keeps playing from t=0 regardless (defaults to `delay`)

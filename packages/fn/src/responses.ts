@@ -1,16 +1,18 @@
 import type { EffieData, EffieSources } from "@effing/effie";
-import { annieStream } from "@effing/annie";
-import type { AnnieStreamOptions } from "@effing/annie";
+import { annieStream, sniffImageContentType } from "@effing/annie";
+import type { AnnieStreamOptions, ImageContentType } from "@effing/annie";
 
 export type ImageResponseOptions = {
   headers?: HeadersInit;
   cacheControl?: string;
 };
 
-function detectImageContentType(bytes: Uint8Array): string {
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
-  throw new Error("Unsupported image format: expected PNG or JPEG");
+function detectImageContentType(bytes: Uint8Array): ImageContentType {
+  const contentType = sniffImageContentType(bytes);
+  if (!contentType) {
+    throw new Error("Unsupported image format: expected PNG, JPEG or QOI");
+  }
+  return contentType;
 }
 
 export function imageResponse(

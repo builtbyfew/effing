@@ -13,6 +13,7 @@ import {
   extractEffieSources,
 } from "@effing/effie";
 import type { EffieData, EffieSources } from "@effing/effie";
+import { sniffImageContentType } from "@effing/annie";
 import type { RenderEventMap, RenderEventSender, WarmupEventMap } from "../sse";
 import type {
   ServerContext,
@@ -622,6 +623,23 @@ async function withTempVideoFile<T>(
 }
 
 /**
+ * The Content-Type to upload a cover with: PNG, JPEG or QOI as sniffed from
+ * its bytes, else the image type its source declared (a data URL's media
+ * type or the response's Content-Type), else application/octet-stream.
+ */
+export function coverContentType(
+  bytes: Uint8Array,
+  declaredType: string | null,
+): string {
+  const sniffed = sniffImageContentType(bytes);
+  if (sniffed) return sniffed;
+  const declared = (declaredType ?? "").split(";", 1)[0].trim().toLowerCase();
+  return /^image\/[\w.+-]+$/.test(declared)
+    ? declared
+    : "application/octet-stream";
+}
+
+/**
  * Upload a rendered video from a temp file (and optional cover) to presigned
  * URLs. Shared between local render+upload and backend render+upload flows.
  * The video body is streamed from disk so peak memory stays bounded; presigned
@@ -640,6 +658,9 @@ async function uploadRenderedVideo(
   if (upload.coverUrl) {
     const fetchCoverStartTime = Date.now();
     let coverBuffer: Buffer;
+    // The cover's type as its source declares it, used when sniffing the
+    // bytes doesn't recognise them.
+    let declaredType: string | null;
     if (effie.cover.startsWith("data:")) {
       const commaIndex = effie.cover.indexOf(",");
       if (commaIndex === -1) {
@@ -651,6 +672,7 @@ async function uploadRenderedVideo(
       coverBuffer = isBase64
         ? Buffer.from(data, "base64")
         : Buffer.from(decodeURIComponent(data));
+      declaredType = meta;
     } else {
       const coverFetchResponse = await ffsFetch(effie.cover);
       if (!coverFetchResponse.ok) {
@@ -661,6 +683,7 @@ async function uploadRenderedVideo(
         );
       }
       coverBuffer = Buffer.from(await coverFetchResponse.arrayBuffer());
+      declaredType = coverFetchResponse.headers.get("content-type");
     }
     timings.fetchCoverTime = Date.now() - fetchCoverStartTime;
 
@@ -669,7 +692,7 @@ async function uploadRenderedVideo(
       method: "PUT",
       body: coverBuffer,
       headers: {
-        "Content-Type": "image/png",
+        "Content-Type": coverContentType(coverBuffer, declaredType),
         "Content-Length": coverBuffer.length.toString(),
       },
     });

@@ -135,6 +135,8 @@ class EffieRenderer {
 
 The renderer doesn't validate its input. To validate a composition with `file:` sources, use `effieDataWithFilesSchema` from `@effing/effie`, as `ffs render --allow-local-files` does. The HTTP server never enables `allowLocalFiles`.
 
+Image layers, image backgrounds and annie frames can be PNG, JPEG or [QOI](https://qoiformat.org), with or without alpha. FFmpeg recognises the format from the bytes, so URLs need no file extension and responses no particular `Content-Type`. An annie's frames may vary in pixel format, channels (with or without alpha) and size, but must all be one format: all PNG, all JPEG or all QOI. FFmpeg decodes an annie with the decoder for its first frame, so frames in another format fail to decode, and the render doesn't fail but shows the wrong frames.
+
 ### FFmpegCommand & FFmpegRunner
 
 Lower-level classes for building and executing FFmpeg commands:
@@ -171,6 +173,8 @@ type RenderOptions = {
   };
 };
 ```
+
+With `coverUrl`, FFS fetches the composition's `cover` and uploads it with a `Content-Type` sniffed from its bytes: `image/png`, `image/jpeg` or `image/qoi`, else the image type the cover's source declared, else `application/octet-stream`. If you presign `coverUrl` with a fixed `Content-Type`, it must match the cover's actual format, or the upload fails (a URL presigned for `image/png` rejects a JPEG cover); presign it without a fixed `Content-Type`, or with the cover's real one. Covers are usually shown in browsers, which can't display QOI, so make covers PNG or JPEG.
 
 Alternatively, raw `EffieData` can be sent directly as the request body. When using the raw format, `scale` and `purge` can be passed as query parameters: `?scale=0.5&purge=true`.
 

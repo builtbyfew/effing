@@ -38,14 +38,14 @@ export default function Index() {
       >
         <Section
           title="Images"
-          description="Single images rendered as PNG or JPEG."
+          description="Single images rendered as PNG, JPEG or QOI."
           path="image"
           ids={data.imageIds}
           empty="No images found. Create one at app/images/*.fn.tsx"
         />
         <Section
           title="Annies"
-          description="Frame-by-frame animations rendered as TAR archives of PNG/JPEG frames."
+          description="Frame-by-frame animations rendered as TAR archives of PNG, JPEG or QOI frames."
           path="annie"
           ids={data.annieIds}
           empty="No annies found. Create one at app/annies/*.fn.tsx"

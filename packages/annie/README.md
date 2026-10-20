@@ -1,10 +1,10 @@
 # @effing/annie
 
-**Generate and read TAR archives of PNG or JPEG frames for animated layers.**
+**Generate and read TAR archives of PNG, JPEG or QOI frames for animated layers.**
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Annie is a simple animation format: a TAR archive containing sequentially-named PNG or JPEG frames. Generate frames server-side, stream them to the browser or FFmpeg, and read them back with the same package.
+Annie is a simple animation format: a TAR archive containing sequentially-named PNG, JPEG or [QOI](https://qoiformat.org) frames. Generate frames server-side, stream them to the browser or FFmpeg, and read them back with the same package.
 
 ## Installation
 
@@ -16,7 +16,7 @@ npm install @effing/annie
 
 ### Annie Format
 
-An Annie is a TAR archive where each entry is a PNG or JPEG frame:
+An Annie is a TAR archive where each entry is a PNG, JPEG or QOI frame:
 
 ```
 frame_00000
@@ -24,6 +24,8 @@ frame_00001
 frame_00002
 ...
 ```
+
+Frames may vary in pixel format, channels (with or without alpha) and size, but all frames of an annie must be one format: all PNG, all JPEG or all QOI. FFS and FFmpeg decode an annie with the decoder for its first frame.
 
 This format is:
 
@@ -121,7 +123,15 @@ Async-iterate the frames of an existing Annie, in ascending index order.
 function annieFrames(source: AnnieSource): AsyncGenerator<AnnieFrame>;
 ```
 
-The source can be a `Uint8Array`/`ArrayBuffer`, an (async) iterable of byte chunks (such as a Node.js `Readable`), or a Web `ReadableStream`. Each frame carries its `index`, entry `name`, raw `data` bytes, and a `contentType` sniffed from the frame's magic bytes (the archive itself does not record the image format).
+The source can be a `Uint8Array`/`ArrayBuffer`, an (async) iterable of byte chunks (such as a Node.js `Readable`), or a Web `ReadableStream`. Each frame carries its `index`, entry `name`, raw `data` bytes, and a `contentType` sniffed from the frame's magic bytes (the archive itself does not record the image format): `"image/png"`, `"image/jpeg"`, `"image/qoi"`, or `"application/octet-stream"` for anything else.
+
+#### `sniffImageContentType(bytes)`
+
+Detect a PNG, JPEG or QOI image from its leading bytes, the same way `annieFrames` does: the full 8-byte PNG signature, `FF D8 FF` for JPEG, or `qoif` for QOI (with 3 or 4 channels and colorspace 0 or 1 when the 14-byte header is there). Returns `"image/png"`, `"image/jpeg"`, `"image/qoi"` or `undefined`.
+
+```typescript
+function sniffImageContentType(bytes: Uint8Array): ImageContentType | undefined;
+```
 
 ## Examples
 
@@ -174,7 +184,7 @@ for await (const frame of annieFrames(await readFile("animation.tar"))) {
 
 ### FFmpeg Integration
 
-Note that Annie TAR archives can be piped directly to FFmpeg. Extract the frames with `tar -xO` and pipe to FFmpeg's image2pipe input:
+Note that Annie TAR archives can be piped directly to FFmpeg. Extract the frames with `tar -xO` and pipe to FFmpeg's image2pipe input. This works when every frame has the same format; QOI frames need FFmpeg 5.1 or newer.
 
 ```bash
 # Create animated PNG (loops forever)
@@ -190,6 +200,6 @@ tar -xO < animation.tar | ffmpeg -f image2pipe -framerate 30 -i - output.gif
 ## Related Packages
 
 - [`@effing/tween`](../tween) — Step iteration and easing functions for frame generation
-- [`@effing/canvas`](../canvas) — Render JSX to PNG for each frame
+- [`@effing/canvas`](../canvas) — Render JSX to a PNG, JPEG or QOI image for each frame
 - [`@effing/annie-player`](../annie-player) — Play Annies in the browser
 - [`@effing/effie`](../effie) — Use Annies as layers in video compositions

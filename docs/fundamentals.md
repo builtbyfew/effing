@@ -359,7 +359,7 @@ Layers are drawn bottom to top, so the badge renders on top of the title card. Y
 
 Effects and motions cover many cases, but sometimes you need full frame-by-frame control — a typewriter effect, a custom chart animation, a particle system. That's what Annies are for.
 
-An Annie is a TAR archive of sequentially-named PNG (or JPEG) frames. You generate the frames however you like — `@effing/canvas` is a natural fit, but anything that produces PNGs works — package them into a TAR, and reference it in your Effie as an `"animation"` layer.
+An Annie is a TAR archive of sequentially-named PNG, JPEG or [QOI](https://qoiformat.org) frames. You generate the frames however you like — `@effing/canvas` is a natural fit, but anything that produces PNG, JPEG or QOI images works — package them into a TAR, and reference it in your Effie as an `"animation"` layer.
 
 ### Generating Frames with Tween
 
@@ -429,6 +429,29 @@ async function* generateFrames(width: number, height: number) {
 ```
 
 The `lower` property gives you the progress at the start of each frame interval (0 to 1). Apply an easing function to shape the animation curve — `easeInOutCubic` starts slow, speeds up, then slows down again.
+
+### Choosing a Frame Format
+
+`canvas.encode()` takes `"png"`, `"jpeg"` or `"qoi"`. Pick one per annie: frames may vary in size and alpha, but FFS can't render an annie that mixes formats. FFS renders all three about equally fast. What differs is how long your code takes to encode the frames, and how many bytes then travel to FFS, which also caches them:
+
+- **QOI** for text, shapes and anything with transparency, when encoding time matters. It's lossless with alpha, like PNG, but encodes 8 to 20 times faster, and its files are up to about twice PNG's size.
+- **JPEG** for photos and other opaque frames with lots of detail. It's lossy and has no alpha, but PNG and QOI make photo frames about 6 to 10 times larger (6 and 7 times in the table below), and QOI encodes them no faster than JPEG.
+- **PNG** when bytes matter more than encoding time, for example for a short annie on a slow link to FFS.
+
+For a 150-frame 1080×1920 annie, measured on an 18-core arm64 laptop, with `tween`'s default of eight frames in flight and with one at a time:
+
+| Frames                       | Format       | Encode, per frame | Generate, 8 / 1 in flight | TAR size | FFS render |
+| ---------------------------- | ------------ | ----------------- | ------------------------- | -------- | ---------- |
+| Text and shapes, transparent | PNG          | 39 ms             | 0.9 s / 5.6 s             | 4.1 MB   | 0.4 s      |
+|                              | QOI          | 5 ms              | 0.1 s / 0.7 s             | 8.6 MB   | 0.4 s      |
+| Text and shapes, opaque      | PNG          | 35 ms             | 0.8 s / 5.2 s             | 5.6 MB   | 0.4 s      |
+|                              | JPEG (q. 90) | 5 ms              | 0.1 s / 0.7 s             | 6.1 MB   | 0.3 s      |
+|                              | QOI          | 5 ms              | 0.1 s / 0.7 s             | 7.9 MB   | 0.4 s      |
+| Photo, zooming in            | PNG          | 299 ms            | 6.8 s / 43 s              | 302 MB   | 0.9 s      |
+|                              | JPEG (q. 90) | 14 ms             | 0.8 s / 2.2 s             | 51 MB    | 0.7 s      |
+|                              | QOI          | 14 ms             | 0.9 s / 2.1 s             | 363 MB   | 0.8 s      |
+
+At 100 Mbit/s, the photo annie's extra 312 MB as QOI rather than JPEG take about 25 seconds to reach FFS, while the text annie's extra 4.5 MB as QOI rather than PNG take under half a second and save 0.8 to 5 seconds of encoding. Browsers can't show QOI in an `<img>`, so keep image fns that a page shows, and the composition's `cover`, PNG or JPEG.
 
 ### Packaging as an Annie
 

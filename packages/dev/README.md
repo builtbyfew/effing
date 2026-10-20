@@ -119,7 +119,7 @@ Renders a fn straight to a file — no running dev server and no env setup requi
 npx --no effing render effie my-video -o out.mp4
 ```
 
-Images write PNG/JPEG (the extension follows the fn's encoding), annies a TAR of frames, and effies an MP4 — the latter requires `@effing/ffs` to be installed, since the render delegates to the project-local `ffs` bin.
+Images write PNG, JPEG or QOI (the extension follows the fn's encoding), annies a TAR of frames, and effies an MP4 — the latter requires `@effing/ffs` to be installed, since the render delegates to the project-local `ffs` bin.
 
 | Option                     | Description                                                           |
 | -------------------------- | --------------------------------------------------------------------- |

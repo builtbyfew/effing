@@ -16,8 +16,8 @@ Three guiding principles:
 
 Effing splits image and video creation into four independent pieces:
 
-1. **Image** — A single PNG or JPEG, generated however you like — canvas drawing, JSX-to-canvas, or anything that produces image bytes.
-2. **Annie** — A streamable animation format: a TAR archive of sequentially-named PNG or JPEG frames. Frames come from the same generation primitives, packaged for streaming.
+1. **Image** — A single PNG, JPEG or QOI image, generated however you like — canvas drawing, JSX-to-canvas, or anything that produces image bytes.
+2. **Annie** — A streamable animation format: a TAR archive of sequentially-named PNG, JPEG or QOI frames. Frames come from the same generation primitives, packaged for streaming.
 3. **Effie** — A declarative composition format: typed JSON describing segments, layers, transitions, effects, motion, and audio. Layers reference content by URL — images, annies, audio, video backgrounds.
 4. **FFS** — An FFmpeg-based rendering service that turns an Effie into an MP4. Library, CLI, or HTTP server.
 
@@ -45,7 +45,7 @@ This makes both single-shot image generation and frame-by-frame animation genera
 
 ### Inspectable intermediates
 
-Animation archives are TAR files of numbered PNG or JPEG frames. Inspect them with standard Unix tools, extract individual frames, view them in any image viewer, or pipe them straight into FFmpeg for generating GIFs, APNGs, or videos.
+Animation archives are TAR files of numbered PNG, JPEG or QOI frames. Inspect them with standard Unix tools, extract individual frames and open them in an image viewer, or pipe them straight into FFmpeg for generating GIFs, APNGs, or videos.
 
 TAR over ZIP because TAR streams: the headers sit before the contents, so frames can be written and read one at a time without buffering the whole archive.
 
@@ -75,6 +75,6 @@ The same properties that make Effing easy to reason about make it well-suited to
 
 **Not chasing every feature.** We don't expose every FFmpeg capability. If you need custom x264 parameters or arbitrary filter graphs, you'll outgrow the abstraction.
 
-**No zero-latency previews.** Generating real PNG/JPEG frames is slower than a dedicated preview renderer. What you preview is exactly what you render though. Accuracy over speed.
+**No zero-latency previews.** Generating real PNG, JPEG or QOI frames is slower than a dedicated preview renderer. What you preview is exactly what you render though. Accuracy over speed.
 
 The goal is a small, correct, understandable system for turning code into useful images and videos. Not everything to everyone.

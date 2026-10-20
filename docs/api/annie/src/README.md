@@ -12,9 +12,11 @@
 - [AnnieFrameContentType](type-aliases/AnnieFrameContentType.md)
 - [AnnieSource](type-aliases/AnnieSource.md)
 - [AnnieStreamOptions](type-aliases/AnnieStreamOptions.md)
+- [ImageContentType](type-aliases/ImageContentType.md)
 
 ## Functions
 
 - [annieBuffer](functions/annieBuffer.md)
 - [annieFrames](functions/annieFrames.md)
 - [annieStream](functions/annieStream.md)
+- [sniffImageContentType](functions/sniffImageContentType.md)

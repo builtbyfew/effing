@@ -1,5 +1,5 @@
 /**
- * Annie generation utilities (TAR archives of PNG frames)
+ * Annie generation utilities (TAR archives of PNG, JPEG or QOI frames)
  */
 
 const TAR_BLOCK_SIZE = 512;
@@ -117,7 +117,7 @@ async function* tarChunks(
 /**
  * Collect all frames into a single annie Buffer (TAR archive)
  *
- * @param frames Async iterator yielding PNG or JPEG frame buffers
+ * @param frames Async iterator yielding PNG, JPEG or QOI frame buffers
  * @returns Complete annie as a Buffer
  *
  * @example
@@ -142,7 +142,7 @@ export async function annieBuffer(
  *
  * Use this when you need the stream but want to customize the Response yourself.
  *
- * @param frames Async iterator yielding PNG or JPEG frame buffers
+ * @param frames Async iterator yielding PNG, JPEG or QOI frame buffers
  * @param options Configuration options
  * @returns ReadableStream of annie data
  *

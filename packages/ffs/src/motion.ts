@@ -146,8 +146,11 @@ function processBounceMotion(
 function processShakeMotion(
   motion: Extract<EffieMotion, { type: "shake" }>,
   relativeTimeExpr: string,
+  scaleFactor: number,
 ): MotionComponents {
-  const intensity = motion.intensity ?? 10;
+  // The intensity is in pixels of the full-size frame, so a scaled render
+  // shakes the layer by the same fraction of the frame.
+  const intensity = (motion.intensity ?? 10) * scaleFactor;
   const frequency = motion.frequency ?? 4;
   const duration = motion.duration ?? 1;
 
@@ -165,7 +168,20 @@ function processShakeMotion(
   };
 }
 
-export function processMotion(delay: number, motion?: EffieMotion): string {
+/**
+ * Builds the overlay's `x` and `y` options for a layer's motion.
+ *
+ * Slide and bounce offsets are relative to the frame (`W`, `H`) and to the
+ * layer (`overlay_h`), which a scaled render shrinks by the same factor.
+ * Shake's `intensity` is in pixels, so it is multiplied by `scaleFactor`, the
+ * render's scale, to make a scaled render look like a downscaled full-size
+ * one.
+ */
+export function processMotion(
+  delay: number,
+  motion?: EffieMotion,
+  scaleFactor = 1,
+): string {
   if (!motion) return "x=0:y=0";
 
   const start = delay + (motion.start ?? 0);
@@ -177,7 +193,7 @@ export function processMotion(delay: number, motion?: EffieMotion): string {
       components = processBounceMotion(motion, relativeTimeExpr);
       break;
     case "shake":
-      components = processShakeMotion(motion, relativeTimeExpr);
+      components = processShakeMotion(motion, relativeTimeExpr, scaleFactor);
       break;
     case "slide":
       components = processSlideMotion(motion, relativeTimeExpr);

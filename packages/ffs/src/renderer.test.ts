@@ -607,6 +607,18 @@ describe("EffieRenderer layer scaling", () => {
     );
     expect(filterComplex).not.toMatch(/premultiply|trunc/);
   });
+
+  test("a shake layer's intensity is scaled with the layers", () => {
+    const effie = layersEffie();
+    effie.segments[0].layers[1].motion = { type: "shake", intensity: 12 };
+    const overlayX = (scale: number) =>
+      buildCommand(effie, scale).filterComplex.match(
+        /\[seg0_layer1\]overlay=x='round\(if\(lt\(t,0\),0,if\(lt\(t,1\),([^*]+)\*sin/,
+      )?.[1];
+    expect(overlayX(1)).toBe("12");
+    expect(overlayX(0.5)).toBe("6");
+    expect(overlayX(0.25)).toBe("3");
+  });
 });
 
 describe("EffieRenderer source failures", () => {

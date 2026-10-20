@@ -447,7 +447,7 @@ Multi-phase animations chain \`yield* tween(...)\` blocks back-to-back — one t
 
 Pick the frame format by content, one format per annie: frames may vary in size and alpha, but FFS can't render an annie that mixes PNG, JPEG and QOI frames (the frames in other formats silently fail to decode). FFS renders all three about equally fast; what differs is encode time in the runner, and the bytes that travel to FFS and sit in its cache. Measured for a 150-frame 1080×1920 annie with \`tween\`'s default concurrency:
 
-- \`"qoi"\` for text, shapes and transparency: lossless with alpha like PNG, but 8–20× faster to encode, at up to ~2× PNG's size. Text on transparency: QOI 0.1 s and 8.6 MB, PNG 0.9 s and 4.1 MB (0.7 s vs 5.6 s with one frame in flight, as on a small instance).
+- \`"qoi"\` for text, shapes and transparency: lossless with alpha like PNG, but 8–20× faster to encode, at ~1.5–3× PNG's size (more the emptier the frame: QOI compresses large transparent areas less well). Text on transparency: QOI 0.1 s and 8.6 MB, PNG 0.9 s and 4.1 MB (0.7 s vs 5.6 s with one frame in flight, as on a small instance).
 - \`"jpeg"\` for photo-heavy frames: PNG and QOI make photo frames about 6–10× larger, and QOI encodes them no faster than JPEG. A photo zoom: JPEG 0.8 s and 51 MB, QOI 0.9 s and 363 MB, PNG 6.8 s and 302 MB.
 - \`"png"\` when bytes matter more than encode time, e.g. a short annie on a slow link to FFS.
 

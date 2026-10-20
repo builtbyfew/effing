@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Play TAR archives of PNG or JPEG frames in the browser using canvas. Framework-agnostic core with optional React component.
+Play TAR archives of PNG, JPEG or QOI frames in the browser using canvas. Framework-agnostic core with optional React component.
 
 ## Installation
 
@@ -179,6 +179,7 @@ class AnniePlayerCore {
   pause(): void;
   stop(): void;
   seek(frameIndex: number): void;
+  setFps(fps: number): void;
 
   // State
   getState(): AnniePlayerState;
@@ -198,6 +199,8 @@ class AnniePlayerCore {
 | `src`      | `string`  | required | URL to TAR archive       |
 | `fps`      | `number`  | `30`     | Playback frame rate      |
 | `autoPlay` | `boolean` | `false`  | Start playing after load |
+
+`fps` must be a finite number above 0: the constructor and `setFps()` throw a `RangeError` otherwise. `setFps()` changes the frame rate of a player without reloading it.
 
 **State:**
 
@@ -240,8 +243,25 @@ The React component:
 
 - Manages core lifecycle automatically
 - Adjusts canvas width based on loaded frame aspect ratio
+- Shows an invalid `fps` (0, negative or not finite) as the player's error rather than throwing
 - Shows load/play/pause buttons with built-in styling
 - Displays status overlay on hover
+
+### QOI
+
+Browsers can't decode [QOI](https://qoiformat.org) images, so the player decodes QOI frames itself, recognising them by their bytes. To keep memory down, it holds on to the QOI bytes and decodes each frame when it's drawn, rather than holding every frame decoded (8 MB per 1080p frame). An annie can mix QOI frames with PNG and JPEG ones.
+
+For still images, `QoiAwareImg` from `@effing/annie-player/react` is an `<img>` that can also show QOI:
+
+```tsx
+import { QoiAwareImg } from "@effing/annie-player/react";
+
+<QoiAwareImg src={url} alt="Preview" style={{ height: 540 }} />;
+```
+
+It renders a plain `<img>`, so other images load exactly as before. Only when the browser can't show the image does it fetch the image it tried again (with `srcSet`, the candidate the browser selected) and, if it's QOI, swap in a PNG converted from it. A `srcSet` candidate is replaced in place, keeping its descriptor, so the PNG gets the same density. A cross-origin QOI image therefore needs CORS. Browsers fire no `error` event when they select another `srcSet` candidate after a resize or a change of pixel density, so a QOI candidate selected then stays broken. `onError` is called when the image can't be shown either way; an image that fails before hydration is still converted if it's QOI, but otherwise doesn't reach `onError`, just as with a plain `<img>` under React.
+
+Without React, use `fetchQoiAsPngUrl(url)`, which returns an object URL for a PNG of a QOI image (or `null` for other images), `qoiToPngBlob(bytes)`, or the decoder itself, `decodeQoi(bytes)`, which returns RGBA pixels for an `ImageData`.
 
 ## Examples
 

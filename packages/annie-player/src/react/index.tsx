@@ -1,5 +1,13 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { AnniePlayerCore, type AnniePlayerState } from "../core";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnniePlayerCore, fpsProblem, type AnniePlayerState } from "../core";
+export { QoiAwareImg, type QoiAwareImgProps } from "./qoi-aware-img";
 
 // ============ Context ============
 
@@ -48,6 +56,16 @@ export type AnniePlayerRootProps = {
     | ((value: AnniePlayerContextValue) => React.ReactNode);
 };
 
+const initialState: AnniePlayerState = {
+  status: "Ready to load animation.",
+  error: null,
+  isLoading: false,
+  isPlaying: false,
+  frameCount: 0,
+  currentFrame: 0,
+  dimensions: null,
+};
+
 function AnniePlayerRoot({
   src,
   height,
@@ -61,57 +79,103 @@ function AnniePlayerRoot({
 }: AnniePlayerRootProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<AnniePlayerCore | null>(null);
-  const [state, setState] = useState<AnniePlayerState>({
-    status: "Ready to load animation.",
-    error: null,
-    isLoading: false,
-    isPlaying: false,
-    frameCount: 0,
-    currentFrame: 0,
-    dimensions: null,
-  });
-  const [canvasDimensions, setCanvasDimensions] = useState({
-    width: defaultWidth ?? height,
-    height,
-  });
+  const [state, setState] = useState<AnniePlayerState>(initialState);
   const [isHovering, setIsHovering] = useState(false);
 
-  // Initialize the core player
+  // The last frames' dimensions loaded, kept while a new src loads so the
+  // canvas doesn't jump back to defaultWidth in between
+  const [dimensions, setDimensions] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  // The canvas is `height` tall, and as wide as the frames' aspect ratio
+  // makes it once they're loaded (defaultWidth, or square, before then).
+  // Derived rather than set on load, so a new height resizes the canvas
+  // without a new player.
+  const canvasDimensions = useMemo(
+    () => ({
+      width: dimensions
+        ? (dimensions.width / dimensions.height) * height
+        : (defaultWidth ?? height),
+      height,
+    }),
+    [dimensions, defaultWidth, height],
+  );
+
+  // A new player for every src and autoPlay. It starts from its own state,
+  // gets the canvas straight away (a new player with the same canvas
+  // dimensions wouldn't get it below), and loads if autoLoad is on. Under
+  // StrictMode, the first player is destroyed, which aborts its load,
+  // before the second one loads.
+  //
+  // An fps the player would reject (0, negative, NaN) is shown as the
+  // player's error (see shownState below) rather than thrown, so one bad
+  // preview doesn't take down the page around it; there's no player until
+  // the fps is valid again.
+  const fpsError = fpsProblem(fps);
+  const fpsValid = fpsError === null;
   useEffect(() => {
+    if (!fpsValid) return;
     const player = new AnniePlayerCore({ src, fps, autoPlay });
     playerRef.current = player;
+    setState(player.getState());
 
     const unsubscribeState = player.on("statechange", (newState) => {
       setState(newState);
+      if (newState.dimensions) setDimensions(newState.dimensions);
     });
 
-    const unsubscribeLoad = player.on("load", ({ dimensions }) => {
-      setCanvasDimensions({
-        width: (dimensions.width / dimensions.height) * height,
-        height,
-      });
-    });
+    if (canvasRef.current) {
+      player.attachCanvas(canvasRef.current);
+    }
+    if (autoLoad) {
+      player.load();
+    }
 
     return () => {
       unsubscribeState();
-      unsubscribeLoad();
       player.destroy();
+      if (playerRef.current === player) {
+        playerRef.current = null;
+      }
     };
-  }, [src, fps, autoPlay, height]);
+    // A valid fps is applied to the existing player below. autoLoad is read
+    // when a player is created; turning it on later is handled below, and
+    // turning it off shouldn't discard a loaded player.
+  }, [src, autoPlay, fpsValid]);
 
-  // Attach canvas to player when ready
+  useEffect(() => {
+    if (fpsValid) playerRef.current?.setFps(fps);
+  }, [fps, fpsValid]);
+
+  // Attach the canvas to the player, and draw the current frame whenever
+  // the canvas is resized, which clears it: for a new height, and when
+  // frames load, which shows a loaded player's first frame as a poster
+  // (and keeps an autoPlay player's first frame, drawn before the resize).
   useEffect(() => {
     const player = playerRef.current;
     const canvas = canvasRef.current;
     if (player && canvas) {
       player.attachCanvas(canvas);
+      const { frameCount, currentFrame } = player.getState();
+      if (frameCount > 0) {
+        player.seek(currentFrame);
+      }
     }
   }, [canvasDimensions]);
 
-  // Auto-load if enabled
+  // Load the current player when autoLoad is turned on, unless it's loaded
+  // or loading already
+  const previousAutoLoadRef = useRef(autoLoad);
   useEffect(() => {
-    if (autoLoad && playerRef.current) {
-      playerRef.current.load();
+    const turnedOn = autoLoad && !previousAutoLoadRef.current;
+    previousAutoLoadRef.current = autoLoad;
+    const player = playerRef.current;
+    if (!turnedOn || !player) return;
+    const { frameCount, isLoading } = player.getState();
+    if (frameCount === 0 && !isLoading) {
+      player.load();
     }
   }, [autoLoad]);
 
@@ -122,8 +186,14 @@ function AnniePlayerRoot({
     seek: (frameIndex: number) => playerRef.current?.seek(frameIndex),
   };
 
+  // A bad fps shows as an idle player with that error, naming the current
+  // value; the last player's state is left behind.
+  const shownState: AnniePlayerState = fpsError
+    ? { ...initialState, error: fpsError, status: `Error: ${fpsError}` }
+    : state;
+
   const value: AnniePlayerContextValue = {
-    state,
+    state: shownState,
     actions,
     canvasRef,
     canvasDimensions,
@@ -628,7 +698,7 @@ function AnniePlayerSimple({
 }
 
 /**
- * AnniePlayer - Play TAR archives of PNG/JPEG frames in the browser.
+ * AnniePlayer - Play TAR archives of PNG, JPEG or QOI frames in the browser.
  *
  * Usage:
  * - Simple: `<AnniePlayer src={url} height={540} />`

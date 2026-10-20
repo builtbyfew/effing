@@ -8,7 +8,7 @@
 
 > **AnniePlayerState** = `object`
 
-Defined in: [annie-player/src/core.ts:3](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L3)
+Defined in: [annie-player/src/core.ts:4](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L4)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [annie-player/src/core.ts:3](https://github.com/builtbyfew/effing/bl
 
 > **currentFrame**: `number`
 
-Defined in: [annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L9)
+Defined in: [annie-player/src/core.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L10)
 
 ***
 
@@ -24,7 +24,7 @@ Defined in: [annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/bl
 
 > **dimensions**: \{ `height`: `number`; `width`: `number`; \} \| `null`
 
-Defined in: [annie-player/src/core.ts:10](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L10)
+Defined in: [annie-player/src/core.ts:11](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L11)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [annie-player/src/core.ts:10](https://github.com/builtbyfew/effing/b
 
 > **error**: `string` \| `null`
 
-Defined in: [annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L5)
+Defined in: [annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L6)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/bl
 
 > **frameCount**: `number`
 
-Defined in: [annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L8)
+Defined in: [annie-player/src/core.ts:9](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L9)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/bl
 
 > **isLoading**: `boolean`
 
-Defined in: [annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L6)
+Defined in: [annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L7)
 
 ***
 
@@ -56,7 +56,7 @@ Defined in: [annie-player/src/core.ts:6](https://github.com/builtbyfew/effing/bl
 
 > **isPlaying**: `boolean`
 
-Defined in: [annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L7)
+Defined in: [annie-player/src/core.ts:8](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L8)
 
 ***
 
@@ -64,4 +64,4 @@ Defined in: [annie-player/src/core.ts:7](https://github.com/builtbyfew/effing/bl
 
 > **status**: `string`
 
-Defined in: [annie-player/src/core.ts:4](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L4)
+Defined in: [annie-player/src/core.ts:5](https://github.com/builtbyfew/effing/blob/main/packages/annie-player/src/core.ts#L5)

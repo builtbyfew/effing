@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchQoiAsPngUrl } from "../qoi-image";
+import { replaceSrcsetCandidate, sameUrl } from "./srcset";
 
 export type QoiAwareImgProps = React.ImgHTMLAttributes<HTMLImageElement>;
 
@@ -16,6 +17,36 @@ function credentialsFor(
   return crossOrigin === "use-credentials" ? "include" : "same-origin";
 }
 
+type ImgSource = {
+  src: string | undefined;
+  srcSet: string | undefined;
+  sizes: string | undefined;
+};
+
+/**
+ * The `<img>` attributes that show `png` in place of the image at
+ * `fetchedUrl`, so the browser gives it the same size.
+ *
+ * A `srcSet` candidate keeps its place and descriptor (`2x`, `640w`) with
+ * the PNG's URL, so the browser works out the same density for it. An `src`
+ * the browser chose over the `srcSet` (or without one) becomes the PNG. If
+ * the fetched image can't be found in either, the `srcSet` and `sizes` are
+ * dropped, so the browser can't pick a QOI candidate again; the PNG then
+ * shows at density 1.
+ */
+function convertedSource(
+  { src, srcSet, sizes }: ImgSource,
+  fetchedUrl: string,
+  png: string,
+): ImgSource {
+  const base = document.baseURI;
+  if (!srcSet) return { src: png, srcSet, sizes };
+  const rewritten = replaceSrcsetCandidate(srcSet, fetchedUrl, png, base);
+  if (rewritten !== null) return { src, srcSet: rewritten, sizes };
+  if (src && sameUrl(src, fetchedUrl, base)) return { src: png, srcSet, sizes };
+  return { src: png, srcSet: undefined, sizes: undefined };
+}
+
 /**
  * An `<img>` that can also show QOI images, which browsers can't decode.
  *
@@ -25,11 +56,16 @@ function credentialsFor(
  * it fetched again (the image the browser tried: with `srcSet`, the
  * candidate it selected, else `src`); if the bytes are QOI, they're
  * converted to a PNG that takes the original's place, keeping the `<img>`'s
- * sizing, `alt` and styles (but not `srcSet` and `sizes`, which would make
- * the browser pick a QOI candidate again, so the PNG shows at the selected
- * candidate's resolution). A QOI image is therefore fetched twice (the
- * second time usually from the HTTP cache), and it needs CORS when it's
- * cross-origin. The fetch sends credentials as `crossOrigin` says.
+ * sizing, `alt` and styles. A `srcSet` candidate is replaced in place,
+ * keeping its descriptor, so the PNG gets the candidate's density; if the
+ * candidate can't be found in `srcSet`, `srcSet` and `sizes` are dropped.
+ * A QOI image is therefore fetched twice (the second time usually from the
+ * HTTP cache), and it needs CORS when it's cross-origin. The fetch sends
+ * credentials as `crossOrigin` says.
+ *
+ * Only an `error` event starts the fallback, and browsers fire none when
+ * they select another `srcSet` candidate after a resize or a change of
+ * pixel density, so a QOI candidate selected then stays broken.
  *
  * `onError` is called when the image can't be shown either way: it isn't
  * QOI, it can't be fetched, or it's an invalid QOI image. An image that
@@ -54,7 +90,9 @@ export function QoiAwareImg({
   // The PNG standing in for a QOI image, keyed by the source it stands in for
   const [converted, setConverted] = useState<{
     sourceKey: string;
-    url: string;
+    /** The PNG's object URL, to revoke */
+    png: string;
+    attributes: ImgSource;
   } | null>(null);
   // The fallback attempted for an image URL: how to abort it, whether it
   // has finished, and an error event held back until it has, in case the
@@ -101,7 +139,13 @@ export function QoiAwareImg({
       if (!pngUrl) return failed();
       current.settled = true;
       if (controller.signal.aborted) URL.revokeObjectURL(pngUrl);
-      else setConverted({ sourceKey, url: pngUrl });
+      else {
+        setConverted({
+          sourceKey,
+          png: pngUrl,
+          attributes: convertedSource({ src, srcSet, sizes }, url, pngUrl),
+        });
+      }
     }, failed);
   };
 
@@ -124,20 +168,19 @@ export function QoiAwareImg({
 
   useEffect(() => {
     if (!converted) return;
-    const { url } = converted;
-    return () => URL.revokeObjectURL(url);
+    const { png } = converted;
+    return () => URL.revokeObjectURL(png);
   }, [converted]);
 
   const isConverted = converted !== null && converted.sourceKey === sourceKey;
-  const shown = isConverted ? converted.url : src;
+  const shown = isConverted ? converted.attributes : { src, srcSet, sizes };
 
   return (
     <img
       ref={imgRef}
-      src={shown}
-      // A srcset would win over the converted src, picking the QOI again.
-      srcSet={isConverted ? undefined : srcSet}
-      sizes={isConverted ? undefined : sizes}
+      src={shown.src}
+      srcSet={shown.srcSet}
+      sizes={shown.sizes}
       onError={(event) => {
         if (isConverted) onErrorRef.current?.(event);
         else startFallback(event);

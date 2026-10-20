@@ -236,24 +236,91 @@ describe("QoiAwareImg", () => {
     expect(onError).toHaveBeenCalledOnce();
   });
 
-  it("fetches the srcSet candidate the browser selected, not src", async () => {
+  /** Make `url` the browser's selected candidate (resolved, as browsers do). */
+  function select(img: HTMLImageElement, url: string) {
+    Object.defineProperty(img, "currentSrc", {
+      value: new URL(url, document.baseURI).href,
+    });
+  }
+
+  it("fetches the srcSet candidate the browser selected, and swaps in the PNG with its descriptor", async () => {
     fetchQoi.mockResolvedValue("blob:png");
     const img = render(
       <QoiAwareImg src="/image.png" srcSet="/image.png 1x, /image@2x.qoi 2x" />,
     );
-    // At 2x, the browser picked the QOI candidate.
-    Object.defineProperty(img, "currentSrc", {
-      value: "http://localhost/image@2x.qoi",
-    });
+    select(img, "/image@2x.qoi"); // at 2x
 
     await fire(img, "error");
 
     expect(fetchQoi).toHaveBeenCalledExactlyOnceWith(
-      "http://localhost/image@2x.qoi",
+      new URL("/image@2x.qoi", document.baseURI).href,
       { signal: expect.any(AbortSignal) },
     );
+    // The PNG takes the candidate's place, so it gets the same density.
+    expect(img.getAttribute("srcset")).toBe("/image.png 1x, blob:png 2x");
+    expect(img.getAttribute("src")).toBe("/image.png");
+  });
+
+  it("keeps a w descriptor and sizes for the swapped candidate", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg
+        src="/small.png"
+        srcSet="/small.png 320w, /large.qoi 1280w"
+        sizes="(max-width: 600px) 100vw, 50vw"
+      />,
+    );
+    select(img, "/large.qoi");
+
+    await fire(img, "error");
+
+    expect(img.getAttribute("srcset")).toBe("/small.png 320w, blob:png 1280w");
+    expect(img.getAttribute("sizes")).toBe("(max-width: 600px) 100vw, 50vw");
+  });
+
+  it("matches a relative srcSet candidate against the absolute currentSrc", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg srcSet="images/a.qoi 1x, ./images/b.qoi 2x" />,
+    );
+    select(img, "images/b.qoi");
+
+    await fire(img, "error");
+
+    expect(img.getAttribute("srcset")).toBe("images/a.qoi 1x, blob:png 2x");
+  });
+
+  it("makes src the PNG when the browser chose src over the srcSet", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg src="/image.qoi" srcSet="/image@2x.png 2x" />,
+    );
+    select(img, "/image.qoi"); // src is the implicit 1x candidate
+
+    await fire(img, "error");
+
+    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(img.getAttribute("srcset")).toBe("/image@2x.png 2x");
+  });
+
+  it("drops srcSet and sizes when the image the browser tried isn't in them", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg
+        src="/image.png"
+        srcSet="/image.png 1x, /image@2x.qoi 2x"
+        sizes="100vw"
+        alt="An image"
+      />,
+    );
+    select(img, "/elsewhere.qoi");
+
+    await fire(img, "error");
+
     expect(img.getAttribute("src")).toBe("blob:png");
     expect(img.hasAttribute("srcset")).toBe(false);
+    expect(img.hasAttribute("sizes")).toBe(false);
+    expect(img.getAttribute("alt")).toBe("An image");
   });
 
   it("fetches src when no candidate was selected yet", async () => {
@@ -268,28 +335,29 @@ describe("QoiAwareImg", () => {
     expect(fetchQoi).toHaveBeenCalledExactlyOnceWith("/image.qoi", {
       signal: expect.any(AbortSignal),
     });
+    // src is also the 1x candidate, which takes the PNG.
+    expect(img.getAttribute("srcset")).toBe("blob:png 1x, /image@2x.qoi 2x");
   });
 
   it("falls back for an image with only a srcSet", async () => {
     fetchQoi.mockResolvedValue("blob:png");
     const img = render(<QoiAwareImg srcSet="/image.qoi 1x" />);
-    Object.defineProperty(img, "currentSrc", {
-      value: "http://localhost/image.qoi",
-    });
+    select(img, "/image.qoi");
 
     await fire(img, "error");
 
-    expect(fetchQoi).toHaveBeenCalledWith("http://localhost/image.qoi", {
-      signal: expect.any(AbortSignal),
-    });
-    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(fetchQoi).toHaveBeenCalledWith(
+      new URL("/image.qoi", document.baseURI).href,
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(img.getAttribute("srcset")).toBe("blob:png 1x");
   });
 
   it("starts over when srcSet changes", async () => {
     fetchQoi.mockResolvedValue("blob:png");
     let img = render(<QoiAwareImg src="/image.qoi" srcSet="/image.qoi 1x" />);
     await fire(img, "error");
-    expect(img.getAttribute("src")).toBe("blob:png");
+    expect(img.getAttribute("srcset")).toBe("blob:png 1x");
 
     img = render(
       <QoiAwareImg src="/image.qoi" srcSet="/image.qoi 1x, /image@2x.qoi 2x" />,
@@ -301,27 +369,6 @@ describe("QoiAwareImg", () => {
 
     await fire(img, "error");
     expect(fetchQoi).toHaveBeenCalledTimes(2);
-  });
-
-  it("drops srcSet and sizes once the PNG stands in, so the browser doesn't pick the QOI again", async () => {
-    fetchQoi.mockResolvedValue("blob:png");
-    const img = render(
-      <QoiAwareImg
-        src="/image.qoi"
-        srcSet="/image.qoi 1x, /image@2x.qoi 2x"
-        sizes="100vw"
-        alt="An image"
-      />,
-    );
-    expect(img.getAttribute("srcset")).toBe("/image.qoi 1x, /image@2x.qoi 2x");
-    expect(img.getAttribute("sizes")).toBe("100vw");
-
-    await fire(img, "error");
-
-    expect(img.getAttribute("src")).toBe("blob:png");
-    expect(img.hasAttribute("srcset")).toBe(false);
-    expect(img.hasAttribute("sizes")).toBe(false);
-    expect(img.getAttribute("alt")).toBe("An image");
   });
 
   it("fetches with the credentials crossOrigin asks for", async () => {

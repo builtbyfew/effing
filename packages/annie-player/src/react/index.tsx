@@ -52,8 +52,7 @@ export type AnniePlayerRootProps = {
   className?: string;
   /** Children can be React nodes or a render function for headless usage */
   children?:
-    | React.ReactNode
-    | ((value: AnniePlayerContextValue) => React.ReactNode);
+    React.ReactNode | ((value: AnniePlayerContextValue) => React.ReactNode);
 };
 
 const initialState: AnniePlayerState = {

@@ -292,17 +292,17 @@ The layer's source must be `(1 + distance)` times the frame dimension along the 
 
 ## Motion
 
-All motion variants share optional `start` and `duration` (in seconds). Variant-specific fields:
+All motion variants share optional `start` and `duration`, in seconds. `start` is measured from when the layer's content begins (segment time `delay`) and defaults to 0; `duration` defaults to 1. Variant-specific fields:
 
-| Type     | Required    | Optional                        | Description     |
-| -------- | ----------- | ------------------------------- | --------------- |
-| `bounce` | —           | `amplitude`                     | Bouncing motion |
-| `shake`  | —           | `intensity`, `frequency`        | Shake effect    |
-| `slide`  | `direction` | `distance`, `reverse`, `easing` | Slide animation |
+| Type     | Required    | Optional                        | Description                           |
+| -------- | ----------- | ------------------------------- | ------------------------------------- |
+| `bounce` | —           | `amplitude`                     | Bouncing motion                       |
+| `shake`  | —           | `intensity`, `frequency`        | Circles the layer around its position |
+| `slide`  | `direction` | `distance`, `reverse`, `easing` | Slide animation                       |
 
 `direction` is required for `slide` only; `bounce` and `shake` need no required fields beyond `type`.
 
-A shake's `intensity` is its maximum offset along each axis, in pixels of the full-size frame (default 10). A scaled render scales it with the frame, so the shake looks the same relative to the frame at any scale.
+A shake moves the layer in a circle around its position. Its `intensity` is the circle's radius: the maximum offset along each axis, in pixels of the full-size frame (default 10). A scaled render scales it with the frame, so the shake looks the same relative to the frame at any scale. Its `frequency` is its speed in half-turns per second, not in Hz: the layer completes one circle every 2/frequency seconds (default 4, i.e. two circles per second). The circle starts straight below the layer's position, and the layer is at rest before `start` and after `start + duration`, so it jumps onto the circle when the shake begins and back to its position when it ends.
 
 ## Runtime Constraints
 

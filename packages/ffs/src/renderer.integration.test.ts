@@ -1590,9 +1590,9 @@ describe("scaled renders", () => {
       // Five 0.5 s segments of 5 frames. The motions that haven't started
       // yet hold their initial offsets: the slide 0.3 of the frame width to
       // the right, the bounce half the layer height up. The shake moves the
-      // layer `intensity` px (not scaled) times cos(0) = 1 down at the
-      // segment's first frame. (Overlay rounds offsets down to even pixels
-      // for yuv420, so these are all even.)
+      // layer `intensity` px, scaled by the render's scale, times cos(0) = 1
+      // down at the segment's first frame. (Overlay rounds offsets down to
+      // even pixels for yuv420, so these are all even.)
       const notYet = 100;
       const effieData: EffieData<typeof sources, EffieFileUrl> = {
         width: 200,
@@ -1625,7 +1625,7 @@ describe("scaled renders", () => {
               {
                 type: "image",
                 source: "#box",
-                motion: { type: "shake", intensity: 6, duration: notYet },
+                motion: { type: "shake", intensity: 12, duration: notYet },
               },
             ],
           },
@@ -1654,10 +1654,94 @@ describe("scaled renders", () => {
       expect(white(7)).toEqual({ x: [0, 22], y: [0, 15] });
       // Slid right by round(0.3 * 100) = 30 px.
       expect(white(12)).toEqual({ x: [30, 59], y: [0, 19] });
-      // Shaken 6 px down at the segment's first frame.
+      // Shaken 12 * 0.5 = 6 px down at the segment's first frame.
       expect(white(15)).toEqual({ x: [0, 29], y: [6, 25] });
       // Bounced up by half the scaled animation's height, 8 px.
       expect(white(22)).toEqual({ x: [0, 22], y: [0, 7] });
+    } finally {
+      await cleanupTestOutput(tempDir);
+    }
+  }, 30000);
+
+  test("a shaking layer moves half as far at scale 0.5 as at scale 1", async () => {
+    const tempDir = await createTestOutputDir("scaled-shake");
+
+    try {
+      // A 61x41 white box shaking 16 * (sin(πt), cos(πt)) px over 1 s at
+      // 10 fps, over black: x from 0 to 16 and back, y from 16 down to -15.
+      const box = await lavfiImage(
+        tempDir,
+        "box.png",
+        "color=c=white:s=61x41,format=rgba",
+      );
+      const sources: EffieSources<EffieFileUrl> = { box: fileUrl(box) };
+      const effieData: EffieData<typeof sources, EffieFileUrl> = {
+        width: 200,
+        height: 120,
+        fps: 10,
+        cover: "https://example.com/cover.png",
+        background: { type: "color", color: "black" },
+        sources,
+        segments: [
+          {
+            duration: 1,
+            layers: [
+              {
+                type: "image",
+                source: "#box",
+                motion: { type: "shake", intensity: 16, frequency: 1 },
+              },
+            ],
+          },
+        ],
+      };
+
+      // The shake's offset in each frame, from the box's bottom-right
+      // corner, since a negative offset moves its top-left corner out of
+      // the frame.
+      const offsets = async (scale: number) => {
+        const [width, height] = [200 * scale, 120 * scale];
+        const [boxWidth, boxHeight] = [61, 41].map((n) =>
+          Math.floor(n * scale),
+        );
+        const outPath = await renderToFile(tempDir, effieData, scale);
+        const frames = await decodeLuma(outPath, width, height);
+        expect(frames).toHaveLength(10);
+        return frames.map((frame) => {
+          const box = bbox(frame, width, (luma) => luma > 128);
+          if (!box) throw new Error(`no box at scale ${scale}`);
+          return {
+            x: box.x[1] - (boxWidth - 1),
+            y: box.y[1] - (boxHeight - 1),
+          };
+        });
+      };
+      const full = await offsets(1);
+      const half = await offsets(0.5);
+
+      // At full size, round(16 * sin(πt)) and round(16 * cos(πt)), down to
+      // even pixels for yuv420.
+      expect(full.map(({ x }) => x)).toEqual([
+        0, 4, 8, 12, 14, 16, 14, 12, 8, 4,
+      ]);
+      expect(full.map(({ y }) => y)).toEqual([
+        16, 14, 12, 8, 4, 0, -6, -10, -14, -16,
+      ]);
+      // At scale 0.5, half those, within the rounding: each scale rounds its
+      // own offsets to whole and then even pixels.
+      for (let i = 0; i < full.length; i++) {
+        expect(
+          Math.abs(half[i].x - full[i].x / 2),
+          `x at frame ${i}`,
+        ).toBeLessThanOrEqual(1.5);
+        expect(
+          Math.abs(half[i].y - full[i].y / 2),
+          `y at frame ${i}`,
+        ).toBeLessThanOrEqual(1.5);
+      }
+      // The peaks land on even pixels at both scales, so they halve exactly.
+      expect(half[0]).toEqual({ x: 0, y: 8 });
+      expect(half[5]).toEqual({ x: 8, y: 0 });
     } finally {
       await cleanupTestOutput(tempDir);
     }

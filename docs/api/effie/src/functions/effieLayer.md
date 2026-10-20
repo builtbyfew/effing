@@ -8,7 +8,7 @@
 
 > **effieLayer**\<`S`\>(`layer`): [`EffieLayer`](../type-aliases/EffieLayer.md)\<`S`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
-Defined in: [effie/src/types.ts:191](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L191)
+Defined in: [effie/src/types.ts:199](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L199)
 
 ## Type Parameters
 

@@ -53,8 +53,9 @@ function layerScaleFilter(scaleFactor: number): string {
  * at scale 1 (see animationChainHead for animations).
  *
  * Layers are composed at their own pixel size (overlaid at an offset, with
- * motion relative to the frame and layer size), so a scaled render must
- * shrink every layer by the same factor as the frame. The size is truncated
+ * motion relative to the frame and layer size, or in pixels that
+ * processMotion scales by the same factor), so a scaled render must shrink
+ * every layer by the same factor as the frame. The size is truncated
  * (at least 1 px), like the frame size is.
  *
  * Bicubic scaling (FFmpeg's default) interpolates colour and alpha
@@ -459,7 +460,9 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         overlayInputLabel = `delayed_${layerLabel}`;
       }
       const overlayOutputLabel = `${labelPrefix}tmp${l}`;
-      const offset = layer.motion ? processMotion(delay, layer.motion) : "0:0";
+      const offset = layer.motion
+        ? processMotion(delay, layer.motion, scaleFactor)
+        : "0:0";
       const fromTime = layer.from ?? delay;
       const untilTime = layer.until ?? segment.duration;
       filterParts.push(

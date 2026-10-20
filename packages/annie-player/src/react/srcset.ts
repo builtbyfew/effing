@@ -26,13 +26,15 @@ export function parseSrcset(srcset: string): SrcsetCandidate[] | null {
     if (url.endsWith(",")) {
       url = url.replace(/,+$/, "");
     } else {
+      // As in the spec's tokenizer, a "(" opens parentheses and the first
+      // ")" closes them, however many "(" came before: there's no nesting.
       start = i;
-      let depth = 0;
+      let inParens = false;
       for (; i < srcset.length; i++) {
         const c = srcset[i];
-        if (c === "(") depth++;
-        else if (c === ")") depth = Math.max(0, depth - 1);
-        else if (c === "," && depth === 0) break;
+        if (c === "(") inParens = true;
+        else if (c === ")") inParens = false;
+        else if (c === "," && !inParens) break;
       }
       descriptors = srcset.slice(start, i).trim();
       i++; // the comma
@@ -51,18 +53,27 @@ export function serializeSrcset(candidates: SrcsetCandidate[]): string {
     .join(", ");
 }
 
-/** Whether two URLs, each possibly relative to `base`, are the same. */
+/**
+ * Whether two URLs, each possibly relative to `base`, are the same image.
+ * Fragments are ignored: fetching ignores them, and Chrome's `currentSrc`
+ * can carry a stale one from its memory cache.
+ */
 export function sameUrl(a: string, b: string, base: string): boolean {
   try {
-    return new URL(a, base).href === new URL(b, base).href;
+    const urlA = new URL(a, base);
+    const urlB = new URL(b, base);
+    urlA.hash = "";
+    urlB.hash = "";
+    return urlA.href === urlB.href;
   } catch {
     return false;
   }
 }
 
 /**
- * Replace the URL of the candidate that resolves to `url`, keeping its
- * descriptors, so the browser gives the replacement the same density.
+ * Replace the URL of every candidate that resolves to `url`, keeping their
+ * descriptors, so the browser gives the replacement the same density. All
+ * of them are the same image, and one left behind could be selected again.
  *
  * @returns The new `srcset`, or null if it can't be parsed or no candidate
  *   is `url`
@@ -74,10 +85,12 @@ export function replaceSrcsetCandidate(
   base: string,
 ): string | null {
   const candidates = parseSrcset(srcset);
-  const index =
-    candidates?.findIndex((candidate) => sameUrl(candidate.url, url, base)) ??
-    -1;
-  if (!candidates || index === -1) return null;
-  candidates[index] = { ...candidates[index], url: replacement };
-  return serializeSrcset(candidates);
+  if (!candidates) return null;
+  let replaced = false;
+  const rewritten = candidates.map((candidate) => {
+    if (!sameUrl(candidate.url, url, base)) return candidate;
+    replaced = true;
+    return { ...candidate, url: replacement };
+  });
+  return replaced ? serializeSrcset(rewritten) : null;
 }

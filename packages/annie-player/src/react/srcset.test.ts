@@ -53,6 +53,14 @@ describe("parseSrcset", () => {
     ]);
   });
 
+  it("closes parentheses at the first ), without nesting, as browsers do", () => {
+    expect(parseSrcset("a.png 1x ((x), y) 2x, b.qoi 3x")).toEqual([
+      { url: "a.png", descriptors: "1x ((x)" },
+      { url: "y)", descriptors: "2x" },
+      { url: "b.qoi", descriptors: "3x" },
+    ]);
+  });
+
   it("parses an empty srcset to no candidates", () => {
     expect(parseSrcset("")).toEqual([]);
   });
@@ -76,6 +84,14 @@ describe("sameUrl", () => {
     ).toBe(true);
     expect(sameUrl("./img/a.qoi", "img/a.qoi", base)).toBe(true);
     expect(sameUrl("/img/a.qoi", "img/a.qoi", base)).toBe(false);
+  });
+
+  it("ignores fragments", () => {
+    expect(
+      sameUrl("./x.qoi", "https://example.com/page/x.qoi#frag", base),
+    ).toBe(true);
+    expect(sameUrl("x.qoi#a", "x.qoi#b", base)).toBe(true);
+    expect(sameUrl("x.qoi?a", "x.qoi?b", base)).toBe(false);
   });
 
   it("treats URLs that don't parse as different", () => {
@@ -115,6 +131,28 @@ describe("replaceSrcsetCandidate", () => {
         base,
       ),
     ).toBe("blob:png 2x");
+  });
+
+  it("replaces every candidate for the same image", () => {
+    expect(
+      replaceSrcsetCandidate(
+        "k.qoi 1x, other.png 1.5x, ./k.qoi 2x",
+        "https://example.com/page/k.qoi",
+        "blob:png",
+        base,
+      ),
+    ).toBe("blob:png 1x, other.png 1.5x, blob:png 2x");
+  });
+
+  it("matches a URL with a stale fragment", () => {
+    expect(
+      replaceSrcsetCandidate(
+        "a.png 1x, ./x.qoi 2x",
+        "https://example.com/page/x.qoi#frag",
+        "blob:png",
+        base,
+      ),
+    ).toBe("a.png 1x, blob:png 2x");
   });
 
   it("returns null when no candidate matches", () => {

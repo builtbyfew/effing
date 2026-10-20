@@ -261,6 +261,33 @@ describe("QoiAwareImg", () => {
     expect(img.getAttribute("src")).toBe("/image.png");
   });
 
+  it("swaps every candidate for the fetched image, and src too", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg src="/k.qoi" srcSet="/k.qoi 1x, /k.qoi 2x" />,
+    );
+    select(img, "/k.qoi"); // at 2x, from either candidate
+
+    await fire(img, "error");
+
+    // Nothing left for the browser to select (or fall back to) is QOI.
+    expect(img.getAttribute("srcset")).toBe("blob:png 1x, blob:png 2x");
+    expect(img.getAttribute("src")).toBe("blob:png");
+  });
+
+  it("matches the candidate when currentSrc carries a stale fragment", async () => {
+    fetchQoi.mockResolvedValue("blob:png");
+    const img = render(
+      <QoiAwareImg src="/one.png" srcSet="/one.png 1x, ./x.qoi 2x" />,
+    );
+    select(img, "./x.qoi#frag");
+
+    await fire(img, "error");
+
+    expect(img.getAttribute("srcset")).toBe("/one.png 1x, blob:png 2x");
+    expect(img.getAttribute("src")).toBe("/one.png");
+  });
+
   it("keeps a w descriptor and sizes for the swapped candidate", async () => {
     fetchQoi.mockResolvedValue("blob:png");
     const img = render(

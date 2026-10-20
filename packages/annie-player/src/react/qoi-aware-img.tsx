@@ -27,12 +27,14 @@ type ImgSource = {
  * The `<img>` attributes that show `png` in place of the image at
  * `fetchedUrl`, so the browser gives it the same size.
  *
- * A `srcSet` candidate keeps its place and descriptor (`2x`, `640w`) with
- * the PNG's URL, so the browser works out the same density for it. An `src`
- * the browser chose over the `srcSet` (or without one) becomes the PNG. If
- * the fetched image can't be found in either, the `srcSet` and `sizes` are
- * dropped, so the browser can't pick a QOI candidate again; the PNG then
- * shows at density 1.
+ * Every `srcSet` candidate for the fetched image keeps its place and
+ * descriptor (`2x`, `640w`) with the PNG's URL, so the browser works out
+ * the same density for it. `src` becomes the PNG too if it's the fetched
+ * image: it's the same image, which the browser may fall back to (as the
+ * 1x candidate, or where it ignores `srcset`), at `src`'s own density 1.
+ * If the fetched image can't be found in either, the `srcSet` and `sizes`
+ * are dropped, so the browser can't pick a QOI candidate again; the PNG
+ * then shows at density 1.
  */
 function convertedSource(
   { src, srcSet, sizes }: ImgSource,
@@ -40,10 +42,13 @@ function convertedSource(
   png: string,
 ): ImgSource {
   const base = document.baseURI;
+  const srcIsFetched = !!src && sameUrl(src, fetchedUrl, base);
   if (!srcSet) return { src: png, srcSet, sizes };
   const rewritten = replaceSrcsetCandidate(srcSet, fetchedUrl, png, base);
-  if (rewritten !== null) return { src, srcSet: rewritten, sizes };
-  if (src && sameUrl(src, fetchedUrl, base)) return { src: png, srcSet, sizes };
+  if (rewritten !== null) {
+    return { src: srcIsFetched ? png : src, srcSet: rewritten, sizes };
+  }
+  if (srcIsFetched) return { src: png, srcSet, sizes };
   return { src: png, srcSet: undefined, sizes: undefined };
 }
 

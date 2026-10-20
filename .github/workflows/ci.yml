@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check formatting
+        run: pnpm -w format:check
+
       # Workspace packages resolve each other's types from dist/, so
       # typecheck and tests need the packages built first. Demos are
       # excluded (as in the release script): the starter demo's build

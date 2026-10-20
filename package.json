@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "eslint --fix --cache --cache-location ./node_modules/.cache/eslint .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "pnpm -r run typecheck",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",

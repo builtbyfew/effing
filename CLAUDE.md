@@ -16,6 +16,7 @@ pnpm monorepo. Node.js 22+ required.
 pnpm install          # Install dependencies
 pnpm -w lint          # Lint all packages
 pnpm -w format        # Format all files
+pnpm -w format:check  # Check formatting (as CI does)
 pnpm -w typecheck     # Typecheck all packages
 pnpm -w build         # Build all packages
 pnpm -w test          # Run all tests

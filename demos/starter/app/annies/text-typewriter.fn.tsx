@@ -80,7 +80,9 @@ export async function* runner({
       />,
       { fonts },
     );
-    return canvas.encode("png");
+    // QOI suits text on transparency: lossless with alpha, like PNG, but
+    // much faster to encode (see "Choosing a Frame Format" in the docs)
+    return canvas.encode("qoi");
   });
 
   // Blinking cursor phase
@@ -101,7 +103,7 @@ export async function* runner({
       />,
       { fonts },
     );
-    return canvas.encode("png");
+    return canvas.encode("qoi");
   });
 }
 

@@ -40,7 +40,8 @@ let textConfig: ReturnType<typeof Yoga.Config.create> | undefined;
  * A node for text, whose layout Yoga leaves unrounded (its parents are still
  * rounded to whole pixels). Its width is then the width the text was measured
  * at, which it's drawn at too, so a line that just fits stays on one line,
- * and a line that doesn't wraps, as in a browser.
+ * and a line that doesn't wraps, as in a browser. It's placed unrounded too,
+ * at its fractional offset in its rounded parent.
  */
 export function createTextYogaNode(): YogaNode {
   if (!textConfig) {

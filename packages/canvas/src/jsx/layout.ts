@@ -1112,17 +1112,8 @@ const isBreak = (node: ReactNode): node is ReactElement<{ style?: unknown }> =>
 const isHidden = (el: ReactElement<{ style?: unknown }>): boolean =>
   (el.props.style as { display?: unknown } | undefined)?.display === "none";
 
-/** Floor to a whole pixel, as Yoga does text (snapping values within 1e-4). */
-function floorToPixel(value: number): number {
-  const rounded = Math.round(value);
-  return Math.abs(value - rounded) < 1e-4 ? rounded : Math.floor(value);
-}
-
 function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
   const layout = yogaNode.getComputedLayout();
-  // Yoga leaves text nodes unrounded (see `createTextYogaNode`) for their
-  // width; they're placed on whole pixels, floored as Yoga rounds text.
-  const place = node.textMeasure ? floorToPixel : (v: number) => v;
 
   return {
     type: node.type,
@@ -1134,8 +1125,12 @@ function extractLayout(node: IntermediateNode, yogaNode: YogaNode): LayoutNode {
     textContent: node.textContent,
     textLayout: node.textMeasure?.layout,
     props: node.props,
-    x: place(layout.left),
-    y: place(layout.top),
+    // A text node is placed where Yoga leaves it, unrounded (see
+    // `createTextYogaNode`), as its text is drawn unsnapped: on a whole
+    // pixel, it would lose the fraction of a pixel of padding or centring
+    // above or left of it, and move a pixel at a time as its layout changed.
+    x: layout.left,
+    y: layout.top,
     width: layout.width,
     height: layout.height,
   };

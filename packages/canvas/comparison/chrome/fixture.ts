@@ -80,7 +80,7 @@ export type ChromeReferenceFile = {
 export type Tolerance = {
   /** An element's edges. Yoga puts them on whole pixels. */
   box: number;
-  /** A line's left edge and top. Yoga puts text boxes on whole pixels. */
+  /** A line's left edge and top, in an element Yoga puts on whole pixels. */
   line: number;
   /** A line's width: Skia's advances against Chrome's. */
   lineWidth: number;

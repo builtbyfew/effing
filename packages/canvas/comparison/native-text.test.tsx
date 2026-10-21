@@ -869,7 +869,7 @@ describe("text measured and drawn at one width", () => {
         "world",
       ]);
     }
-    // Text is still placed on whole pixels, as before.
+    // Each text starts at its box's left edge.
     expect(nodes.map((node) => node.x)).toEqual([0, 0, 0]);
   });
 

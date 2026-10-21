@@ -260,8 +260,9 @@ describe("min-content width", () => {
         </div>,
       );
       expectEdges(box, 150, 300);
-      // Yoga puts the run on a whole pixel, to its left.
-      expect(Math.abs(box!.lines[0]! - -3.41)).toBeLessThan(1);
+      // The run is placed where Yoga lays it out, -3.40625px, as in Chrome
+      // (which lays text out in 1/64px).
+      expect(Math.abs(box!.lines[0]! - -3.41)).toBeLessThan(0.01);
     });
 
     it("lets text that can't wrap overflow a row of them", async () => {

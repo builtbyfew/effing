@@ -22,8 +22,13 @@ import {
 // stroke tests set `lineHeight: 1` so both draw the same line boxes: whole
 // pixels tall at every font size here, which satori and canvas don't round
 // alike. The text-shadow tests and the short
-// clamped line keep `normal` because they measured closer with it: 0.005%,
-// 0.045% and 0.006%, against 0.048%, 0.473% and 0.008% with `lineHeight: 1`.
+// clamped line keep `normal` because they measured closer with it: 0.110%,
+// 0.045% and 0.006%, against 0.232%, 0.473% and 0.008% with `lineHeight: 1`.
+//
+// Satori's Yoga puts a text node on the whole pixel above and left of where
+// it lays it out, as Yoga rounds text; canvas places it where it's laid out
+// (#224). Where text is centred at a fraction of a pixel, they differ by
+// that fraction.
 describe("visual comparison: text (satori smoke checks)", () => {
   let fonts: FontData[];
 
@@ -162,7 +167,8 @@ describe("visual comparison: text (satori smoke checks)", () => {
       satoriPng,
       "flex-centered-text",
     );
-    // 0.007% measured.
+    // 0.025% measured: the text is centred at a fraction of a pixel, which
+    // satori drops (0.001% when canvas dropped it too).
     expect(percentage).toBeLessThan(0.05);
   });
 
@@ -231,8 +237,9 @@ describe("visual comparison: text (satori smoke checks)", () => {
       "text-shadow",
     );
 
-    // 0.005% measured.
-    expect(percentage).toBeLessThan(0.05);
+    // 0.110% measured: the text is centred at a fraction of a pixel, which
+    // satori drops (0.005% when canvas dropped it too).
+    expect(percentage).toBeLessThan(0.25);
   });
 
   it("renders textShadow with alpha color — no double-draw", async () => {

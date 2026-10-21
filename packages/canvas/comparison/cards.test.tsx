@@ -93,8 +93,8 @@ const pricingCases: {
       ],
       highlighted: true,
     },
-    // 1.01% measured.
-    maxDiff: 1.6,
+    // 0.54% measured.
+    maxDiff: 0.8,
   },
   {
     label: "plain Starter plan without yearly",
@@ -104,8 +104,8 @@ const pricingCases: {
       features: ["5 projects", "Community support", "Basic analytics"],
       highlighted: false,
     },
-    // 0.71% measured.
-    maxDiff: 1.1,
+    // 0.41% measured.
+    maxDiff: 0.6,
   },
 ];
 

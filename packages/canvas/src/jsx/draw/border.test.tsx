@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { describe, expect, it } from "vitest";
 
 import { createCanvas, renderReactElement } from "../../index.ts";
+import { roundedRect } from "./clip.ts";
 
 // A 200×100 box at (20, 20) on a white frame.
 const X = 20;
@@ -327,6 +328,32 @@ describe("rounded borders of unequal widths", () => {
       borderRadius: R,
     });
     expect(outside(isGreen)).toBe(0);
+  });
+
+  it("antialiases a rounded border's outer curve once", async () => {
+    const { at } = await render({
+      backgroundColor: "#fff",
+      border: "10px solid #000",
+      borderRadius: 24,
+    });
+    // The same curve, filled once.
+    const ref = createCanvas(X * 2 + W, Y * 2 + H).getContext("2d");
+    ref.fillStyle = "#fff";
+    ref.fillRect(0, 0, X * 2 + W, Y * 2 + H);
+    ref.fillStyle = "#000";
+    ref.beginPath();
+    roundedRect(ref, X, Y, W, H, 24, 24, 24, 24);
+    ref.fill();
+    // To within a little: Skia's coverage differs a touch with the padding
+    // box in the path (12 at most). Clipped to the same curve first, 66.
+    let worst = 0;
+    for (let d = 0; d < 12; d++) {
+      for (let e = 0; e < 12; e++) {
+        const expected = ref.getImageData(X + d, Y + e, 1, 1).data[0]!;
+        worst = Math.max(worst, Math.abs(at(X + d, Y + e)[0]! - expected));
+      }
+    }
+    expect(worst).toBeLessThanOrEqual(20);
   });
 });
 

@@ -93,7 +93,9 @@ function drawBorders(
     if (c === undefined) return "black";
     if (c.toLowerCase() !== "currentcolor") return c;
     // Nor a colour that is itself currentColor, inherit or invalid.
-    return style.color && parseCssColor(style.color) ? style.color : "black";
+    return style.color && parseCssColor(style.color.trim())
+      ? style.color
+      : "black";
   };
   const sides: BorderSide[] = [
     { width: tw, color: color(style.borderTopColor) },
@@ -123,7 +125,8 @@ function drawBorders(
     ph / (inner[0]![1] + inner[3]![1]),
     ph / (inner[1]![1] + inner[2]![1]),
   );
-  if (fit < 1 && fit > 0) {
+  const scaled = fit < 1 && fit > 0;
+  if (scaled) {
     for (const r of inner) {
       r[0] *= fit;
       r[1] *= fit;
@@ -139,13 +142,16 @@ function drawBorders(
       ctx.fill();
       return;
     }
-    // Where a padding box corner reaches past the border box's curve, as a
-    // radius scaled down can, it paints nothing: clipped to the border box.
-    ctx.save();
-    ctx.clip();
+    // Where a padding box corner reaches past the border box's curve, as
+    // only a radius scaled down can, it paints nothing: clipped to the border
+    // box. Only then, as the clip antialiases the curve a second time.
+    if (scaled) {
+      ctx.save();
+      ctx.clip();
+    }
     ellipticalRect(ctx, x + lw, y + tw, pw, ph, inner);
     ctx.fill("evenodd");
-    ctx.restore();
+    if (scaled) ctx.restore();
   };
 
   // Sides of one colour are filled at once, without seams between them.
@@ -242,7 +248,7 @@ interface BorderSide {
 }
 
 function isOpaque(side: BorderSide): boolean {
-  return side.width > 0 && (parseCssColor(side.color)?.alpha ?? 0) === 1;
+  return side.width > 0 && (parseCssColor(side.color.trim())?.alpha ?? 0) === 1;
 }
 
 /**

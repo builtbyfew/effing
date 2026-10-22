@@ -11,7 +11,7 @@ vi.mock("../core", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../core")>();
   return {
     ...actual,
-    AnniePlayerCore: vi.fn(() => {
+    AnniePlayerCore: vi.fn(function () {
       throw new RangeError("Unexpected failure");
     }),
   };

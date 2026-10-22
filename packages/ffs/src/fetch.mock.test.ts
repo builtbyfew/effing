@@ -9,7 +9,9 @@ vi.mock("undici", async () => {
   return {
     ...actual,
     fetch: vi.fn(),
-    Agent: vi.fn(() => ({ close: vi.fn().mockResolvedValue(undefined) })),
+    Agent: vi.fn(function () {
+      return { close: vi.fn().mockResolvedValue(undefined) };
+    }),
   };
 });
 
@@ -260,7 +262,9 @@ describe("ffsFetch", () => {
         close: vi.fn().mockResolvedValue(undefined),
       };
       const mockAgent = vi.mocked(Agent);
-      mockAgent.mockReturnValueOnce(mockAgentInstance as unknown as Agent);
+      mockAgent.mockImplementationOnce(function () {
+        return mockAgentInstance as unknown as Agent;
+      });
       const { fetch: mockFetch } = await import("undici");
       const mockedFetch = vi.mocked(mockFetch);
       mockedFetch.mockResolvedValueOnce(new Response("ok"));

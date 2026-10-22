@@ -234,16 +234,18 @@ export function createCanvasMock() {
   return {
     createCanvas: vi.fn(() => mockCanvas),
     Canvas: vi.fn(),
-    Path2D: vi.fn(() => ({
-      rect: vi.fn(),
-      roundRect: vi.fn(),
-      arc: vi.fn(),
-      ellipse: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      closePath: vi.fn(),
-      addPath: vi.fn(),
-    })),
+    Path2D: vi.fn(function () {
+      return {
+        rect: vi.fn(),
+        roundRect: vi.fn(),
+        arc: vi.fn(),
+        ellipse: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        closePath: vi.fn(),
+        addPath: vi.fn(),
+      };
+    }),
     GlobalFonts: {
       register: vi.fn(),
       registerFromPath: vi.fn(),

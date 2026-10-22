@@ -26,12 +26,9 @@ describe("S3TransientStore", () => {
     // Setup S3Client mock
     const { S3Client } = await import("@aws-sdk/client-s3");
     mockS3Send = vi.fn();
-    vi.mocked(S3Client).mockImplementation(
-      () =>
-        ({
-          send: mockS3Send,
-        }) as unknown as InstanceType<typeof S3Client>,
-    );
+    vi.mocked(S3Client).mockImplementation(function () {
+      return { send: mockS3Send } as unknown as InstanceType<typeof S3Client>;
+    });
   });
 
   describe("constructor", () => {
@@ -85,9 +82,9 @@ describe("S3TransientStore", () => {
       const mockUpload = {
         done: vi.fn().mockResolvedValue({}),
       };
-      vi.mocked(Upload).mockImplementation(
-        () => mockUpload as unknown as InstanceType<typeof Upload>,
-      );
+      vi.mocked(Upload).mockImplementation(function () {
+        return mockUpload as unknown as InstanceType<typeof Upload>;
+      });
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
@@ -358,9 +355,9 @@ describe("S3TransientStore", () => {
       const { S3TransientStore } = await import("./storage");
 
       const mockUpload = { done: vi.fn().mockResolvedValue({}) };
-      vi.mocked(Upload).mockImplementation(
-        () => mockUpload as unknown as InstanceType<typeof Upload>,
-      );
+      vi.mocked(Upload).mockImplementation(function () {
+        return mockUpload as unknown as InstanceType<typeof Upload>;
+      });
 
       const storage = new S3TransientStore({ bucket: "my-bucket" });
       const stream = Readable.from(Buffer.from("test"));
@@ -406,9 +403,9 @@ describe("S3TransientStore", () => {
       const { S3TransientStore } = await import("./storage");
 
       const mockUpload = { done: vi.fn().mockResolvedValue({}) };
-      vi.mocked(Upload).mockImplementation(
-        () => mockUpload as unknown as InstanceType<typeof Upload>,
-      );
+      vi.mocked(Upload).mockImplementation(function () {
+        return mockUpload as unknown as InstanceType<typeof Upload>;
+      });
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
@@ -435,9 +432,9 @@ describe("S3TransientStore", () => {
       const { S3TransientStore } = await import("./storage");
 
       const mockUpload = { done: vi.fn().mockResolvedValue({}) };
-      vi.mocked(Upload).mockImplementation(
-        () => mockUpload as unknown as InstanceType<typeof Upload>,
-      );
+      vi.mocked(Upload).mockImplementation(function () {
+        return mockUpload as unknown as InstanceType<typeof Upload>;
+      });
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",
@@ -488,9 +485,9 @@ describe("S3TransientStore", () => {
       });
 
       const mockUpload = { done: vi.fn().mockResolvedValue({}) };
-      vi.mocked(Upload).mockImplementation(
-        () => mockUpload as unknown as InstanceType<typeof Upload>,
-      );
+      vi.mocked(Upload).mockImplementation(function () {
+        return mockUpload as unknown as InstanceType<typeof Upload>;
+      });
 
       const storage = new S3TransientStore({
         bucket: "my-bucket",

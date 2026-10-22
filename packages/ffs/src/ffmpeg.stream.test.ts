@@ -351,7 +351,9 @@ describe("AnnieExtraction", () => {
     const chunks: Buffer[] = [];
     const { PassThrough } = await import("stream");
     const pipe = new PassThrough();
-    pipe.on("data", (chunk: Buffer) => chunks.push(chunk));
+    // feed() reuses its buffer once a write is done, which a PassThrough
+    // doesn't copy: copy it here, like a socket does.
+    pipe.on("data", (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
     await extraction.feed(pipe);
     return Buffer.concat(chunks);
   }

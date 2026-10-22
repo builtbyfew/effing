@@ -142,8 +142,15 @@ export class AnnieExtraction {
    * Writes the frames to `pipe` as they land on disk, and ends it after the
    * last. They go in the order FFmpeg's image2 demuxer reads them from the
    * directory: frame_00000, frame_00001, ..., up to the first one the
-   * extraction ends without. One frame at a time is held in memory: the next
-   * is read from disk once FFmpeg has taken the last.
+   * extraction ends without.
+   *
+   * Every frame is read into the same buffer, once FFmpeg has taken the last
+   * one, so a feed holds one frame's worth of memory however long the annie.
+   * (A fresh buffer per frame would leave hundreds of MB of external memory
+   * for the garbage collector to find.)
+   *
+   * `pipe` mustn't hold on to a chunk once it has called the chunk's write
+   * callback, as a socket or file stream doesn't.
    *
    * Never rejects: when FFmpeg stops reading (it's done, failed or killed)
    * or the pipe is destroyed, the feed just stops. FFmpeg's exit status, and
@@ -152,14 +159,22 @@ export class AnnieExtraction {
   async feed(pipe: Writable): Promise<void> {
     // EPIPE when FFmpeg exits without reading everything.
     pipe.on("error", () => {});
+    let buffer = Buffer.alloc(0);
     try {
       for (let index = 0; !pipe.destroyed; index++) {
         const name = frameFileName(index);
         await this.until(() => this.written.has(name) || this.ended);
         if (!this.written.has(name) || this.error !== undefined) break;
-        if (pipe.destroyed) break;
-        const data = await fs.readFile(path.join(this.dir, name));
-        if (!pipe.write(data)) await drained(pipe);
+        const file = await fs.open(path.join(this.dir, name));
+        let size: number;
+        try {
+          ({ size } = await file.stat());
+          if (buffer.length < size) buffer = Buffer.allocUnsafe(size);
+          await file.read(buffer, 0, size, 0);
+        } finally {
+          await file.close();
+        }
+        if (!(await written(pipe, buffer.subarray(0, size)))) break;
       }
     } catch {
       // A frame file that's gone: the temp dir was removed (FFmpeg exited).
@@ -181,18 +196,18 @@ export class AnnieExtraction {
   }
 }
 
-/** Resolves once `stream` can take more data, or is closed. */
-function drained(stream: Writable): Promise<void> {
+/**
+ * Writes `chunk` to `stream`, and resolves once the stream is done with it
+ * (true), or is destroyed (false).
+ */
+function written(stream: Writable, chunk: Buffer): Promise<boolean> {
   return new Promise((resolve) => {
-    // A write to a destroyed stream returns false too, and it won't emit
-    // anything after that.
-    if (stream.destroyed || !stream.writableNeedDrain) return resolve();
-    const done = () => {
-      stream.off("drain", done);
-      stream.off("close", done);
-      resolve();
-    };
-    stream.on("drain", done);
-    stream.on("close", done);
+    if (stream.destroyed) return resolve(false);
+    const onClose = () => resolve(false);
+    stream.once("close", onClose);
+    stream.write(chunk, (err) => {
+      stream.off("close", onClose);
+      resolve(!err);
+    });
   });
 }

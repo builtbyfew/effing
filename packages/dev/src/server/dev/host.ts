@@ -36,6 +36,12 @@ export type StartDevServerOptions = {
    * another instance of the same project is already running.
    */
   strictPort?: boolean;
+  /**
+   * Stop an app worker once it has been idle for this many ms, to free its
+   * memory (a later request starts a new one). Unset, workers live as long
+   * as the server.
+   */
+  idleWorkerTimeout?: number;
 };
 
 export type DevServer = {
@@ -119,6 +125,7 @@ export async function startDevServer(
           }),
           invoke: (payload) =>
             vite.environments.ssr.hot.handleInvoke(payload as HotPayload),
+          idleTimeout: options.idleWorkerTimeout,
         })
       : await startInProcessApp(
           vite,

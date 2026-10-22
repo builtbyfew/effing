@@ -64,6 +64,13 @@ export function getBorderRadiusFromStyle(
   };
 }
 
+/**
+ * Draw an element's borders as CSS does: each side fills its part of the
+ * area between the border box and the padding box. The padding box's corners
+ * are the border box's, less the adjoining borders' widths on each axis, so
+ * they are elliptical where the widths differ, and a border tapers to nothing
+ * where it meets a side without one.
+ */
 function drawBorders(
   ctx: SKRSContext2D,
   x: number,
@@ -71,193 +78,142 @@ function drawBorders(
   width: number,
   height: number,
   style: ComputedStyle,
-  borderRadius: ReturnType<typeof getBorderRadiusFromStyle>,
+  borderRadius: BorderRadius,
 ): void {
-  const hasRoundedCorners = hasRadius(borderRadius);
-
-  // If all borders are the same, draw as a single stroke
   const tw = resolveBoxValue(style.borderTopWidth, width);
   const rw = resolveBoxValue(style.borderRightWidth, width);
   const bw = resolveBoxValue(style.borderBottomWidth, width);
   const lw = resolveBoxValue(style.borderLeftWidth, width);
+  if (tw <= 0 && rw <= 0 && bw <= 0 && lw <= 0) return;
 
-  if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
+  const sides: BorderSide[] = [
+    { width: tw, color: style.borderTopColor ?? "black" },
+    { width: rw, color: style.borderRightColor ?? "black" },
+    { width: bw, color: style.borderBottomColor ?? "black" },
+    { width: lw, color: style.borderLeftColor ?? "black" },
+  ];
+  const visible = sides.filter((s) => s.width > 0);
 
-  const allSameWidth = tw === rw && rw === bw && bw === lw && tw > 0;
-  const tc = style.borderTopColor ?? "black";
-  const rc = style.borderRightColor ?? "black";
-  const bc = style.borderBottomColor ?? "black";
-  const lc = style.borderLeftColor ?? "black";
-  const allSameColor = tc === rc && rc === bc && bc === lc;
+  // The border area: the border box less the padding box, whose corners'
+  // radii are the border box's less the adjoining widths, on each axis.
+  const [tl, tr, br, bl] = clampRadii(borderRadius, width, height);
+  const pw = width - lw - rw;
+  const ph = height - tw - bw;
+  const inner: [number, number][] = [
+    [Math.max(0, tl - lw), Math.max(0, tl - tw)],
+    [Math.max(0, tr - rw), Math.max(0, tr - tw)],
+    [Math.max(0, br - rw), Math.max(0, br - bw)],
+    [Math.max(0, bl - lw), Math.max(0, bl - bw)],
+  ];
+  const fillArea = (color: string) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    roundedRect(ctx, x, y, width, height, tl, tr, br, bl);
+    if (pw > 0 && ph > 0) ellipticalRect(ctx, x + lw, y + tw, pw, ph, inner);
+    ctx.fill("evenodd");
+  };
 
-  if (allSameWidth && allSameColor) {
-    ctx.strokeStyle = tc;
-    ctx.lineWidth = tw;
-
-    if (hasRoundedCorners) {
-      ctx.beginPath();
-      const half = tw / 2;
-      roundedRect(
-        ctx,
-        x + half,
-        y + half,
-        width - tw,
-        height - tw,
-        Math.max(0, borderRadius.topLeft - half),
-        Math.max(0, borderRadius.topRight - half),
-        Math.max(0, borderRadius.bottomRight - half),
-        Math.max(0, borderRadius.bottomLeft - half),
-      );
-      ctx.stroke();
-    } else {
-      ctx.strokeRect(x + tw / 2, y + tw / 2, width - tw, height - tw);
-    }
+  // Sides of one colour are filled at once, without seams between them.
+  if (visible.every((s) => s.color === visible[0]!.color)) {
+    fillArea(visible[0]!.color);
     return;
   }
 
-  // Draw individual borders
-  if (hasRoundedCorners) {
-    const maxR = Math.min(width, height) / 2;
-    const tl = Math.min(borderRadius.topLeft, maxR);
-    const tr = Math.min(borderRadius.topRight, maxR);
-    const br = Math.min(borderRadius.bottomRight, maxR);
-    const bl = Math.min(borderRadius.bottomLeft, maxR);
-
-    const top = y + tw / 2;
-    const right = x + width - rw / 2;
-    const bottom = y + height - bw / 2;
-    const left = x + lw / 2;
-
-    const eTL = Math.max(0, tl - Math.max(tw, lw) / 2);
-    const eTR = Math.max(0, tr - Math.max(tw, rw) / 2);
-    const eBR = Math.max(0, br - Math.max(bw, rw) / 2);
-    const eBL = Math.max(0, bl - Math.max(bw, lw) / 2);
-
-    // Each side owns its end corner (in drawing direction) and only draws the
-    // start corner arc when the adjacent owner side is not visible (width 0).
-    // This prevents double-stroking of corner arcs which causes AA artifacts.
-
-    // Top side (L → R): borrows TL, owns TR
-    if (tw > 0) {
-      ctx.strokeStyle = tc;
-      ctx.lineWidth = tw;
-      ctx.beginPath();
-      if (eTL > 0 && lw === 0) {
-        ctx.moveTo(left, top + eTL);
-        ctx.arcTo(left, top, left + eTL, top, eTL);
-      } else if (eTL > 0) {
-        ctx.moveTo(left + eTL, top);
-      } else {
-        ctx.moveTo(x, top);
-      }
-      if (eTR > 0) {
-        ctx.lineTo(right - eTR, top);
-        ctx.arcTo(right, top, right, top + eTR, eTR);
-      } else {
-        ctx.lineTo(x + width, top);
-      }
-      ctx.stroke();
+  // Otherwise each side is clipped to its part of the border area: the
+  // corners are split along the line from the border box's corner to the
+  // padding box's, as browsers do. The line runs on past the padding box's
+  // corner, when it is rounded, to the chord across its curve, so that the
+  // part of the border that curves round the corner is on it.
+  const splits = [
+    [x, y, x + lw, y + tw, 1, 1],
+    [x + width, y, x + width - rw, y + tw, -1, 1],
+    [x + width, y + height, x + width - rw, y + height - bw, -1, -1],
+    [x, y + height, x + lw, y + height - bw, 1, -1],
+  ].map(([ox, oy, ix, iy, sx, sy], i): [Point, Point] => {
+    const [rx, ry] = inner[i]!;
+    const dx = ix! - ox!;
+    const dy = iy! - oy!;
+    let t = 1;
+    if (rx > 0 || ry > 0) {
+      // Where the line crosses the chord from (ix + rx, iy) to (ix, iy + ry).
+      const ex = -sx! * rx;
+      const ey = sy! * ry;
+      const ax = ix! + sx! * rx - ox!;
+      const ay = iy! - oy!;
+      const denom = dx * ey - dy * ex;
+      if (denom !== 0) t = Math.max(1, (ax * ey - ay * ex) / denom);
     }
+    // From outside the box, so that its edge is filled to the full.
+    return [
+      [ox! - dx, oy! - dy],
+      [ox! + dx * t, oy! + dy * t],
+    ];
+  });
+  for (let i = 0; i < 4; i++) {
+    const side = sides[i]!;
+    if (side.width <= 0) continue;
+    const [o1, i1] = splits[i]!;
+    const [o2, i2] = splits[(i + 1) % 4]!;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(...o1);
+    ctx.lineTo(...o2);
+    ctx.lineTo(...i2);
+    ctx.lineTo(...i1);
+    ctx.closePath();
+    ctx.clip();
+    fillArea(side.color);
+    ctx.restore();
+  }
+}
 
-    // Right side (T → B): borrows TR, owns BR
-    if (rw > 0) {
-      ctx.strokeStyle = rc;
-      ctx.lineWidth = rw;
-      ctx.beginPath();
-      if (eTR > 0 && tw === 0) {
-        ctx.moveTo(right - eTR, top);
-        ctx.arcTo(right, top, right, top + eTR, eTR);
-      } else if (eTR > 0) {
-        ctx.moveTo(right, top + eTR);
-      } else {
-        ctx.moveTo(right, y);
-      }
-      if (eBR > 0) {
-        ctx.lineTo(right, bottom - eBR);
-        ctx.arcTo(right, bottom, right - eBR, bottom, eBR);
-      } else {
-        ctx.lineTo(right, y + height);
-      }
-      ctx.stroke();
-    }
+type Point = [number, number];
 
-    // Bottom side (R → L): borrows BR, owns BL
-    if (bw > 0) {
-      ctx.strokeStyle = bc;
-      ctx.lineWidth = bw;
-      ctx.beginPath();
-      if (eBR > 0 && rw === 0) {
-        ctx.moveTo(right, bottom - eBR);
-        ctx.arcTo(right, bottom, right - eBR, bottom, eBR);
-      } else if (eBR > 0) {
-        ctx.moveTo(right - eBR, bottom);
-      } else {
-        ctx.moveTo(x + width, bottom);
-      }
-      if (eBL > 0) {
-        ctx.lineTo(left + eBL, bottom);
-        ctx.arcTo(left, bottom, left, bottom - eBL, eBL);
-      } else {
-        ctx.lineTo(x, bottom);
-      }
-      ctx.stroke();
-    }
+interface BorderSide {
+  width: number;
+  color: string;
+}
 
-    // Left side (B → T): borrows BL, owns TL
-    if (lw > 0) {
-      ctx.strokeStyle = lc;
-      ctx.lineWidth = lw;
-      ctx.beginPath();
-      if (eBL > 0 && bw === 0) {
-        ctx.moveTo(left + eBL, bottom);
-        ctx.arcTo(left, bottom, left, bottom - eBL, eBL);
-      } else if (eBL > 0) {
-        ctx.moveTo(left, bottom - eBL);
-      } else {
-        ctx.moveTo(left, y + height);
-      }
-      if (eTL > 0) {
-        ctx.lineTo(left, top + eTL);
-        ctx.arcTo(left, top, left + eTL, top, eTL);
-      } else {
-        ctx.lineTo(left, y);
-      }
-      ctx.stroke();
-    }
-  } else {
-    if (tw > 0) {
-      ctx.strokeStyle = tc;
-      ctx.lineWidth = tw;
-      ctx.beginPath();
-      ctx.moveTo(x, y + tw / 2);
-      ctx.lineTo(x + width, y + tw / 2);
-      ctx.stroke();
-    }
-    if (rw > 0) {
-      ctx.strokeStyle = rc;
-      ctx.lineWidth = rw;
-      ctx.beginPath();
-      ctx.moveTo(x + width - rw / 2, y);
-      ctx.lineTo(x + width - rw / 2, y + height);
-      ctx.stroke();
-    }
-    if (bw > 0) {
-      ctx.strokeStyle = bc;
-      ctx.lineWidth = bw;
-      ctx.beginPath();
-      ctx.moveTo(x, y + height - bw / 2);
-      ctx.lineTo(x + width, y + height - bw / 2);
-      ctx.stroke();
-    }
-    if (lw > 0) {
-      ctx.strokeStyle = lc;
-      ctx.lineWidth = lw;
-      ctx.beginPath();
-      ctx.moveTo(x + lw / 2, y);
-      ctx.lineTo(x + lw / 2, y + height);
-      ctx.stroke();
+/**
+ * Add a rectangle with elliptical corners to the path, each corner's radii
+ * given as `[horizontal, vertical]`: top left, top right, bottom right,
+ * bottom left. The radii must fit the rectangle.
+ */
+function ellipticalRect(
+  ctx: SKRSContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radii: [number, number][],
+): void {
+  // Each corner: where it is, which way the rectangle lies from it, and the
+  // angle its arc starts at, clockwise from the side before it.
+  const corners = [
+    [x, y, 1, 1, Math.PI],
+    [x + w, y, -1, 1, (3 * Math.PI) / 2],
+    [x + w, y + h, -1, -1, 0],
+    [x, y + h, 1, -1, Math.PI / 2],
+  ] as const;
+  ctx.moveTo(x, y + radii[0]![1]);
+  for (let i = 0; i < 4; i++) {
+    const [px, py, sx, sy, start] = corners[i]!;
+    const [rx, ry] = radii[i]!;
+    if (rx > 0 && ry > 0) {
+      ctx.ellipse(
+        px + sx * rx,
+        py + sy * ry,
+        rx,
+        ry,
+        0,
+        start,
+        start + Math.PI / 2,
+      );
+    } else {
+      ctx.lineTo(px, py);
     }
   }
+  ctx.closePath();
 }
 
 type BorderRadius = ReturnType<typeof getBorderRadiusFromStyle>;

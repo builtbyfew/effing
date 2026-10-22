@@ -1,5 +1,15 @@
 # @effing/ffs
 
+## 0.46.2
+
+### Patch Changes
+
+- 4489e25: `EffieRenderer.close()` stops every render in progress. A render still fetching its sources no longer starts FFmpeg once the fetches finish. `FFmpegRunner.close()` likewise keeps FFmpeg from starting, and a closed runner can't run again
+- 4489e25: `EffieRenderer` now routes HTTP(S) video and audio URLs through its own local proxy when no `httpProxy` is given, so https sources render with the bundled FFmpeg 9, which can't verify TLS peers itself. Pass `httpProxy: false` to let FFmpeg open these URLs directly
+- 5b0b448: Require undici 7.29.1, express 4.22.3 and body-parser 1.20.8 or later, which fix several security advisories
+  - @effing/annie@0.46.2
+  - @effing/effie@0.46.2
+
 ## 0.46.1
 
 ### Patch Changes

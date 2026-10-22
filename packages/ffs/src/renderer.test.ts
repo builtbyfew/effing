@@ -13,6 +13,7 @@ import { annieBuffer } from "@effing/annie";
 import { EffieRenderer } from "./renderer";
 import type { EffieRendererOptions } from "./renderer";
 import { FFmpegRunner } from "./ffmpeg";
+import type { FFmpegInputInfo } from "./ffmpeg";
 import { HttpProxy } from "./proxy";
 import { FetchError } from "./handlers/errors";
 import type { EffieData, EffieSources } from "@effing/effie";
@@ -630,6 +631,222 @@ describe("EffieRenderer layer scaling", () => {
     expect(overlayX(1)).toBe("12");
     expect(overlayX(0.5)).toBe("6");
     expect(overlayX(0.25)).toBe("3");
+  });
+});
+
+describe("EffieRenderer opaque base layers", () => {
+  // A layer that's opaque and covers the frame for the whole segment becomes
+  // the segment's base: it's converted to yuv420p and replaces the
+  // background, instead of being converted to yuva420p and overlaid on it.
+  // Whether a source is opaque is only known once it's fetched, so the
+  // command builds the graph from the input info FFmpegRunner reads.
+  type Command = {
+    inputs: { index: number; preArgs: string[]; type: string }[];
+    filterComplex: string;
+    filterComplexBuilder: (info: Map<number, FFmpegInputInfo>) => string;
+  };
+
+  function buildCommand(effie: EffieData<EffieSources>, scale = 1): Command {
+    const renderer = new EffieRenderer(effie);
+    return (
+      renderer as unknown as {
+        buildFFmpegCommand: (out: string, scale: number) => Command;
+      }
+    ).buildFFmpegCommand("out.mp4", scale);
+  }
+
+  type Layer = EffieData<EffieSources>["segments"][0]["layers"][0];
+
+  function effie(...layers: Layer[]): EffieData<EffieSources> {
+    return {
+      width: 100,
+      height: 100,
+      fps: 30,
+      cover: "https://example.com/cover.png",
+      background: { type: "color", color: "black" },
+      segments: [
+        { duration: 2, layers },
+        {
+          duration: 1,
+          layers: [{ type: "image", source: "https://example.com/card.png" }],
+        },
+      ],
+    };
+  }
+
+  const photo: Layer = {
+    type: "image",
+    source: "https://example.com/photo.jpg",
+    effects: [
+      { type: "scroll", direction: "left", distance: 0.2, duration: 2 },
+    ],
+  };
+  const caption: Layer = {
+    type: "animation",
+    source: "https://example.com/caption.tar",
+    delay: 1,
+  };
+  const opaque = (width = 120, height = 100) => ({
+    width,
+    height,
+    opaque: true,
+  });
+  const baseProps = "setparams=colorspace=unknown,sidedata=mode=delete";
+
+  function graph(
+    layers: Layer[],
+    info: Record<number, FFmpegInputInfo>,
+    scale = 1,
+  ): string {
+    const command = buildCommand(effie(...layers), scale);
+    return command.filterComplexBuilder(
+      new Map(Object.entries(info).map(([i, v]) => [Number(i), v])),
+    );
+  }
+
+  test("without input info the graph overlays every layer", () => {
+    const command = buildCommand(effie(photo, caption));
+    expect(command.filterComplexBuilder(new Map())).toBe(command.filterComplex);
+    expect(command.filterComplex).toContain(
+      "[bg_seg0][seg0_layer0]overlay=0:0",
+    );
+  });
+
+  test("the graph can be built more than once", () => {
+    const e = effie(photo, caption);
+    e.segments[1].audio = { source: "https://example.com/voice.mp3" };
+    const command = buildCommand(e);
+    expect(command.filterComplexBuilder(new Map())).toBe(command.filterComplex);
+    expect(command.filterComplex).toContain("[4:a]apad");
+  });
+
+  test("an opaque, frame-covering image replaces the background", () => {
+    // Inputs: 0 colour, 1 photo, 2 caption, 3 card
+    const g = graph([photo, caption], { 1: opaque() });
+    expect(g).toContain(
+      `[1:v]format=yuv420p,loop=loop=-1:size=1,trim=start=0:duration=2,scroll=h=0.002777777777777778,crop=100:100:0:0,setsar=1,setpts=PTS-STARTPTS,fps=30,${baseProps}[seg0_tmp0]`,
+    );
+    expect(g).not.toContain("seg0_layer0");
+    expect(g).not.toContain("bg_seg0");
+    // The caption is overlaid on the base layer.
+    expect(g).toContain("[seg0_tmp0][delayed_seg0_layer1]overlay=0:0");
+    // Only the second segment still uses the global background.
+    expect(g).toContain(
+      "[0:v]fps=30,scale=100x100:force_original_aspect_ratio=increase,crop=100:100,setsar=1,split=1[bg_split_0]",
+    );
+    expect(g).toContain(
+      "[bg_split_0]trim=start=2:duration=1,setpts=PTS-STARTPTS[bg_seg1]",
+    );
+  });
+
+  test("an opaque animation holds its last frame to the end of the segment", () => {
+    const zoom: Layer = { type: "animation", source: "https://example.com/z" };
+    const g = graph([zoom], { 1: opaque(100, 100) });
+    expect(g).toContain(
+      `[1:v]scale=w=iw:h=ih:eval=init,format=yuv420p,trim=start=0:duration=2,crop=100:100:0:0,setsar=1,setpts=PTS-STARTPTS,tpad=stop=-1:stop_mode=clone,trim=duration=2,fps=30,${baseProps}[seg0_tmp0]`,
+    );
+  });
+
+  test("in a scaled render the base layer is scaled like an overlaid one", () => {
+    const zoom: Layer = { type: "animation", source: "https://example.com/z" };
+    const scale = `scale=w='max(1,trunc(iw*0.5))':h='max(1,trunc(ih*0.5))'`;
+    const g = graph([zoom, photo], { 1: opaque(), 2: opaque() }, 0.5);
+    // The photo is the topmost covering layer; the animation beneath it is
+    // left out.
+    expect(g).not.toContain("[1:v]");
+    expect(g).toContain(
+      `[2:v]format=alpha_modes=premultiplied,${scale},format=alpha_modes=straight,format=yuv420p,loop=loop=-1:size=1,trim=start=0:duration=2,scroll=h=0.002777777777777778,crop=50:50:0:0,`,
+    );
+    const anim = graph([zoom], { 1: opaque() }, 0.5);
+    expect(anim).toContain(
+      `[1:v]trim=start=0:duration=2,scale=w=iw:h=ih:eval=init,premultiply=inplace=1,${scale},unpremultiply=inplace=1,format=yuv420p,crop=50:50:0:0,`,
+    );
+  });
+
+  test("layers that might not cover the frame are overlaid", () => {
+    const overlaid = (layer: Layer, info: FFmpegInputInfo) =>
+      graph([layer], { 1: info }).includes("[bg_seg0]");
+    expect(overlaid(photo, opaque())).toBe(false);
+    // Transparent, or smaller than the frame
+    expect(overlaid(photo, { width: 120, height: 100, opaque: false })).toBe(
+      true,
+    );
+    expect(overlaid(photo, opaque(99, 100))).toBe(true);
+    expect(overlaid(photo, opaque(100, 99))).toBe(true);
+    // Not there for the whole segment
+    expect(overlaid({ ...photo, delay: 0.5 }, opaque())).toBe(true);
+    expect(overlaid({ ...photo, from: 0.5 }, opaque())).toBe(true);
+    expect(overlaid({ ...photo, until: 1.5 }, opaque())).toBe(true);
+    expect(overlaid({ ...photo, until: 2 }, opaque())).toBe(false);
+    // Moving, or fading
+    expect(overlaid({ ...photo, motion: { type: "bounce" } }, opaque())).toBe(
+      true,
+    );
+    expect(
+      overlaid(
+        { ...photo, effects: [{ type: "fade-in", start: 0, duration: 1 }] },
+        opaque(),
+      ),
+    ).toBe(true);
+    expect(
+      overlaid(
+        { ...photo, effects: [{ type: "saturate-in", start: 0, duration: 1 }] },
+        opaque(),
+      ),
+    ).toBe(false);
+  });
+
+  test("a covered segment background is left out", () => {
+    const e = effie(photo);
+    e.segments[0].background = { type: "color", color: "white" };
+    const command = buildCommand(e);
+    // Inputs: 0 colour, 1 segment background, 2 photo, 3 card
+    const g = command.filterComplexBuilder(new Map([[2, opaque()]]));
+    expect(command.filterComplex).toContain("[1:v]");
+    expect(g).not.toContain("[1:v]");
+    expect(g).toContain("[2:v]format=yuv420p");
+  });
+
+  test("a video or image background is never replaced", () => {
+    // Their frames' colour properties reach the output and set the colour
+    // conversion of the layers above, so the layer stays overlaid.
+    const backgrounds: EffieData<EffieSources>["background"][] = [
+      { type: "video", source: "https://example.com/bg.mp4" },
+      { type: "image", source: "https://example.com/bg.jpg" },
+    ];
+    for (const background of backgrounds) {
+      const segmentBg = effie(photo);
+      segmentBg.segments[0].background = background;
+      // Inputs: 0 colour, 1 segment background, 2 photo, 3 card
+      const command = buildCommand(segmentBg);
+      expect(command.filterComplexBuilder(new Map([[2, opaque()]]))).toBe(
+        command.filterComplex,
+      );
+
+      const globalBg = { ...effie(photo), background };
+      // Inputs: 0 global background, 1 photo, 2 card
+      const global = buildCommand(globalBg);
+      expect(global.filterComplexBuilder(new Map([[1, opaque()]]))).toBe(
+        global.filterComplex,
+      );
+    }
+  });
+
+  test("the global background is left out when every segment has a base layer", () => {
+    const e = effie(photo);
+    e.segments[1].layers = [{ ...photo, effects: undefined }];
+    const command = buildCommand(e);
+    const g = command.filterComplexBuilder(
+      new Map([
+        [1, opaque()],
+        [2, opaque()],
+      ]),
+    );
+    expect(g).not.toContain("[0:v]");
+    expect(g).not.toContain("split");
+    expect(g).toContain(
+      `[2:v]format=yuv420p,loop=loop=-1:size=1,trim=start=0:duration=1,crop=100:100:0:0,setsar=1,setpts=PTS-STARTPTS,fps=30,${baseProps}[seg1_tmp0]`,
+    );
   });
 });
 

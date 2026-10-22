@@ -4,6 +4,8 @@ import {
   FFmpegRunner,
   isSupportedFFmpegVersion,
 } from "./ffmpeg";
+import type { FFmpegInputInfo } from "./ffmpeg";
+import { annieBuffer } from "@effing/annie";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import fsp from "fs/promises";
@@ -272,6 +274,82 @@ describe("FFmpegRunner", () => {
         type: "image",
         src: "https://example.com/segment0.mp4",
       });
+    });
+  });
+
+  describe("input info", () => {
+    // SOI, then SOF0 (height 20, width 30), then EOI: enough for the header.
+    const jpeg = Buffer.from([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x03,
+      0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9,
+    ]);
+    const qoi = (channels: number) =>
+      Buffer.from([
+        ...Buffer.from("qoif", "latin1"),
+        ...[0, 0, 0, 40, 0, 0, 0, 50, channels, 0],
+      ]);
+    const annie = (first: Buffer) =>
+      annieBuffer(
+        (async function* () {
+          yield first;
+          yield first;
+        })(),
+      );
+
+    test("the filter graph is built from the fetched sources' headers", async () => {
+      const sources: Record<string, () => Promise<Buffer>> = {
+        "https://example.com/photo.jpg": async () => jpeg,
+        "https://example.com/card.qoi": async () => qoi(4),
+        "https://example.com/zoom.tar": () => annie(jpeg),
+        "https://example.com/text.tar": () => annie(qoi(3)),
+        "https://example.com/unknown": async () => Buffer.from("not an image"),
+      };
+      const sourceFetcher = vi
+        .fn()
+        .mockImplementation(async ({ src }) =>
+          Readable.from(await sources[src]()),
+        );
+      const urls = Object.keys(sources);
+      let seen: ReadonlyMap<number, FFmpegInputInfo> | undefined;
+      const command = new FFmpegCommand(
+        ["-y"],
+        urls.map((source, index) => ({
+          index,
+          source,
+          preArgs: [],
+          type: source.endsWith(".tar") ? "animation" : "image",
+        })),
+        "[0:v]null[outv]",
+        ["-map", "[outv]", "-f", "null", "-"],
+        (inputInfo) => {
+          seen = inputInfo;
+          return "[0:v]null[outv]";
+        },
+      );
+      await runUntilSettled(new FFmpegRunner(command), sourceFetcher);
+
+      expect(seen).toEqual(
+        new Map([
+          [0, { width: 30, height: 20, opaque: true }],
+          [1, { width: 40, height: 50, opaque: false }],
+          // An annie's frames are decoded with its first frame's decoder:
+          // only JPEG rules out alpha in the frames after the first.
+          [2, { width: 30, height: 20, opaque: true }],
+          [3, { width: 40, height: 50, opaque: false }],
+        ]),
+      );
+    });
+
+    test("without a filter graph builder, no source is read", async () => {
+      const command = new FFmpegCommand(
+        ["-y"],
+        [{ index: 0, source: "x", preArgs: [], type: "image" }],
+        "[0:v]null[outv]",
+        [],
+      );
+      const resolver = vi.fn();
+      expect(await command.readInputInfo(resolver)).toEqual(new Map());
+      expect(resolver).not.toHaveBeenCalled();
     });
   });
 

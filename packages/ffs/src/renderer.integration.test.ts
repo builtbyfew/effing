@@ -1,5 +1,7 @@
 import { describe, test, expect, afterAll, beforeAll } from "vitest";
 import { EffieRenderer } from "./renderer";
+import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
+import type { Readable } from "stream";
 import {
   effieDataForSegment,
   effieDataForJoin,
@@ -2729,3 +2731,190 @@ describe("QOI sources", () => {
     },
   );
 });
+
+describe("opaque base layers", () => {
+  // A layer that's opaque and covers the frame for its whole segment
+  // replaces the background instead of being overlaid on it (see
+  // EffieRenderer.baseLayerIndex). At full opacity the blend yields the
+  // layer's pixels, so with JPEG layers over a colour background, as photos
+  // usually are, the output is the same file as with every layer overlaid,
+  // which is what the command's plain filterComplex does.
+  const fps = 10;
+  const W = 128;
+  const H = 72;
+
+  /** Encodes the single frame a lavfi graph makes, as `codec` in image2. */
+  async function image(
+    dir: string,
+    name: string,
+    graph: string,
+    codec: "mjpeg" | "png" | "qoi",
+    pixFmt: string,
+  ): Promise<Buffer> {
+    const filePath = path.join(dir, name);
+    await execFileP(renderFFmpegBin, [
+      "-y",
+      "-filter_complex",
+      graph,
+      "-frames:v",
+      "1",
+      "-c:v",
+      codec,
+      "-pix_fmt",
+      pixFmt,
+      "-f",
+      "image2",
+      filePath,
+    ]);
+    return fs.readFile(filePath);
+  }
+
+  const dataUrl = (bytes: Buffer, mediaType: string) =>
+    effieWebUrl(`data:${mediaType};base64,${bytes.toString("base64")}`);
+
+  /**
+   * Renders `effieData` with FFmpegRunner, either with the graph built from
+   * the fetched sources, or with the plain one, and returns the output and
+   * the graph that ran.
+   */
+  async function render(
+    effieData: EffieData<EffieSources>,
+    scale: number,
+    useSourceInfo: boolean,
+  ): Promise<{ output: Buffer; graph: string }> {
+    const renderer = new EffieRenderer(effieData, { httpProxy: false });
+    const internals = renderer as unknown as {
+      buildFFmpegCommand: (out: string, scale: number) => FFmpegCommand;
+      fetchSource: (src: string) => Promise<Readable>;
+      resolveReference: (src: string) => string;
+    };
+    const command = internals.buildFFmpegCommand("-", scale);
+    let graph = command.filterComplex;
+    const builder = command.filterComplexBuilder!;
+    const runner = new FFmpegRunner(
+      new FFmpegCommand(
+        command.globalArgs,
+        command.inputs,
+        command.filterComplex,
+        command.outputArgs,
+        useSourceInfo ? (info) => (graph = builder(info)) : undefined,
+      ),
+    );
+    const stream = await runner.run(
+      ({ src }) => internals.fetchSource(src),
+      (src) => internals.resolveReference(src),
+    );
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c);
+    runner.close();
+    return { output: Buffer.concat(chunks), graph };
+  }
+
+  test.for([1, 0.5])(
+    "give the same output as overlaying them, at scale %s",
+    { timeout: 30000 },
+    async (scale) => {
+      const tempDir = await createTestOutputDir(`opaque-base-${scale}`);
+      try {
+        // Wider than the frame, so the scroll shows more of it.
+        const photo = await image(
+          tempDir,
+          "photo.jpg",
+          "testsrc2=s=160x72",
+          "mjpeg",
+          "yuvj420p",
+        );
+        const still = await image(
+          tempDir,
+          "still.jpg",
+          `testsrc2=s=${W}x${H},hflip`,
+          "mjpeg",
+          "yuvj420p",
+        );
+        const caption = await image(
+          tempDir,
+          "caption.qoi",
+          `color=c=white@0.6:s=${W}x${H},format=rgba,drawbox=x=0:y=0:w=${W}:h=40:c=black@0:t=fill`,
+          "qoi",
+          "rgba",
+        );
+        // An annie of 3 JPEG frames, shorter than its segment.
+        const frames = await Promise.all(
+          [0, 1, 2].map((i) =>
+            image(
+              tempDir,
+              `zoom${i}.jpg`,
+              `testsrc2=s=${W}x${H}:d=1,trim=start_frame=${i * 5},setpts=PTS-STARTPTS`,
+              "mjpeg",
+              "yuvj420p",
+            ),
+          ),
+        );
+        const zoom = await annieOf(frames);
+        const effieData: EffieData<EffieSources> = {
+          width: W,
+          height: H,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "blue" },
+          sources: { zoom: dataUrl(zoom, "application/x-tar") },
+          segments: [
+            {
+              duration: 1,
+              layers: [
+                {
+                  type: "image",
+                  source: dataUrl(photo, "image/jpeg"),
+                  effects: [
+                    {
+                      type: "scroll",
+                      direction: "left",
+                      distance: 0.25,
+                      duration: 1,
+                    },
+                  ],
+                },
+                {
+                  type: "image",
+                  source: dataUrl(caption, "image/qoi"),
+                  delay: 0.3,
+                },
+              ],
+            },
+            {
+              duration: 0.8,
+              transition: { type: "fade", duration: 0.2 },
+              layers: [{ type: "animation", source: "#zoom" }],
+            },
+            {
+              duration: 0.6,
+              transition: { type: "slide", duration: 0.2 },
+              layers: [{ type: "image", source: dataUrl(still, "image/jpeg") }],
+            },
+          ],
+        };
+        // The JPEG photo, the JPEG annie and the JPEG still are opaque and
+        // at least frame-sized: every segment gets a base layer.
+        const plain = await render(effieData, scale, false);
+        const based = await render(effieData, scale, true);
+        await fs.writeFile(path.join(tempDir, "overlaid.mp4"), plain.output);
+        await fs.writeFile(path.join(tempDir, "based.mp4"), based.output);
+        expect(plain.graph).toContain("[bg_seg0][seg0_layer0]overlay");
+        expect(based.graph).not.toMatch(/\[bg_seg\d\]/);
+        expect(based.graph).toContain("[seg0_tmp0][delayed_seg0_layer1]");
+        expect(based.output.equals(plain.output)).toBe(true);
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+});
+
+/** Builds an annie from frames. */
+async function annieOf(frames: Buffer[]): Promise<Buffer> {
+  return annieBuffer(
+    (async function* () {
+      yield* frames;
+    })(),
+  );
+}

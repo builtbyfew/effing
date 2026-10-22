@@ -9,6 +9,8 @@ import { annieFrames } from "@effing/annie";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
+import { IMAGE_INFO_BYTES, readImageInfo } from "./image-info";
+
 const pump = promisify(pipeline);
 
 /**
@@ -110,25 +112,117 @@ export type FFmpegInput = {
   type: "image" | "video" | "audio" | "color" | "animation";
 };
 
+/**
+ * What the fetched source of an image or animation input says about the
+ * frames FFmpeg decodes from it (see readInputInfo).
+ */
+export type FFmpegInputInfo = {
+  /** The frames' size (every frame of an animation gets its first's). */
+  width: number;
+  height: number;
+  /** Whether every frame is opaque: decoded without an alpha channel. */
+  opaque: boolean;
+};
+
+/**
+ * Builds a filter graph from what the inputs' sources turned out to be, by
+ * input index. An input without an entry has no known info.
+ */
+export type FilterComplexBuilder = (
+  inputInfo: ReadonlyMap<number, FFmpegInputInfo>,
+) => string;
+
+/**
+ * Reads FFmpegInputInfo from the start of an image input's file, or of an
+ * animation's first frame. FFmpeg's image2 demuxer decodes every frame of a
+ * sequence with the decoder of the first frame (a frame in another format
+ * fails to decode), so an animation whose first frame is a JPEG only ever
+ * yields frames without alpha. A PNG or QOI first frame says nothing about
+ * the frames after it, though, so such an animation isn't known to be
+ * opaque. Undefined when the source isn't an image readImageInfo knows.
+ */
+async function readInputInfo(
+  input: FFmpegInput,
+  filePath: string,
+): Promise<FFmpegInputInfo | undefined> {
+  const imagePath =
+    input.type === "animation" ? path.join(filePath, "frame_00000") : filePath;
+  let bytes: Uint8Array;
+  try {
+    const file = await fs.open(imagePath);
+    try {
+      const buffer = Buffer.alloc(IMAGE_INFO_BYTES);
+      const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+      bytes = buffer.subarray(0, bytesRead);
+    } finally {
+      await file.close();
+    }
+  } catch {
+    return undefined; // e.g. an animation whose first frame has another name
+  }
+  const info = readImageInfo(bytes);
+  if (!info) return undefined;
+  const opaque =
+    input.type === "animation" ? info.format === "jpeg" : !info.alpha;
+  return { width: info.width, height: info.height, opaque };
+}
+
 export class FFmpegCommand {
   globalArgs: string[];
   inputs: FFmpegInput[];
+  /** The filter graph, for when nothing is known about the sources. */
   filterComplex: string;
   outputArgs: string[];
+  /**
+   * Builds the filter graph once the sources are fetched, from what they
+   * turned out to be (e.g. to skip what an opaque layer covers). When
+   * omitted, `filterComplex` is used.
+   */
+  filterComplexBuilder?: FilterComplexBuilder;
 
   constructor(
     globalArgs: string[],
     inputs: FFmpegInput[],
     filterComplex: string,
     outputArgs: string[],
+    filterComplexBuilder?: FilterComplexBuilder,
   ) {
     this.globalArgs = globalArgs;
     this.inputs = inputs;
     this.filterComplex = filterComplex;
     this.outputArgs = outputArgs;
+    this.filterComplexBuilder = filterComplexBuilder;
   }
 
-  buildArgs(inputResolver: (input: FFmpegInput) => string): string[] {
+  /**
+   * Reads the FFmpegInputInfo of every image and animation input that has
+   * a local file (see readInputInfo), if the filter graph uses it.
+   *
+   * @param localPath Where an input's source is on disk: the image file,
+   *   or the directory an animation's frames were extracted to (only its
+   *   first frame is read). `undefined` when it isn't on disk.
+   */
+  async readInputInfo(
+    localPath: (input: FFmpegInput) => string | undefined,
+  ): Promise<Map<number, FFmpegInputInfo>> {
+    const inputInfo = new Map<number, FFmpegInputInfo>();
+    if (!this.filterComplexBuilder) return inputInfo;
+    await Promise.all(
+      this.inputs.map(async (input) => {
+        if (input.type !== "image" && input.type !== "animation") return;
+        const filePath = localPath(input);
+        if (filePath === undefined) return;
+        const info = await readInputInfo(input, filePath);
+        if (info) inputInfo.set(input.index, info);
+      }),
+    );
+    return inputInfo;
+  }
+
+  buildArgs(
+    inputResolver: (input: FFmpegInput) => string,
+    inputInfo: ReadonlyMap<number, FFmpegInputInfo> = new Map(),
+  ): string[] {
     const inputArgs: string[] = [];
     for (const input of this.inputs) {
       if (input.type === "color") {
@@ -147,7 +241,9 @@ export class FFmpegCommand {
       ...this.globalArgs,
       ...inputArgs,
       "-filter_complex",
-      this.filterComplex,
+      this.filterComplexBuilder
+        ? this.filterComplexBuilder(inputInfo)
+        : this.filterComplex,
       ...this.outputArgs,
     ];
     return args;
@@ -261,12 +357,16 @@ export class FFmpegRunner {
         }),
       );
 
+      // What the sources' headers say, for a graph that depends on them.
+      const inputInfo = await this.command.readInputInfo((input) =>
+        fileMapping.get(input.index),
+      );
       const finalArgs = this.command.buildArgs((input) => {
         const filePath = fileMapping.get(input.index);
         if (!filePath)
           throw new Error(`File for input index ${input.index} not found`);
         return filePath;
-      });
+      }, inputInfo);
       const ffmpegBin = await getFFmpegBin();
       // close() may have been called while the sources were fetched.
       if (this.closed) throw new Error("FFmpegRunner is closed");

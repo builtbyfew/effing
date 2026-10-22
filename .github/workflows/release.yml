@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Upgrade npm for Trusted Publishing
-        # npm 12 requires Node >= 22.22.2; pin to 11.x (Trusted Publishing needs >= 11.5.1)
+        # Trusted Publishing needs npm >= 11.5.1; pin to 11.x
         run: npm install -g npm@11
 
       - name: Create Release Pull Request or Publish

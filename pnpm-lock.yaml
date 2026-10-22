@@ -420,10 +420,10 @@ importers:
         specifier: workspace:*
         version: link:../effie
       body-parser:
-        specifier: ^1.20.6
+        specifier: ^1.20.8
         version: 1.20.8
       express:
-        specifier: ^4.22.2
+        specifier: ^4.22.3
         version: 4.22.3
       undici:
         specifier: ^7.29.1

@@ -567,7 +567,28 @@ describe("FFmpegRunner with JPEG annies split over several decoders", () => {
   });
 
   test(
-    "FFmpeg doesn't wait for more frames of a JPEG annie to split it",
+    "FFmpeg waits a moment for a JPEG annie's frames to split it",
+    { timeout: 10000 },
+    async () => {
+      const command = framemd5Command([animationInput(0, "#anim")]);
+      const buildArgs = vi.spyOn(command, "buildArgs");
+      const runner = new FFmpegRunner(command, { decodeTracks: 3 });
+      // Frames 1, 2, ... come 10 ms after frame 0.
+      const output = await runner.run(async () =>
+        gatedAnnie(longJpeg, {
+          after: 1,
+          open: new Promise((resolve) => setTimeout(resolve, 10)),
+        }),
+      );
+      expect(buildArgs.mock.results[0].value.join(" ")).toContain(
+        "interleave=nb_inputs=3",
+      );
+      expect(await collect(output)).toBe(await framemd5FromFiles([longJpeg]));
+    },
+  );
+
+  test(
+    "FFmpeg doesn't wait long for a JPEG annie's frames",
     { timeout: 10000 },
     async () => {
       const g = gate();

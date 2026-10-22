@@ -207,6 +207,20 @@ export class AnnieExtraction {
   }
 
   /**
+   * Resolves once frames 0 to `count - 1` are on disk, or the extraction
+   * has ended.
+   */
+  async leadingFrames(count: number): Promise<void> {
+    await this.until(
+      () =>
+        this.ended ||
+        Array.from({ length: count }, (_, i) => frameFileName(i)).every(
+          (name) => this.written.has(name),
+        ),
+    );
+  }
+
+  /**
    * How many tracks to split this annie's frames over when it's streamed
    * (see feed()) from now, at most `max`; 1 not to split it.
    *
@@ -220,9 +234,8 @@ export class AnnieExtraction {
    *
    * Only JPEG annies are split; PNG and QOI decoders are multi-threaded
    * already. k is at most the number of leading frames on disk: FFmpeg's
-   * demuxer needs every track's first frame to open the stream, and this
-   * doesn't wait for more, so FFmpeg starts as soon as it can, with fewer
-   * decoders if the annie has just started.
+   * demuxer needs every track's first frame to open the stream (see
+   * leadingFrames()).
    *
    * Each track configures its own branch of the filter graph, from the last
    * frame it decoded before FFmpeg configured the graph (not necessarily

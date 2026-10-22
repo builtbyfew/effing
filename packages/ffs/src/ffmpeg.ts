@@ -300,6 +300,12 @@ function defaultDecodeTracks(): number {
   return Math.min(4, Math.max(1, Math.floor(os.availableParallelism() / 4)));
 }
 
+/**
+ * How long FFmpeg's start may wait for JPEG annies to have a frame for each
+ * of their decoders, once every source is ready (see FFmpegRunner.run).
+ */
+const DECODE_TRACKS_WAIT_MS = 50;
+
 export type FFmpegRunnerOptions = {
   /**
    * The most tracks (FFmpeg decoders) a streamed JPEG annie is split over;
@@ -453,6 +459,33 @@ export class FFmpegRunner {
           }
         }),
       );
+
+      // A JPEG annie is split over as many decoders as it has leading frames
+      // on disk when FFmpeg starts (see decodeTracks()). When the rest is
+      // ready, give the ones still short of that a moment to catch up:
+      // frames come every few ms, and a render that decodes a JPEG annie
+      // on one thread is slower by far. Not longer, though, so a slow annie
+      // doesn't hold FFmpeg up: it's split over fewer decoders, or none.
+      if (this.decodeTracks > 1) {
+        const splittable = [...animationMapping].flatMap(([index, e]) =>
+          e.pipeFormat === "jpeg_pipe" &&
+          this.command.canSplitInput(
+            this.command.inputs.find((input) => input.index === index)!,
+          )
+            ? [e]
+            : [],
+        );
+        let timer: NodeJS.Timeout | undefined;
+        await Promise.race([
+          Promise.all(
+            splittable.map((e) => e.leadingFrames(this.decodeTracks)),
+          ),
+          new Promise((resolve) => {
+            timer = setTimeout(resolve, DECODE_TRACKS_WAIT_MS);
+          }),
+        ]);
+        clearTimeout(timer);
+      }
 
       // Annies stream into FFmpeg through pipes on fds 3, 4, ...
       const pipes: {

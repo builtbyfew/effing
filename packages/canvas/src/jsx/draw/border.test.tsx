@@ -232,6 +232,22 @@ describe("rounded borders of unequal widths", () => {
     expect(blended).toBeGreaterThan(10);
   });
 
+  it.each([
+    ["black", {}, [0, 0, 0]],
+    ["the element's colour", { color: "#0f0" }, [0, 255, 0]],
+  ])("draws currentColor in %s", async (_, colorStyle, expected) => {
+    const { at } = await render({
+      backgroundColor: "#888",
+      border: "10px solid currentColor",
+      borderLeftColor: "#f00",
+      borderRadius: R,
+      ...colorStyle,
+    });
+    expect(at(X + 100, Y + 5)).toEqual(expected);
+    expect(at(X + W - 5, Y + 50)).toEqual(expected);
+    expect(at(X + 5, Y + 50)).toEqual([255, 0, 0]);
+  });
+
   it("clamps the radius as the background does", async () => {
     // A pill: the radius is clamped to half the height, 50px.
     const { isGreen, outside, rightmost, at } = await render({

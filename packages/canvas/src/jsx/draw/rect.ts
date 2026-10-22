@@ -88,11 +88,16 @@ function drawBorders(
   // A negative width, which CSS doesn't allow, is none.
   if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
 
+  // Skia doesn't know currentColor: it's the element's colour.
+  const color = (c: string | undefined) => {
+    if (c === undefined) return "black";
+    return c.toLowerCase() === "currentcolor" ? (style.color ?? "black") : c;
+  };
   const sides: BorderSide[] = [
-    { width: tw, color: style.borderTopColor ?? "black" },
-    { width: rw, color: style.borderRightColor ?? "black" },
-    { width: bw, color: style.borderBottomColor ?? "black" },
-    { width: lw, color: style.borderLeftColor ?? "black" },
+    { width: tw, color: color(style.borderTopColor) },
+    { width: rw, color: color(style.borderRightColor) },
+    { width: bw, color: color(style.borderBottomColor) },
+    { width: lw, color: color(style.borderLeftColor) },
   ];
   const visible = sides.filter((s) => s.width > 0);
 
@@ -156,7 +161,11 @@ function drawBorders(
   // Two sides clipped along the same line would each cover only part of the
   // pixels on it, and the background would show through between them. So
   // each side runs a pixel past its split with an opaque side drawn after
-  // it, which covers it there.
+  // it, which covers it there, but for the pixels where that pixel-wide band
+  // crosses the curves: there the side drawn after it is antialiased over
+  // it, and a little of its colour shows in a pixel or two at each corner.
+  // Cutting the sides to the curves only once they are all drawn would need
+  // an offscreen layer per border.
   const mids: Point[] = [
     [x + width / 2, y],
     [x + width, y + height / 2],

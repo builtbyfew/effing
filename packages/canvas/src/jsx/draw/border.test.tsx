@@ -199,9 +199,11 @@ describe("rounded borders of unequal widths", () => {
           }
         }
       }
-      // Nor a line of the top side's colour along the split.
-      for (let d = 8; d < 10; d++)
-        expect(at(X + d - 2, Y + d + 2)[0]).toBeLessThan(160);
+      // Nor a line of the top side's colour along the split from (0, 0) to
+      // (10, 10), in the pixels just under it.
+      for (let d = 8; d < 14; d++) {
+        expect(at(X + d - 1, Y + d)[0]).toBeLessThan(160);
+      }
       expect(isRed(X + 100, Y + 5)).toBe(true);
     },
   );
@@ -280,6 +282,40 @@ describe("rounded borders of unequal widths", () => {
     // No background shows through.
     for (const y of [Y + 40, Y + 49, Y + 50, Y + 60, Y + 2, Y + H - 3]) {
       expect(at(X + 100, y)).not.toEqual([0x88, 0x88, 0x88]);
+    }
+  });
+
+  it.each([["currentColor"], ["inherit"], ["nope"]])(
+    "draws currentColor in black for an element whose colour is %s",
+    async (color) => {
+      const { at } = await render({
+        backgroundColor: "#888",
+        border: "10px solid currentColor",
+        color,
+      });
+      expect(at(X + 100, Y + 5)).toEqual([0, 0, 0]);
+    },
+  );
+
+  it("scales the padding box's corners down to fit it", async () => {
+    // The padding box is 15px wide, but its right corners' radii are 25px.
+    const { at } = await render({
+      backgroundColor: "#888",
+      borderLeft: "180px solid #0f0",
+      borderRight: "5px solid #f00",
+      borderTopRightRadius: 30,
+      borderBottomRightRadius: 30,
+    });
+    // No background shows in the left border, along the top and bottom,
+    for (let x = X; x < X + 170; x++) {
+      expect(at(x, Y)).toEqual([0, 255, 0]);
+      expect(at(x, Y + H - 1)).toEqual([0, 255, 0]);
+    }
+    // and the padding box's corners, which now reach past the border box's
+    // curve, paint nothing there.
+    for (let x = X + 177; x < X + W; x++) {
+      expect(at(x, Y)).toEqual([255, 255, 255]);
+      expect(at(x, Y + H - 1)).toEqual([255, 255, 255]);
     }
   });
 

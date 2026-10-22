@@ -91,7 +91,9 @@ function drawBorders(
   // Skia doesn't know currentColor: it's the element's colour.
   const color = (c: string | undefined) => {
     if (c === undefined) return "black";
-    return c.toLowerCase() === "currentcolor" ? (style.color ?? "black") : c;
+    if (c.toLowerCase() !== "currentcolor") return c;
+    // Nor a colour that is itself currentColor, inherit or invalid.
+    return style.color && parseCssColor(style.color) ? style.color : "black";
   };
   const sides: BorderSide[] = [
     { width: tw, color: color(style.borderTopColor) },
@@ -112,14 +114,38 @@ function drawBorders(
     [Math.max(0, br - rw), Math.max(0, br - bw)],
     [Math.max(0, bl - lw), Math.max(0, bl - bw)],
   ];
+  // Scaled down to fit the padding box, as CSS does, when a wide border
+  // leaves less room than the corners opposite it take.
+  const fit = Math.min(
+    1,
+    pw / (inner[0]![0] + inner[1]![0]),
+    pw / (inner[3]![0] + inner[2]![0]),
+    ph / (inner[0]![1] + inner[3]![1]),
+    ph / (inner[1]![1] + inner[2]![1]),
+  );
+  if (fit < 1 && fit > 0) {
+    for (const r of inner) {
+      r[0] *= fit;
+      r[1] *= fit;
+    }
+  }
   const fillArea = (color: string) => {
     // An invalid colour leaves the fill as it was: make that no colour.
     ctx.fillStyle = NO_COLOR;
     ctx.fillStyle = color;
     ctx.beginPath();
     roundedRect(ctx, x, y, width, height, tl, tr, br, bl);
-    if (pw > 0 && ph > 0) ellipticalRect(ctx, x + lw, y + tw, pw, ph, inner);
+    if (pw <= 0 || ph <= 0) {
+      ctx.fill();
+      return;
+    }
+    // Where a padding box corner reaches past the border box's curve, as a
+    // radius scaled down can, it paints nothing: clipped to the border box.
+    ctx.save();
+    ctx.clip();
+    ellipticalRect(ctx, x + lw, y + tw, pw, ph, inner);
     ctx.fill("evenodd");
+    ctx.restore();
   };
 
   // Sides of one colour are filled at once, without seams between them.

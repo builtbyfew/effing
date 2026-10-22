@@ -6,7 +6,7 @@
 
 # Type Alias: EffieMotion
 
-> **EffieMotion** = `object` & \{ `amplitude?`: `number`; `type`: `"bounce"`; \} \| \{ `frequency?`: `number`; `intensity?`: `number`; `type`: `"shake"`; \} \| \{ `direction`: `"left"` \| `"right"` \| `"up"` \| `"down"`; `distance?`: `number`; `easing?`: `"linear"` \| `"ease-in"` \| `"ease-out"` \| `"ease-in-out"`; `reverse?`: `boolean`; `type`: `"slide"`; \}
+> **EffieMotion** = `object` & (\{ `amplitude?`: `number`; `type`: `"bounce"`; \} \| \{ `frequency?`: `number`; `intensity?`: `number`; `type`: `"shake"`; \} \| \{ `direction`: `"left"` \| `"right"` \| `"up"` \| `"down"`; `distance?`: `number`; `easing?`: `"linear"` \| `"ease-in"` \| `"ease-out"` \| `"ease-in-out"`; `reverse?`: `boolean`; `type`: `"slide"`; \})
 
 Defined in: [effie/src/types.ts:124](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/types.ts#L124)
 

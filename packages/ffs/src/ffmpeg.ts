@@ -1,15 +1,21 @@
 import type { ChildProcess } from "child_process";
 import { execFile, spawn } from "child_process";
+import type { Writable } from "stream";
 import { PassThrough, Readable, pipeline } from "stream";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
-import { annieFrames } from "@effing/annie";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
+import { AnnieExtraction } from "./annie-extraction";
+
 const pump = promisify(pipeline);
+
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err));
+}
 
 /**
  * Save a stream to a file. Errors on the stream destroy the file write so the
@@ -110,6 +116,26 @@ export type FFmpegInput = {
   type: "image" | "video" | "audio" | "color" | "animation";
 };
 
+/**
+ * Where FFmpeg reads an input from: a file path or URL (for an animation,
+ * the directory of its `frame_NNNNN` files), or, for an animation, a pipe.
+ */
+export type FFmpegInputSource = string | FFmpegPipeSource;
+
+/**
+ * An animation's frames, streamed as concatenated images through FFmpeg's
+ * file descriptor `fd` and read with the stream demuxer `format` (e.g.
+ * `jpeg_pipe`) instead of its input's image2 `-f`.
+ */
+export type FFmpegPipeSource = { fd: number; format: string };
+
+/** `preArgs` with the input format (`-f`) replaced by `format`. */
+function withInputFormat(preArgs: string[], format: string): string[] {
+  const i = preArgs.indexOf("-f");
+  if (i === -1) return ["-f", format, ...preArgs];
+  return [...preArgs.slice(0, i + 1), format, ...preArgs.slice(i + 2)];
+}
+
 export class FFmpegCommand {
   globalArgs: string[];
   inputs: FFmpegInput[];
@@ -128,19 +154,31 @@ export class FFmpegCommand {
     this.outputArgs = outputArgs;
   }
 
-  buildArgs(inputResolver: (input: FFmpegInput) => string): string[] {
+  buildArgs(
+    inputResolver: (input: FFmpegInput) => FFmpegInputSource,
+  ): string[] {
     const inputArgs: string[] = [];
     for (const input of this.inputs) {
       if (input.type === "color") {
         inputArgs.push(...input.preArgs);
-      } else if (input.type === "animation") {
+        continue;
+      }
+      const source = inputResolver(input);
+      if (typeof source !== "string") {
+        if (input.type !== "animation") {
+          throw new Error(
+            `Input ${input.index} (${input.type}) can't be piped`,
+          );
+        }
         inputArgs.push(
-          ...input.preArgs,
+          ...withInputFormat(input.preArgs, source.format),
           "-i",
-          path.join(inputResolver(input), "frame_%05d"),
+          `pipe:${source.fd}`,
         );
+      } else if (input.type === "animation") {
+        inputArgs.push(...input.preArgs, "-i", path.join(source, "frame_%05d"));
       } else {
-        inputArgs.push(...input.preArgs, "-i", inputResolver(input));
+        inputArgs.push(...input.preArgs, "-i", source);
       }
     }
     const args = [
@@ -159,11 +197,24 @@ export class FFmpegRunner {
 
   private ffmpegProc?: ChildProcess;
   private closed = false;
+  private extractions: AnnieExtraction[] = [];
 
   constructor(command: FFmpegCommand) {
     this.command = command;
   }
 
+  /**
+   * Fetches the sources and starts FFmpeg on them, and resolves with its
+   * output.
+   *
+   * FFmpeg starts once every source is ready, except annies: those it reads
+   * through a pipe as their frames come in, so it starts once each annie has
+   * its first frame on disk (see AnnieExtraction). A source that fails
+   * before FFmpeg starts rejects the returned promise; an annie that fails
+   * after that stops FFmpeg and destroys the output with its error. A render
+   * only succeeds once every annie is complete, even one FFmpeg didn't need
+   * every frame of.
+   */
   async run(
     sourceFetcher: (input: {
       type: FFmpegInput["type"];
@@ -175,10 +226,16 @@ export class FFmpegRunner {
     if (this.closed) throw new Error("FFmpegRunner is closed");
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-"));
     const fileMapping = new Map<number, string>();
+    const animationMapping = new Map<number, AnnieExtraction>();
     // Cache for #reference sources to avoid duplicate fetches.
     // Uses promises to handle concurrent requests for the same source.
     // Key is input.source (the original #ref) to preserve deduplication.
     const fetchCache = new Map<string, Promise<string>>();
+    const extractionCache = new Map<string, AnnieExtraction>();
+    const extractions = this.extractions;
+    const abortExtractions = () => {
+      for (const extraction of extractions) extraction.abort();
+    };
 
     const fetchAndSaveSource = async (
       input: FFmpegInput,
@@ -189,26 +246,36 @@ export class FFmpegRunner {
         type: input.type,
         src: sourceUrl,
       });
+      const tempFile = path.join(tempDir, inputName);
+      await saveStreamToFile(stream, tempFile);
+      return tempFile;
+    };
 
-      if (input.type === "animation") {
-        // we expect annie files for animations,
-        // which are a TAR that needs to be extracted
-        const extractionDir = path.join(tempDir, inputName);
-        await fs.mkdir(extractionDir, { recursive: true });
-        // Any error below (e.g. a malformed archive) propagates out of the
-        // loop, destroys the source stream via the reader's cleanup, and
-        // rejects this fetch instead of stalling.
-        for await (const frame of annieFrames(stream)) {
-          // Keep the on-disk names identical to the archive entry names so
-          // the ffmpeg `frame_%05d` input pattern keeps matching.
-          await fs.writeFile(path.join(extractionDir, frame.name), frame.data);
-        }
-        return extractionDir;
-      } else {
-        const tempFile = path.join(tempDir, inputName);
-        await saveStreamToFile(stream, tempFile);
-        return tempFile;
+    /**
+     * Starts extracting an annie (unless this #ref is extracted already),
+     * and resolves once FFmpeg can start on it: when its first frame shows
+     * that it can be streamed, else when it's complete.
+     */
+    const startAnnie = async (
+      input: FFmpegInput,
+      sourceUrl: string,
+      inputName: string,
+    ): Promise<void> => {
+      // Deduplicate like other #refs: one extraction feeds every input.
+      const shouldCache = input.source.startsWith("#");
+      let extraction = shouldCache
+        ? extractionCache.get(input.source)
+        : undefined;
+      if (!extraction) {
+        extraction = new AnnieExtraction(path.join(tempDir, inputName), () =>
+          sourceFetcher({ type: input.type, src: sourceUrl }),
+        );
+        extractions.push(extraction);
+        if (shouldCache) extractionCache.set(input.source, extraction);
       }
+      animationMapping.set(input.index, extraction);
+      await extraction.firstFrame();
+      if (!extraction.pipeFormat) await extraction.done;
     };
 
     try {
@@ -239,6 +306,11 @@ export class FFmpegRunner {
             return;
           }
 
+          if (input.type === "animation") {
+            await startAnnie(input, sourceUrl, inputName);
+            return;
+          }
+
           // Deduplicate fetches when the same #ref appears multiple times.
           // Only for #refs since they're short strings; data URLs would bloat the map.
           const shouldCache = input.source.startsWith("#");
@@ -261,8 +333,16 @@ export class FFmpegRunner {
         }),
       );
 
+      // Annies stream into FFmpeg through pipes on fds 3, 4, ...
+      const pipes: { fd: number; extraction: AnnieExtraction }[] = [];
       const finalArgs = this.command.buildArgs((input) => {
-        const filePath = fileMapping.get(input.index);
+        const extraction = animationMapping.get(input.index);
+        if (extraction?.pipeFormat) {
+          const fd = 3 + pipes.length;
+          pipes.push({ fd, extraction });
+          return { fd, format: extraction.pipeFormat };
+        }
+        const filePath = extraction?.dir ?? fileMapping.get(input.index);
         if (!filePath)
           throw new Error(`File for input index ${input.index} not found`);
         return filePath;
@@ -270,35 +350,94 @@ export class FFmpegRunner {
       const ffmpegBin = await getFFmpegBin();
       // close() may have been called while the sources were fetched.
       if (this.closed) throw new Error("FFmpegRunner is closed");
-      const ffmpegProc = spawn(ffmpegBin, finalArgs);
+      // An annie may have failed after its first frame.
+      const failed = extractions.find((e) => e.error !== undefined);
+      if (failed) throw failed.error;
+      const ffmpegProc = spawn(ffmpegBin, finalArgs, {
+        stdio: ["pipe", "pipe", "pipe", ...pipes.map(() => "pipe" as const)],
+      });
       ffmpegProc.stderr!.on("data", (data) => {
         console.error(data.toString());
       });
+      const feedPipes = pipes.map(({ fd }) => ffmpegProc.stdio[fd] as Writable);
+      const feeders = pipes.map(({ extraction }, i) =>
+        extraction.feed(feedPipes[i]),
+      );
 
       // Forward ffmpeg's stdout through a PassThrough so we can hold back
       // the end-of-stream signal until ffmpeg has actually exited. That way
       // consumers piping the returned stream see an `error` event on non-zero
       // exits instead of a silently-truncated "successful" render.
       const output = new PassThrough();
-      ffmpegProc.stdout.pipe(output, { end: false });
-      ffmpegProc.stdout.on("error", (err) => output.destroy(err));
+      ffmpegProc.stdout!.pipe(output, { end: false });
+      ffmpegProc.stdout!.on("error", (err) => output.destroy(err));
+      // Once the output is destroyed (the render failed, or the consumer
+      // gave up), pipe() stops reading stdout, and FFmpeg's `close`, which
+      // waits for stdout to end, would never come. Drain it instead.
+      output.once("close", () => ffmpegProc.stdout!.resume());
+
+      // An annie that fails while FFmpeg runs fails the render: stop FFmpeg
+      // and the other annies, and report the annie's error. Once FFmpeg has
+      // exited, the `close` handler decides, and after close() nothing does:
+      // both abort the annies themselves.
+      let failure: unknown;
+      let exited = false;
+      const fail = (err: unknown) => {
+        if (failure !== undefined || exited || this.closed) return;
+        failure = err;
+        abortExtractions();
+        ffmpegProc.kill("SIGTERM");
+        if (!output.destroyed) output.destroy(toError(err));
+      };
+      for (const extraction of extractions) extraction.done.catch(fail);
+
+      /** Waits for the annies and feeds to stop, then removes the temp dir. */
+      const cleanUp = async () => {
+        await Promise.allSettled([
+          ...extractions.map((e) => e.done),
+          ...feeders,
+        ]);
+        try {
+          await fs.rm(tempDir, { recursive: true, force: true });
+        } catch (err) {
+          console.error("Error removing temp directory:", err);
+        }
+      };
+
+      // FFmpeg has stopped reading: unblock feeds waiting for it to drain
+      // its pipes. (`close` waits for every pipe to close.)
+      ffmpegProc.on("exit", () => {
+        exited = true;
+        for (const pipe of feedPipes) pipe.destroy();
+      });
 
       // A missing or non-executable binary does not make spawn() throw; it
       // surfaces as an asynchronous `error` event on the child, which would
       // crash the process without a listener. Fail the output stream and
       // clean up here, since `close` need not follow a spawn failure.
       ffmpegProc.on("error", async (err) => {
+        exited = true;
+        abortExtractions();
+        for (const pipe of feedPipes) pipe.destroy();
         if (!output.destroyed) output.destroy(err);
-        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        await cleanUp();
       });
 
       ffmpegProc.on("close", async (code, signal) => {
-        try {
-          await fs.rm(tempDir, { recursive: true, force: true });
-        } catch (err) {
-          console.error("Error removing temp directory:", err);
-        }
-        if (code === 0 || signal === "SIGTERM") {
+        // Unless FFmpeg succeeded, the rest of the annies isn't needed.
+        if (code !== 0) abortExtractions();
+        await cleanUp();
+        if (failure !== undefined || output.destroyed) return;
+        // FFmpeg may finish before an annie it only needed some frames of.
+        // That annie still has to complete, as it had to before FFmpeg
+        // started when annies weren't streamed.
+        const annieError =
+          code === 0 && !this.closed
+            ? extractions.find((e) => e.error !== undefined)?.error
+            : undefined;
+        if (annieError !== undefined) {
+          output.destroy(toError(annieError));
+        } else if (code === 0 || signal === "SIGTERM") {
           output.end();
         } else {
           output.destroy(
@@ -315,8 +454,11 @@ export class FFmpegRunner {
       // If anything fails before ffmpeg is spawned (e.g. an input fetch
       // rejects), the process `close` handler that normally removes the temp
       // dir never runs — clean it up here instead. The happy path returns
-      // inside the try, so this never races with that handler.
+      // inside the try, so this never races with that handler. Annies still
+      // being extracted stop at their next frame.
+      abortExtractions();
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      if (this.closed) throw new Error("FFmpegRunner is closed");
       throw err;
     }
   }
@@ -324,6 +466,7 @@ export class FFmpegRunner {
   /** Stops FFmpeg, or keeps it from starting. The runner can't run again. */
   close(): void {
     this.closed = true;
+    for (const extraction of this.extractions) extraction.abort();
     if (this.ffmpegProc) {
       this.ffmpegProc.kill("SIGTERM");
       this.ffmpegProc = undefined;

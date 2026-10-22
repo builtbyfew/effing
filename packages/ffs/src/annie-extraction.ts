@@ -17,11 +17,7 @@ const PIPE_FORMATS: Partial<Record<AnnieFrameContentType, string>> = {
   "image/qoi": "qoi_pipe",
 };
 
-/**
- * The most decoder tracks a JPEG annie is split into (see
- * AnnieExtraction.decodeTracks()), and so the most leading frames whose
- * JPEG parameters are recorded.
- */
+/** The most decoder tracks a JPEG annie is split into (see decodeTracks()). */
 export const MAX_DECODE_TRACKS = 16;
 
 /**
@@ -103,8 +99,13 @@ export class AnnieExtraction {
   error?: unknown;
 
   private written = new Set<string>();
-  /** jpegParameters() of the first MAX_DECODE_TRACKS frames, by index. */
-  private leadingJpegParameters = new Map<number, string | undefined>();
+  /** jpegParameters() of frame 0 (of a JPEG annie). */
+  private firstJpegParameters?: string;
+  /**
+   * Whether a frame on disk has other jpegParameters() than frame 0 (or
+   * they couldn't be read).
+   */
+  private jpegParametersVary = false;
   private ended = false;
   private aborted = false;
   private source?: Readable;
@@ -155,9 +156,15 @@ export class AnnieExtraction {
             );
           }
           if (this.pipeFormat === "jpeg_pipe") {
-            const index = leadingFrameIndex(frame.name);
-            if (index !== undefined) {
-              this.leadingJpegParameters.set(index, jpegParameters(frame.data));
+            const parameters = jpegParameters(frame.data);
+            if (frame.name === frameFileName(0)) {
+              this.firstJpegParameters = parameters;
+            }
+            if (
+              parameters === undefined ||
+              parameters !== this.firstJpegParameters
+            ) {
+              this.jpegParametersVary = true;
             }
           }
           // Keep the on-disk names identical to the archive entry names so
@@ -200,23 +207,8 @@ export class AnnieExtraction {
   }
 
   /**
-   * Resolves once frames 0 to `count - 1` are on disk, or the extraction
-   * has ended.
-   */
-  async leadingFrames(count: number): Promise<void> {
-    await this.until(
-      () =>
-        this.ended ||
-        Array.from({ length: count }, (_, i) => frameFileName(i)).every(
-          (name) => this.written.has(name),
-        ),
-    );
-  }
-
-  /**
    * How many tracks to split this annie's frames over when it's streamed
-   * (see feed()), at most `max`, once its leading frames are in (see
-   * leadingFrames(max)); 1 not to split it.
+   * (see feed()) from now, at most `max`; 1 not to split it.
    *
    * FFmpeg's JPEG decoder is single-threaded, so it decodes an annie's
    * frames one after another, and slows down a render that has to decode
@@ -227,12 +219,21 @@ export class AnnieExtraction {
    * on, so k inputs would still be decoded mostly one after another.)
    *
    * Only JPEG annies are split; PNG and QOI decoders are multi-threaded
-   * already. Every track's first frame configures its own branch of the
-   * filter graph, which the interleaving requires to match, so an annie is
-   * split only if frames 0 to k-1 have the same JPEG parameters (see
-   * jpegParameters()). Later frames may differ, as they may without the
-   * split: they're normalised downstream (see animationChainHead). An annie
-   * that is already complete and short isn't split either.
+   * already. k is at most the number of leading frames on disk: FFmpeg's
+   * demuxer needs every track's first frame to open the stream, and this
+   * doesn't wait for more, so FFmpeg starts as soon as it can, with fewer
+   * decoders if the annie has just started.
+   *
+   * Each track configures its own branch of the filter graph, from the last
+   * frame it decoded before FFmpeg configured the graph (not necessarily
+   * its first), and interleave fails unless they all have the same size and
+   * aspect ratio. So an annie whose frames on disk don't all have the same
+   * JPEG parameters (see jpegParameters()) isn't split. (A frame with other
+   * parameters that comes in later, after FFmpeg configured the graph, is
+   * normalised downstream as without the split; see animationChainHead.
+   * One that reaches FFmpeg in the moment before can still fail the
+   * render.) An annie that is already complete and short isn't split
+   * either.
    */
   decodeTracks(max: number): number {
     if (this.pipeFormat !== "jpeg_pipe" || this.error !== undefined) return 1;
@@ -244,11 +245,7 @@ export class AnnieExtraction {
     ) {
       tracks++;
     }
-    const first = this.leadingJpegParameters.get(0);
-    if (first === undefined) return 1;
-    for (let i = 1; i < tracks; i++) {
-      if (this.leadingJpegParameters.get(i) !== first) return 1;
-    }
+    if (this.jpegParametersVary) return 1;
     return Math.max(tracks, 1);
   }
 
@@ -330,14 +327,6 @@ export class AnnieExtraction {
     this.waiters = [];
     for (const resolve of waiters) resolve();
   }
-}
-
-/** The index of a `frame_NNNNN` among the first MAX_DECODE_TRACKS, if it is one. */
-function leadingFrameIndex(name: string): number | undefined {
-  for (let i = 0; i < MAX_DECODE_TRACKS; i++) {
-    if (name === frameFileName(i)) return i;
-  }
-  return undefined;
 }
 
 /**

@@ -330,9 +330,7 @@ export class FFmpegRunner {
    *
    * FFmpeg starts once every source is ready, except annies: those it reads
    * through a pipe as their frames come in, so it starts once each annie has
-   * its first frame on disk (see AnnieExtraction), or a JPEG annie that can
-   * be split over several decoders its first few (see decodeTracks). A
-   * source that fails
+   * its first frame on disk (see AnnieExtraction). A source that fails
    * before FFmpeg starts rejects the returned promise; an annie that fails
    * after that stops FFmpeg and destroys the output with its error. A render
    * only succeeds once every annie is complete, even one FFmpeg didn't need
@@ -399,15 +397,6 @@ export class FFmpegRunner {
       animationMapping.set(input.index, extraction);
       await extraction.firstFrame();
       if (!extraction.pipeFormat) await extraction.done;
-      // A JPEG annie may be split over as many tracks as it has leading
-      // frames with the same parameters (see decodeTracks()).
-      if (
-        extraction.pipeFormat === "jpeg_pipe" &&
-        this.decodeTracks > 1 &&
-        this.command.canSplitInput(input)
-      ) {
-        await extraction.leadingFrames(this.decodeTracks);
-      }
     };
 
     try {

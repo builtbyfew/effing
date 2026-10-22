@@ -11,8 +11,15 @@ vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
 
 vi.mock("../config/load", () => ({ loadConfig: vi.fn() }));
 
+// What BASE_URL was when the workers were prewarmed: fns read it.
+const prewarmedWith = vi.hoisted(() => [] as (string | undefined)[]);
+
 vi.mock("../server/dev/host", () => ({
-  startDevServer: vi.fn(async () => ({ port: 3839, close: vi.fn() })),
+  startDevServer: vi.fn(async () => ({
+    port: 3839,
+    prewarm: vi.fn(() => prewarmedWith.push(process.env.BASE_URL)),
+    close: vi.fn(),
+  })),
 }));
 
 vi.mock("./env", () => ({
@@ -43,6 +50,7 @@ describe("runRender for effies", () => {
     // runRender schedules a process.exit to time-box lingering handles.
     vi.useFakeTimers({ toFake: ["setTimeout"] });
     vi.stubEnv("BASE_URL", undefined);
+    prewarmedWith.length = 0;
   });
 
   afterEach(() => {
@@ -73,5 +81,11 @@ describe("runRender for effies", () => {
       "--skip-validation",
       "--allow-local-files",
     ]);
+  });
+
+  test("prewarms the app workers once BASE_URL points at the server", async () => {
+    await runRender("effie", "video", { output: "out.mp4" });
+
+    expect(prewarmedWith).toEqual(["http://127.0.0.1:3839"]);
   });
 });

@@ -138,6 +138,9 @@ export async function runRender(
     // server, so BASE_URL points there regardless of what .env says.
     const baseUrl = `http://${host}:${server.port}`;
     process.env.BASE_URL = baseUrl;
+    // FFS fetches the effie and then all of its layers at once, so get app
+    // workers going (and their fns loaded) while it starts up.
+    if (kind === "effie") server.prewarm();
 
     const url = await targetUrl(
       baseUrl,

@@ -41,7 +41,12 @@ const server = http.createServer(async (req, res) => {
       await new Promise((resolve) =>
         setTimeout(resolve, Number(url.searchParams.get("ms") ?? 0)),
       );
-      json(res, { thread: threadId, fns, invalidated });
+      json(res, {
+        thread: threadId,
+        fns,
+        invalidated,
+        preload: workerData.preload,
+      });
       return;
     case "/echo": {
       let body = "";

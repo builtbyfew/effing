@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { startDevServer } from "./host";
+import { startDevServer, type DevServer } from "./host";
 
 // Starts real dev servers on throwaway projects, so it needs @effing/dev
 // built (the preview app, the app worker and the CLI live in dist/), as in CI.
@@ -233,6 +233,85 @@ describe.each([2, 0])(
         .toBe("green");
       const [a2, e2] = await project.both();
       expect([a2.color, e2.color]).toEqual(["green", "green"]);
+    });
+  },
+);
+
+describe.each([2, 0])(
+  "prewarm with workers: %i",
+  { timeout: 20_000 },
+  (workers) => {
+    let dir: string;
+    let server: DevServer;
+
+    beforeAll(async () => {
+      // An fn that records which thread imported it, and what BASE_URL it
+      // saw, and one that fails to import.
+      dir = writeProject({
+        ...FILES,
+        "annies/marker.fn.tsx": `${schema}
+import fs from "node:fs";
+import { threadId } from "node:worker_threads";
+fs.appendFileSync(
+  new URL("./imported.txt", import.meta.url),
+  JSON.stringify({ thread: threadId, baseUrl: process.env.BASE_URL }) + "\\n",
+);
+export async function* runner() {}
+`,
+        "annies/broken.fn.tsx": `${schema}
+throw new Error("broken at import");
+export async function* runner() {}
+`,
+      });
+      vi.stubEnv("SECRET_KEY", "host-test-secret");
+      server = await startDevServer({
+        configDir: dir,
+        config: {
+          project: "host-test",
+          annies: "annies/*.fn.tsx",
+          effies: "effies/*.fn.tsx",
+          dev: { workers },
+        },
+        host: "127.0.0.1",
+        port: 4987,
+      });
+      vi.stubEnv("BASE_URL", `http://127.0.0.1:${server.port}`);
+    }, 30_000);
+
+    afterAll(async () => {
+      await server?.close();
+      vi.unstubAllEnvs();
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    test("imports every fn before any request, and still serves", async () => {
+      const base = `http://127.0.0.1:${server.port}`;
+      server.prewarm();
+      const imported = path.join(dir, "annies/imported.txt");
+      // Half the pool of 2 workers is one; without workers, this thread.
+      await expect
+        .poll(
+          () => fs.existsSync(imported) && fs.readFileSync(imported, "utf8"),
+        )
+        .toBeTruthy();
+      const lines = fs
+        .readFileSync(imported, "utf8")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as { thread: number; baseUrl: string });
+      expect(lines).toHaveLength(1);
+      expect(lines[0].baseUrl).toBe(base);
+      if (workers === 0) expect(lines[0].thread).toBe(0);
+      else expect(lines[0].thread).not.toBe(0);
+
+      // The broken fn fails its own request only. (Not on this thread: the
+      // preview app it imports keeps the fn runtime of the first in-process
+      // server of this test file, whose runner is closed by now.)
+      if (workers === 0) return;
+      const broken = await fetch(`${base}/preview/annie/broken.tar?w=10&h=10`);
+      expect(broken.ok).toBe(false);
+      const effie = await fetch(`${base}/preview/effie/color.json?w=10&h=10`);
+      expect(effie.status).toBe(200);
     });
   },
 );

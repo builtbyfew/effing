@@ -11,6 +11,11 @@ export type DevApp = {
   invalidate(file: string): void;
   /** Pass on the fns after one was added or removed. */
   setFns(fns: ResolvedFns): void;
+  /**
+   * Get ready for a burst of requests: start workers now and import every fn
+   * in them, instead of on the first requests.
+   */
+  prewarm(): void;
   close(): Promise<void>;
 };
 
@@ -20,6 +25,8 @@ export type AppWorkerData = {
   fns: ResolvedFns;
   resolutions: Resolution[];
   project: string;
+  /** Import every fn once ready, before any request asks for one. */
+  preload?: boolean;
 };
 
 /** A reply to a worker's Vite module runner request. */
@@ -66,12 +73,12 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
   const agent = new http.Agent({ keepAlive: true });
   let closed = false;
 
-  const spawn = (): Slot => {
+  const spawn = (preload = false): Slot => {
     // SHARE_ENV: fns read process.env, and BASE_URL is set after the server
     // starts (by `effing render`), so a copy taken at spawn could be stale.
     const worker = new Worker(options.workerFile, {
       env: SHARE_ENV,
-      workerData: options.data(),
+      workerData: { ...options.data(), preload } satisfies AppWorkerData,
     });
     const {
       promise: port,
@@ -156,6 +163,16 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
     },
     setFns(fns) {
       for (const s of slots) post(s.worker, { type: "fns", fns });
+    },
+    prewarm() {
+      if (closed) return;
+      // Half the pool: a render's first requests (its effie, then its first
+      // layers) find a worker ready, and the rest start on demand as before.
+      // Warming them all would load every fn in workers that a small effie
+      // never uses, and on a machine with few cores they would compete with
+      // the ones it does.
+      const count = Math.ceil(options.size / 2);
+      while (slots.length < count) spawn(true);
     },
     async close() {
       closed = true;

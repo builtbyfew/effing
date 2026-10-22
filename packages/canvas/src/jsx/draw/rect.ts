@@ -80,11 +80,12 @@ function drawBorders(
   style: ComputedStyle,
   borderRadius: BorderRadius,
 ): void {
-  const tw = resolveBoxValue(style.borderTopWidth, width);
-  const rw = resolveBoxValue(style.borderRightWidth, width);
-  const bw = resolveBoxValue(style.borderBottomWidth, width);
-  const lw = resolveBoxValue(style.borderLeftWidth, width);
-  if (tw <= 0 && rw <= 0 && bw <= 0 && lw <= 0) return;
+  const tw = Math.max(0, resolveBoxValue(style.borderTopWidth, width));
+  const rw = Math.max(0, resolveBoxValue(style.borderRightWidth, width));
+  const bw = Math.max(0, resolveBoxValue(style.borderBottomWidth, width));
+  const lw = Math.max(0, resolveBoxValue(style.borderLeftWidth, width));
+  // A negative width, which CSS doesn't allow, is none.
+  if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
 
   const sides: BorderSide[] = [
     { width: tw, color: style.borderTopColor ?? "black" },
@@ -149,11 +150,41 @@ function drawBorders(
       [ox! + dx * t, oy! + dy * t],
     ];
   });
-  for (let i = 0; i < 4; i++) {
+  // Two sides clipped along the same line would each cover only part of the
+  // pixels on it, and the background would show through between them. So
+  // the first side is filled all round, under the others, and each side
+  // runs a pixel past its split with a side drawn after it.
+  const first = sides.indexOf(visible[0]!);
+  fillArea(sides[first]!.color);
+  const mids: Point[] = [
+    [x + width / 2, y],
+    [x + width, y + height / 2],
+    [x + width / 2, y + height],
+    [x, y + height / 2],
+  ];
+  const split = (k: number, side: number): [Point, Point] => {
+    const [o, p] = splits[k % 4]!;
+    const next = k % 4 === side ? (side + 3) % 4 : (side + 1) % 4;
+    if (next <= side || sides[next]!.width === 0) return [o, p];
+    // A pixel towards the next side.
+    const len = Math.hypot(p[0] - o[0], p[1] - o[1]);
+    let nx = (o[1] - p[1]) / len;
+    let ny = (p[0] - o[0]) / len;
+    const [mx, my] = mids[next]!;
+    if (nx * (mx - o[0]) + ny * (my - o[1]) < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    return [
+      [o[0] + nx, o[1] + ny],
+      [p[0] + nx, p[1] + ny],
+    ];
+  };
+  for (let i = first + 1; i < 4; i++) {
     const side = sides[i]!;
-    if (side.width <= 0) continue;
-    const [o1, i1] = splits[i]!;
-    const [o2, i2] = splits[(i + 1) % 4]!;
+    if (side.width === 0) continue;
+    const [o1, i1] = split(i, i);
+    const [o2, i2] = split(i + 1, i);
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(...o1);

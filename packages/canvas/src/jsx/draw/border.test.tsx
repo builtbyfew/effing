@@ -156,6 +156,70 @@ describe("rounded borders of unequal widths", () => {
       expect(isGreen(X * 2 + W - rx - 1, Y * 2 + H - ry - 1)).toBe(true);
     },
   );
+  it("splits sides of different colours without the background between them", async () => {
+    const { at } = await render({
+      backgroundColor: "#888",
+      borderTop: "10px solid #f00",
+      borderRight: "10px solid #f00",
+      borderBottom: "10px solid #00f",
+      borderLeft: "10px solid #0f0",
+      borderRadius: R,
+    });
+    // Along each split, a blend of the two sides' colours: the grey
+    // background has green in it, red and blue none, so no green where
+    // red meets blue, and none of the blue channel where red meets green.
+    // Inside the corners' curves, from 8px to 13px along the diagonals.
+    for (let d = 8; d < 14; d++) {
+      expect(at(X + W - 1 - d, Y + H - 1 - d)[1]).toBeLessThan(8);
+      expect(at(X + d, Y + d)[2]).toBeLessThan(8);
+      expect(at(X + d, Y + H - 1 - d)[0]).toBeLessThan(8);
+    }
+  });
+
+  it("clamps the radius as the background does", async () => {
+    // A pill: the radius is clamped to half the height, 50px.
+    const { isGreen, outside, rightmost, at } = await render({
+      backgroundColor: "#888",
+      borderLeft: `${B}px solid #0f0`,
+      borderRadius: 500,
+    });
+    expect(outside(isGreen)).toBe(0);
+    // At the middle row, the full width; the inner edge (radii 38 and 50)
+    // meets the outer curve at the top.
+    expect(rightmost(50, isGreen)).toBe(B);
+    const dy = 50 - 10.5;
+    const inner = B + 38 * (1 - Math.sqrt(1 - (dy / 50) ** 2));
+    expect(Math.abs(rightmost(10, isGreen) - inner)).toBeLessThanOrEqual(1);
+    // The background's corner is cut by the same curve.
+    expect(at(X + 2, Y + 2)).toEqual([255, 255, 255]);
+  });
+
+  it("fills the whole box when the borders meet in the middle", async () => {
+    const { isGreen, isRed, outside, at } = await render({
+      backgroundColor: "#888",
+      borderTop: "50px solid #f00",
+      borderBottom: "50px solid #0f0",
+      borderRadius: R,
+    });
+    expect(outside(isGreen)).toBe(0);
+    expect(outside(isRed)).toBe(0);
+    expect(isRed(X + 100, Y + 30)).toBe(true);
+    expect(isGreen(X + 100, Y + 70)).toBe(true);
+    // No background shows through.
+    for (const y of [Y + 40, Y + 49, Y + 50, Y + 60, Y + 2, Y + H - 3]) {
+      expect(at(X + 100, y)).not.toEqual([0x88, 0x88, 0x88]);
+    }
+  });
+
+  it("draws a negative width, which CSS doesn't allow, as none", async () => {
+    const { isGreen, outside } = await render({
+      backgroundColor: "#888",
+      borderTop: "10px solid #0f0",
+      borderLeftWidth: -10,
+      borderRadius: R,
+    });
+    expect(outside(isGreen)).toBe(0);
+  });
 });
 
 describe("square borders", () => {

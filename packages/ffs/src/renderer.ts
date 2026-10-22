@@ -10,7 +10,7 @@ import { ffsFetch, sourceStream } from "./fetch";
 import { fileURLToPath } from "url";
 import { storeKeys } from "./storage";
 import type { TransientStore } from "./storage";
-import type { HttpProxy } from "./proxy";
+import { HttpProxy } from "./proxy";
 
 import { FetchError } from "./handlers/errors";
 
@@ -133,11 +133,17 @@ export type EffieRendererOptions = {
   transientStore?: TransientStore;
   /**
    * HTTP proxy for video/audio URLs.
-   * When provided, HTTP(S) URLs for video/audio inputs will be routed
-   * through this proxy, allowing Node.js to handle DNS resolution
-   * instead of FFmpeg (useful for Alpine Linux with musl libc).
+   * HTTP(S) URLs for video/audio inputs are routed through this proxy, so
+   * Node.js handles DNS resolution (musl/Alpine) and TLS instead of FFmpeg.
+   * Since FFmpeg 9.0 the bundled binary verifies TLS peers by default but its
+   * mbedTLS backend has no system CA store, so https inputs opened by FFmpeg
+   * directly fail certificate verification.
+   *
+   * When omitted, each render starts its own proxy and closes it once the
+   * render ends. Pass a shared proxy to reuse one across renders, or `false`
+   * to let FFmpeg open these URLs itself.
    */
-  httpProxy?: HttpProxy;
+  httpProxy?: HttpProxy | false;
 };
 
 export class EffieRenderer<U extends string = EffieWebUrl> {
@@ -145,7 +151,8 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   private ffmpegRunner?: FFmpegRunner;
   private allowLocalFiles: boolean;
   private transientStore?: TransientStore;
-  private httpProxy?: HttpProxy;
+  private httpProxy?: HttpProxy | false;
+  private ownHttpProxy?: HttpProxy;
 
   constructor(
     effieData: EffieData<EffieSources<U>, U>,
@@ -823,21 +830,38 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     const ffmpegCommand = this.buildFFmpegCommand("-", scaleFactor);
     this.ffmpegRunner = new FFmpegRunner(ffmpegCommand);
 
-    // Create URL transformer for proxy if available
-    const urlTransformer = this.httpProxy
-      ? (url: string) => this.httpProxy!.transformUrl(url)
+    let httpProxy = this.httpProxy;
+    let ownHttpProxy: HttpProxy | undefined;
+    if (httpProxy === undefined) {
+      ownHttpProxy = new HttpProxy();
+      await ownHttpProxy.start();
+      this.ownHttpProxy = ownHttpProxy;
+      httpProxy = ownHttpProxy;
+    }
+    const urlTransformer = httpProxy
+      ? (url: string) => httpProxy.transformUrl(url)
       : undefined;
 
-    return this.ffmpegRunner.run(
-      async ({ src }) => this.fetchSource(src),
-      (src) => this.resolveReference(src),
-      urlTransformer,
-    );
+    try {
+      const output = await this.ffmpegRunner.run(
+        async ({ src }) => this.fetchSource(src),
+        (src) => this.resolveReference(src),
+        urlTransformer,
+      );
+      // The output closes once FFmpeg has exited (or the render failed), so
+      // nothing reads from the proxy any more.
+      if (ownHttpProxy) output.once("close", () => ownHttpProxy.close());
+      return output;
+    } catch (err) {
+      ownHttpProxy?.close();
+      throw err;
+    }
   }
 
   close(): void {
     if (this.ffmpegRunner) {
       this.ffmpegRunner.close();
     }
+    this.ownHttpProxy?.close();
   }
 }

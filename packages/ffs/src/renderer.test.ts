@@ -1,7 +1,19 @@
 import http from "node:http";
-import { afterAll, beforeAll, describe, test, expect } from "vitest";
+import { PassThrough } from "node:stream";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  test,
+  expect,
+  vi,
+} from "vitest";
 import { annieBuffer } from "@effing/annie";
 import { EffieRenderer } from "./renderer";
+import type { EffieRendererOptions } from "./renderer";
+import { FFmpegRunner } from "./ffmpeg";
+import { HttpProxy } from "./proxy";
 import { FetchError } from "./handlers/errors";
 import type { EffieData, EffieSources } from "@effing/effie";
 
@@ -669,5 +681,89 @@ describe("EffieRenderer source failures", () => {
       message: `Failed to fetch ${url}: response body failed: terminated`,
       cause: expect.objectContaining({ message: "terminated" }),
     });
+  });
+});
+
+describe("EffieRenderer HTTP proxy", () => {
+  const audioUrl = "https://example.com/audio.mp3";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Renders with FFmpegRunner.run stubbed out, and returns what the renderer
+   * would have FFmpeg open for audioUrl, with the stubbed output stream.
+   */
+  async function render(options?: EffieRendererOptions) {
+    const output = new PassThrough();
+    const run = vi
+      .spyOn(FFmpegRunner.prototype, "run")
+      .mockResolvedValue(output);
+    const renderer = new EffieRenderer(makeEffie({}), options);
+    await renderer.render();
+    const urlTransformer = run.mock.calls[0][2];
+    return {
+      renderer,
+      output,
+      ffmpegUrl: urlTransformer ? urlTransformer(audioUrl) : audioUrl,
+    };
+  }
+
+  async function isListening(url: string): Promise<boolean> {
+    return fetch(url).then(
+      () => true,
+      () => false,
+    );
+  }
+
+  test("without a proxy, each render routes URLs through its own", async () => {
+    const { output, ffmpegUrl } = await render();
+    expect(ffmpegUrl).toMatch(
+      new RegExp(`^http://127\\.0\\.0\\.1:\\d+/${audioUrl}$`),
+    );
+    const proxyUrl = new URL(ffmpegUrl).origin + "/";
+    expect(await isListening(proxyUrl)).toBe(true);
+
+    // Closed once the output is done.
+    output.destroy();
+    await new Promise((resolve) => output.once("close", resolve));
+    expect(await isListening(proxyUrl)).toBe(false);
+  });
+
+  test("close() closes the render's own proxy", async () => {
+    const { renderer, ffmpegUrl } = await render();
+    renderer.close();
+    expect(await isListening(new URL(ffmpegUrl).origin + "/")).toBe(false);
+  });
+
+  test("a given proxy is used and left open", async () => {
+    const httpProxy = new HttpProxy();
+    await httpProxy.start();
+    try {
+      const { renderer, output, ffmpegUrl } = await render({ httpProxy });
+      expect(ffmpegUrl).toBe(httpProxy.transformUrl(audioUrl));
+      output.destroy();
+      await new Promise((resolve) => output.once("close", resolve));
+      renderer.close();
+      expect(await isListening(new URL(ffmpegUrl).origin + "/")).toBe(true);
+    } finally {
+      httpProxy.close();
+    }
+  });
+
+  test("the render's own proxy is closed when the render fails", async () => {
+    vi.spyOn(FFmpegRunner.prototype, "run").mockRejectedValue(
+      new Error("fetch failed"),
+    );
+    const close = vi.spyOn(HttpProxy.prototype, "close");
+    const renderer = new EffieRenderer(makeEffie({}));
+    await expect(renderer.render()).rejects.toThrow("fetch failed");
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  test("with httpProxy: false, FFmpeg opens URLs itself", async () => {
+    const { ffmpegUrl } = await render({ httpProxy: false });
+    expect(ffmpegUrl).toBe(audioUrl);
   });
 });

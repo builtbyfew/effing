@@ -32,14 +32,20 @@ false
 
 ### httpProxy?
 
-> `optional` **httpProxy?**: `HttpProxy`
+> `optional` **httpProxy?**: `HttpProxy` \| `false`
 
-Defined in: [ffs/src/renderer.ts:140](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L140)
+Defined in: [ffs/src/renderer.ts:146](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L146)
 
 HTTP proxy for video/audio URLs.
-When provided, HTTP(S) URLs for video/audio inputs will be routed
-through this proxy, allowing Node.js to handle DNS resolution
-instead of FFmpeg (useful for Alpine Linux with musl libc).
+HTTP(S) URLs for video/audio inputs are routed through this proxy, so
+Node.js handles DNS resolution (musl/Alpine) and TLS instead of FFmpeg.
+Since FFmpeg 9.0 the bundled binary verifies TLS peers by default but its
+mbedTLS backend has no system CA store, so https inputs opened by FFmpeg
+directly fail certificate verification.
+
+When omitted, each render starts its own proxy and closes it once the
+render ends. Pass a shared proxy to reuse one across renders, or `false`
+to let FFmpeg open these URLs itself.
 
 ***
 

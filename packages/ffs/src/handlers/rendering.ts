@@ -559,7 +559,8 @@ async function streamRenderDirect(
   const { EffieRenderer } = await import("../renderer");
   const renderer = new EffieRenderer(job.effie, {
     transientStore: ctx.transientStore,
-    httpProxy: ctx.httpProxy,
+    // false when the server context was created without a proxy
+    httpProxy: ctx.httpProxy ?? false,
   });
 
   try {
@@ -745,7 +746,8 @@ export async function renderAndUploadInternal(
   const { EffieRenderer } = await import("../renderer");
   const renderer = new EffieRenderer(effie, {
     transientStore: ctx.transientStore,
-    httpProxy: ctx.httpProxy,
+    // false when the server context was created without a proxy
+    httpProxy: ctx.httpProxy ?? false,
   });
   try {
     return await withTempVideoFile(async (videoPath) => {

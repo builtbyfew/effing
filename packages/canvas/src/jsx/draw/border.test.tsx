@@ -212,13 +212,24 @@ describe("rounded borders of unequal widths", () => {
       borderLeft: "10px solid #0f0",
       borderRadius: R,
     });
-    // Along the left side's bottom left curve, green over white: no red.
-    for (let row = 0; row < 12; row++) {
-      for (let x = X; x < X + R; x++) {
-        const [r, , b] = at(x, Y + H - 1 - row);
-        expect(r).toBe(b);
+    // Green over white, no red, on the left side's curved edges: all of the
+    // bottom left corner, and the top left below the split from (0, 0) to
+    // (10, 10), with a margin for its antialiasing.
+    let blended = 0;
+    const check = (x: number, y: number) => {
+      const [r, g, b] = at(x, y);
+      expect(r).toBe(b);
+      if (g! > r! && r! > 0) blended++;
+    };
+    for (let dy = 0; dy < R; dy++) {
+      for (let dx = 0; dx < R; dx++) {
+        check(X + dx, Y + H - 1 - dy);
+        if (dy - dx >= 3) check(X + dx, Y + dy);
       }
     }
+    // The curves were sampled where they are antialiased, not only where
+    // they are solid green or white.
+    expect(blended).toBeGreaterThan(10);
   });
 
   it("clamps the radius as the background does", async () => {

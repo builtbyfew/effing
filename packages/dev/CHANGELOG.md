@@ -1,5 +1,16 @@
 # @effing/dev
 
+## 0.46.2
+
+### Patch Changes
+
+- 5b0b448: Require Vite 7.3.7 or later, which fixes several dev server security advisories
+  - @effing/effie-preview@0.46.2
+  - @effing/effie@0.46.2
+  - @effing/fn@0.46.2
+  - @effing/serde@0.46.2
+  - @effing/annie-player@0.46.2
+
 ## 0.46.1
 
 ### Patch Changes

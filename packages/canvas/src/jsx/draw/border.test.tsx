@@ -176,6 +176,51 @@ describe("rounded borders of unequal widths", () => {
     }
   });
 
+  it.each([
+    ["transparent", [0x88, 0x88, 0x88]],
+    ["rgba(0, 0, 255, 0.5)", [0x44, 0x44, 0xc4]],
+  ])(
+    "shows what is under a %s side, not the side next to it",
+    async (color, expected) => {
+      const { at, isRed } = await render({
+        backgroundColor: "#888",
+        borderTop: "10px solid #f00",
+        // Longhands: the shorthand splits on the spaces in rgba().
+        borderLeftWidth: 10,
+        borderLeftStyle: "solid",
+        borderLeftColor: color,
+        borderRadius: R,
+      });
+      for (const y of [Y + 30, Y + 50, Y + 80]) {
+        for (const x of [X + 2, X + 5, X + 8]) {
+          const px = at(x, y);
+          for (let c = 0; c < 3; c++) {
+            expect(Math.abs(px[c]! - expected[c]!)).toBeLessThanOrEqual(1);
+          }
+        }
+      }
+      // Nor a line of the top side's colour along the split.
+      for (let d = 8; d < 10; d++)
+        expect(at(X + d - 2, Y + d + 2)[0]).toBeLessThan(160);
+      expect(isRed(X + 100, Y + 5)).toBe(true);
+    },
+  );
+
+  it("blends a side's curved edge with the background, not another side", async () => {
+    const { at } = await render({
+      borderTop: "10px solid #f00",
+      borderLeft: "10px solid #0f0",
+      borderRadius: R,
+    });
+    // Along the left side's bottom left curve, green over white: no red.
+    for (let row = 0; row < 12; row++) {
+      for (let x = X; x < X + R; x++) {
+        const [r, , b] = at(x, Y + H - 1 - row);
+        expect(r).toBe(b);
+      }
+    }
+  });
+
   it("clamps the radius as the background does", async () => {
     // A pill: the radius is clamped to half the height, 50px.
     const { isGreen, outside, rightmost, at } = await render({

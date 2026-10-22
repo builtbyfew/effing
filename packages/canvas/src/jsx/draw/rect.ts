@@ -1,4 +1,5 @@
 import type { SKRSContext2D } from "@effing/skia";
+import parseCssColor from "parse-css-color";
 
 import type { ComputedStyle } from "../style/compute.ts";
 import { hasRadius, maxCornerRadius, roundedRect } from "./clip.ts";
@@ -107,6 +108,8 @@ function drawBorders(
     [Math.max(0, bl - lw), Math.max(0, bl - bw)],
   ];
   const fillArea = (color: string) => {
+    // An invalid colour leaves the fill as it was: make that no colour.
+    ctx.fillStyle = NO_COLOR;
     ctx.fillStyle = color;
     ctx.beginPath();
     roundedRect(ctx, x, y, width, height, tl, tr, br, bl);
@@ -152,10 +155,8 @@ function drawBorders(
   });
   // Two sides clipped along the same line would each cover only part of the
   // pixels on it, and the background would show through between them. So
-  // the first side is filled all round, under the others, and each side
-  // runs a pixel past its split with a side drawn after it.
-  const first = sides.indexOf(visible[0]!);
-  fillArea(sides[first]!.color);
+  // each side runs a pixel past its split with an opaque side drawn after
+  // it, which covers it there.
   const mids: Point[] = [
     [x + width / 2, y],
     [x + width, y + height / 2],
@@ -165,7 +166,7 @@ function drawBorders(
   const split = (k: number, side: number): [Point, Point] => {
     const [o, p] = splits[k % 4]!;
     const next = k % 4 === side ? (side + 3) % 4 : (side + 1) % 4;
-    if (next <= side || sides[next]!.width === 0) return [o, p];
+    if (next <= side || !isOpaque(sides[next]!)) return [o, p];
     // A pixel towards the next side.
     const len = Math.hypot(p[0] - o[0], p[1] - o[1]);
     let nx = (o[1] - p[1]) / len;
@@ -180,7 +181,7 @@ function drawBorders(
       [p[0] + nx, p[1] + ny],
     ];
   };
-  for (let i = first + 1; i < 4; i++) {
+  for (let i = 0; i < 4; i++) {
     const side = sides[i]!;
     if (side.width === 0) continue;
     const [o1, i1] = split(i, i);
@@ -203,6 +204,10 @@ type Point = [number, number];
 interface BorderSide {
   width: number;
   color: string;
+}
+
+function isOpaque(side: BorderSide): boolean {
+  return side.width > 0 && (parseCssColor(side.color)?.alpha ?? 0) === 1;
 }
 
 /**

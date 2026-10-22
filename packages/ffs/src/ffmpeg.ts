@@ -9,7 +9,7 @@ import path from "path";
 import { createWriteStream } from "fs";
 import { promisify } from "util";
 
-import { AnnieExtraction } from "./annie-extraction";
+import { AnnieExtraction, MAX_DECODE_TRACKS } from "./annie-extraction";
 
 const pump = promisify(pipeline);
 
@@ -126,14 +126,43 @@ export type FFmpegInputSource = string | FFmpegPipeSource;
  * An animation's frames, streamed as concatenated images through FFmpeg's
  * file descriptor `fd` and read with the stream demuxer `format` (e.g.
  * `jpeg_pipe`) instead of its input's image2 `-f`.
+ *
+ * With `tracks` (above 1), the frames are JPEGs in a Matroska stream of that
+ * many tracks instead, frame i on track i mod `tracks`, at its time at the
+ * input's `-framerate` (see AnnieExtraction.decodeTracks()). The input is
+ * then read with the matroska demuxer, and the filter graph interleaves the
+ * tracks back into the one stream it reads as `[<index>:v]` (see
+ * FFmpegCommand.canSplitInput()).
  */
-export type FFmpegPipeSource = { fd: number; format: string };
+export type FFmpegPipeSource = { fd: number; format: string; tracks?: number };
 
 /** `preArgs` with the input format (`-f`) replaced by `format`. */
 function withInputFormat(preArgs: string[], format: string): string[] {
   const i = preArgs.indexOf("-f");
   if (i === -1) return ["-f", format, ...preArgs];
   return [...preArgs.slice(0, i + 1), format, ...preArgs.slice(i + 2)];
+}
+
+/** The value of an input's `-framerate`, if it has one. */
+function inputFrameRate(input: FFmpegInput): string | undefined {
+  const i = input.preArgs.indexOf("-framerate");
+  return i === -1 ? undefined : input.preArgs[i + 1];
+}
+
+/**
+ * The frame rate of an input's `-framerate` value ("30", "29.97" or
+ * "30000/1001") in frames per second, or undefined if it isn't one of those.
+ */
+export function parseFrameRate(rate: string): number | undefined {
+  const match = /^(\d+(?:\.\d+)?)(?:\/(\d+))?$/.exec(rate);
+  if (!match) return undefined;
+  const fps = Number(match[1]) / (match[2] ? Number(match[2]) : 1);
+  return fps > 0 && Number.isFinite(fps) ? fps : undefined;
+}
+
+/** The filter graph label of an input's video, as the renderer uses it. */
+function videoLabel(input: FFmpegInput): string {
+  return `[${input.index}:v]`;
 }
 
 export class FFmpegCommand {
@@ -154,10 +183,30 @@ export class FFmpegCommand {
     this.outputArgs = outputArgs;
   }
 
+  /**
+   * Whether an animation input can be read as a Matroska stream of several
+   * tracks (see FFmpegPipeSource): it has a `-framerate` (which sets the
+   * frames' times), and the filter graph reads its video once, as
+   * `[<index>:v]`.
+   */
+  canSplitInput(input: FFmpegInput): boolean {
+    const rate = inputFrameRate(input);
+    return (
+      input.type === "animation" &&
+      rate !== undefined &&
+      parseFrameRate(rate) !== undefined &&
+      this.filterComplex.split(videoLabel(input)).length === 2
+    );
+  }
+
   buildArgs(
     inputResolver: (input: FFmpegInput) => FFmpegInputSource,
   ): string[] {
     const inputArgs: string[] = [];
+    // Chains that interleave split inputs' tracks, and the graph with their
+    // `[<index>:v]` replaced by those chains' outputs.
+    const interleaveChains: string[] = [];
+    let filterComplex = this.filterComplex;
     for (const input of this.inputs) {
       if (input.type === "color") {
         inputArgs.push(...input.preArgs);
@@ -169,6 +218,55 @@ export class FFmpegCommand {
           throw new Error(
             `Input ${input.index} (${input.type}) can't be piped`,
           );
+        }
+        if (source.tracks !== undefined && source.tracks > 1) {
+          if (!this.canSplitInput(input)) {
+            throw new Error(`Input ${input.index} can't be split into tracks`);
+          }
+          const rate = inputFrameRate(input)!;
+          const label = `[pipe${input.index}v]`;
+          // Each track's frames come with timestamps and durations in the
+          // Matroska stream's milliseconds. settb=AVTB takes both to
+          // microseconds, where interleave works (it would leave the
+          // durations as they are), and interleave orders the frames by
+          // timestamp. settb takes timestamps and durations back to 1/fps,
+          // where the rounding lands on whole frames. interleave ends the
+          // stream at its last frame's timestamp, where a single decoder
+          // ends it one frame later: setpts, which also sees the end, moves
+          // it there (PTS equals PREV_INPTS only at the end). The stream has
+          // no frame rate set: the renderer's layer chains don't need one,
+          // and its overlays' `fps` sets the output's.
+          const tracks = Array.from(
+            { length: source.tracks },
+            (_, track) => `[pipe${input.index}t${track}]`,
+          );
+          const timeBase = rate.includes("/")
+            ? rate.split("/").reverse().join("/")
+            : `1/${rate}`;
+          interleaveChains.push(
+            ...tracks.map(
+              (track, i) => `[${input.index}:${i}]settb=AVTB${track}`,
+            ),
+            `${tracks.join("")}interleave=nb_inputs=${source.tracks},settb=${timeBase},` +
+              `setpts='PTS+eq(PTS,PREV_INPTS)'${label}`,
+          );
+          filterComplex = filterComplex.split(videoLabel(input)).join(label);
+          const framerate = input.preArgs.indexOf("-framerate");
+          const preArgs = [
+            ...input.preArgs.slice(0, framerate),
+            ...input.preArgs.slice(framerate + 2),
+          ];
+          inputArgs.push(
+            // The tracks' frame rates aren't needed (the times are exact),
+            // so don't read ahead to estimate them, which would hold FFmpeg
+            // up until dozens of frames are in.
+            "-fpsprobesize",
+            "0",
+            ...withInputFormat(preArgs, source.format),
+            "-i",
+            `pipe:${source.fd}`,
+          );
+          continue;
         }
         inputArgs.push(
           ...withInputFormat(input.preArgs, source.format),
@@ -185,22 +283,45 @@ export class FFmpegCommand {
       ...this.globalArgs,
       ...inputArgs,
       "-filter_complex",
-      this.filterComplex,
+      [...interleaveChains, filterComplex].join(";"),
       ...this.outputArgs,
     ];
     return args;
   }
 }
 
+/**
+ * How many tracks to split a JPEG annie over by default (see
+ * AnnieExtraction.decodeTracks()): a decoder per 4 cores, at most 4. Two to
+ * four decoders already outpace the rest of a render (the filter graph and
+ * x264), and more cost memory and CPU time for nothing.
+ */
+function defaultDecodeTracks(): number {
+  return Math.min(4, Math.max(1, Math.floor(os.availableParallelism() / 4)));
+}
+
+export type FFmpegRunnerOptions = {
+  /**
+   * The most tracks (FFmpeg decoders) a streamed JPEG annie is split over;
+   * 1 not to split. Defaults to a decoder per 4 cores, at most 4.
+   */
+  decodeTracks?: number;
+};
+
 export class FFmpegRunner {
   private command: FFmpegCommand;
+  private decodeTracks: number;
 
   private ffmpegProc?: ChildProcess;
   private closed = false;
   private extractions: AnnieExtraction[] = [];
 
-  constructor(command: FFmpegCommand) {
+  constructor(command: FFmpegCommand, options: FFmpegRunnerOptions = {}) {
     this.command = command;
+    this.decodeTracks = Math.min(
+      MAX_DECODE_TRACKS,
+      Math.max(1, Math.floor(options.decodeTracks ?? defaultDecodeTracks())),
+    );
   }
 
   /**
@@ -209,7 +330,9 @@ export class FFmpegRunner {
    *
    * FFmpeg starts once every source is ready, except annies: those it reads
    * through a pipe as their frames come in, so it starts once each annie has
-   * its first frame on disk (see AnnieExtraction). A source that fails
+   * its first frame on disk (see AnnieExtraction), or a JPEG annie that can
+   * be split over several decoders its first few (see decodeTracks). A
+   * source that fails
    * before FFmpeg starts rejects the returned promise; an annie that fails
    * after that stops FFmpeg and destroys the output with its error. A render
    * only succeeds once every annie is complete, even one FFmpeg didn't need
@@ -276,6 +399,15 @@ export class FFmpegRunner {
       animationMapping.set(input.index, extraction);
       await extraction.firstFrame();
       if (!extraction.pipeFormat) await extraction.done;
+      // A JPEG annie may be split over as many tracks as it has leading
+      // frames with the same parameters (see decodeTracks()).
+      if (
+        extraction.pipeFormat === "jpeg_pipe" &&
+        this.decodeTracks > 1 &&
+        this.command.canSplitInput(input)
+      ) {
+        await extraction.leadingFrames(this.decodeTracks);
+      }
     };
 
     try {
@@ -334,13 +466,25 @@ export class FFmpegRunner {
       );
 
       // Annies stream into FFmpeg through pipes on fds 3, 4, ...
-      const pipes: { fd: number; extraction: AnnieExtraction }[] = [];
+      const pipes: {
+        fd: number;
+        extraction: AnnieExtraction;
+        tracks: number;
+        fps: number;
+      }[] = [];
       const finalArgs = this.command.buildArgs((input) => {
         const extraction = animationMapping.get(input.index);
         if (extraction?.pipeFormat) {
           const fd = 3 + pipes.length;
-          pipes.push({ fd, extraction });
-          return { fd, format: extraction.pipeFormat };
+          const tracks = this.command.canSplitInput(input)
+            ? extraction.decodeTracks(this.decodeTracks)
+            : 1;
+          const rate = input.preArgs[input.preArgs.indexOf("-framerate") + 1];
+          const fps = tracks > 1 ? parseFrameRate(rate)! : 1;
+          pipes.push({ fd, extraction, tracks, fps });
+          return tracks > 1
+            ? { fd, format: "matroska", tracks }
+            : { fd, format: extraction.pipeFormat };
         }
         const filePath = extraction?.dir ?? fileMapping.get(input.index);
         if (!filePath)
@@ -368,8 +512,8 @@ export class FFmpegRunner {
       // at once, and in 1 of ~80 slideshow renders). A closed socket's end
       // always gets through.
       for (const pipe of feedPipes) pipe.once("finish", () => pipe.destroy());
-      const feeders = pipes.map(({ extraction }, i) =>
-        extraction.feed(feedPipes[i]),
+      const feeders = pipes.map(({ extraction, tracks, fps }, i) =>
+        extraction.feed(feedPipes[i], { tracks, fps }),
       );
 
       // Forward ffmpeg's stdout through a PassThrough so we can hold back

@@ -360,6 +360,14 @@ export class FFmpegRunner {
         console.error(data.toString());
       });
       const feedPipes = pipes.map(({ fd }) => ffmpegProc.stdio[fd] as Writable);
+      // Close each pipe once its feed has ended it. Ending a socket only
+      // shuts down its writing side, and FFmpeg, reading the other end of
+      // the socketpair (what Node gives a child for a "pipe") through
+      // pipe:N, occasionally misses that end of stream and waits for more
+      // forever (seen on macOS in about 1 of 40 runs that end a small input
+      // at once, and in 1 of ~80 slideshow renders). A closed socket's end
+      // always gets through.
+      for (const pipe of feedPipes) pipe.once("finish", () => pipe.destroy());
       const feeders = pipes.map(({ extraction }, i) =>
         extraction.feed(feedPipes[i]),
       );

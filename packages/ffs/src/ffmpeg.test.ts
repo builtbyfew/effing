@@ -35,6 +35,45 @@ async function runUntilSettled(
 }
 
 describe("FFmpegRunner", () => {
+  describe("close", () => {
+    const command = () =>
+      new FFmpegCommand(
+        ["-y"],
+        [
+          {
+            index: 0,
+            source: "https://example.com/a.png",
+            preArgs: [],
+            type: "image",
+          },
+        ],
+        "[0:v]null[outv]",
+        ["-map", "[outv]", "-f", "null", "-"],
+      );
+
+    test("a closed runner doesn't run", async () => {
+      const sourceFetcher = vi.fn();
+      const runner = new FFmpegRunner(command());
+      runner.close();
+      await expect(runner.run(sourceFetcher)).rejects.toThrow(
+        "FFmpegRunner is closed",
+      );
+      expect(sourceFetcher).not.toHaveBeenCalled();
+    });
+
+    test("close() while sources are fetched keeps FFmpeg from starting", async () => {
+      const runner = new FFmpegRunner(command());
+      const sourceFetcher = vi.fn().mockImplementation(async () => {
+        runner.close();
+        return Readable.from(Buffer.from("test-content"));
+      });
+      await expect(runner.run(sourceFetcher)).rejects.toThrow(
+        "FFmpegRunner is closed",
+      );
+      expect(sourceFetcher).toHaveBeenCalledOnce();
+    });
+  });
+
   describe("source caching", () => {
     test("caches #reference sources to avoid duplicate fetches", async () => {
       const fetchedSources: string[] = [];

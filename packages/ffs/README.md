@@ -78,7 +78,7 @@ curl http://localhost:2000/render/.../video -o output.mp4
 ```
 
 > [!NOTE]
-> The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux). This is why you might see another server running on a random port.
+> The server uses an internal HTTP proxy for video/audio URLs to ensure reliable DNS resolution in containerized environments (e.g., Alpine Linux), and because the bundled FFmpeg can't verify https peers itself. This is why you might see another server running on a random port.
 
 #### Environment Variables
 
@@ -127,11 +127,11 @@ class EffieRenderer {
 
 `EffieRendererOptions` is optional:
 
-| Option            | Type             | Default     | Description                                                                                     |
-| ----------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| `allowLocalFiles` | `boolean`        | `false`     | Allow reading `file:` URL sources. Only enable for trusted internal operations.                 |
-| `transientStore`  | `TransientStore` | _(network)_ | Transient store for source lookups. If omitted, sources are fetched directly from the network.  |
-| `httpProxy`       | `HttpProxy`      | —           | Routes HTTP(S) video/audio URLs through a proxy so Node.js handles DNS (e.g. Alpine/musl libc). |
+| Option            | Type                 | Default        | Description                                                                                                                                                                                                                                                                           |
+| ----------------- | -------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allowLocalFiles` | `boolean`            | `false`        | Allow reading `file:` URL sources. Only enable for trusted internal operations.                                                                                                                                                                                                       |
+| `transientStore`  | `TransientStore`     | _(network)_    | Transient store for source lookups. If omitted, sources are fetched directly from the network.                                                                                                                                                                                        |
+| `httpProxy`       | `HttpProxy \| false` | _(per render)_ | Routes HTTP(S) video/audio URLs through a local proxy so Node.js handles DNS (e.g. Alpine/musl libc) and TLS. If omitted, each render runs its own proxy; pass a shared one to reuse it, or `false` to let FFmpeg open the URLs itself (the bundled FFmpeg can't verify https peers). |
 
 The renderer doesn't validate its input. To validate a composition with `file:` sources, use `effieDataWithFilesSchema` from `@effing/effie`, as `ffs render --allow-local-files` does. The HTTP server never enables `allowLocalFiles`.
 

@@ -158,6 +158,7 @@ export class FFmpegRunner {
   private command: FFmpegCommand;
 
   private ffmpegProc?: ChildProcess;
+  private closed = false;
 
   constructor(command: FFmpegCommand) {
     this.command = command;
@@ -171,6 +172,7 @@ export class FFmpegRunner {
     referenceResolver?: (src: string) => string,
     urlTransformer?: (url: string) => string,
   ): Promise<Readable> {
+    if (this.closed) throw new Error("FFmpegRunner is closed");
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffs-"));
     const fileMapping = new Map<number, string>();
     // Cache for #reference sources to avoid duplicate fetches.
@@ -265,7 +267,10 @@ export class FFmpegRunner {
           throw new Error(`File for input index ${input.index} not found`);
         return filePath;
       });
-      const ffmpegProc = spawn(await getFFmpegBin(), finalArgs);
+      const ffmpegBin = await getFFmpegBin();
+      // close() may have been called while the sources were fetched.
+      if (this.closed) throw new Error("FFmpegRunner is closed");
+      const ffmpegProc = spawn(ffmpegBin, finalArgs);
       ffmpegProc.stderr!.on("data", (data) => {
         console.error(data.toString());
       });
@@ -316,7 +321,9 @@ export class FFmpegRunner {
     }
   }
 
+  /** Stops FFmpeg, or keeps it from starting. The runner can't run again. */
   close(): void {
+    this.closed = true;
     if (this.ffmpegProc) {
       this.ffmpegProc.kill("SIGTERM");
       this.ffmpegProc = undefined;

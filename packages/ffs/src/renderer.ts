@@ -148,11 +148,11 @@ export type EffieRendererOptions = {
 
 export class EffieRenderer<U extends string = EffieWebUrl> {
   private effieData: EffieData<EffieSources<U>, U>;
-  private ffmpegRunner?: FFmpegRunner;
+  private ffmpegRunners = new Set<FFmpegRunner>();
   private allowLocalFiles: boolean;
   private transientStore?: TransientStore;
   private httpProxy?: HttpProxy | false;
-  private ownHttpProxy?: HttpProxy;
+  private ownHttpProxies = new Set<HttpProxy>();
 
   constructor(
     effieData: EffieData<EffieSources<U>, U>,
@@ -828,40 +828,54 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
    */
   async render(scaleFactor = 1): Promise<Readable> {
     const ffmpegCommand = this.buildFFmpegCommand("-", scaleFactor);
-    this.ffmpegRunner = new FFmpegRunner(ffmpegCommand);
+    // Tracked before anything is awaited, so close() stops this render even
+    // before FFmpeg starts.
+    const ffmpegRunner = new FFmpegRunner(ffmpegCommand);
+    this.ffmpegRunners.add(ffmpegRunner);
 
-    let httpProxy = this.httpProxy;
     let ownHttpProxy: HttpProxy | undefined;
-    if (httpProxy === undefined) {
-      ownHttpProxy = new HttpProxy();
-      await ownHttpProxy.start();
-      this.ownHttpProxy = ownHttpProxy;
-      httpProxy = ownHttpProxy;
-    }
-    const urlTransformer = httpProxy
-      ? (url: string) => httpProxy.transformUrl(url)
-      : undefined;
+    const done = () => {
+      // A consumer may destroy the output while FFmpeg still runs, and then
+      // nothing reads its stdout any more, so stop it here too.
+      ffmpegRunner.close();
+      this.ffmpegRunners.delete(ffmpegRunner);
+      if (ownHttpProxy) {
+        ownHttpProxy.close();
+        this.ownHttpProxies.delete(ownHttpProxy);
+      }
+    };
 
     try {
-      const output = await this.ffmpegRunner.run(
+      if (this.httpProxy === undefined) {
+        ownHttpProxy = new HttpProxy();
+        await ownHttpProxy.start();
+        this.ownHttpProxies.add(ownHttpProxy);
+      }
+      const httpProxy = ownHttpProxy ?? this.httpProxy;
+      const urlTransformer = httpProxy
+        ? (url: string) => httpProxy.transformUrl(url)
+        : undefined;
+
+      const output = await ffmpegRunner.run(
         async ({ src }) => this.fetchSource(src),
         (src) => this.resolveReference(src),
         urlTransformer,
       );
-      // The output closes once FFmpeg has exited (or the render failed), so
-      // nothing reads from the proxy any more.
-      if (ownHttpProxy) output.once("close", () => ownHttpProxy.close());
+      // The output closes once FFmpeg has exited, the render failed or the
+      // consumer destroyed it.
+      output.once("close", done);
       return output;
     } catch (err) {
-      ownHttpProxy?.close();
+      done();
       throw err;
     }
   }
 
+  /** Stops every render in progress. */
   close(): void {
-    if (this.ffmpegRunner) {
-      this.ffmpegRunner.close();
-    }
-    this.ownHttpProxy?.close();
+    for (const ffmpegRunner of this.ffmpegRunners) ffmpegRunner.close();
+    for (const ownHttpProxy of this.ownHttpProxies) ownHttpProxy.close();
+    this.ffmpegRunners.clear();
+    this.ownHttpProxies.clear();
   }
 }

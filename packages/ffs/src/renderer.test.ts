@@ -766,4 +766,46 @@ describe("EffieRenderer HTTP proxy", () => {
     const { ffmpegUrl } = await render({ httpProxy: false });
     expect(ffmpegUrl).toBe(audioUrl);
   });
+
+  test("close() while the render's own proxy starts stops the render", async () => {
+    const renderer = new EffieRenderer(makeEffie({}));
+    const start = HttpProxy.prototype.start;
+    vi.spyOn(HttpProxy.prototype, "start").mockImplementation(async function (
+      this: HttpProxy,
+    ) {
+      renderer.close();
+      await start.call(this);
+    });
+    const close = vi.spyOn(HttpProxy.prototype, "close");
+    await expect(renderer.render()).rejects.toThrow("FFmpegRunner is closed");
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  test("close() stops every render in progress", async () => {
+    const outputs = [new PassThrough(), new PassThrough()];
+    const run = vi.spyOn(FFmpegRunner.prototype, "run");
+    for (const output of outputs) run.mockResolvedValueOnce(output);
+    const closeRunner = vi.spyOn(FFmpegRunner.prototype, "close");
+    const renderer = new EffieRenderer(makeEffie({}));
+    await Promise.all([renderer.render(), renderer.render()]);
+    const proxyUrls = run.mock.calls.map(
+      ([, , urlTransformer]) => new URL(urlTransformer!(audioUrl)).origin + "/",
+    );
+
+    renderer.close();
+    expect(closeRunner).toHaveBeenCalledTimes(2);
+    for (const proxyUrl of proxyUrls) {
+      expect(await isListening(proxyUrl)).toBe(false);
+    }
+  });
+
+  test("destroying the output stops FFmpeg", async () => {
+    // As the server does when a client aborts a streamed render: the output
+    // closes before the renderer does.
+    const closeRunner = vi.spyOn(FFmpegRunner.prototype, "close");
+    const { output } = await render();
+    output.destroy();
+    await new Promise((resolve) => output.once("close", resolve));
+    expect(closeRunner).toHaveBeenCalledOnce();
+  });
 });

@@ -42,7 +42,9 @@ Defined in: [ffs/src/renderer.ts:157](https://github.com/builtbyfew/effing/blob/
 
 > **close**(): `void`
 
-Defined in: [ffs/src/renderer.ts:861](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L861)
+Defined in: [ffs/src/renderer.ts:875](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L875)
+
+Stops every render in progress.
 
 #### Returns
 

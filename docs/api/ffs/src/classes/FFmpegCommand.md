@@ -6,7 +6,7 @@
 
 # Class: FFmpegCommand
 
-Defined in: [ffs/src/ffmpeg.ts:139](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L139)
+Defined in: [ffs/src/ffmpeg.ts:168](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L168)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [ffs/src/ffmpeg.ts:139](https://github.com/builtbyfew/effing/blob/ma
 
 > **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`): `FFmpegCommand`
 
-Defined in: [ffs/src/ffmpeg.ts:145](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L145)
+Defined in: [ffs/src/ffmpeg.ts:174](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L174)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Defined in: [ffs/src/ffmpeg.ts:145](https://github.com/builtbyfew/effing/blob/ma
 
 > **filterComplex**: `string`
 
-Defined in: [ffs/src/ffmpeg.ts:142](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L142)
+Defined in: [ffs/src/ffmpeg.ts:171](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L171)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [ffs/src/ffmpeg.ts:142](https://github.com/builtbyfew/effing/blob/ma
 
 > **globalArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:140](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L140)
+Defined in: [ffs/src/ffmpeg.ts:169](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L169)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [ffs/src/ffmpeg.ts:140](https://github.com/builtbyfew/effing/blob/ma
 
 > **inputs**: [`FFmpegInput`](../type-aliases/FFmpegInput.md)[]
 
-Defined in: [ffs/src/ffmpeg.ts:141](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L141)
+Defined in: [ffs/src/ffmpeg.ts:170](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L170)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [ffs/src/ffmpeg.ts:141](https://github.com/builtbyfew/effing/blob/ma
 
 > **outputArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:143](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L143)
+Defined in: [ffs/src/ffmpeg.ts:172](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L172)
 
 ## Methods
 
@@ -76,7 +76,7 @@ Defined in: [ffs/src/ffmpeg.ts:143](https://github.com/builtbyfew/effing/blob/ma
 
 > **buildArgs**(`inputResolver`): `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:157](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L157)
+Defined in: [ffs/src/ffmpeg.ts:202](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L202)
 
 #### Parameters
 
@@ -87,3 +87,26 @@ Defined in: [ffs/src/ffmpeg.ts:157](https://github.com/builtbyfew/effing/blob/ma
 #### Returns
 
 `string`[]
+
+***
+
+### canSplitInput()
+
+> **canSplitInput**(`input`): `boolean`
+
+Defined in: [ffs/src/ffmpeg.ts:192](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L192)
+
+Whether an animation input can be read as a Matroska stream of several
+tracks (see FFmpegPipeSource): it has a `-framerate` (which sets the
+frames' times), and the filter graph reads its video once, as
+`[<index>:v]`.
+
+#### Parameters
+
+##### input
+
+[`FFmpegInput`](../type-aliases/FFmpegInput.md)
+
+#### Returns
+
+`boolean`

@@ -1,5 +1,18 @@
 # @effing/ffs
 
+## 0.47.0
+
+### Minor Changes
+
+- 6b90482: Decode JPEG annies on several threads: FFmpeg's JPEG decoder is single-threaded, so a streamed JPEG annie is now split round-robin over up to 4 tracks of a Matroska stream (one decoder each; a decoder per 4 cores) and interleaved back in the filter graph, with the same frames and timestamps. FFmpeg waits at most 50 ms for an annie to have a frame per decoder; an annie that has fewer is split over fewer. Annies whose frames on disk differ in size or format, short complete annies, and PNG/QOI annies (whose decoders are multi-threaded already) aren't split. `FFmpegRunner` takes a `decodeTracks` option to change the limit (1 turns splitting off).
+- 9d4523f: Start FFmpeg before annies are complete: each annie is streamed into FFmpeg through a pipe as its frames come in, so FFmpeg starts once the other sources are ready and every annie has its first frame, instead of after the last frame of the slowest annie. An annie whose frames mix image formats (e.g. JPEG and PNG) now fails the render instead of dropping the frames that don't match the first.
+
+### Patch Changes
+
+- 00cf373: Render an opaque layer that covers the frame for its whole segment (a JPEG photo or a JPEG annie, say) over a colour background as the segment's base, instead of converting it to an alpha format and blending it over the background. FFS reads whether a layer is opaque, and its size, from the fetched image's header (an annie's first frame) before it starts FFmpeg. This saves FFmpeg CPU time and around 0.6–1 GB of memory in renders with full-frame photos. For JPEG layers over a colour background the output is unchanged, byte for byte; an opaque RGB PNG or QOI base layer in a render that also has JPEG layers can differ by a few levels of rounding in its segment.
+  - @effing/annie@0.47.0
+  - @effing/effie@0.47.0
+
 ## 0.46.2
 
 ### Patch Changes

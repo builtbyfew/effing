@@ -546,11 +546,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         // background: cropped to the frame at 0:0, as many frames as the
         // segment has (an animation that ends early holds its last frame,
         // as the overlay did), on the background's 1/fps timebase, and with
-        // its frame properties (see BASE_LAYER_FRAME_PROPS).
+        // its frame properties (see BASE_LAYER_FRAME_PROPS). tpad clones
+        // the last frame at the input frame rate's interval, so an
+        // animation gets an fps= before it: not every source sets a frame
+        // rate (an annie split into tracks has none, see buildArgs), and
+        // without one the clones all share the last frame's timestamp, so
+        // the trim never ends the stream.
         const fps = `fps=${this.effieData.fps}`;
         const holdLastFrame =
           layer.type === "animation"
             ? [
+                fps,
                 "tpad=stop=-1:stop_mode=clone",
                 `trim=duration=${segment.duration}`,
               ]

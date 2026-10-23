@@ -743,7 +743,7 @@ describe("EffieRenderer opaque base layers", () => {
     const zoom: Layer = { type: "animation", source: "https://example.com/z" };
     const g = graph([zoom], { 1: opaque(100, 100) });
     expect(g).toContain(
-      `[1:v]scale=w=iw:h=ih:eval=init,format=yuv420p,trim=start=0:duration=2,crop=100:100:0:0,setsar=1,setpts=PTS-STARTPTS,tpad=stop=-1:stop_mode=clone,trim=duration=2,fps=30,${baseProps}[seg0_tmp0]`,
+      `[1:v]scale=w=iw:h=ih:eval=init,format=yuv420p,trim=start=0:duration=2,crop=100:100:0:0,setsar=1,setpts=PTS-STARTPTS,fps=30,tpad=stop=-1:stop_mode=clone,trim=duration=2,fps=30,${baseProps}[seg0_tmp0]`,
     );
   });
 

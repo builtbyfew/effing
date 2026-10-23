@@ -1,4 +1,4 @@
-import { describe, test, expect, afterAll, beforeAll } from "vitest";
+import { describe, test, expect, afterAll, beforeAll, vi } from "vitest";
 import { EffieRenderer } from "./renderer";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import type { Readable } from "stream";
@@ -2775,13 +2775,15 @@ describe("opaque base layers", () => {
   /**
    * Renders `effieData` with FFmpegRunner, either with the graph built from
    * the fetched sources, or with the plain one, and returns the output and
-   * the graph that ran.
+   * the graph that ran. JPEG annies are split over up to `decodeTracks`
+   * decoders (see FFmpegRunnerOptions).
    */
   async function render(
     effieData: EffieData<EffieSources>,
     scale: number,
     useSourceInfo: boolean,
-  ): Promise<{ output: Buffer; graph: string }> {
+    decodeTracks = 1,
+  ): Promise<{ output: Buffer; graph: string; args: string[] }> {
     const renderer = new EffieRenderer(effieData, { httpProxy: false });
     const internals = renderer as unknown as {
       buildFFmpegCommand: (out: string, scale: number) => FFmpegCommand;
@@ -2799,7 +2801,9 @@ describe("opaque base layers", () => {
         command.outputArgs,
         useSourceInfo ? (info) => (graph = builder(info)) : undefined,
       ),
+      { decodeTracks },
     );
+    const commandArgs = vi.spyOn(FFmpegCommand.prototype, "buildArgs");
     const stream = await runner.run(
       ({ src }) => internals.fetchSource(src),
       (src) => internals.resolveReference(src),
@@ -2807,7 +2811,9 @@ describe("opaque base layers", () => {
     const chunks: Buffer[] = [];
     for await (const c of stream) chunks.push(c);
     runner.close();
-    return { output: Buffer.concat(chunks), graph };
+    const args = commandArgs.mock.results[0].value as string[];
+    commandArgs.mockRestore();
+    return { output: Buffer.concat(chunks), graph, args };
   }
 
   test.for([1, 0.5])(
@@ -2902,6 +2908,54 @@ describe("opaque base layers", () => {
         expect(plain.graph).toContain("[bg_seg0][seg0_layer0]overlay");
         expect(based.graph).not.toMatch(/\[bg_seg\d\]/);
         expect(based.graph).toContain("[seg0_tmp0][delayed_seg0_layer1]");
+        expect(based.output.equals(plain.output)).toBe(true);
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+
+  test.for([1, 0.5])(
+    "a JPEG annie split into tracks holds its last frame as a base layer, at scale %s",
+    { timeout: 30000 },
+    async (scale) => {
+      const tempDir = await createTestOutputDir(`opaque-base-split-${scale}`);
+      try {
+        // 20 frames (2 s), enough to split, in a 3 s segment.
+        const frames = await Promise.all(
+          Array.from({ length: 20 }, (_, i) =>
+            image(
+              tempDir,
+              `frame${i}.jpg`,
+              `testsrc2=s=${W}x${H}:d=2:r=${fps},trim=start_frame=${i},setpts=PTS-STARTPTS`,
+              "mjpeg",
+              "yuvj420p",
+            ),
+          ),
+        );
+        const effieData: EffieData<EffieSources> = {
+          width: W,
+          height: H,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "blue" },
+          segments: [
+            {
+              duration: 3,
+              layers: [
+                {
+                  type: "animation",
+                  source: dataUrl(await annieOf(frames), "application/x-tar"),
+                },
+              ],
+            },
+          ],
+        };
+        const plain = await render(effieData, scale, false);
+        const based = await render(effieData, scale, true, 4);
+        expect(plain.graph).toContain("[bg_seg0][seg0_layer0]overlay");
+        expect(based.graph).not.toMatch(/\[bg_seg\d\]/);
+        expect(based.args.join(" ")).toContain("interleave=nb_inputs=4");
         expect(based.output.equals(plain.output)).toBe(true);
       } finally {
         await cleanupTestOutput(tempDir);

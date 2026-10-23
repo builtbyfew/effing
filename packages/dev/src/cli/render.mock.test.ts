@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loadConfig } from "../config/load";
+import { startDevServer } from "../server/dev/host";
 import { runRender } from "./render";
 
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
@@ -87,5 +88,16 @@ describe("runRender for effies", () => {
     await runRender("effie", "video", { output: "out.mp4" });
 
     expect(prewarmedWith).toEqual(["http://127.0.0.1:3839"]);
+  });
+
+  test("reports a missing ffs before starting (and prewarming) the server", async () => {
+    fs.rmSync(path.join(configDir, "node_modules/.bin/ffs"));
+
+    await expect(
+      runRender("effie", "video", { output: "out.mp4" }),
+    ).rejects.toThrow(/requires the @effing\/ffs package/);
+
+    expect(startDevServer).not.toHaveBeenCalled();
+    expect(prewarmedWith).toEqual([]);
   });
 });

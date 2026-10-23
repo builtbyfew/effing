@@ -182,9 +182,9 @@ describe("streamRenderVideo", () => {
     };
 
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const { streamRenderVideo } = await import("./rendering");
 
@@ -232,9 +232,9 @@ describe("streamRenderVideo", () => {
     };
 
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const { streamRenderVideo } = await import("./rendering");
 
@@ -286,9 +286,9 @@ describe("streamRenderVideo", () => {
     };
 
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const { streamRenderVideo } = await import("./rendering");
 
@@ -396,9 +396,9 @@ describe("streamRenderVideo", () => {
     };
 
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const { streamRenderVideo } = await import("./rendering");
 
@@ -432,9 +432,9 @@ describe("streamRenderVideo", () => {
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
     const { streamRenderVideo } = await import("./rendering");
 
     const res = mockResponse();
@@ -884,9 +884,9 @@ describe("streamRenderProgress with upload", () => {
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const putCalls = await mockPutCapture();
 
@@ -939,9 +939,9 @@ describe("streamRenderProgress with upload", () => {
         close: vi.fn(),
       };
       const { EffieRenderer } = await import("../renderer");
-      vi.mocked(EffieRenderer).mockImplementation(
-        () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-      );
+      vi.mocked(EffieRenderer).mockImplementation(function () {
+        return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+      });
 
       const cover = Buffer.from([...magic, 1, 2, 3]);
       const { ffsFetch } = await import("../fetch");
@@ -1025,9 +1025,9 @@ describe("streamRenderProgress with upload", () => {
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const jobId = "source-body-failure-upload-id";
     const { streamRenderProgress } = await import("./rendering");
@@ -1147,9 +1147,9 @@ describe("streamRenderProgress with upload", () => {
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     const putCalls = await mockPutCapture({
       ok: false,
@@ -1320,9 +1320,9 @@ describe("streamRenderVideo failing mid-stream", () => {
       close: vi.fn(),
     };
     const { EffieRenderer } = await import("../renderer");
-    vi.mocked(EffieRenderer).mockImplementation(
-      () => mockRenderer as unknown as InstanceType<typeof EffieRenderer>,
-    );
+    vi.mocked(EffieRenderer).mockImplementation(function () {
+      return mockRenderer as unknown as InstanceType<typeof EffieRenderer>;
+    });
 
     await fetchVideo(
       mockContext({ [storeKeys.videoJob(jobId)]: videoJob }),

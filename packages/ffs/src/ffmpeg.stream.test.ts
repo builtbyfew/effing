@@ -350,6 +350,20 @@ describe("FFmpegRunner with streamed annies", () => {
     ).rejects.toThrow("fetch failed");
   });
 
+  test(
+    "a consumer that destroys the output stops the annies",
+    { timeout: 10000 },
+    async () => {
+      const g = gate();
+      const command = framemd5Command([animationInput(0, "#anim")]);
+      const runner = new FFmpegRunner(command);
+      const source = gatedAnnie(frames.jpeg, { after: 2, open: g.promise });
+      const output = await runner.run(async () => source);
+      output.destroy();
+      await vi.waitFor(() => expect(source.destroyed).toBe(true));
+    },
+  );
+
   test("close() stops FFmpeg and the annies", { timeout: 10000 }, async () => {
     const g = gate();
     const command = framemd5Command([animationInput(0, "#anim")]);

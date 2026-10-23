@@ -398,6 +398,11 @@ export class FFmpegRunner {
         if (!output.destroyed) output.destroy(toError(err));
       };
       for (const extraction of extractions) extraction.done.catch(fail);
+      // A consumer that gives up on the output doesn't need the rest of the
+      // annies either (and the temp dir goes once they've stopped).
+      output.once("close", () => {
+        if (failure === undefined) abortExtractions();
+      });
       // A feed that can't read a frame has ended its pipe early, so FFmpeg
       // may well exit 0 on what it got: that still fails the render.
       let feedError: unknown;
@@ -476,6 +481,13 @@ export class FFmpegRunner {
       // being extracted stop at their next frame.
       abortExtractions();
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      // An annie in the middle of writing a frame can still add it (and
+      // make that rm fail): remove the dir again once they've all stopped.
+      if (extractions.length > 0) {
+        void Promise.allSettled(extractions.map((e) => e.done))
+          .then(() => fs.rm(tempDir, { recursive: true, force: true }))
+          .catch(() => {});
+      }
       if (this.closed) throw new Error("FFmpegRunner is closed");
       throw err;
     }

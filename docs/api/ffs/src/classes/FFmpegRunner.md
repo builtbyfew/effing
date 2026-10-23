@@ -32,7 +32,7 @@ Defined in: [ffs/src/ffmpeg.ts:202](https://github.com/builtbyfew/effing/blob/ma
 
 > **close**(): `void`
 
-Defined in: [ffs/src/ffmpeg.ts:485](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L485)
+Defined in: [ffs/src/ffmpeg.ts:497](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L497)
 
 Stops FFmpeg, or keeps it from starting. The runner can't run again.
 

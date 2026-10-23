@@ -6,7 +6,7 @@
 
 # Class: FFmpegRunner
 
-Defined in: [ffs/src/ffmpeg.ts:430](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L430)
+Defined in: [ffs/src/ffmpeg.ts:442](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L442)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [ffs/src/ffmpeg.ts:430](https://github.com/builtbyfew/effing/blob/ma
 
 > **new FFmpegRunner**(`command`, `options?`): `FFmpegRunner`
 
-Defined in: [ffs/src/ffmpeg.ts:438](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L438)
+Defined in: [ffs/src/ffmpeg.ts:450](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L450)
 
 #### Parameters
 
@@ -36,7 +36,7 @@ Defined in: [ffs/src/ffmpeg.ts:438](https://github.com/builtbyfew/effing/blob/ma
 
 > **close**(): `void`
 
-Defined in: [ffs/src/ffmpeg.ts:785](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L785)
+Defined in: [ffs/src/ffmpeg.ts:797](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L797)
 
 Stops FFmpeg, or keeps it from starting. The runner can't run again.
 
@@ -50,7 +50,7 @@ Stops FFmpeg, or keeps it from starting. The runner can't run again.
 
 > **run**(`sourceFetcher`, `referenceResolver?`, `urlTransformer?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/ffmpeg.ts:458](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L458)
+Defined in: [ffs/src/ffmpeg.ts:470](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L470)
 
 Fetches the sources and starts FFmpeg on them, and resolves with its
 output.

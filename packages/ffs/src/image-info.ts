@@ -75,9 +75,9 @@ const PNG_TEXT_EXIF_KEYWORD = "Raw profile type exif";
  * the palette's alpha) and for greyscale or RGB images with a tRNS chunk
  * before the first IDAT. It rotates or flips the image as the orientation
  * in the last EXIF it finds says: an eXIf chunk, or a text chunk with an
- * ImageMagick "Raw profile type exif", anywhere up to IEND. So the whole
- * file has to be in `bytes`; a PNG with text EXIF, which isn't parsed here,
- * is unknown.
+ * ImageMagick "Raw profile type exif", anywhere up to IEND. So the chunks
+ * up to IEND have to be in `bytes` (see readPngChunks); a PNG with text
+ * EXIF, which isn't parsed here, is unknown.
  */
 function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   // Signature, then IHDR: length, "IHDR", width, height, depth, colour type
@@ -260,7 +260,7 @@ function readQoiInfo(bytes: Uint8Array): ImageInfo | undefined {
 /**
  * Reads the size of a PNG, JPEG or QOI image, and whether FFmpeg decodes it
  * with an alpha channel, from its first bytes (see IMAGE_INFO_BYTES), or
- * from the whole file for a PNG (see isPng).
+ * from its chunks up to IEND for a PNG (see readPngChunks).
  *
  * @returns The image's info, or `undefined` when it isn't one of these
  *   formats, or its header isn't within `bytes`
@@ -275,11 +275,70 @@ export function readImageInfo(bytes: Uint8Array): ImageInfo | undefined {
 }
 
 /**
- * Whether `bytes` start a PNG, which readImageInfo needs whole: FFmpeg
- * takes its orientation from EXIF that can come after the image data.
+ * Whether `bytes` start a PNG, which readImageInfo needs up to its IEND:
+ * FFmpeg takes its orientation from EXIF that can come after the image
+ * data (see readPngChunks).
  */
 export function isPng(bytes: Uint8Array): boolean {
   return startsWith(bytes, PNG_SIGNATURE);
+}
+
+/** Bytes of a chunk's data readPngInfo looks at, by chunk type. */
+function pngChunkBytesUsed(type: string, length: number): number {
+  if (type === "IHDR" || type === "eXIf") return length;
+  if (PNG_TEXT_CHUNKS.has(type)) {
+    return Math.min(length, PNG_TEXT_EXIF_KEYWORD.length + 1);
+  }
+  return 0;
+}
+
+/**
+ * Reads a PNG's chunks with `read(position, length)` (the bytes of the
+ * file there, fewer at its end) into what readImageInfo needs of it, in
+ * memory bounded by `maxBytes`: the signature, then each chunk as is,
+ * but with only the data readPngInfo looks at (IHDR, eXIf and the start of
+ * text chunks), and the length to match. Undefined when the file isn't a
+ * PNG, ends before IEND, or needs more than `maxBytes`.
+ */
+export async function readPngChunks(
+  read: (position: number, length: number) => Promise<Uint8Array>,
+  maxBytes = IMAGE_INFO_BYTES,
+): Promise<Uint8Array | undefined> {
+  const signature = await read(0, PNG_SIGNATURE.length);
+  if (!isPng(signature)) return undefined;
+  const parts: Uint8Array[] = [signature];
+  let size = signature.length;
+  let position = signature.length;
+  for (;;) {
+    const header = await read(position, 8);
+    if (header.length < 8) return undefined;
+    const length = readUint32BE(header, 0);
+    const type = String.fromCharCode(...header.subarray(4, 8));
+    const used = pngChunkBytesUsed(type, length);
+    size += 12 + used;
+    if (size > maxBytes) return undefined;
+    const data = used > 0 ? await read(position + 8, used) : new Uint8Array();
+    if (data.length < used) return undefined;
+    const chunk = new Uint8Array(12 + used);
+    chunk.set([
+      used >>> 24,
+      (used >>> 16) & 0xff,
+      (used >>> 8) & 0xff,
+      used & 0xff,
+    ]);
+    chunk.set(header.subarray(4, 8), 4);
+    chunk.set(data, 8);
+    parts.push(chunk); // The CRC isn't checked.
+    if (type === "IEND") break;
+    position += 12 + length; // length, type, data, CRC
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const part of parts) {
+    bytes.set(part, offset);
+    offset += part.length;
+  }
+  return bytes;
 }
 
 /**

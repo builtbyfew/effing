@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readImageInfo } from "./image-info";
+import { readImageInfo, readPngChunks } from "./image-info";
 
 function chunk(type: string, data: number[] = []): number[] {
   const length = [
@@ -288,5 +288,32 @@ describe("readImageInfo", () => {
   test("anything else is unknown", () => {
     expect(readImageInfo(new Uint8Array())).toBeUndefined();
     expect(readImageInfo(Buffer.from("GIF89a....", "latin1"))).toBeUndefined();
+  });
+});
+
+describe("readPngChunks", () => {
+  const reader =
+    (bytes: Uint8Array) => async (position: number, length: number) =>
+      bytes.subarray(position, position + length);
+  const exifChunk = chunk("eXIf", exif(6).slice(4 + 6));
+  const text = chunk("tEXt", [
+    ...Buffer.from("Comment\0" + "x".repeat(1000), "latin1"),
+  ]);
+  const bytes = png(2, [text, chunk("tRNS", [0, 0, 0, 0, 0, 0]), exifChunk]);
+
+  test("keeps what readImageInfo needs, without the image data", async () => {
+    const chunks = await readPngChunks(reader(bytes));
+    expect(chunks!.length).toBeLessThan(200);
+    expect(readImageInfo(chunks!)).toEqual(readImageInfo(bytes));
+    expect(readImageInfo(chunks!)).toMatchObject({ width: 200, alpha: true });
+  });
+
+  test("a PNG cut off before IEND, or with more than maxBytes, is unknown", async () => {
+    const cut = bytes.subarray(0, bytes.length - 12);
+    expect(await readPngChunks(reader(cut))).toBeUndefined();
+    expect(await readPngChunks(reader(bytes), 60)).toBeUndefined();
+    expect(
+      await readPngChunks(reader(Uint8Array.from([1, 2, 3]))),
+    ).toBeUndefined();
   });
 });

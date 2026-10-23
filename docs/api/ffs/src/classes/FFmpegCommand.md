@@ -6,7 +6,7 @@
 
 # Class: FFmpegCommand
 
-Defined in: [ffs/src/ffmpeg.ts:232](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L232)
+Defined in: [ffs/src/ffmpeg.ts:244](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L244)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [ffs/src/ffmpeg.ts:232](https://github.com/builtbyfew/effing/blob/ma
 
 > **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`, `filterComplexBuilder?`): `FFmpegCommand`
 
-Defined in: [ffs/src/ffmpeg.ts:245](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L245)
+Defined in: [ffs/src/ffmpeg.ts:257](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L257)
 
 #### Parameters
 
@@ -48,7 +48,7 @@ Defined in: [ffs/src/ffmpeg.ts:245](https://github.com/builtbyfew/effing/blob/ma
 
 > **filterComplex**: `string`
 
-Defined in: [ffs/src/ffmpeg.ts:236](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L236)
+Defined in: [ffs/src/ffmpeg.ts:248](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L248)
 
 The filter graph, for when nothing is known about the sources.
 
@@ -58,7 +58,7 @@ The filter graph, for when nothing is known about the sources.
 
 > `optional` **filterComplexBuilder?**: `FilterComplexBuilder`
 
-Defined in: [ffs/src/ffmpeg.ts:243](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L243)
+Defined in: [ffs/src/ffmpeg.ts:255](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L255)
 
 Builds the filter graph once the sources are fetched, from what they
 turned out to be (e.g. to skip what an opaque layer covers). When
@@ -70,7 +70,7 @@ omitted, `filterComplex` is used.
 
 > **globalArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:233](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L233)
+Defined in: [ffs/src/ffmpeg.ts:245](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L245)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [ffs/src/ffmpeg.ts:233](https://github.com/builtbyfew/effing/blob/ma
 
 > **inputs**: [`FFmpegInput`](../type-aliases/FFmpegInput.md)[]
 
-Defined in: [ffs/src/ffmpeg.ts:234](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L234)
+Defined in: [ffs/src/ffmpeg.ts:246](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L246)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [ffs/src/ffmpeg.ts:234](https://github.com/builtbyfew/effing/blob/ma
 
 > **outputArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:237](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L237)
+Defined in: [ffs/src/ffmpeg.ts:249](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L249)
 
 ## Methods
 
@@ -94,7 +94,7 @@ Defined in: [ffs/src/ffmpeg.ts:237](https://github.com/builtbyfew/effing/blob/ma
 
 > **buildArgs**(`inputResolver`, `inputInfo?`): `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:313](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L313)
+Defined in: [ffs/src/ffmpeg.ts:325](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L325)
 
 #### Parameters
 
@@ -116,7 +116,7 @@ Defined in: [ffs/src/ffmpeg.ts:313](https://github.com/builtbyfew/effing/blob/ma
 
 > **canSplitInput**(`input`, `graph?`): `boolean`
 
-Defined in: [ffs/src/ffmpeg.ts:303](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L303)
+Defined in: [ffs/src/ffmpeg.ts:315](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L315)
 
 Whether an animation input can be read as a Matroska stream of several
 tracks (see FFmpegPipeSource): it has a `-framerate` (which sets the
@@ -144,7 +144,7 @@ an input out, e.g. a layer beneath a base layer.
 
 > **filterGraph**(`inputInfo?`): `string`
 
-Defined in: [ffs/src/ffmpeg.ts:288](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L288)
+Defined in: [ffs/src/ffmpeg.ts:300](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L300)
 
 The filter graph for what the inputs' sources turned out to be (see
 FilterComplexBuilder): `filterComplex` when there's no builder.
@@ -165,7 +165,7 @@ FilterComplexBuilder): `filterComplex` when there's no builder.
 
 > **readInputInfo**(`localPath`): `Promise`\<`Map`\<`number`, `FFmpegInputInfo`\>\>
 
-Defined in: [ffs/src/ffmpeg.ts:267](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L267)
+Defined in: [ffs/src/ffmpeg.ts:279](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L279)
 
 Reads the FFmpegInputInfo of every image and animation input that has
 a local file (see readInputInfo), if the filter graph uses it.

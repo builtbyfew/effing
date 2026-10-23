@@ -1,10 +1,11 @@
 import os from "os";
 import { steps } from "./steps";
 
-// Default concurrency: available cores, capped at 8. Frame callbacks are
-// dominated by synchronous draw work on the JS main thread, which cannot run
-// in parallel — extra concurrency only overlaps the async portions (e.g.
-// native encoding on @effing/skia's encode threads, one per core). Benchmarks
+// Default concurrency: available cores, capped at 8. A frame callback's
+// synchronous work on the JS main thread (layout and recording the draws)
+// cannot run in parallel; extra concurrency overlaps the async portions,
+// which for `canvas.encode()` of a freshly drawn canvas are both rasterising
+// and encoding, on @effing/skia's encode threads (one per core). Benchmarks
 // (when encoding ran on libuv's 4 threads) showed throughput saturating
 // around 4–8 in-flight frames, while in-order yielding retains one completed
 // frame buffer per slot, so peak memory keeps growing with each extra slot.
@@ -29,7 +30,7 @@ export type TweenInterval = {
  * @param fn Function that takes a tween interval and index, returns a promise
  * @param options Configuration options; `concurrency` defaults to the number
  * of available cores capped at 8 (concurrency overlaps async work such as
- * encoding, not the synchronous draw)
+ * rasterising and encoding, not the synchronous layout and draw recording)
  * @yields Resulting frames in order
  */
 export async function* tween<T>(
@@ -92,7 +93,7 @@ export async function* tween<T>(
  * @param fn Function that takes a tween interval and index, returns a promise
  * @param options Configuration options; `concurrency` defaults to the number
  * of available cores capped at 8 (concurrency overlaps async work such as
- * encoding, not the synchronous draw)
+ * rasterising and encoding, not the synchronous layout and draw recording)
  * @returns Promise resolving to array of resulting frames
  */
 export async function tweenToArray<T>(

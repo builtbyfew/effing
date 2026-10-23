@@ -144,7 +144,8 @@ const denseText = (paragraphs: number) => (
 );
 
 // Draws are recorded and only rasterized when pixels are read, so read one to
-// time the full frame, as encoding it would.
+// time the full frame, as encodeSync() would (encode() rasterizes off the JS
+// thread).
 async function frame(element: React.ReactNode) {
   await renderReactElement(ctx, element, { fonts });
   ctx.getImageData(0, 0, 1, 1);

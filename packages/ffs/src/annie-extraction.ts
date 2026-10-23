@@ -5,6 +5,8 @@ import path from "path";
 import type { AnnieFrameContentType } from "@effing/annie";
 import { annieFrames } from "@effing/annie";
 
+import { matroskaFrameHeader, matroskaHeader } from "./matroska";
+
 /**
  * The FFmpeg demuxers that read a stream of concatenated images of one
  * format, splitting it into frames with that format's parser.
@@ -14,6 +16,53 @@ const PIPE_FORMATS: Partial<Record<AnnieFrameContentType, string>> = {
   "image/png": "png_pipe",
   "image/qoi": "qoi_pipe",
 };
+
+/** The most decoder tracks a JPEG annie is split into (see decodeTracks()). */
+export const MAX_DECODE_TRACKS = 16;
+
+/**
+ * A JPEG annie that is complete when FFmpeg starts and has fewer frames than
+ * this isn't split: there's too little to decode to gain anything.
+ */
+const MIN_FRAMES_TO_SPLIT = 16;
+
+/**
+ * The parts of a JPEG's headers that set what FFmpeg's decoder makes of it
+ * (size, components, subsampling, bit depth, colour transform, aspect
+ * ratio): the APP0 (JFIF), APP14 (Adobe) and SOFn segments, verbatim. Two
+ * frames with the same parameters decode to frames of the same size, pixel
+ * format and sample aspect ratio. Undefined when the headers can't be
+ * walked up to the start of the scan.
+ */
+export function jpegParameters(bytes: Uint8Array): string | undefined {
+  const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (data[0] !== 0xff || data[1] !== 0xd8) return undefined;
+  const parts: string[] = [];
+  let offset = 2;
+  while (offset + 4 <= data.length) {
+    if (data[offset] !== 0xff) return undefined;
+    const marker = data[offset + 1];
+    if (marker === 0xff) {
+      offset++; // fill byte
+      continue;
+    }
+    if (marker === 0xda) return parts.join(","); // start of scan
+    const length = data.readUInt16BE(offset + 2);
+    const end = offset + 2 + length;
+    if (length < 2 || end > data.length) return undefined;
+    const isSof =
+      marker >= 0xc0 &&
+      marker <= 0xcf &&
+      marker !== 0xc4 &&
+      marker !== 0xc8 &&
+      marker !== 0xcc;
+    if (isSof || marker === 0xe0 || marker === 0xee) {
+      parts.push(data.toString("hex", offset + 1, end));
+    }
+    offset = end;
+  }
+  return undefined;
+}
 
 /** The name FFmpeg's image2 `frame_%05d` input pattern gives frame `index`. */
 export function frameFileName(index: number): string {
@@ -50,6 +99,13 @@ export class AnnieExtraction {
   error?: unknown;
 
   private written = new Set<string>();
+  /** jpegParameters() of frame 0 (of a JPEG annie). */
+  private firstJpegParameters?: string;
+  /**
+   * Whether a frame on disk has other jpegParameters() than frame 0 (or
+   * they couldn't be read).
+   */
+  private jpegParametersVary = false;
   private ended = false;
   private aborted = false;
   private source?: Readable;
@@ -103,6 +159,18 @@ export class AnnieExtraction {
                 "all frames of an annie must have the same image format",
             );
           }
+          if (this.pipeFormat === "jpeg_pipe") {
+            const parameters = jpegParameters(frame.data);
+            if (frame.name === frameFileName(0)) {
+              this.firstJpegParameters = parameters;
+            }
+            if (
+              parameters === undefined ||
+              parameters !== this.firstJpegParameters
+            ) {
+              this.jpegParametersVary = true;
+            }
+          }
           // Keep the on-disk names identical to the archive entry names so
           // the ffmpeg `frame_%05d` input pattern keeps matching.
           await fs.writeFile(path.join(this.dir, frame.name), frame.data);
@@ -143,6 +211,62 @@ export class AnnieExtraction {
   }
 
   /**
+   * Resolves once frames 0 to `count - 1` are on disk, or the extraction
+   * has ended.
+   */
+  async leadingFrames(count: number): Promise<void> {
+    await this.until(
+      () =>
+        this.ended ||
+        Array.from({ length: count }, (_, i) => frameFileName(i)).every(
+          (name) => this.written.has(name),
+        ),
+    );
+  }
+
+  /**
+   * How many tracks to split this annie's frames over when it's streamed
+   * (see feed()) from now, at most `max`; 1 not to split it.
+   *
+   * FFmpeg's JPEG decoder is single-threaded, so it decodes an annie's
+   * frames one after another, and slows down a render that has to decode
+   * many large ones. Split over k tracks of a Matroska stream, frame i on
+   * track i mod k, the frames are decoded by k decoders at once, and the
+   * filter graph interleaves them back by timestamp. (One input with k
+   * tracks, not k inputs: FFmpeg reads only the input the filter graph waits
+   * on, so k inputs would still be decoded mostly one after another.)
+   *
+   * Only JPEG annies are split; PNG and QOI decoders are multi-threaded
+   * already. k is at most the number of leading frames on disk: FFmpeg's
+   * demuxer needs every track's first frame to open the stream (see
+   * leadingFrames()).
+   *
+   * Each track configures its own branch of the filter graph, from the last
+   * frame it decoded before FFmpeg configured the graph (not necessarily
+   * its first), and interleave fails unless they all have the same size and
+   * aspect ratio. So an annie whose frames on disk don't all have the same
+   * JPEG parameters (see jpegParameters()) isn't split. (A frame with other
+   * parameters that comes in later, after FFmpeg configured the graph, is
+   * normalised downstream as without the split; see animationChainHead.
+   * One that reaches FFmpeg in the moment before can still fail the
+   * render.) An annie that is already complete and short isn't split
+   * either.
+   */
+  decodeTracks(max: number): number {
+    if (this.pipeFormat !== "jpeg_pipe" || this.error !== undefined) return 1;
+    if (this.ended && this.written.size < MIN_FRAMES_TO_SPLIT) return 1;
+    let tracks = 0;
+    while (
+      tracks < Math.min(max, MAX_DECODE_TRACKS) &&
+      this.written.has(frameFileName(tracks))
+    ) {
+      tracks++;
+    }
+    if (this.jpegParametersVary) return 1;
+    return Math.max(tracks, 1);
+  }
+
+  /**
    * Writes the frames to `pipe` as they land on disk, and ends it after the
    * last. They go in the order FFmpeg's image2 demuxer reads them from the
    * directory: frame_00000, frame_00001, ..., up to the first one the
@@ -153,6 +277,10 @@ export class AnnieExtraction {
    * (A fresh buffer per frame would leave hundreds of MB of external memory
    * for the garbage collector to find.)
    *
+   * With `tracks` above 1, the frames go into a Matroska stream of that
+   * many tracks instead, frame i on track i mod `tracks` at its time at
+   * `fps`, for FFmpeg's matroska demuxer (see decodeTracks()).
+   *
    * `pipe` mustn't hold on to a chunk once it has called the chunk's write
    * callback, as a socket or file stream doesn't.
    *
@@ -162,11 +290,20 @@ export class AnnieExtraction {
    * disk can't be read, after ending the pipe, which FFmpeg would otherwise
    * take for the end of the annie.
    */
-  async feed(pipe: Writable): Promise<void> {
+  async feed(
+    pipe: Writable,
+    { tracks = 1, fps = 1 }: { tracks?: number; fps?: number } = {},
+  ): Promise<void> {
     // EPIPE when FFmpeg exits without reading everything.
     pipe.on("error", () => {});
     let buffer = Buffer.alloc(0);
     try {
+      if (
+        tracks > 1 &&
+        !(await written(pipe, matroskaHeader(tracks, 1e9 / fps)))
+      ) {
+        return;
+      }
       for (let index = 0; !pipe.destroyed; index++) {
         const name = frameFileName(index);
         await this.until(() => this.written.has(name) || this.ended);
@@ -179,6 +316,15 @@ export class AnnieExtraction {
           await file.read(buffer, 0, size, 0);
         } finally {
           await file.close();
+        }
+        if (tracks > 1) {
+          const header = matroskaFrameHeader(
+            (index % tracks) + 1,
+            Math.round((index * 1000) / fps),
+            size,
+          );
+          // A fresh buffer: no need to wait until the pipe is done with it.
+          pipe.write(header);
         }
         if (!(await written(pipe, buffer.subarray(0, size)))) break;
       }

@@ -11,7 +11,7 @@ import { annieBuffer, annieStream } from "@effing/annie";
 import tar from "tar-stream";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import type { FFmpegInput } from "./ffmpeg";
-import { AnnieExtraction } from "./annie-extraction";
+import { AnnieExtraction, jpegParameters } from "./annie-extraction";
 
 // Annies stream into FFmpeg through pipes while they're still being
 // fetched (see AnnieExtraction). These tests run the real FFmpeg on tiny
@@ -28,6 +28,10 @@ const frames: Record<"jpeg" | "png" | "qoi", Buffer[]> = {
   png: [],
   qoi: [],
 };
+/** 20 JPEG frames, enough to be split over several decoders. */
+const longJpeg: Buffer[] = [];
+/** A JPEG frame of another size (48x36). */
+let otherSizeJpeg: Buffer;
 
 beforeAll(async () => {
   tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "ffs-stream-test-"));
@@ -57,6 +61,40 @@ beforeAll(async () => {
       frames[format].push(await fsp.readFile(path.join(dir, `f${i}`)));
     }
   }
+  const dir = path.join(tempDir, "long-jpeg");
+  await fsp.mkdir(dir);
+  await execFileP(ffmpegBin, [
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    `testsrc=s=32x24:r=${fps}`,
+    "-frames:v",
+    "20",
+    "-c:v",
+    "mjpeg",
+    "-f",
+    "image2",
+    path.join(dir, "f%d"),
+  ]);
+  for (let i = 1; i <= 20; i++) {
+    longJpeg.push(await fsp.readFile(path.join(dir, `f${i}`)));
+  }
+  await execFileP(ffmpegBin, [
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    `testsrc=s=48x36:r=${fps}`,
+    "-frames:v",
+    "1",
+    "-c:v",
+    "mjpeg",
+    "-f",
+    "image2",
+    path.join(dir, "other-size"),
+  ]);
+  otherSizeJpeg = await fsp.readFile(path.join(dir, "other-size"));
 });
 
 afterAll(async () => {
@@ -77,12 +115,17 @@ function animationInput(index: number, source: string): FFmpegInput {
   return { index, source, preArgs: animationPreArgs, type: "animation" };
 }
 
-/** A command that writes the frame checksums of its inputs' video. */
-function framemd5Command(inputs: FFmpegInput[]): FFmpegCommand {
+/**
+ * A command that writes the frame checksums of its inputs' video. With
+ * `chain`, each input goes through it first: `fps` makes the end of a
+ * stream matter (its last frame lasts until then).
+ */
+function framemd5Command(inputs: FFmpegInput[], chain = "null"): FFmpegCommand {
   const filter =
     inputs.length === 1
-      ? "[0:v]null[outv]"
-      : `${inputs.map((input) => `[${input.index}:v]`).join("")}concat=n=${inputs.length}:v=1:a=0[outv]`;
+      ? `[0:v]${chain}[outv]`
+      : `${inputs.map((input) => `[${input.index}:v]${chain}[in${input.index}]`).join(";")};` +
+        `${inputs.map((input) => `[in${input.index}]`).join("")}concat=n=${inputs.length}:v=1:a=0[outv]`;
   return new FFmpegCommand(["-y", "-loglevel", "error"], inputs, filter, [
     "-map",
     "[outv]",
@@ -93,7 +136,10 @@ function framemd5Command(inputs: FFmpegInput[]): FFmpegCommand {
 }
 
 /** What the image2 input decodes from these frames as files. */
-async function framemd5FromFiles(frameData: Buffer[][]): Promise<string> {
+async function framemd5FromFiles(
+  frameData: Buffer[][],
+  chain?: string,
+): Promise<string> {
   const dirs = await Promise.all(
     frameData.map(async (annieFrames) => {
       const dir = await fsp.mkdtemp(path.join(tempDir, "files-"));
@@ -110,6 +156,7 @@ async function framemd5FromFiles(frameData: Buffer[][]): Promise<string> {
   );
   const command = framemd5Command(
     dirs.map((dir, index) => animationInput(index, dir)),
+    chain,
   );
   const { stdout } = await execFileP(
     ffmpegBin,
@@ -165,6 +212,54 @@ describe("FFmpegCommand.buildArgs", () => {
     ]);
   });
 
+  test("a split animation reads its tracks with the matroska demuxer and interleaves them", () => {
+    const command = framemd5Command([animationInput(0, "#anim")]);
+    const args = command.buildArgs(() => ({
+      fd: 3,
+      format: "matroska",
+      tracks: 3,
+    }));
+    expect(args.slice(3, 11)).toEqual([
+      "-fpsprobesize",
+      "0",
+      "-reinit_filter",
+      "0",
+      "-f",
+      "matroska",
+      "-i",
+      "pipe:3",
+    ]);
+    expect(args[args.indexOf("-filter_complex") + 1]).toBe(
+      "[0:0]settb=AVTB[pipe0t0];[0:1]settb=AVTB[pipe0t1];[0:2]settb=AVTB[pipe0t2];" +
+        "[pipe0t0][pipe0t1][pipe0t2]interleave=nb_inputs=3,settb=1/10," +
+        "setpts='PTS+eq(PTS,PREV_INPTS)'[pipe0v];[pipe0v]null[outv]",
+    );
+  });
+
+  test("an animation the graph reads twice, or without a frame rate, can't be split", () => {
+    const twice = new FFmpegCommand(
+      [],
+      [animationInput(0, "#anim")],
+      "[0:v]null[a];[0:v]null[b]",
+      [],
+    );
+    expect(twice.canSplitInput(twice.inputs[0])).toBe(false);
+    const noRate = framemd5Command([
+      {
+        index: 0,
+        source: "#anim",
+        preArgs: ["-f", "image2"],
+        type: "animation",
+      },
+    ]);
+    expect(noRate.canSplitInput(noRate.inputs[0])).toBe(false);
+    const ok = framemd5Command([animationInput(0, "#anim")]);
+    expect(ok.canSplitInput(ok.inputs[0])).toBe(true);
+    expect(() =>
+      twice.buildArgs(() => ({ fd: 3, format: "matroska", tracks: 2 })),
+    ).toThrow("can't be split");
+  });
+
   test("only animations can be piped", () => {
     const command = framemd5Command([
       { index: 0, source: "#img", preArgs: [], type: "image" },
@@ -200,7 +295,7 @@ describe("FFmpegRunner with streamed annies", () => {
         animationInput(0, "#a"),
         animationInput(1, "#b"),
       ]);
-      const runner = new FFmpegRunner(command);
+      const runner = new FFmpegRunner(command, { decodeTracks: 1 });
       const fetcher = vi.fn(async ({ src }: { src: string }) =>
         src === "#a"
           ? gatedAnnie(frames.jpeg, { after: 2, open: g.promise })
@@ -244,7 +339,7 @@ describe("FFmpegRunner with streamed annies", () => {
       try {
         const g = gate();
         const command = framemd5Command([animationInput(0, "#anim")]);
-        const runner = new FFmpegRunner(command);
+        const runner = new FFmpegRunner(command, { decodeTracks: 1 });
         const output = await runner.run(async () =>
           gatedAnnie(
             frames.jpeg,
@@ -297,7 +392,7 @@ describe("FFmpegRunner with streamed annies", () => {
     { timeout: 10000 },
     async () => {
       const command = framemd5Command([animationInput(0, "#anim")]);
-      const runner = new FFmpegRunner(command);
+      const runner = new FFmpegRunner(command, { decodeTracks: 1 });
       const output = await runner.run(async () =>
         Readable.from([
           await annieBuffer(
@@ -367,7 +462,7 @@ describe("FFmpegRunner with streamed annies", () => {
   test("close() stops FFmpeg and the annies", { timeout: 10000 }, async () => {
     const g = gate();
     const command = framemd5Command([animationInput(0, "#anim")]);
-    const runner = new FFmpegRunner(command);
+    const runner = new FFmpegRunner(command, { decodeTracks: 1 });
     const source = gatedAnnie(frames.jpeg, { after: 2, open: g.promise });
     const output = await runner.run(async () => source);
     output.resume();
@@ -377,6 +472,201 @@ describe("FFmpegRunner with streamed annies", () => {
     await finished(output).catch(() => {});
     expect(source.destroyed).toBe(true);
   });
+});
+
+describe("FFmpegRunner with JPEG annies split over several decoders", () => {
+  /**
+   * Runs `command` on annies, capturing FFmpeg's args. FFmpeg starts once
+   * an (unused) image input comes in, 150 ms in, by when the annies'
+   * leading frames are on disk (see streamedAnnie()).
+   */
+  async function runSplit(
+    command: FFmpegCommand,
+    decodeTracks: number,
+    fetch: (input: { src: string }) => Promise<Readable>,
+  ): Promise<{ output: string; args: string[] }> {
+    const withLateImage = new FFmpegCommand(
+      command.globalArgs,
+      [
+        ...command.inputs,
+        {
+          index: command.inputs.length,
+          source: "#late",
+          preArgs: [],
+          type: "image",
+        },
+      ],
+      command.filterComplex,
+      command.outputArgs,
+    );
+    const buildArgs = vi.spyOn(withLateImage, "buildArgs");
+    const runner = new FFmpegRunner(withLateImage, { decodeTracks });
+    const output = await collect(
+      await runner.run(async (input) => {
+        if (input.src !== "#late") return fetch(input);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return Readable.from([frames.png[0]]);
+      }),
+    );
+    return { output, args: buildArgs.mock.results[0].value as string[] };
+  }
+
+  /**
+   * An annie whose first `after` frames come at once, and the rest 300 ms
+   * later, after FFmpeg started (see runSplit()).
+   */
+  function streamedAnnie(frameData: Buffer[], after: number): Readable {
+    return gatedAnnie(frameData, {
+      after,
+      open: new Promise((resolve) => setTimeout(resolve, 300)),
+    });
+  }
+
+  test.for([2, 3, 4, 7])(
+    "%i tracks decode what one decoder does, to the end of the stream",
+    { timeout: 10000 },
+    async (tracks) => {
+      const command = framemd5Command([animationInput(0, "#anim")], "fps=10");
+      const { output, args } = await runSplit(command, tracks, async () =>
+        streamedAnnie(longJpeg, tracks),
+      );
+      expect(args).toContain("matroska");
+      expect(args.join(" ")).toContain(`interleave=nb_inputs=${tracks}`);
+      expect(output).toBe(await framemd5FromFiles([longJpeg], "fps=10"));
+    },
+  );
+
+  test(
+    "a frame that doesn't decode leaves the same gap",
+    { timeout: 10000 },
+    async () => {
+      const broken = [...longJpeg];
+      broken[9] = Buffer.concat([longJpeg[9].subarray(0, 40)]);
+      const command = framemd5Command([animationInput(0, "#anim")]);
+      const { output, args } = await runSplit(command, 3, async () =>
+        streamedAnnie(broken, 3),
+      );
+      expect(args).toContain("matroska");
+      expect(output).toBe(await framemd5FromFiles([broken]));
+    },
+  );
+
+  test(
+    "a later frame of another size is normalised as without the split",
+    { timeout: 10000 },
+    async () => {
+      const mixed = [...longJpeg];
+      mixed[10] = otherSizeJpeg;
+      const chain = "scale=w=iw:h=ih:eval=init,format=yuva420p";
+      const command = framemd5Command([animationInput(0, "#anim")], chain);
+      const { output, args } = await runSplit(command, 4, async () =>
+        streamedAnnie(mixed, 4),
+      );
+      expect(args).toContain("matroska");
+      expect(output).toBe(await framemd5FromFiles([mixed], chain));
+    },
+  );
+
+  test(
+    "an annie whose frames on disk differ isn't split",
+    { timeout: 10000 },
+    async () => {
+      const chain = "scale=w=iw:h=ih:eval=init,format=yuva420p";
+      const command = framemd5Command([animationInput(0, "#anim")], chain);
+      const second = [...longJpeg];
+      second[1] = otherSizeJpeg;
+      const one = await runSplit(command, 4, async () =>
+        streamedAnnie(second, 4),
+      );
+      expect(one.args).toContain("jpeg_pipe");
+      expect(one.output).toBe(await framemd5FromFiles([second], chain));
+      const third = [...longJpeg];
+      third[2] = otherSizeJpeg;
+      const two = await runSplit(command, 4, async () =>
+        streamedAnnie(third, 4),
+      );
+      expect(two.args).toContain("jpeg_pipe");
+      expect(two.output).toBe(await framemd5FromFiles([third], chain));
+    },
+  );
+
+  test("PNG and QOI annies aren't split", { timeout: 10000 }, async () => {
+    const command = framemd5Command([
+      animationInput(0, "#png"),
+      animationInput(1, "#qoi"),
+    ]);
+    const buildArgs = vi.spyOn(command, "buildArgs");
+    const runner = new FFmpegRunner(command, { decodeTracks: 4 });
+    const result = await collect(
+      await runner.run(async ({ src }) =>
+        streamedAnnie(src === "#png" ? frames.png : frames.qoi, 4),
+      ),
+    );
+    const finalArgs = buildArgs.mock.results[0].value as string[];
+    expect(finalArgs).toContain("png_pipe");
+    expect(finalArgs).toContain("qoi_pipe");
+    expect(result).toBe(await framemd5FromFiles([frames.png, frames.qoi]));
+  });
+
+  test(
+    "FFmpeg waits a moment for a JPEG annie's frames to split it",
+    { timeout: 10000 },
+    async () => {
+      const command = framemd5Command([animationInput(0, "#anim")]);
+      const buildArgs = vi.spyOn(command, "buildArgs");
+      const runner = new FFmpegRunner(command, { decodeTracks: 3 });
+      // Frames 1, 2, ... come 10 ms after frame 0.
+      const output = await runner.run(async () =>
+        gatedAnnie(longJpeg, {
+          after: 1,
+          open: new Promise((resolve) => setTimeout(resolve, 10)),
+        }),
+      );
+      expect(buildArgs.mock.results[0].value.join(" ")).toContain(
+        "interleave=nb_inputs=3",
+      );
+      expect(await collect(output)).toBe(await framemd5FromFiles([longJpeg]));
+    },
+  );
+
+  test(
+    "FFmpeg doesn't wait long for a JPEG annie's frames",
+    { timeout: 10000 },
+    async () => {
+      const g = gate();
+      const command = framemd5Command([animationInput(0, "#anim")]);
+      const buildArgs = vi.spyOn(command, "buildArgs");
+      const runner = new FFmpegRunner(command, { decodeTracks: 3 });
+      // Resolves (FFmpeg has been spawned) with only frame 0 in.
+      const output = await runner.run(async () =>
+        gatedAnnie(longJpeg, { after: 1, open: g.promise }),
+      );
+      const result = collect(output);
+      g.open();
+      expect(buildArgs.mock.results[0].value).toContain("jpeg_pipe");
+      expect(await result).toBe(await framemd5FromFiles([longJpeg]));
+    },
+  );
+
+  test(
+    "an annie used twice feeds both split inputs",
+    { timeout: 10000 },
+    async () => {
+      // (fps: an interleaved stream has no frame rate set, which concat
+      // would pass on to the output; the renderer's overlays set one.)
+      const command = framemd5Command(
+        [animationInput(0, "#anim"), animationInput(1, "#anim")],
+        "fps=10",
+      );
+      const fetcher = vi.fn(async () => streamedAnnie(longJpeg, 4));
+      const { output, args } = await runSplit(command, 4, fetcher);
+      expect(args.filter((a) => a === "matroska")).toHaveLength(2);
+      expect(output).toBe(
+        await framemd5FromFiles([longJpeg, longJpeg], "fps=10"),
+      );
+      expect(fetcher).toHaveBeenCalledOnce();
+    },
+  );
 });
 
 describe("AnnieExtraction", () => {
@@ -443,6 +733,42 @@ describe("AnnieExtraction", () => {
     );
     await extraction.done;
     expect(extraction.pipeFormat).toBeUndefined();
+  });
+
+  test("decodeTracks() splits only JPEG annies whose frames match", async () => {
+    const extract = async (entries: Buffer[]) => {
+      const dir = await fsp.mkdtemp(path.join(tempDir, "extract-"));
+      const extraction = new AnnieExtraction(dir, async () =>
+        Readable.from([await annieBuffer(Readable.from(entries))]),
+      );
+      await extraction.done;
+      return extraction;
+    };
+    expect((await extract(longJpeg)).decodeTracks(4)).toBe(4);
+    expect((await extract(longJpeg)).decodeTracks(1)).toBe(1);
+    // Complete and short: not worth it.
+    expect((await extract(frames.jpeg)).decodeTracks(4)).toBe(1);
+    expect(
+      (
+        await extract([
+          ...frames.png,
+          ...frames.png,
+          ...frames.png,
+          ...frames.png,
+        ])
+      ).decodeTracks(4),
+    ).toBe(1);
+    const mismatch = [...longJpeg];
+    mismatch[17] = otherSizeJpeg;
+    expect((await extract(mismatch)).decodeTracks(4)).toBe(1);
+  });
+
+  test("jpegParameters() reads the headers that set what a JPEG decodes to", () => {
+    expect(jpegParameters(longJpeg[0])).toBeDefined();
+    expect(jpegParameters(longJpeg[0])).toBe(jpegParameters(longJpeg[1]));
+    expect(jpegParameters(otherSizeJpeg)).not.toBe(jpegParameters(longJpeg[0]));
+    expect(jpegParameters(frames.png[0])).toBeUndefined();
+    expect(jpegParameters(longJpeg[0].subarray(0, 30))).toBeUndefined();
   });
 
   test("frames of an unknown format aren't streamed", async () => {

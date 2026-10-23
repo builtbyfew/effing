@@ -6,15 +6,15 @@
 
 # Class: FFmpegCommand
 
-Defined in: [ffs/src/ffmpeg.ts:113](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L113)
+Defined in: [ffs/src/ffmpeg.ts:174](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L174)
 
 ## Constructors
 
 ### Constructor
 
-> **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`): `FFmpegCommand`
+> **new FFmpegCommand**(`globalArgs`, `inputs`, `filterComplex`, `outputArgs`, `filterComplexBuilder?`): `FFmpegCommand`
 
-Defined in: [ffs/src/ffmpeg.ts:119](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L119)
+Defined in: [ffs/src/ffmpeg.ts:187](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L187)
 
 #### Parameters
 
@@ -34,6 +34,10 @@ Defined in: [ffs/src/ffmpeg.ts:119](https://github.com/builtbyfew/effing/blob/ma
 
 `string`[]
 
+##### filterComplexBuilder?
+
+`FilterComplexBuilder`
+
 #### Returns
 
 `FFmpegCommand`
@@ -44,7 +48,21 @@ Defined in: [ffs/src/ffmpeg.ts:119](https://github.com/builtbyfew/effing/blob/ma
 
 > **filterComplex**: `string`
 
-Defined in: [ffs/src/ffmpeg.ts:116](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L116)
+Defined in: [ffs/src/ffmpeg.ts:178](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L178)
+
+The filter graph, for when nothing is known about the sources.
+
+***
+
+### filterComplexBuilder?
+
+> `optional` **filterComplexBuilder?**: `FilterComplexBuilder`
+
+Defined in: [ffs/src/ffmpeg.ts:185](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L185)
+
+Builds the filter graph once the sources are fetched, from what they
+turned out to be (e.g. to skip what an opaque layer covers). When
+omitted, `filterComplex` is used.
 
 ***
 
@@ -52,7 +70,7 @@ Defined in: [ffs/src/ffmpeg.ts:116](https://github.com/builtbyfew/effing/blob/ma
 
 > **globalArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:114](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L114)
+Defined in: [ffs/src/ffmpeg.ts:175](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L175)
 
 ***
 
@@ -60,7 +78,7 @@ Defined in: [ffs/src/ffmpeg.ts:114](https://github.com/builtbyfew/effing/blob/ma
 
 > **inputs**: [`FFmpegInput`](../type-aliases/FFmpegInput.md)[]
 
-Defined in: [ffs/src/ffmpeg.ts:115](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L115)
+Defined in: [ffs/src/ffmpeg.ts:176](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L176)
 
 ***
 
@@ -68,15 +86,15 @@ Defined in: [ffs/src/ffmpeg.ts:115](https://github.com/builtbyfew/effing/blob/ma
 
 > **outputArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:117](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L117)
+Defined in: [ffs/src/ffmpeg.ts:179](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L179)
 
 ## Methods
 
 ### buildArgs()
 
-> **buildArgs**(`inputResolver`): `string`[]
+> **buildArgs**(`inputResolver`, `inputInfo?`): `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:131](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L131)
+Defined in: [ffs/src/ffmpeg.ts:226](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L226)
 
 #### Parameters
 
@@ -84,6 +102,35 @@ Defined in: [ffs/src/ffmpeg.ts:131](https://github.com/builtbyfew/effing/blob/ma
 
 (`input`) => `string`
 
+##### inputInfo?
+
+`ReadonlyMap`\<`number`, `FFmpegInputInfo`\> = `...`
+
 #### Returns
 
 `string`[]
+
+***
+
+### readInputInfo()
+
+> **readInputInfo**(`localPath`): `Promise`\<`Map`\<`number`, `FFmpegInputInfo`\>\>
+
+Defined in: [ffs/src/ffmpeg.ts:209](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L209)
+
+Reads the FFmpegInputInfo of every image and animation input that has
+a local file (see readInputInfo), if the filter graph uses it.
+
+#### Parameters
+
+##### localPath
+
+(`input`) => `string` \| `undefined`
+
+Where an input's source is on disk: the image file,
+  or the directory an animation's frames were extracted to (only its
+  first frame is read). `undefined` when it isn't on disk.
+
+#### Returns
+
+`Promise`\<`Map`\<`number`, `FFmpegInputInfo`\>\>

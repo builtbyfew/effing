@@ -8,7 +8,7 @@
 
 > **EffieRendererOptions** = `object`
 
-Defined in: [ffs/src/renderer.ts:121](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L121)
+Defined in: [ffs/src/renderer.ts:160](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L160)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [ffs/src/renderer.ts:121](https://github.com/builtbyfew/effing/blob/
 
 > `optional` **allowLocalFiles?**: `boolean`
 
-Defined in: [ffs/src/renderer.ts:128](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L128)
+Defined in: [ffs/src/renderer.ts:167](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L167)
 
 Allow reading from local file paths.
 WARNING: Only enable this for trusted internal operations.
@@ -34,7 +34,7 @@ false
 
 > `optional` **httpProxy?**: `HttpProxy` \| `false`
 
-Defined in: [ffs/src/renderer.ts:146](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L146)
+Defined in: [ffs/src/renderer.ts:185](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L185)
 
 HTTP proxy for video/audio URLs.
 HTTP(S) URLs for video/audio inputs are routed through this proxy, so
@@ -53,7 +53,7 @@ to let FFmpeg open these URLs itself.
 
 > `optional` **transientStore?**: `TransientStore`
 
-Defined in: [ffs/src/renderer.ts:133](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L133)
+Defined in: [ffs/src/renderer.ts:172](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L172)
 
 Transient store instance for source lookups.
 If not provided, sources will be fetched directly from network.

@@ -260,6 +260,26 @@ describe("FFmpegCommand.buildArgs", () => {
     ).toThrow("can't be split");
   });
 
+  test("an animation the built graph leaves out can't be split", () => {
+    // As a layer beneath a base layer is left out (see baseLayerIndex)
+    const command = new FFmpegCommand(
+      [],
+      [animationInput(0, "#anim")],
+      "[0:v]null[outv]",
+      [],
+      (inputInfo) =>
+        inputInfo.size > 0 ? "color=black,null[outv]" : "[0:v]null[outv]",
+    );
+    const info = new Map([[0, { width: 1, height: 1, opaque: true }]]);
+    expect(command.canSplitInput(command.inputs[0])).toBe(true);
+    expect(
+      command.canSplitInput(command.inputs[0], command.filterGraph(info)),
+    ).toBe(false);
+    expect(() =>
+      command.buildArgs(() => ({ fd: 3, format: "matroska", tracks: 2 }), info),
+    ).toThrow("can't be split");
+  });
+
   test("only animations can be piped", () => {
     const command = framemd5Command([
       { index: 0, source: "#img", preArgs: [], type: "image" },

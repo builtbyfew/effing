@@ -6,7 +6,7 @@
 
 # Class: EffieRenderer\<U\>
 
-Defined in: [ffs/src/renderer.ts:149](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L149)
+Defined in: [ffs/src/renderer.ts:188](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L188)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [ffs/src/renderer.ts:149](https://github.com/builtbyfew/effing/blob/
 
 > **new EffieRenderer**\<`U`\>(`effieData`, `options?`): `EffieRenderer`\<`U`\>
 
-Defined in: [ffs/src/renderer.ts:157](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L157)
+Defined in: [ffs/src/renderer.ts:196](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L196)
 
 #### Parameters
 
@@ -42,7 +42,7 @@ Defined in: [ffs/src/renderer.ts:157](https://github.com/builtbyfew/effing/blob/
 
 > **close**(): `void`
 
-Defined in: [ffs/src/renderer.ts:875](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L875)
+Defined in: [ffs/src/renderer.ts:1035](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L1035)
 
 Stops every render in progress.
 
@@ -56,7 +56,7 @@ Stops every render in progress.
 
 > **render**(`scaleFactor?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/renderer.ts:829](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L829)
+Defined in: [ffs/src/renderer.ts:989](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L989)
 
 Renders the effie data to a video stream.
 

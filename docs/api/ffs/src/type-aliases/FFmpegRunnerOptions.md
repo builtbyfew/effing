@@ -8,7 +8,7 @@
 
 > **FFmpegRunnerOptions** = `object`
 
-Defined in: [ffs/src/ffmpeg.ts:309](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L309)
+Defined in: [ffs/src/ffmpeg.ts:434](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L434)
 
 ## Properties
 
@@ -16,7 +16,7 @@ Defined in: [ffs/src/ffmpeg.ts:309](https://github.com/builtbyfew/effing/blob/ma
 
 > `optional` **decodeTracks?**: `number`
 
-Defined in: [ffs/src/ffmpeg.ts:314](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L314)
+Defined in: [ffs/src/ffmpeg.ts:439](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L439)
 
 The most tracks (FFmpeg decoders) a streamed JPEG annie is split over;
 1 not to split. Defaults to a decoder per 4 cores, at most 4.

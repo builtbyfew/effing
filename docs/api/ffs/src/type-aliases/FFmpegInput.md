@@ -8,7 +8,7 @@
 
 > **FFmpegInput** = `object`
 
-Defined in: [ffs/src/ffmpeg.ts:112](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L112)
+Defined in: [ffs/src/ffmpeg.ts:118](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L118)
 
 Each input is represented by its index, its source, and the pre–arguments
 that must appear immediately before its "-i" option.
@@ -19,7 +19,7 @@ that must appear immediately before its "-i" option.
 
 > **index**: `number`
 
-Defined in: [ffs/src/ffmpeg.ts:113](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L113)
+Defined in: [ffs/src/ffmpeg.ts:119](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L119)
 
 ***
 
@@ -27,7 +27,7 @@ Defined in: [ffs/src/ffmpeg.ts:113](https://github.com/builtbyfew/effing/blob/ma
 
 > **preArgs**: `string`[]
 
-Defined in: [ffs/src/ffmpeg.ts:115](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L115)
+Defined in: [ffs/src/ffmpeg.ts:121](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L121)
 
 ***
 
@@ -35,7 +35,7 @@ Defined in: [ffs/src/ffmpeg.ts:115](https://github.com/builtbyfew/effing/blob/ma
 
 > **source**: `string`
 
-Defined in: [ffs/src/ffmpeg.ts:114](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L114)
+Defined in: [ffs/src/ffmpeg.ts:120](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L120)
 
 ***
 
@@ -43,4 +43,4 @@ Defined in: [ffs/src/ffmpeg.ts:114](https://github.com/builtbyfew/effing/blob/ma
 
 > **type**: `"image"` \| `"video"` \| `"audio"` \| `"color"` \| `"animation"`
 
-Defined in: [ffs/src/ffmpeg.ts:116](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L116)
+Defined in: [ffs/src/ffmpeg.ts:122](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L122)

@@ -4,6 +4,9 @@ import {
   FFmpegRunner,
   isSupportedFFmpegVersion,
 } from "./ffmpeg";
+import type { FFmpegInputInfo } from "./ffmpeg";
+import { IMAGE_INFO_BYTES } from "./image-info";
+import { annieBuffer } from "@effing/annie";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
 import fsp from "fs/promises";
@@ -272,6 +275,137 @@ describe("FFmpegRunner", () => {
         type: "image",
         src: "https://example.com/segment0.mp4",
       });
+    });
+  });
+
+  describe("input info", () => {
+    // SOI, then SOF0 (height 20, width 30), then EOI: enough for the header.
+    const jpeg = Buffer.from([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x03,
+      0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9,
+    ]);
+    // The same, with 4 components (CMYK), which FFmpeg decodes with alpha.
+    const cmyk = Buffer.from([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x14, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x04,
+      0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0x04, 0x11, 0x00,
+      0xff, 0xd9,
+    ]);
+    // The 3-component one with EXIF orientation 6 (rotate 90° clockwise).
+    const rotated = Buffer.concat([
+      jpeg.subarray(0, 2),
+      Buffer.from([0xff, 0xe1, 0x00, 0x22]),
+      Buffer.from("Exif\0\0MM\0\x2a\0\0\0\x08\0\x01", "latin1"),
+      Buffer.from([0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0, 0, 0, 0, 0]),
+      jpeg.subarray(2),
+    ]);
+    const qoi = (channels: number) =>
+      Buffer.from([
+        ...Buffer.from("qoif", "latin1"),
+        ...[0, 0, 0, 40, 0, 0, 0, 50, channels, 0],
+      ]);
+    const pngChunk = (type: string, data: Buffer) => {
+      const length = Buffer.alloc(4);
+      length.writeUInt32BE(data.length);
+      // The CRC isn't checked.
+      return Buffer.concat([
+        length,
+        Buffer.from(type, "latin1"),
+        data,
+        Buffer.alloc(4),
+      ]);
+    };
+    // A 30x20 RGB PNG with more image data than IMAGE_INFO_BYTES, then an
+    // eXIf chunk with orientation 6.
+    const bigRotatedPng = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      pngChunk("IHDR", Buffer.from([0, 0, 0, 30, 0, 0, 0, 20, 8, 2, 0, 0, 0])),
+      pngChunk("IDAT", Buffer.alloc(IMAGE_INFO_BYTES)),
+      pngChunk(
+        "eXIf",
+        Buffer.from([
+          ...Buffer.from("MM\0\x2a\0\0\0\x08\0\x01", "latin1"),
+          ...[0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0, 0, 0, 0, 0],
+        ]),
+      ),
+      pngChunk("IEND", Buffer.alloc(0)),
+    ]);
+    const annie = (first: Buffer) =>
+      annieBuffer(
+        (async function* () {
+          yield first;
+          yield first;
+        })(),
+      );
+
+    test("the filter graph is built from the fetched sources' headers", async () => {
+      const sources: Record<string, () => Promise<Buffer>> = {
+        "https://example.com/photo.jpg": async () => jpeg,
+        "https://example.com/card.qoi": async () => qoi(4),
+        "https://example.com/zoom.tar": () => annie(jpeg),
+        "https://example.com/text.tar": () => annie(qoi(3)),
+        "https://example.com/unknown": async () => Buffer.from("not an image"),
+        "https://example.com/cmyk.jpg": async () => cmyk,
+        "https://example.com/rotated.jpg": async () => rotated,
+        "https://example.com/cmyk.tar": () => annie(cmyk),
+        "https://example.com/rotated.tar": () => annie(rotated),
+        "https://example.com/rotated.png": async () => bigRotatedPng,
+      };
+      const sourceFetcher = vi
+        .fn()
+        .mockImplementation(async ({ src }) =>
+          Readable.from(await sources[src]()),
+        );
+      const urls = Object.keys(sources);
+      let seen: ReadonlyMap<number, FFmpegInputInfo> | undefined;
+      const command = new FFmpegCommand(
+        ["-y"],
+        urls.map((source, index) => ({
+          index,
+          source,
+          preArgs: [],
+          type: source.endsWith(".tar") ? "animation" : "image",
+        })),
+        "[0:v]null[outv]",
+        ["-map", "[outv]", "-f", "null", "-"],
+        (inputInfo) => {
+          seen = inputInfo;
+          return "[0:v]null[outv]";
+        },
+      );
+      await runUntilSettled(new FFmpegRunner(command), sourceFetcher);
+
+      expect(seen).toEqual(
+        new Map([
+          [0, { width: 30, height: 20, opaque: true }],
+          [1, { width: 40, height: 50, opaque: false }],
+          // An annie's frames are decoded with its first frame's decoder:
+          // only JPEG rules out alpha in the frames after the first.
+          [2, { width: 30, height: 20, opaque: true }],
+          [3, { width: 40, height: 50, opaque: false }],
+          [5, { width: 30, height: 20, opaque: false }],
+          // FFmpeg shows a JPEG as its EXIF orientation says.
+          [6, { width: 20, height: 30, opaque: true }],
+          // An annie whose first frame has an alpha plane or is rotated is
+          // left alone.
+          [7, { width: 30, height: 20, opaque: false }],
+          [8, { width: 20, height: 30, opaque: false }],
+          // A PNG's EXIF can come after its image data, past the bytes
+          // that are enough for a JPEG.
+          [9, { width: 20, height: 30, opaque: true }],
+        ]),
+      );
+    });
+
+    test("without a filter graph builder, no source is read", async () => {
+      const command = new FFmpegCommand(
+        ["-y"],
+        [{ index: 0, source: "x", preArgs: [], type: "image" }],
+        "[0:v]null[outv]",
+        [],
+      );
+      const resolver = vi.fn();
+      expect(await command.readInputInfo(resolver)).toEqual(new Map());
+      expect(resolver).not.toHaveBeenCalled();
     });
   });
 

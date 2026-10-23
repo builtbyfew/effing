@@ -10,6 +10,12 @@ import { createWriteStream } from "fs";
 import { promisify } from "util";
 
 import { AnnieExtraction, MAX_DECODE_TRACKS } from "./annie-extraction";
+import {
+  IMAGE_INFO_BYTES,
+  isPng,
+  readImageInfo,
+  readPngChunks,
+} from "./image-info";
 
 const pump = promisify(pipeline);
 
@@ -143,6 +149,76 @@ function withInputFormat(preArgs: string[], format: string): string[] {
   return [...preArgs.slice(0, i + 1), format, ...preArgs.slice(i + 2)];
 }
 
+/**
+ * What the fetched source of an image or animation input says about the
+ * frames FFmpeg decodes from it (see readInputInfo).
+ */
+export type FFmpegInputInfo = {
+  /** The frames' size (every frame of an animation gets its first's). */
+  width: number;
+  height: number;
+  /** Whether every frame is opaque: decoded without an alpha channel. */
+  opaque: boolean;
+};
+
+/**
+ * Builds a filter graph from what the inputs' sources turned out to be, by
+ * input index. An input without an entry has no known info.
+ */
+export type FilterComplexBuilder = (
+  inputInfo: ReadonlyMap<number, FFmpegInputInfo>,
+) => string;
+
+/**
+ * Reads FFmpegInputInfo from the start of an image input's file, or of an
+ * animation's first frame. FFmpeg's image2 demuxer decodes every frame of a
+ * sequence with the decoder of the first frame (a frame in another format
+ * fails to decode), so an animation whose first frame is a 3-component JPEG
+ * is taken to only ever yield frames without alpha. A PNG or QOI first frame says nothing about
+ * the frames after it, though, so such an animation isn't known to be
+ * opaque. Undefined when the source isn't an image readImageInfo knows.
+ */
+async function readInputInfo(
+  input: FFmpegInput,
+  filePath: string,
+): Promise<FFmpegInputInfo | undefined> {
+  const imagePath =
+    input.type === "animation" ? path.join(filePath, "frame_00000") : filePath;
+  let bytes: Uint8Array;
+  try {
+    const file = await fs.open(imagePath);
+    try {
+      const buffer = Buffer.alloc(IMAGE_INFO_BYTES);
+      const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+      bytes = buffer.subarray(0, bytesRead);
+      // A PNG's EXIF can come after its image data (see readImageInfo).
+      // Its chunks are walked without reading the image data.
+      if (bytesRead === buffer.length && isPng(bytes)) {
+        const chunks = await readPngChunks(async (position, length) => {
+          const chunk = Buffer.alloc(length);
+          const read = await file.read(chunk, 0, length, position);
+          return chunk.subarray(0, read.bytesRead);
+        });
+        if (!chunks) return undefined;
+        bytes = chunks;
+      }
+    } finally {
+      await file.close();
+    }
+  } catch {
+    return undefined; // e.g. an animation whose first frame has another name
+  }
+  const info = readImageInfo(bytes);
+  if (!info) return undefined;
+  // A first frame that's rotated, or has an alpha plane, isn't worth the
+  // guesswork about how the frames after it decode.
+  const opaque =
+    input.type === "animation"
+      ? info.format === "jpeg" && !info.alpha && !info.oriented
+      : !info.alpha;
+  return { width: info.width, height: info.height, opaque };
+}
+
 /** The value of an input's `-framerate`, if it has one. */
 function inputFrameRate(input: FFmpegInput): string | undefined {
   const i = input.preArgs.indexOf("-framerate");
@@ -168,45 +244,94 @@ function videoLabel(input: FFmpegInput): string {
 export class FFmpegCommand {
   globalArgs: string[];
   inputs: FFmpegInput[];
+  /** The filter graph, for when nothing is known about the sources. */
   filterComplex: string;
   outputArgs: string[];
+  /**
+   * Builds the filter graph once the sources are fetched, from what they
+   * turned out to be (e.g. to skip what an opaque layer covers). When
+   * omitted, `filterComplex` is used.
+   */
+  filterComplexBuilder?: FilterComplexBuilder;
 
   constructor(
     globalArgs: string[],
     inputs: FFmpegInput[],
     filterComplex: string,
     outputArgs: string[],
+    filterComplexBuilder?: FilterComplexBuilder,
   ) {
     this.globalArgs = globalArgs;
     this.inputs = inputs;
     this.filterComplex = filterComplex;
     this.outputArgs = outputArgs;
+    this.filterComplexBuilder = filterComplexBuilder;
+  }
+
+  /**
+   * Reads the FFmpegInputInfo of every image and animation input that has
+   * a local file (see readInputInfo), if the filter graph uses it.
+   *
+   * @param localPath Where an input's source is on disk: the image file,
+   *   or the directory an animation's frames were extracted to (only its
+   *   first frame is read). `undefined` when it isn't on disk.
+   */
+  async readInputInfo(
+    localPath: (input: FFmpegInput) => string | undefined,
+  ): Promise<Map<number, FFmpegInputInfo>> {
+    const inputInfo = new Map<number, FFmpegInputInfo>();
+    if (!this.filterComplexBuilder) return inputInfo;
+    await Promise.all(
+      this.inputs.map(async (input) => {
+        if (input.type !== "image" && input.type !== "animation") return;
+        const filePath = localPath(input);
+        if (filePath === undefined) return;
+        const info = await readInputInfo(input, filePath);
+        if (info) inputInfo.set(input.index, info);
+      }),
+    );
+    return inputInfo;
+  }
+
+  /**
+   * The filter graph for what the inputs' sources turned out to be (see
+   * FilterComplexBuilder): `filterComplex` when there's no builder.
+   */
+  filterGraph(
+    inputInfo: ReadonlyMap<number, FFmpegInputInfo> = new Map(),
+  ): string {
+    return this.filterComplexBuilder
+      ? this.filterComplexBuilder(inputInfo)
+      : this.filterComplex;
   }
 
   /**
    * Whether an animation input can be read as a Matroska stream of several
    * tracks (see FFmpegPipeSource): it has a `-framerate` (which sets the
-   * frames' times), and the filter graph reads its video once, as
-   * `[<index>:v]`.
+   * frames' times), and `graph`, the filter graph FFmpeg gets (see
+   * filterGraph), reads its video once, as `[<index>:v]`. A graph can leave
+   * an input out, e.g. a layer beneath a base layer.
    */
-  canSplitInput(input: FFmpegInput): boolean {
+  canSplitInput(input: FFmpegInput, graph = this.filterComplex): boolean {
     const rate = inputFrameRate(input);
     return (
       input.type === "animation" &&
       rate !== undefined &&
       parseFrameRate(rate) !== undefined &&
-      this.filterComplex.split(videoLabel(input)).length === 2
+      graph.split(videoLabel(input)).length === 2
     );
   }
 
   buildArgs(
     inputResolver: (input: FFmpegInput) => FFmpegInputSource,
+    inputInfo: ReadonlyMap<number, FFmpegInputInfo> = new Map(),
   ): string[] {
     const inputArgs: string[] = [];
     // Chains that interleave split inputs' tracks, and the graph with their
     // `[<index>:v]` replaced by those chains' outputs.
     const interleaveChains: string[] = [];
-    let filterComplex = this.filterComplex;
+    const graph = this.filterGraph(inputInfo);
+    let filterComplex = graph;
     for (const input of this.inputs) {
       if (input.type === "color") {
         inputArgs.push(...input.preArgs);
@@ -220,7 +345,7 @@ export class FFmpegCommand {
           );
         }
         if (source.tracks !== undefined && source.tracks > 1) {
-          if (!this.canSplitInput(input)) {
+          if (!this.canSplitInput(input, graph)) {
             throw new Error(`Input ${input.index} can't be split into tracks`);
           }
           const rate = inputFrameRate(input)!;
@@ -460,6 +585,14 @@ export class FFmpegRunner {
         }),
       );
 
+      // What the sources' headers say, for a graph that depends on them.
+      const inputInfo = await this.command.readInputInfo(
+        (input) =>
+          animationMapping.get(input.index)?.dir ??
+          fileMapping.get(input.index),
+      );
+      const graph = this.command.filterGraph(inputInfo);
+
       // A JPEG annie is split over as many decoders as it has leading frames
       // on disk when FFmpeg starts (see decodeTracks()). When the rest is
       // ready, give the ones still short of that a moment to catch up:
@@ -471,6 +604,7 @@ export class FFmpegRunner {
           e.pipeFormat === "jpeg_pipe" &&
           this.command.canSplitInput(
             this.command.inputs.find((input) => input.index === index)!,
+            graph,
           )
             ? [e]
             : [],
@@ -498,7 +632,7 @@ export class FFmpegRunner {
         const extraction = animationMapping.get(input.index);
         if (extraction?.pipeFormat) {
           const fd = 3 + pipes.length;
-          const tracks = this.command.canSplitInput(input)
+          const tracks = this.command.canSplitInput(input, graph)
             ? extraction.decodeTracks(this.decodeTracks)
             : 1;
           const rate = input.preArgs[input.preArgs.indexOf("-framerate") + 1];
@@ -512,7 +646,7 @@ export class FFmpegRunner {
         if (!filePath)
           throw new Error(`File for input index ${input.index} not found`);
         return filePath;
-      });
+      }, inputInfo);
       const ffmpegBin = await getFFmpegBin();
       // close() may have been called while the sources were fetched.
       if (this.closed) throw new Error("FFmpegRunner is closed");

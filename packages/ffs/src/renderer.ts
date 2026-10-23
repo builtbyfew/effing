@@ -2,10 +2,15 @@ import { Readable } from "stream";
 import { createReadStream } from "fs";
 import { processMotion } from "./motion";
 import { processEffects } from "./effect";
-import type { FFmpegInput } from "./ffmpeg";
+import type { FFmpegInput, FFmpegInputInfo } from "./ffmpeg";
 import { FFmpegCommand, FFmpegRunner } from "./ffmpeg";
 import { processTransition } from "./transition";
-import type { EffieData, EffieSources, EffieWebUrl } from "@effing/effie";
+import type {
+  EffieData,
+  EffieEffect,
+  EffieSources,
+  EffieWebUrl,
+} from "@effing/effie";
 import { ffsFetch, sourceStream } from "./fetch";
 import { fileURLToPath } from "url";
 import { storeKeys } from "./storage";
@@ -36,11 +41,14 @@ const IMAGE_LOOP_FILTER = "loop=loop=-1:size=1";
 const ANIMATION_FRAME_NORMALISER = "scale=w=iw:h=ih:eval=init";
 
 /**
- * ANIMATION_FRAME_NORMALISER with yuva420p as its output format (which
- * overlay takes anyway): the head of an animation's chain at scale 1 (see
- * animationChainHead).
+ * The pixel format of a layer's frames: yuva420p, which overlay takes anyway
+ * (see buildLayerFilters), or, for an opaque layer that becomes its
+ * segment's base instead of being overlaid (see baseLayerIndex), yuv420p,
+ * the same frames without the alpha plane.
  */
-const ANIMATION_FRAME_FILTER = `${ANIMATION_FRAME_NORMALISER},format=yuva420p`;
+function layerFormatFilter(opaque: boolean): string {
+  return `format=${opaque ? "yuv420p" : "yuva420p"}`;
+}
 
 /** Scales a layer to floor(w * scaleFactor) x floor(h * scaleFactor), min 1. */
 function layerScaleFilter(scaleFactor: number): string {
@@ -89,7 +97,8 @@ function imageScaleFilters(scaleFactor: number): string[] {
  * that keep every frame at the first frame's size and format (see
  * ANIMATION_FRAME_NORMALISER), and in a scaled render the layer's scale.
  *
- * At scale 1 that's ANIMATION_FRAME_FILTER, then the trim.
+ * At scale 1 that's the normaliser with the layer's pixel format (see
+ * layerFormatFilter) as its output format, then the trim.
  *
  * In a scaled render the layer is shrunk like an image layer (see
  * imageScaleFilters), after the trim so frames past the end of the segment
@@ -107,16 +116,46 @@ function imageScaleFilters(scaleFactor: number): string[] {
  * configuration (scale's default `eval=init`). The cost is that an annie
  * without alpha (JPEG frames) is premultiplied too, a no-op at full size.
  */
-function animationChainHead(trim: string, scaleFactor: number): string[] {
-  if (scaleFactor === 1) return [ANIMATION_FRAME_FILTER, trim];
+function animationChainHead(
+  trim: string,
+  scaleFactor: number,
+  opaque: boolean,
+): string[] {
+  if (scaleFactor === 1) {
+    return [ANIMATION_FRAME_NORMALISER, layerFormatFilter(opaque), trim];
+  }
   return [
     trim,
     ANIMATION_FRAME_NORMALISER,
     "premultiply=inplace=1",
     layerScaleFilter(scaleFactor),
     "unpremultiply=inplace=1",
+    // An overlaid layer is converted by the overlay.
+    ...(opaque ? [layerFormatFilter(opaque)] : []),
   ];
 }
+
+/**
+ * Effects that keep an opaque layer opaque and covering the frame: scroll
+ * wraps the layer around, and saturation leaves alpha alone.
+ */
+const OPAQUE_EFFECTS = new Set<EffieEffect["type"]>([
+  "scroll",
+  "saturate-in",
+  "saturate-out",
+]);
+
+/**
+ * Frame properties for the frames of a segment's base layer (see
+ * baseLayerIndex). Overlaid on the background, the segment's frames kept the
+ * background's properties, and a colour background's frames carry no colour
+ * space and no side data. A layer's frames do (a JPEG's colour space and ICC
+ * profile, say), and the frame that reaches the encoder first decides how
+ * the output is tagged, so clear them: an output that starts with a base
+ * layer stays tagged (and played back) the same way.
+ */
+const BASE_LAYER_FRAME_PROPS =
+  "setparams=colorspace=unknown,sidedata=mode=delete";
 
 export type EffieRendererOptions = {
   /**
@@ -377,6 +416,66 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   /**
+   * Whether a layer hides everything beneath it for its segment's whole
+   * duration: its source is opaque (see FFmpegInputInfo) and at least
+   * frame-sized, it's placed at 0:0 without motion, visible from the start
+   * to the end of the segment, and its effects keep it opaque and covering
+   * (see OPAQUE_EFFECTS). In a scaled render the layer shrinks by the same
+   * factor as the frame (see imageScaleFilters), so it still covers it.
+   */
+  private coversFrame(
+    segment: EffieData<EffieSources<U>, U>["segments"][0],
+    layer: EffieData<EffieSources<U>, U>["segments"][0]["layers"][0],
+    info: FFmpegInputInfo | undefined,
+  ): boolean {
+    if (!info?.opaque) return false;
+    if (info.width < this.effieData.width) return false;
+    if (info.height < this.effieData.height) return false;
+    if (layer.motion) return false;
+    if ((layer.delay ?? 0) > 0 || (layer.from ?? 0) > 0) return false;
+    if ((layer.until ?? segment.duration) < segment.duration) return false;
+    return (layer.effects ?? []).every((e) => OPAQUE_EFFECTS.has(e.type));
+  }
+
+  /**
+   * The index of the segment's base layer, if it has one: the topmost layer
+   * that covers the frame (see coversFrame). The background and the layers
+   * beneath it would be invisible, so the base layer takes the background's
+   * place instead of being overlaid on it, which saves converting the layer
+   * to yuva420p, the background's chain, and blending every pixel of every
+   * frame (at full opacity, the blend yields the layer's pixels).
+   *
+   * Only a colour background is replaced. Overlaid, the segment's frames
+   * carry the background's colour properties, which the base layer's get
+   * too (see BASE_LAYER_FRAME_PROPS) when that background is a colour. A video
+   * or image background has its own colour space, range and side data,
+   * which would then no longer reach the output (the encoder tags the
+   * stream from its first frame) or set the colour conversion of the layers
+   * above, so such a segment keeps the overlay.
+   *
+   * The frames are the same as the overlay's, bit for bit, when FFmpeg
+   * negotiates the same colour range for the layer either way, as it does
+   * for JPEG layers. Overlaid, a layer shares its range with the
+   * background and the other layers it's connected to through overlays and
+   * the global background's split, though, so the range can differ (an RGB
+   * image in a graph with JPEG layers), and the frames then differ by the
+   * rounding of the range conversion.
+   */
+  private baseLayerIndex(
+    segment: EffieData<EffieSources<U>, U>["segments"][0],
+    layerInputOffset: number,
+    inputInfo: ReadonlyMap<number, FFmpegInputInfo>,
+  ): number | undefined {
+    const background = segment.background ?? this.effieData.background;
+    if (background.type !== "color") return undefined;
+    for (let l = segment.layers.length - 1; l >= 0; l--) {
+      const info = inputInfo.get(layerInputOffset + l);
+      if (this.coversFrame(segment, segment.layers[l], info)) return l;
+    }
+    return undefined;
+  }
+
+  /**
    * Builds filter chain for all layers in a segment.
    * @param segment - The segment containing layers
    * @param bgLabel - Label for the background input (e.g., "bg_seg0" or "bg_seg")
@@ -386,6 +485,9 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
    * @param frameHeight - Frame height, used by frame-relative effects
    * @param outputLabel - Label for the final video output
    * @param scaleFactor - Scale factor of the render, applied to every layer
+   * @param baseLayer - Index of the segment's base layer (see
+   *   baseLayerIndex), which replaces the background (`bgLabel` isn't used)
+   *   and the layers beneath it
    * @returns Array of filter parts to add to the filter chain
    */
   private buildLayerFilters(
@@ -397,14 +499,16 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
     frameHeight: number,
     outputLabel: string,
     scaleFactor: number,
+    baseLayer?: number,
   ): string[] {
     const filterParts: string[] = [];
     let currentVidLabel = bgLabel;
 
-    for (let l = 0; l < segment.layers.length; l++) {
+    for (let l = baseLayer ?? 0; l < segment.layers.length; l++) {
       const inputIdx = layerInputOffset + l;
       const layerLabel = `${labelPrefix}layer${l}`;
       const layer = segment.layers[l];
+      const isBase = l === baseLayer;
       const delay = layer.delay ?? 0;
       const effectChain = layer.effects
         ? processEffects(
@@ -423,20 +527,55 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       // converts every frame to it anyway, and pinning the format here keeps
       // time-based effects (e.g. fades) running on yuva420p, as they did with
       // a looped input, rather than on the source's format (e.g. rgba for a
-      // PNG). An animation starts with animationChainHead.
+      // PNG). An animation starts with animationChainHead. A base layer
+      // isn't overlaid: it's converted to yuv420p instead (see
+      // layerFormatFilter).
       const sourceChain = [
         ...(layer.type === "image"
           ? [
               ...imageScaleFilters(scaleFactor),
-              "format=yuva420p",
+              layerFormatFilter(isBase),
               IMAGE_LOOP_FILTER,
               trim,
             ]
-          : animationChainHead(trim, scaleFactor)),
+          : animationChainHead(trim, scaleFactor, isBase)),
         ...(effectChain ? [effectChain] : []),
-        "setsar=1",
-        "setpts=PTS-STARTPTS",
       ];
+      if (isBase) {
+        // The base layer stands in for the overlay of the layer on the
+        // background: cropped to the frame at 0:0, as many frames as the
+        // segment has (an animation that ends early holds its last frame,
+        // as the overlay did), on the background's 1/fps timebase, and with
+        // its frame properties (see BASE_LAYER_FRAME_PROPS). tpad clones
+        // the last frame at the input frame rate's interval, so an
+        // animation gets an fps= before it: not every source sets a frame
+        // rate (an annie split into tracks has none, see buildArgs), and
+        // without one the clones all share the last frame's timestamp, so
+        // the trim never ends the stream.
+        const fps = `fps=${this.effieData.fps}`;
+        const holdLastFrame =
+          layer.type === "animation"
+            ? [
+                fps,
+                "tpad=stop=-1:stop_mode=clone",
+                `trim=duration=${segment.duration}`,
+              ]
+            : [];
+        currentVidLabel = `${labelPrefix}tmp${l}`;
+        filterParts.push(
+          `[${inputIdx}:v]${[
+            ...sourceChain,
+            `crop=${frameWidth}:${frameHeight}:0:0`,
+            "setsar=1",
+            "setpts=PTS-STARTPTS",
+            ...holdLastFrame,
+            fps,
+            BASE_LAYER_FRAME_PROPS,
+          ].join(",")}[${currentVidLabel}]`,
+        );
+        continue;
+      }
+      sourceChain.push("setsar=1", "setpts=PTS-STARTPTS");
       filterParts.push(
         `[${inputIdx}:v]${sourceChain.join(",")}[${layerLabel}]`,
       );
@@ -625,14 +764,6 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       }
     }
 
-    // Identify segments using global background
-    const globalBgSegmentIndices: number[] = [];
-    for (let i = 0; i < this.effieData.segments.length; i++) {
-      if (segmentBgInputIndices[i] === null) {
-        globalBgSegmentIndices.push(i);
-      }
-    }
-
     // Layer inputs:
     for (const segment of this.effieData.segments) {
       for (const layer of segment.layers) {
@@ -673,138 +804,167 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       1 +
       numSegmentBgInputs +
       this.effieData.segments.reduce((sum, seg) => sum + seg.layers.length, 0);
-    let audioCounter = 0;
 
-    // Build filter_complex:
-    let currentTime = 0;
-    let layerInputOffset = 1 + numSegmentBgInputs; // Global background is input 0
-    const filterParts: string[] = [];
-    const videoSegmentLabels: string[] = [];
-    const audioSegmentLabels: string[] = [];
+    const buildFilterComplex = (
+      inputInfo: ReadonlyMap<number, FFmpegInputInfo>,
+    ): string => {
+      let audioCounter = 0;
+      let currentTime = 0;
+      const firstLayerInputIdx = 1 + numSegmentBgInputs; // Global background is input 0
+      let layerInputOffset = firstLayerInputIdx;
+      const filterParts: string[] = [];
+      const videoSegmentLabels: string[] = [];
+      const audioSegmentLabels: string[] = [];
 
-    // Shared background chain, used for both the global background and every
-    // per-segment background: cover-scale + crop the source to the frame size.
-    // The scale filter preserves the source's display aspect ratio by
-    // adjusting the SAR whenever the scaled size rounds (e.g. 1920x1080 ->
-    // 3413x1920 for a 1080x1920 frame gives SAR 10240:10239), and crop keeps
-    // that SAR. Reset it to 1:1 so every segment carries the same SAR (concat
-    // rejects mismatches) and the output isn't tagged with a bogus DAR.
-    // An image background is a single frame (see imageInputArgs), so it is
-    // cover-scaled once and only then repeated; the fps= after the loop keeps
-    // the stream on the same 1/fps timebase as every other background.
-    const coverFilter = `scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
-    const bgFilter = (
-      background: EffieData<EffieSources<U>, U>["background"],
-    ): string =>
-      background.type === "image"
-        ? `${coverFilter},${IMAGE_LOOP_FILTER},fps=${this.effieData.fps}`
-        : `fps=${this.effieData.fps},${coverFilter}`;
+      // Shared background chain, used for both the global background and every
+      // per-segment background: cover-scale + crop the source to the frame size.
+      // The scale filter preserves the source's display aspect ratio by
+      // adjusting the SAR whenever the scaled size rounds (e.g. 1920x1080 ->
+      // 3413x1920 for a 1080x1920 frame gives SAR 10240:10239), and crop keeps
+      // that SAR. Reset it to 1:1 so every segment carries the same SAR (concat
+      // rejects mismatches) and the output isn't tagged with a bogus DAR.
+      // An image background is a single frame (see imageInputArgs), so it is
+      // cover-scaled once and only then repeated; the fps= after the loop keeps
+      // the stream on the same 1/fps timebase as every other background.
+      const coverFilter = `scale=${frameWidth}x${frameHeight}:force_original_aspect_ratio=increase,crop=${frameWidth}:${frameHeight},setsar=1`;
+      const bgFilter = (
+        background: EffieData<EffieSources<U>, U>["background"],
+      ): string =>
+        background.type === "image"
+          ? `${coverFilter},${IMAGE_LOOP_FILTER},fps=${this.effieData.fps}`
+          : `fps=${this.effieData.fps},${coverFilter}`;
 
-    // Split the global background into one output per segment that uses it
-    // (no explicit fifo: libavfilter buffers on links itself, and the fifo
-    // filter was removed in FFmpeg 7.0). split=1 is valid, so a single
-    // consumer needs no special case.
-    const globalBgLabels = new Map(
-      globalBgSegmentIndices.map((segIdx, i) => [segIdx, `bg_split_${i}`]),
-    );
-    if (globalBgLabels.size > 0) {
-      filterParts.push(
-        `[${globalBgInputIdx}:v]${bgFilter(this.effieData.background)},split=${globalBgLabels.size}${[...globalBgLabels.values()].map((l) => `[${l}]`).join("")}`,
+      // Segments with a base layer (see baseLayerIndex) need no background.
+      const baseLayers: (number | undefined)[] = [];
+      let offset = firstLayerInputIdx;
+      for (const segment of this.effieData.segments) {
+        baseLayers.push(this.baseLayerIndex(segment, offset, inputInfo));
+        offset += segment.layers.length;
+      }
+      const globalBgSegmentIndices: number[] = [];
+      for (let i = 0; i < this.effieData.segments.length; i++) {
+        if (segmentBgInputIndices[i] === null && baseLayers[i] === undefined) {
+          globalBgSegmentIndices.push(i);
+        }
+      }
+      // Split the global background into one output per segment that uses it
+      // (no explicit fifo: libavfilter buffers on links itself, and the fifo
+      // filter was removed in FFmpeg 7.0). split=1 is valid, so a single
+      // consumer needs no special case.
+      const globalBgLabels = new Map(
+        globalBgSegmentIndices.map((segIdx, i) => [segIdx, `bg_split_${i}`]),
       );
-    }
-
-    for (let segIdx = 0; segIdx < this.effieData.segments.length; segIdx++) {
-      const segment = this.effieData.segments[segIdx];
-
-      // Determine background for this segment (segment bg overrides global bg)
-      const bgLabel = `bg_seg${segIdx}`;
-      if (segment.background) {
-        // Use segment background
-        const segBgInputIdx = segmentBgInputIndices[segIdx]!;
-        const segBgSeek =
-          segment.background.type === "video"
-            ? (segment.background.seek ?? 0)
-            : 0;
+      if (globalBgLabels.size > 0) {
         filterParts.push(
-          `[${segBgInputIdx}:v]${bgFilter(segment.background)},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
-        );
-      } else {
-        // Use the global background's split output for this segment; bgFilter
-        // (fps/scale/crop/setsar) is already applied in the split chain.
-        filterParts.push(
-          `[${globalBgLabels.get(segIdx)!}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          `[${globalBgInputIdx}:v]${bgFilter(this.effieData.background)},split=${globalBgLabels.size}${[...globalBgLabels.values()].map((l) => `[${l}]`).join("")}`,
         );
       }
 
-      // Process layers
-      const vidLabel = `vid_seg${segIdx}`;
-      filterParts.push(
-        ...this.buildLayerFilters(
-          segment,
-          bgLabel,
-          `seg${segIdx}_`,
-          layerInputOffset,
-          frameWidth,
-          frameHeight,
-          vidLabel,
-          scaleFactor,
-        ),
-      );
-      layerInputOffset += segment.layers.length;
-      videoSegmentLabels.push(`[${vidLabel}]`);
+      for (let segIdx = 0; segIdx < this.effieData.segments.length; segIdx++) {
+        const segment = this.effieData.segments[segIdx];
 
-      const nextSegment = this.effieData.segments[segIdx + 1];
-      const transitionDuration = nextSegment?.transition?.duration ?? 0;
-      // Ensure audio duration is always at least 0.001 seconds to avoid FFmpeg misbehavior
-      const realDuration = Math.max(
-        0.001,
-        segment.duration - transitionDuration,
-      );
+        // Determine background for this segment (segment bg overrides global bg)
+        const bgLabel = `bg_seg${segIdx}`;
+        if (baseLayers[segIdx] !== undefined) {
+          // The base layer replaces the background.
+        } else if (segment.background) {
+          // Use segment background
+          const segBgInputIdx = segmentBgInputIndices[segIdx]!;
+          const segBgSeek =
+            segment.background.type === "video"
+              ? (segment.background.seek ?? 0)
+              : 0;
+          filterParts.push(
+            `[${segBgInputIdx}:v]${bgFilter(segment.background)},trim=start=${segBgSeek}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          );
+        } else {
+          // Use the global background's split output for this segment; bgFilter
+          // (fps/scale/crop/setsar) is already applied in the split chain.
+          filterParts.push(
+            `[${globalBgLabels.get(segIdx)!}]trim=start=${backgroundSeek + currentTime}:duration=${segment.duration},setpts=PTS-STARTPTS[${bgLabel}]`,
+          );
+        }
 
-      // Process audio: use the corresponding audio input index if audio exists
-      if (segment.audio) {
-        // Audio inputs start after all video inputs
-        const audioInputIndex = numVideoInputs + audioCounter;
-        const audioFilter = this.buildAudioFilter({
-          duration: realDuration,
-          volume: segment.audio.volume,
-          fadeIn: segment.audio.fadeIn,
-          fadeOut: segment.audio.fadeOut,
-        });
-        // apad before atrim so audio shorter than the segment is padded with
-        // silence — without it, concat would start the next segment's audio
-        // before the current segment's video ends.
-        // (concat stitches clips back-to-back by the actual stream length,
-        // not the segment's video length.)
+        // Process layers
+        const vidLabel = `vid_seg${segIdx}`;
         filterParts.push(
-          `[${audioInputIndex}:a]apad,atrim=start=0:duration=${realDuration},${audioFilter},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
+          ...this.buildLayerFilters(
+            segment,
+            bgLabel,
+            `seg${segIdx}_`,
+            layerInputOffset,
+            frameWidth,
+            frameHeight,
+            vidLabel,
+            scaleFactor,
+            baseLayers[segIdx],
+          ),
         );
-        audioCounter++;
-      } else {
-        filterParts.push(
-          `anullsrc=r=44100:cl=stereo,atrim=start=0:duration=${realDuration},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
+        layerInputOffset += segment.layers.length;
+        videoSegmentLabels.push(`[${vidLabel}]`);
+
+        const nextSegment = this.effieData.segments[segIdx + 1];
+        const transitionDuration = nextSegment?.transition?.duration ?? 0;
+        // Ensure audio duration is always at least 0.001 seconds to avoid FFmpeg misbehavior
+        const realDuration = Math.max(
+          0.001,
+          segment.duration - transitionDuration,
         );
+
+        // Process audio: use the corresponding audio input index if audio exists
+        if (segment.audio) {
+          // Audio inputs start after all video inputs
+          const audioInputIndex = numVideoInputs + audioCounter;
+          const audioFilter = this.buildAudioFilter({
+            duration: realDuration,
+            volume: segment.audio.volume,
+            fadeIn: segment.audio.fadeIn,
+            fadeOut: segment.audio.fadeOut,
+          });
+          // apad before atrim so audio shorter than the segment is padded with
+          // silence — without it, concat would start the next segment's audio
+          // before the current segment's video ends.
+          // (concat stitches clips back-to-back by the actual stream length,
+          // not the segment's video length.)
+          filterParts.push(
+            `[${audioInputIndex}:a]apad,atrim=start=0:duration=${realDuration},${audioFilter},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
+          );
+          audioCounter++;
+        } else {
+          filterParts.push(
+            `anullsrc=r=44100:cl=stereo,atrim=start=0:duration=${realDuration},asetpts=PTS-STARTPTS[aud_seg${segIdx}]`,
+          );
+        }
+        audioSegmentLabels.push(`[aud_seg${segIdx}]`);
+
+        currentTime += realDuration;
       }
-      audioSegmentLabels.push(`[aud_seg${segIdx}]`);
 
-      currentTime += realDuration;
-    }
+      // Add general audio if present
+      this.applyGeneralAudio(
+        filterParts,
+        audioSegmentLabels,
+        currentTime,
+        numVideoInputs + audioCounter,
+      );
 
-    // Add general audio if present
-    this.applyGeneralAudio(
-      filterParts,
-      audioSegmentLabels,
-      currentTime,
-      numVideoInputs + audioCounter,
-    );
+      // Apply transitions between video segments
+      this.applyTransitions(filterParts, videoSegmentLabels);
 
-    // Apply transitions between video segments
-    this.applyTransitions(filterParts, videoSegmentLabels);
-
-    const filterComplex = filterParts.join(";");
+      return filterParts.join(";");
+    };
     const outputArgs = this.buildOutputArgs(outputFilename);
 
-    return new FFmpegCommand(globalArgs, inputs, filterComplex, outputArgs);
+    // The filter graph depends on what the sources turn out to be (see
+    // baseLayerIndex), so FFmpegRunner builds it once they're fetched.
+    // `filterComplex` is the graph for sources nothing is known about.
+    return new FFmpegCommand(
+      globalArgs,
+      inputs,
+      buildFilterComplex(new Map()),
+      outputArgs,
+      buildFilterComplex,
+    );
   }
 
   /**

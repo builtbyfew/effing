@@ -130,6 +130,9 @@ export async function runRender(
   const { secretKey } = ensureSecretKey();
 
   const bounds: Bounds = resolveBounds(config.dev?.resolutions, options);
+  // Checked before the server starts, so a missing FFS is reported before
+  // prewarming imports (and runs) every fn.
+  const ffsBin = kind === "effie" ? resolveFfsBin(configDir) : undefined;
 
   // Never strict: we don't care which port we get, and walking up keeps us
   // clear of a dev server already running on the configured port.
@@ -166,9 +169,9 @@ export async function runRender(
     );
 
     let output: string;
-    if (kind === "effie") {
+    if (ffsBin !== undefined) {
       output = options.output ?? defaultOutputPath("effie", id);
-      await renderEffie(configDir, url, output, options);
+      await renderEffie(ffsBin, configDir, url, output, options);
     } else {
       output = await download(url, kind as FnKind, id, options.output);
     }
@@ -232,16 +235,11 @@ export function ffsRenderArgs(
 }
 
 /**
- * Render an effie by delegating to the project-local `ffs render` bin — the
- * same discovery the FFS sidecar in `effing dev` uses. Keeps @effing/dev free
- * of a hard dependency on @effing/ffs (and its ffmpeg baggage).
+ * The project-local `ffs` bin — the same discovery the FFS sidecar in
+ * `effing dev` uses. Keeps @effing/dev free of a hard dependency on
+ * @effing/ffs (and its ffmpeg baggage).
  */
-async function renderEffie(
-  configDir: string,
-  url: string,
-  output: string,
-  options: EffieRenderOptions,
-): Promise<void> {
+function resolveFfsBin(configDir: string): string {
   const ffsBin = path.resolve(configDir, "node_modules/.bin/ffs");
   if (!fs.existsSync(ffsBin)) {
     throw new Error(
@@ -249,7 +247,17 @@ async function renderEffie(
         "this project first (e.g. `pnpm add -D @effing/ffs`).",
     );
   }
+  return ffsBin;
+}
 
+/** Render an effie by delegating to `ffs render`. */
+async function renderEffie(
+  ffsBin: string,
+  configDir: string,
+  url: string,
+  output: string,
+  options: EffieRenderOptions,
+): Promise<void> {
   const env = { ...process.env };
   // Every source in the composition points at the ephemeral loopback server;
   // don't let FFS's SSRF protection (on when NODE_ENV=production) block them.

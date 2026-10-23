@@ -370,9 +370,11 @@ async function startInProcessApp(
       setFns: () => {},
       prewarm() {
         // Requests for an fn still loading wait for this same import; a
-        // failing fn is left for its request to report.
-        for (const list of Object.values(fns())) {
-          for (const { absPath } of list) {
+        // failing fn is left for its request to report. Effies go first, as
+        // in a worker (see preloadFns).
+        const all = fns();
+        for (const kind of ["effie", "annie", "image"] as const) {
+          for (const { absPath } of all[kind]) {
             runner.import(absPath).catch(() => {});
           }
         }

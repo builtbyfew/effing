@@ -96,4 +96,15 @@ describe("runRender for effies", () => {
       expect.objectContaining({ idleWorkerTimeout: expect.any(Number) }),
     );
   });
+
+  test("reports a missing ffs before starting (and prewarming) the server", async () => {
+    fs.rmSync(path.join(configDir, "node_modules/.bin/ffs"));
+
+    await expect(
+      runRender("effie", "video", { output: "out.mp4" }),
+    ).rejects.toThrow(/requires the @effing\/ffs package/);
+
+    expect(startDevServer).not.toHaveBeenCalled();
+    expect(prewarmedWith).toEqual([]);
+  });
 });

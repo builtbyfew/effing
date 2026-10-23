@@ -10,7 +10,7 @@ import { createWriteStream } from "fs";
 import { promisify } from "util";
 
 import { AnnieExtraction, MAX_DECODE_TRACKS } from "./annie-extraction";
-import { IMAGE_INFO_BYTES, readImageInfo } from "./image-info";
+import { IMAGE_INFO_BYTES, isPng, readImageInfo } from "./image-info";
 
 const pump = promisify(pipeline);
 
@@ -186,6 +186,10 @@ async function readInputInfo(
       const buffer = Buffer.alloc(IMAGE_INFO_BYTES);
       const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
       bytes = buffer.subarray(0, bytesRead);
+      // A PNG's EXIF can come after its image data (see readImageInfo).
+      if (bytesRead === buffer.length && isPng(bytes)) {
+        bytes = await fs.readFile(imagePath);
+      }
     } finally {
       await file.close();
     }

@@ -65,12 +65,19 @@ function readUint32(
     : readUint32BE(bytes, offset);
 }
 
+/** PNG text chunks FFmpeg takes EXIF from, by keyword. */
+const PNG_TEXT_CHUNKS = new Set(["tEXt", "zTXt", "iTXt"]);
+const PNG_TEXT_EXIF_KEYWORD = "Raw profile type exif";
+
 /**
  * PNG: the size is in IHDR. FFmpeg's PNG decoder outputs an alpha format for
  * the colour types with alpha (4 and 6), for palette images (pal8 carries
- * the palette's alpha) and for greyscale or RGB images with a tRNS chunk,
- * and rotates or flips the image as an eXIf chunk's orientation says. Both
- * chunks have to come before the first IDAT.
+ * the palette's alpha) and for greyscale or RGB images with a tRNS chunk
+ * before the first IDAT. It rotates or flips the image as the orientation
+ * in the last EXIF it finds says: an eXIf chunk, or a text chunk with an
+ * ImageMagick "Raw profile type exif", anywhere up to IEND. So the whole
+ * file has to be in `bytes`; a PNG with text EXIF, which isn't parsed here,
+ * is unknown.
  */
 function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   // Signature, then IHDR: length, "IHDR", width, height, depth, colour type
@@ -82,23 +89,30 @@ function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   const height = readUint32BE(bytes, 20);
   const colorType = bytes[25];
   let alpha = colorType !== 0 && colorType !== 2;
-  let orientation: number | undefined;
+  let orientation = 1;
+  let imageData = false;
   let offset = 8;
   while (offset + 8 <= bytes.length) {
     const length = readUint32BE(bytes, offset);
     const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
-    if (type === "tRNS") alpha = true;
-    // The first eXIf chunk is the one FFmpeg reads.
-    if (type === "eXIf" && orientation === undefined) {
-      const end = Math.min(offset + 8 + length, bytes.length);
-      orientation = readTiffOrientation(bytes, offset + 8, end);
+    const data = offset + 8;
+    const end = Math.min(data + length, bytes.length);
+    if (type === "IEND") {
+      return orientedInfo("png", width, height, alpha, orientation);
     }
-    if (type === "IDAT" || type === "IEND") {
-      return orientedInfo("png", width, height, alpha, orientation ?? 1);
+    if (type === "IDAT") imageData = true;
+    if (type === "tRNS" && !imageData) alpha = true;
+    if (type === "eXIf") orientation = readTiffOrientation(bytes, data, end);
+    if (PNG_TEXT_CHUNKS.has(type)) {
+      const keyword = PNG_TEXT_EXIF_KEYWORD.length;
+      const text = String.fromCharCode(
+        ...bytes.subarray(data, data + keyword + 1),
+      );
+      if (text === `${PNG_TEXT_EXIF_KEYWORD}\0`) return undefined;
     }
     offset += 12 + length; // length, type, data, CRC
   }
-  // The chunks before the image data didn't fit in `bytes`.
+  // The chunks up to IEND didn't fit in `bytes`.
   return undefined;
 }
 
@@ -144,7 +158,11 @@ function readTiffOrientation(
     // Tag, type, count, value
     const entry = ifd + 2 + 12 * i;
     if (entry + 12 > end) return 1;
-    if (readUint16(bytes, entry, littleEndian) === 0x0112) {
+    // FFmpeg only reads an orientation of type SHORT (3).
+    if (
+      readUint16(bytes, entry, littleEndian) === 0x0112 &&
+      readUint16(bytes, entry + 2, littleEndian) === 3
+    ) {
       const orientation = readUint16(bytes, entry + 8, littleEndian);
       return orientation >= 1 && orientation <= 8 ? orientation : 1;
     }
@@ -241,13 +259,14 @@ function readQoiInfo(bytes: Uint8Array): ImageInfo | undefined {
 
 /**
  * Reads the size of a PNG, JPEG or QOI image, and whether FFmpeg decodes it
- * with an alpha channel, from its first bytes (see IMAGE_INFO_BYTES).
+ * with an alpha channel, from its first bytes (see IMAGE_INFO_BYTES), or
+ * from the whole file for a PNG (see isPng).
  *
  * @returns The image's info, or `undefined` when it isn't one of these
  *   formats, or its header isn't within `bytes`
  */
 export function readImageInfo(bytes: Uint8Array): ImageInfo | undefined {
-  if (startsWith(bytes, PNG_SIGNATURE)) return readPngInfo(bytes);
+  if (isPng(bytes)) return readPngInfo(bytes);
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8) {
     return readJpegInfo(bytes);
   }
@@ -256,8 +275,16 @@ export function readImageInfo(bytes: Uint8Array): ImageInfo | undefined {
 }
 
 /**
- * How many leading bytes of an image readImageInfo needs at most, in
- * practice: the header, plus room for the metadata (EXIF, ICC profiles)
- * that can come before a JPEG's start-of-frame or a PNG's image data.
+ * Whether `bytes` start a PNG, which readImageInfo needs whole: FFmpeg
+ * takes its orientation from EXIF that can come after the image data.
+ */
+export function isPng(bytes: Uint8Array): boolean {
+  return startsWith(bytes, PNG_SIGNATURE);
+}
+
+/**
+ * How many leading bytes of a JPEG or QOI image readImageInfo needs at most,
+ * in practice: the header, plus room for the metadata (EXIF, ICC profiles)
+ * that can come before a JPEG's start-of-frame.
  */
 export const IMAGE_INFO_BYTES = 256 * 1024;

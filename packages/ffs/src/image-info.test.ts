@@ -216,14 +216,61 @@ describe("readImageInfo", () => {
     expect(
       readImageInfo(png(2, [chunk("tRNS", [0, 0, 0, 0, 0, 0]), exifChunk(8)])),
     ).toMatchObject({ width: 200, alpha: true, oriented: true });
+    // FFmpeg takes the last one.
+    expect(readImageInfo(png(2, [exifChunk(6), exifChunk(1)]))).toMatchObject({
+      width: 300,
+      oriented: false,
+    });
     expect(readImageInfo(png(2, [exifChunk(1), exifChunk(6)]))).toMatchObject({
+      width: 200,
+      oriented: true,
+    });
+  });
+
+  test("a PNG's eXIf chunk counts after its image data, a tRNS chunk doesn't", () => {
+    const bytes = png(2);
+    const iend = bytes.length - 12;
+    const exifChunk = chunk("eXIf", exif(6).slice(4 + 6));
+    const trns = chunk("tRNS", [0, 0, 0, 0, 0, 0]);
+    const after = (extra: number[]) =>
+      Uint8Array.from([
+        ...bytes.subarray(0, iend),
+        ...extra,
+        ...bytes.subarray(iend),
+      ]);
+    expect(readImageInfo(after(exifChunk))).toMatchObject({
+      width: 200,
+      oriented: true,
+    });
+    expect(readImageInfo(after(trns))).toMatchObject({ alpha: false });
+  });
+
+  test("a PNG with EXIF in a text chunk is unknown", () => {
+    const raw = (type: string) =>
+      chunk(type, [...Buffer.from("Raw profile type exif\0\0", "latin1")]);
+    expect(readImageInfo(png(2, [raw("tEXt")]))).toBeUndefined();
+    expect(readImageInfo(png(2, [raw("zTXt")]))).toBeUndefined();
+    expect(readImageInfo(png(2, [raw("iTXt")]))).toBeUndefined();
+    const comment = chunk("tEXt", [...Buffer.from("Comment\0hi", "latin1")]);
+    expect(readImageInfo(png(2, [comment]))).toMatchObject({ width: 300 });
+  });
+
+  test("an orientation that isn't a SHORT is ignored, as FFmpeg does", () => {
+    const tiff = exif(6, true).slice(4 + 6);
+    // The Orientation entry's type, after the header and the first entry.
+    const type = 8 + 2 + 12 + 2;
+    expect(tiff[type]).toBe(3);
+    tiff[type] = 4; // LONG
+    expect(readImageInfo(png(2, [chunk("eXIf", tiff)]))).toMatchObject({
       width: 300,
       oriented: false,
     });
   });
 
-  test("a PNG cut off before its image data is unknown", () => {
+  test("a PNG cut off before its end is unknown", () => {
     expect(readImageInfo(png(2).subarray(0, 40))).toBeUndefined();
+    const bytes = png(2);
+    expect(readImageInfo(bytes.subarray(0, bytes.length - 12))).toBeUndefined();
   });
 
   test("QOI has alpha with 4 channels, not with 3", () => {

@@ -5,6 +5,7 @@ import {
   isSupportedFFmpegVersion,
 } from "./ffmpeg";
 import type { FFmpegInputInfo } from "./ffmpeg";
+import { IMAGE_INFO_BYTES } from "./image-info";
 import { annieBuffer } from "@effing/annie";
 import { Readable } from "stream";
 import { finished } from "stream/promises";
@@ -302,6 +303,32 @@ describe("FFmpegRunner", () => {
         ...Buffer.from("qoif", "latin1"),
         ...[0, 0, 0, 40, 0, 0, 0, 50, channels, 0],
       ]);
+    const pngChunk = (type: string, data: Buffer) => {
+      const length = Buffer.alloc(4);
+      length.writeUInt32BE(data.length);
+      // The CRC isn't checked.
+      return Buffer.concat([
+        length,
+        Buffer.from(type, "latin1"),
+        data,
+        Buffer.alloc(4),
+      ]);
+    };
+    // A 30x20 RGB PNG with more image data than IMAGE_INFO_BYTES, then an
+    // eXIf chunk with orientation 6.
+    const bigRotatedPng = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      pngChunk("IHDR", Buffer.from([0, 0, 0, 30, 0, 0, 0, 20, 8, 2, 0, 0, 0])),
+      pngChunk("IDAT", Buffer.alloc(IMAGE_INFO_BYTES)),
+      pngChunk(
+        "eXIf",
+        Buffer.from([
+          ...Buffer.from("MM\0\x2a\0\0\0\x08\0\x01", "latin1"),
+          ...[0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0, 0, 0, 0, 0],
+        ]),
+      ),
+      pngChunk("IEND", Buffer.alloc(0)),
+    ]);
     const annie = (first: Buffer) =>
       annieBuffer(
         (async function* () {
@@ -321,6 +348,7 @@ describe("FFmpegRunner", () => {
         "https://example.com/rotated.jpg": async () => rotated,
         "https://example.com/cmyk.tar": () => annie(cmyk),
         "https://example.com/rotated.tar": () => annie(rotated),
+        "https://example.com/rotated.png": async () => bigRotatedPng,
       };
       const sourceFetcher = vi
         .fn()
@@ -361,6 +389,9 @@ describe("FFmpegRunner", () => {
           // left alone.
           [7, { width: 30, height: 20, opaque: false }],
           [8, { width: 20, height: 30, opaque: false }],
+          // A PNG's EXIF can come after its image data, past the bytes
+          // that are enough for a JPEG.
+          [9, { width: 20, height: 30, opaque: true }],
         ]),
       );
     });

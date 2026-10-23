@@ -16,3 +16,4 @@
 
 - [EffieRendererOptions](type-aliases/EffieRendererOptions.md)
 - [FFmpegInput](type-aliases/FFmpegInput.md)
+- [FFmpegRunnerOptions](type-aliases/FFmpegRunnerOptions.md)

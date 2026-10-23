@@ -90,6 +90,13 @@ describe("runRender for effies", () => {
     expect(prewarmedWith).toEqual(["http://127.0.0.1:3839"]);
   });
 
+  test("stops app workers once idle", async () => {
+    await runRender("effie", "video", { output: "out.mp4" });
+    expect(startDevServer).toHaveBeenCalledWith(
+      expect.objectContaining({ idleWorkerTimeout: expect.any(Number) }),
+    );
+  });
+
   test("reports a missing ffs before starting (and prewarming) the server", async () => {
     fs.rmSync(path.join(configDir, "node_modules/.bin/ffs"));
 

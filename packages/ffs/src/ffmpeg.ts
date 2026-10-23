@@ -136,8 +136,8 @@ export type FilterComplexBuilder = (
  * Reads FFmpegInputInfo from the start of an image input's file, or of an
  * animation's first frame. FFmpeg's image2 demuxer decodes every frame of a
  * sequence with the decoder of the first frame (a frame in another format
- * fails to decode), so an animation whose first frame is a JPEG only ever
- * yields frames without alpha. A PNG or QOI first frame says nothing about
+ * fails to decode), so an animation whose first frame is a 3-component JPEG
+ * is taken to only ever yield frames without alpha. A PNG or QOI first frame says nothing about
  * the frames after it, though, so such an animation isn't known to be
  * opaque. Undefined when the source isn't an image readImageInfo knows.
  */
@@ -162,8 +162,12 @@ async function readInputInfo(
   }
   const info = readImageInfo(bytes);
   if (!info) return undefined;
+  // A first frame that's rotated, or has an alpha plane, isn't worth the
+  // guesswork about how the frames after it decode.
   const opaque =
-    input.type === "animation" ? info.format === "jpeg" : !info.alpha;
+    input.type === "animation"
+      ? info.format === "jpeg" && !info.alpha && !info.oriented
+      : !info.alpha;
   return { width: info.width, height: info.height, opaque };
 }
 

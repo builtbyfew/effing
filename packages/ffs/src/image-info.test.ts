@@ -42,6 +42,31 @@ function jpeg(...segments: number[][]): Uint8Array {
 // SOF0: precision, height 1920, width 1296, 3 components
 const sof0 = segment(0xc0, [8, 0x07, 0x80, 0x05, 0x10, 3, 1, 0x22, 0, 2]);
 
+/** An APP1 Exif segment whose IFD0 has an Orientation entry. */
+function exif(orientation: number, littleEndian = false): number[] {
+  const u16 = (n: number) =>
+    littleEndian ? [n & 0xff, n >> 8] : [n >> 8, n & 0xff];
+  const u32 = (n: number) => (littleEndian ? [n, 0, 0, 0] : [0, 0, 0, n]);
+  return segment(0xe1, [
+    ...Buffer.from("Exif\0\0", "latin1"),
+    ...Buffer.from(littleEndian ? "II" : "MM", "latin1"),
+    ...u16(42),
+    ...u32(8), // IFD0 right after the header
+    ...u16(2), // entries: XResolution (ignored), then Orientation
+    ...u16(0x011a),
+    ...u16(5),
+    ...u32(1),
+    ...u32(0),
+    ...u16(0x0112),
+    ...u16(3), // SHORT
+    ...u32(1),
+    ...u16(orientation),
+    0,
+    0,
+    ...u32(0), // no next IFD
+  ]);
+}
+
 function qoi(channels: number): Uint8Array {
   return Uint8Array.from([
     ...Buffer.from("qoif", "latin1"),
@@ -65,6 +90,7 @@ describe("readImageInfo", () => {
       width: 1296,
       height: 1920,
       alpha: false,
+      oriented: false,
     });
   });
 
@@ -86,6 +112,56 @@ describe("readImageInfo", () => {
     });
   });
 
+  test("a 4-component (CMYK or YCCK) JPEG has alpha", () => {
+    // FFmpeg decodes these to gbrap or yuva444p.
+    const sof4 = segment(
+      0xc0,
+      [
+        8, 0x07, 0x80, 0x05, 0x10, 4, 1, 0x11, 0, 2, 0x11, 1, 3, 0x11, 1, 4,
+        0x11, 0,
+      ],
+    );
+    expect(readImageInfo(jpeg(sof4))).toMatchObject({ alpha: true });
+  });
+
+  test("a JPEG's size is as FFmpeg shows it, after its EXIF orientation", () => {
+    // 6: rotate 90° clockwise, which swaps width and height.
+    expect(readImageInfo(jpeg(exif(6), sof0))).toEqual({
+      format: "jpeg",
+      width: 1920,
+      height: 1296,
+      alpha: false,
+      oriented: true,
+    });
+    expect(readImageInfo(jpeg(exif(8, true), sof0))).toMatchObject({
+      width: 1920,
+      height: 1296,
+    });
+    // 3: rotate 180°, which doesn't.
+    expect(readImageInfo(jpeg(exif(3, true), sof0))).toMatchObject({
+      width: 1296,
+      height: 1920,
+      oriented: true,
+    });
+    expect(readImageInfo(jpeg(exif(1), sof0))).toMatchObject({
+      width: 1296,
+      oriented: false,
+    });
+  });
+
+  test("an APP1 segment that isn't Exif, or a second Exif one, is ignored", () => {
+    const xmp = segment(0xe1, [
+      ...Buffer.from("http://ns.adobe.com/", "latin1"),
+    ]);
+    expect(readImageInfo(jpeg(xmp, exif(6), sof0))).toMatchObject({
+      width: 1920,
+    });
+    expect(readImageInfo(jpeg(exif(1), exif(6), sof0))).toMatchObject({
+      width: 1296,
+      oriented: false,
+    });
+  });
+
   test("a JPEG cut off before its start-of-frame is unknown", () => {
     const app1 = segment(0xe1, new Array(1000).fill(7));
     expect(readImageInfo(jpeg(app1, sof0).subarray(0, 500))).toBeUndefined();
@@ -97,6 +173,7 @@ describe("readImageInfo", () => {
       width: 300,
       height: 200,
       alpha: false,
+      oriented: false,
     });
     expect(readImageInfo(png(0))).toMatchObject({ alpha: false });
   });
@@ -110,6 +187,7 @@ describe("readImageInfo", () => {
       width: 300,
       height: 200,
       alpha: true,
+      oriented: false,
     });
   });
 
@@ -130,6 +208,7 @@ describe("readImageInfo", () => {
       width: 1080,
       height: 1920,
       alpha: false,
+      oriented: false,
     });
     expect(readImageInfo(qoi(4))).toMatchObject({ alpha: true });
     expect(readImageInfo(qoi(5))).toBeUndefined();

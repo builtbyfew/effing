@@ -2908,6 +2908,73 @@ describe("opaque base layers", () => {
       }
     },
   );
+
+  test(
+    "a JPEG is a base layer when it covers the frame as its EXIF orientation shows it",
+    { timeout: 30000 },
+    async () => {
+      const tempDir = await createTestOutputDir("opaque-base-exif");
+      try {
+        // An APP1 Exif segment with a big-endian TIFF header and a single
+        // IFD entry: Orientation (0x0112), SHORT, count 1, value 6 (rotate
+        // 90° clockwise).
+        const exif = Buffer.concat([
+          Buffer.from("Exif\0\0", "latin1"),
+          Buffer.from([0x4d, 0x4d, 0x00, 0x2a, 0, 0, 0, 8, 0, 1]),
+          Buffer.from([0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0]),
+          Buffer.from([0, 0, 0, 0]),
+        ]);
+        const app1 = Buffer.from([0xff, 0xe1, 0, 0]);
+        app1.writeUInt16BE(exif.length + 2, 2);
+        const rotatedJpeg = async (name: string, size: string) => {
+          const jpeg = await image(
+            tempDir,
+            name,
+            `testsrc2=s=${size}`,
+            "mjpeg",
+            "yuvj420p",
+          );
+          return Buffer.concat([
+            jpeg.subarray(0, 2),
+            app1,
+            exif,
+            jpeg.subarray(2),
+          ]);
+        };
+        const effieOf = (jpeg: Buffer): EffieData<EffieSources> => ({
+          width: W,
+          height: H,
+          fps,
+          cover: "https://example.com/cover.png",
+          background: { type: "color", color: "blue" },
+          segments: [
+            {
+              duration: 0.5,
+              layers: [{ type: "image", source: dataUrl(jpeg, "image/jpeg") }],
+            },
+          ],
+        });
+        // Stored H x W, shown W x H: it covers the frame.
+        const portrait = effieOf(
+          await rotatedJpeg("portrait.jpg", `${H}x${W}`),
+        );
+        let overlaid = await render(portrait, 1, false);
+        let based = await render(portrait, 1, true);
+        expect(based.graph).not.toMatch(/\[bg_seg\d\]/);
+        expect(based.output.equals(overlaid.output)).toBe(true);
+        // Stored W x H, shown H x W: it doesn't.
+        const landscape = effieOf(
+          await rotatedJpeg("landscape.jpg", `${W}x${H}`),
+        );
+        overlaid = await render(landscape, 1, false);
+        based = await render(landscape, 1, true);
+        expect(based.graph).toContain("[bg_seg0]");
+        expect(based.output.equals(overlaid.output)).toBe(true);
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
 });
 
 /** Builds an annie from frames. */

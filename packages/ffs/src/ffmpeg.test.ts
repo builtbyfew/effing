@@ -283,6 +283,20 @@ describe("FFmpegRunner", () => {
       0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x03,
       0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xd9,
     ]);
+    // The same, with 4 components (CMYK), which FFmpeg decodes with alpha.
+    const cmyk = Buffer.from([
+      0xff, 0xd8, 0xff, 0xc0, 0x00, 0x14, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x04,
+      0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0x04, 0x11, 0x00,
+      0xff, 0xd9,
+    ]);
+    // The 3-component one with EXIF orientation 6 (rotate 90° clockwise).
+    const rotated = Buffer.concat([
+      jpeg.subarray(0, 2),
+      Buffer.from([0xff, 0xe1, 0x00, 0x22]),
+      Buffer.from("Exif\0\0MM\0\x2a\0\0\0\x08\0\x01", "latin1"),
+      Buffer.from([0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, 6, 0, 0, 0, 0, 0, 0]),
+      jpeg.subarray(2),
+    ]);
     const qoi = (channels: number) =>
       Buffer.from([
         ...Buffer.from("qoif", "latin1"),
@@ -303,6 +317,10 @@ describe("FFmpegRunner", () => {
         "https://example.com/zoom.tar": () => annie(jpeg),
         "https://example.com/text.tar": () => annie(qoi(3)),
         "https://example.com/unknown": async () => Buffer.from("not an image"),
+        "https://example.com/cmyk.jpg": async () => cmyk,
+        "https://example.com/rotated.jpg": async () => rotated,
+        "https://example.com/cmyk.tar": () => annie(cmyk),
+        "https://example.com/rotated.tar": () => annie(rotated),
       };
       const sourceFetcher = vi
         .fn()
@@ -336,6 +354,13 @@ describe("FFmpegRunner", () => {
           // only JPEG rules out alpha in the frames after the first.
           [2, { width: 30, height: 20, opaque: true }],
           [3, { width: 40, height: 50, opaque: false }],
+          [5, { width: 30, height: 20, opaque: false }],
+          // FFmpeg shows a JPEG as its EXIF orientation says.
+          [6, { width: 20, height: 30, opaque: true }],
+          // An annie whose first frame has an alpha plane or is rotated is
+          // left alone.
+          [7, { width: 30, height: 20, opaque: false }],
+          [8, { width: 20, height: 30, opaque: false }],
         ]),
       );
     });

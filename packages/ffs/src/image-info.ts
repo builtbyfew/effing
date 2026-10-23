@@ -10,6 +10,11 @@ export type ImageInfo = {
    * channel. An image without one is opaque.
    */
   alpha: boolean;
+  /**
+   * Whether FFmpeg rotates or flips the decoded image, as a JPEG's EXIF
+   * orientation says. `width` and `height` are the size once it has.
+   */
+  oriented: boolean;
 };
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -36,6 +41,30 @@ function readUint16BE(bytes: Uint8Array, offset: number): number {
   return (bytes[offset] << 8) | bytes[offset + 1];
 }
 
+function readUint16(
+  bytes: Uint8Array,
+  offset: number,
+  littleEndian: boolean,
+): number {
+  return littleEndian
+    ? bytes[offset] | (bytes[offset + 1] << 8)
+    : readUint16BE(bytes, offset);
+}
+
+function readUint32(
+  bytes: Uint8Array,
+  offset: number,
+  littleEndian: boolean,
+): number {
+  return littleEndian
+    ? (bytes[offset] |
+        (bytes[offset + 1] << 8) |
+        (bytes[offset + 2] << 16) |
+        (bytes[offset + 3] << 24)) >>>
+        0
+    : readUint32BE(bytes, offset);
+}
+
 /**
  * PNG: the size is in IHDR. FFmpeg's PNG decoder outputs an alpha format for
  * the colour types with alpha (4 and 6), for palette images (pal8 carries
@@ -52,15 +81,17 @@ function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   const height = readUint32BE(bytes, 20);
   const colorType = bytes[25];
   if (colorType !== 0 && colorType !== 2) {
-    return { format: "png", width, height, alpha: true };
+    return { format: "png", width, height, alpha: true, oriented: false };
   }
   let offset = 8;
   while (offset + 8 <= bytes.length) {
     const length = readUint32BE(bytes, offset);
     const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
-    if (type === "tRNS") return { format: "png", width, height, alpha: true };
+    if (type === "tRNS") {
+      return { format: "png", width, height, alpha: true, oriented: false };
+    }
     if (type === "IDAT" || type === "IEND") {
-      return { format: "png", width, height, alpha: false };
+      return { format: "png", width, height, alpha: false, oriented: false };
     }
     offset += 12 + length; // length, type, data, CRC
   }
@@ -69,10 +100,46 @@ function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
 }
 
 /**
- * JPEG: the size is in the first start-of-frame segment. JPEGs have no
- * alpha channel, and FFmpeg's JPEG decoder has no alpha output formats.
+ * The orientation (1-8) in a JPEG APP1 segment whose data is
+ * `bytes[start, end)`: 1 (as is) when the Exif data has none. Undefined when
+ * the segment isn't Exif.
+ */
+function readExifOrientation(
+  bytes: Uint8Array,
+  start: number,
+  end: number,
+): number | undefined {
+  // "Exif\0\0", then a TIFF header: byte order, 42, offset of IFD0
+  const header = String.fromCharCode(...bytes.subarray(start, start + 6));
+  if (end - start < 6 || header !== "Exif\0\0") return undefined;
+  const tiff = start + 6;
+  if (tiff + 8 > end) return 1;
+  const byteOrder = String.fromCharCode(bytes[tiff], bytes[tiff + 1]);
+  if (byteOrder !== "II" && byteOrder !== "MM") return 1;
+  const littleEndian = byteOrder === "II";
+  const ifd = tiff + readUint32(bytes, tiff + 4, littleEndian);
+  if (ifd + 2 > end) return 1;
+  const entries = readUint16(bytes, ifd, littleEndian);
+  for (let i = 0; i < entries; i++) {
+    // Tag, type, count, value
+    const entry = ifd + 2 + 12 * i;
+    if (entry + 12 > end) return 1;
+    if (readUint16(bytes, entry, littleEndian) === 0x0112) {
+      const orientation = readUint16(bytes, entry + 8, littleEndian);
+      return orientation >= 1 && orientation <= 8 ? orientation : 1;
+    }
+  }
+  return 1;
+}
+
+/**
+ * JPEG: the size and component count are in the first start-of-frame
+ * segment. FFmpeg's JPEG decoder outputs a format with an alpha plane for
+ * 4-component (CMYK or YCCK) JPEGs, and rotates or flips the image as the
+ * EXIF orientation says, which swaps width and height for orientations 5-8.
  */
 function readJpegInfo(bytes: Uint8Array): ImageInfo | undefined {
+  let orientation: number | undefined;
   let offset = 2; // after SOI
   while (offset + 4 <= bytes.length) {
     if (bytes[offset] !== 0xff) return undefined;
@@ -95,12 +162,27 @@ function readJpegInfo(bytes: Uint8Array): ImageInfo | undefined {
       marker !== 0xc8 &&
       marker !== 0xcc;
     if (isStartOfFrame) {
-      if (offset + 9 > bytes.length) return undefined;
+      // Length, precision, height, width, component count
+      if (offset + 10 > bytes.length) return undefined;
       const height = readUint16BE(bytes, offset + 5);
       const width = readUint16BE(bytes, offset + 7);
-      return { format: "jpeg", width, height, alpha: false };
+      const components = bytes[offset + 9];
+      orientation ??= 1;
+      const swapped = orientation >= 5;
+      return {
+        format: "jpeg",
+        width: swapped ? height : width,
+        height: swapped ? width : height,
+        alpha: components === 4,
+        oriented: orientation !== 1,
+      };
     }
     if (marker === 0xda) return undefined; // image data before any SOF
+    // The first Exif segment is the one FFmpeg reads.
+    if (marker === 0xe1 && orientation === undefined) {
+      const end = Math.min(offset + 2 + length, bytes.length);
+      orientation = readExifOrientation(bytes, offset + 4, end);
+    }
     offset += 2 + length;
   }
   return undefined;
@@ -119,6 +201,7 @@ function readQoiInfo(bytes: Uint8Array): ImageInfo | undefined {
     width: readUint32BE(bytes, 4),
     height: readUint32BE(bytes, 8),
     alpha: channels === 4,
+    oriented: false,
   };
 }
 

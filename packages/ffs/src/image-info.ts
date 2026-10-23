@@ -69,7 +69,8 @@ function readUint32(
  * PNG: the size is in IHDR. FFmpeg's PNG decoder outputs an alpha format for
  * the colour types with alpha (4 and 6), for palette images (pal8 carries
  * the palette's alpha) and for greyscale or RGB images with a tRNS chunk,
- * which has to come before the first IDAT.
+ * and rotates or flips the image as an eXIf chunk's orientation says. Both
+ * chunks have to come before the first IDAT.
  */
 function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   // Signature, then IHDR: length, "IHDR", width, height, depth, colour type
@@ -80,18 +81,20 @@ function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
   const width = readUint32BE(bytes, 16);
   const height = readUint32BE(bytes, 20);
   const colorType = bytes[25];
-  if (colorType !== 0 && colorType !== 2) {
-    return { format: "png", width, height, alpha: true, oriented: false };
-  }
+  let alpha = colorType !== 0 && colorType !== 2;
+  let orientation: number | undefined;
   let offset = 8;
   while (offset + 8 <= bytes.length) {
     const length = readUint32BE(bytes, offset);
     const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
-    if (type === "tRNS") {
-      return { format: "png", width, height, alpha: true, oriented: false };
+    if (type === "tRNS") alpha = true;
+    // The first eXIf chunk is the one FFmpeg reads.
+    if (type === "eXIf" && orientation === undefined) {
+      const end = Math.min(offset + 8 + length, bytes.length);
+      orientation = readTiffOrientation(bytes, offset + 8, end);
     }
     if (type === "IDAT" || type === "IEND") {
-      return { format: "png", width, height, alpha: false, oriented: false };
+      return orientedInfo("png", width, height, alpha, orientation ?? 1);
     }
     offset += 12 + length; // length, type, data, CRC
   }
@@ -100,24 +103,41 @@ function readPngInfo(bytes: Uint8Array): ImageInfo | undefined {
 }
 
 /**
- * The orientation (1-8) in a JPEG APP1 segment whose data is
- * `bytes[start, end)`: 1 (as is) when the Exif data has none. Undefined when
- * the segment isn't Exif.
+ * The info of an image FFmpeg rotates or flips as its EXIF `orientation`
+ * (1-8) says, which swaps width and height for orientations 5-8.
  */
-function readExifOrientation(
+function orientedInfo(
+  format: ImageInfo["format"],
+  width: number,
+  height: number,
+  alpha: boolean,
+  orientation: number,
+): ImageInfo {
+  const swapped = orientation >= 5;
+  return {
+    format,
+    width: swapped ? height : width,
+    height: swapped ? width : height,
+    alpha,
+    oriented: orientation !== 1,
+  };
+}
+
+/**
+ * The orientation (1-8) in TIFF-structured EXIF data at `bytes[start, end)`
+ * (a PNG eXIf chunk's data): 1 (as is) when it has none.
+ */
+function readTiffOrientation(
   bytes: Uint8Array,
   start: number,
   end: number,
-): number | undefined {
-  // "Exif\0\0", then a TIFF header: byte order, 42, offset of IFD0
-  const header = String.fromCharCode(...bytes.subarray(start, start + 6));
-  if (end - start < 6 || header !== "Exif\0\0") return undefined;
-  const tiff = start + 6;
-  if (tiff + 8 > end) return 1;
-  const byteOrder = String.fromCharCode(bytes[tiff], bytes[tiff + 1]);
+): number {
+  // Byte order, 42, offset of IFD0
+  if (start + 8 > end) return 1;
+  const byteOrder = String.fromCharCode(bytes[start], bytes[start + 1]);
   if (byteOrder !== "II" && byteOrder !== "MM") return 1;
   const littleEndian = byteOrder === "II";
-  const ifd = tiff + readUint32(bytes, tiff + 4, littleEndian);
+  const ifd = start + readUint32(bytes, start + 4, littleEndian);
   if (ifd + 2 > end) return 1;
   const entries = readUint16(bytes, ifd, littleEndian);
   for (let i = 0; i < entries; i++) {
@@ -130,6 +150,22 @@ function readExifOrientation(
     }
   }
   return 1;
+}
+
+/**
+ * The orientation (1-8) in a JPEG APP1 segment whose data is
+ * `bytes[start, end)`: 1 (as is) when the Exif data has none. Undefined when
+ * the segment isn't Exif.
+ */
+function readExifOrientation(
+  bytes: Uint8Array,
+  start: number,
+  end: number,
+): number | undefined {
+  // "Exif\0\0", then the TIFF data
+  const header = String.fromCharCode(...bytes.subarray(start, start + 6));
+  if (end - start < 6 || header !== "Exif\0\0") return undefined;
+  return readTiffOrientation(bytes, start + 6, end);
 }
 
 /**
@@ -167,15 +203,13 @@ function readJpegInfo(bytes: Uint8Array): ImageInfo | undefined {
       const height = readUint16BE(bytes, offset + 5);
       const width = readUint16BE(bytes, offset + 7);
       const components = bytes[offset + 9];
-      orientation ??= 1;
-      const swapped = orientation >= 5;
-      return {
-        format: "jpeg",
-        width: swapped ? height : width,
-        height: swapped ? width : height,
-        alpha: components === 4,
-        oriented: orientation !== 1,
-      };
+      return orientedInfo(
+        "jpeg",
+        width,
+        height,
+        components === 4,
+        orientation ?? 1,
+      );
     }
     if (marker === 0xda) return undefined; // image data before any SOF
     // The first Exif segment is the one FFmpeg reads.

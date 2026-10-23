@@ -198,6 +198,30 @@ describe("readImageInfo", () => {
     ).toMatchObject({ alpha: true });
   });
 
+  test("a PNG's size is as FFmpeg shows it, after its eXIf orientation", () => {
+    // An eXIf chunk holds the TIFF data of an APP1 Exif segment.
+    const exifChunk = (orientation: number, littleEndian = false) =>
+      chunk("eXIf", exif(orientation, littleEndian).slice(4 + 6));
+    expect(readImageInfo(png(2, [exifChunk(6)]))).toEqual({
+      format: "png",
+      width: 200,
+      height: 300,
+      alpha: false,
+      oriented: true,
+    });
+    expect(readImageInfo(png(2, [exifChunk(3, true)]))).toMatchObject({
+      width: 300,
+      oriented: true,
+    });
+    expect(
+      readImageInfo(png(2, [chunk("tRNS", [0, 0, 0, 0, 0, 0]), exifChunk(8)])),
+    ).toMatchObject({ width: 200, alpha: true, oriented: true });
+    expect(readImageInfo(png(2, [exifChunk(1), exifChunk(6)]))).toMatchObject({
+      width: 300,
+      oriented: false,
+    });
+  });
+
   test("a PNG cut off before its image data is unknown", () => {
     expect(readImageInfo(png(2).subarray(0, 40))).toBeUndefined();
   });

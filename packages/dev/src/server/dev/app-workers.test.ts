@@ -24,6 +24,7 @@ type State = {
   thread: number;
   fns: ResolvedFns;
   invalidated: string[];
+  preload: boolean;
 };
 
 const cleanups: (() => Promise<void>)[] = [];
@@ -101,6 +102,21 @@ describe("createAppWorkers", () => {
 
     const threads = await Promise.all([state(300), state(300), state(300)]);
     expect(new Set(threads.map((s) => s.thread)).size).toBe(2);
+  });
+
+  test("prewarms half the workers, telling them to preload the fns", async () => {
+    const { app, state } = await start({ size: 4 });
+    app.prewarm();
+    // Requests in flight together take the two prewarmed workers first, then
+    // spawn the rest on demand, which don't preload.
+    const states = await Promise.all([state(300), state(300), state(300)]);
+    expect(new Set(states.map((s) => s.thread)).size).toBe(3);
+    expect(states.map((s) => s.preload).sort()).toEqual([false, true, true]);
+  });
+
+  test("leaves workers spawned on demand to load fns on demand", async () => {
+    const { state } = await start();
+    expect((await state()).preload).toBe(false);
   });
 
   test("aborts the worker's request when the client goes away", async () => {

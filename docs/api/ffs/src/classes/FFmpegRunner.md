@@ -6,7 +6,7 @@
 
 # Class: FFmpegRunner
 
-Defined in: [ffs/src/ffmpeg.ts:257](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L257)
+Defined in: [ffs/src/ffmpeg.ts:292](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L292)
 
 ## Constructors
 
@@ -14,7 +14,7 @@ Defined in: [ffs/src/ffmpeg.ts:257](https://github.com/builtbyfew/effing/blob/ma
 
 > **new FFmpegRunner**(`command`): `FFmpegRunner`
 
-Defined in: [ffs/src/ffmpeg.ts:263](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L263)
+Defined in: [ffs/src/ffmpeg.ts:299](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L299)
 
 #### Parameters
 
@@ -32,7 +32,7 @@ Defined in: [ffs/src/ffmpeg.ts:263](https://github.com/builtbyfew/effing/blob/ma
 
 > **close**(): `void`
 
-Defined in: [ffs/src/ffmpeg.ts:429](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L429)
+Defined in: [ffs/src/ffmpeg.ts:601](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L601)
 
 Stops FFmpeg, or keeps it from starting. The runner can't run again.
 
@@ -46,7 +46,18 @@ Stops FFmpeg, or keeps it from starting. The runner can't run again.
 
 > **run**(`sourceFetcher`, `referenceResolver?`, `urlTransformer?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/ffmpeg.ts:267](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L267)
+Defined in: [ffs/src/ffmpeg.ts:315](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/ffmpeg.ts#L315)
+
+Fetches the sources and starts FFmpeg on them, and resolves with its
+output.
+
+FFmpeg starts once every source is ready, except annies: those it reads
+through a pipe as their frames come in, so it starts once each annie has
+its first frame on disk (see AnnieExtraction). A source that fails
+before FFmpeg starts rejects the returned promise; an annie that fails
+after that stops FFmpeg and destroys the output with its error. A render
+only succeeds once every annie is complete, even one FFmpeg didn't need
+every frame of.
 
 #### Parameters
 

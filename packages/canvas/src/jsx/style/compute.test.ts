@@ -21,6 +21,22 @@ describe("resolveStyle", () => {
     expect(style.color).toBe("blue");
   });
 
+  it.each([["inherit"], ["currentColor"], ["CurrentColor"], ["nope"], [""]])(
+    "inherits color from parent when it is %j",
+    (color) => {
+      const style = resolveStyle({ color }, { ...DEFAULT_STYLE, color: "red" });
+      expect(style.color).toBe("red");
+    },
+  );
+
+  it.each([["RGB(0, 0, 255)"], [" blue "], ["transparent"]])(
+    "keeps a valid color, %j",
+    (color) => {
+      const style = resolveStyle({ color }, { ...DEFAULT_STYLE, color: "red" });
+      expect(style.color).toBe(color);
+    },
+  );
+
   it("takes any font-weight from 1 to 1000, and ignores others", () => {
     const parent = { ...DEFAULT_STYLE, fontWeight: 700 };
     for (const fontWeight of [

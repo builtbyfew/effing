@@ -88,15 +88,12 @@ function drawBorders(
   // A negative width, which CSS doesn't allow, is none.
   if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
 
-  // Skia doesn't know currentColor: it's the element's colour.
-  const color = (c: string | undefined) => {
-    if (c === undefined) return "black";
-    if (c.toLowerCase() !== "currentcolor") return c;
-    // Nor a colour that is itself currentColor, inherit or invalid.
-    return style.color && parseCssColor(style.color.trim())
-      ? style.color
-      : "black";
-  };
+  // Skia doesn't know currentColor: it's the element's colour, which is also
+  // a border's colour when none is given.
+  const color = (c: string | undefined) =>
+    c === undefined || c.trim().toLowerCase() === "currentcolor"
+      ? (style.color ?? "black")
+      : c;
   const sides: BorderSide[] = [
     { width: tw, color: color(style.borderTopColor) },
     { width: rw, color: color(style.borderRightColor) },

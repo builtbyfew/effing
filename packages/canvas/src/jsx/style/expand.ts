@@ -10,10 +10,32 @@ type RawStyle = Record<string, unknown>;
 const SIDES = ["Top", "Right", "Bottom", "Left"] as const;
 
 /**
+ * Split a CSS value on whitespace outside parentheses, so that a colour such
+ * as `rgba(0, 0, 255, 0.5)` stays one part.
+ */
+function splitValue(value: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let part = "";
+  for (const ch of value) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (depth === 0 && /\s/.test(ch)) {
+      if (part) parts.push(part);
+      part = "";
+    } else {
+      part += ch;
+    }
+  }
+  if (part) parts.push(part);
+  return parts;
+}
+
+/**
  * Parse a CSS shorthand value like "10px 20px" into 1-4 parts.
  */
 function parseSides(value: string): string[] {
-  const parts = value.toString().split(/\s+/).filter(Boolean);
+  const parts = splitValue(value.toString());
   switch (parts.length) {
     case 1:
       return [parts[0]!, parts[0]!, parts[0]!, parts[0]!];
@@ -24,6 +46,62 @@ function parseSides(value: string): string[] {
     default:
       return [parts[0]!, parts[1]!, parts[2]!, parts[3]!];
   }
+}
+
+const BORDER_STYLES = new Set([
+  "none",
+  "hidden",
+  "dotted",
+  "dashed",
+  "solid",
+  "double",
+  "groove",
+  "ridge",
+  "inset",
+  "outset",
+]);
+
+const BORDER_WIDTHS = new Map([
+  ["thin", 1],
+  ["medium", 3],
+  ["thick", 5],
+]);
+
+/** Whether `part` is a border width: a number or length, or a keyword. */
+function isBorderWidth(part: string): boolean {
+  return BORDER_WIDTHS.has(part.toLowerCase()) || /^[+-]?(\d|\.\d)/.test(part);
+}
+
+/** A border width: a keyword's, or the value as `parseValue` reads it. */
+function parseBorderWidth(v: unknown): number | string | undefined {
+  return BORDER_WIDTHS.get(String(v).toLowerCase()) ?? parseValue(v);
+}
+
+/**
+ * Parse a `border` shorthand such as "1px solid red", whose width, style and
+ * colour may come in any order. A colour that isn't given is `currentColor`,
+ * and a width that isn't given is medium, as in CSS. A style that isn't given
+ * is solid, though CSS's is none; then a missing width stays unset, so that
+ * a lone colour still draws nothing. A style of none or hidden has no width.
+ */
+function parseBorder(value: string): {
+  width: number | string | undefined;
+  style: string;
+  color: string;
+} {
+  let width: number | string | undefined;
+  let style: string | undefined;
+  let color: string | undefined;
+  for (const part of splitValue(value)) {
+    const lower = part.toLowerCase();
+    if (style === undefined && BORDER_STYLES.has(lower)) style = lower;
+    else if (width === undefined && isBorderWidth(part))
+      width = parseBorderWidth(part);
+    else color ??= part;
+  }
+  if (style === "none" || style === "hidden") width = 0;
+  else if (style !== undefined) width ??= BORDER_WIDTHS.get("medium");
+  return { width, style: style ?? "solid", color: color ?? "currentColor" };
 }
 
 function parseValue(v: unknown): number | string | undefined {
@@ -93,10 +171,10 @@ export function expandStyle(
 
   // borderColor shorthand
   if (style.borderColor !== undefined) {
-    const val = style.borderColor;
-    for (const side of SIDES) {
-      const key = `border${side}Color`;
-      if (style[key] === undefined) style[key] = val;
+    const sides = parseSides(String(style.borderColor));
+    for (let i = 0; i < 4; i++) {
+      const key = `border${SIDES[i]}Color`;
+      if (style[key] === undefined) style[key] = sides[i];
     }
     delete style.borderColor;
   }
@@ -113,10 +191,11 @@ export function expandStyle(
 
   // border shorthand (e.g. "1px solid black")
   if (style.border !== undefined) {
-    const parts = String(style.border).split(/\s+/);
-    const width = parseValue(parts[0]);
-    const borderStyle = parts[1] ?? "solid";
-    const color = parts[2] ?? "black";
+    const {
+      width,
+      style: borderStyle,
+      color,
+    } = parseBorder(String(style.border));
     for (const side of SIDES) {
       if (style[`border${side}Width`] === undefined)
         style[`border${side}Width`] = width;
@@ -132,16 +211,24 @@ export function expandStyle(
   for (const side of SIDES) {
     const key = `border${side}`;
     if (style[key] !== undefined) {
-      const parts = String(style[key]).split(/\s+/);
-      const width = parseValue(parts[0]);
-      const borderStyle = parts[1] ?? "solid";
-      const color = parts[2] ?? "black";
+      const {
+        width,
+        style: borderStyle,
+        color,
+      } = parseBorder(String(style[key]));
       if (style[`${key}Width`] === undefined) style[`${key}Width`] = width;
       if (style[`${key}Style`] === undefined)
         style[`${key}Style`] = borderStyle;
       if (style[`${key}Color`] === undefined) style[`${key}Color`] = color;
       delete style[key];
     }
+  }
+
+  // Border width keywords, however the width was given.
+  for (const side of SIDES) {
+    const key = `border${side}Width`;
+    if (typeof style[key] === "string")
+      style[key] = parseBorderWidth(style[key]);
   }
 
   // flex shorthand

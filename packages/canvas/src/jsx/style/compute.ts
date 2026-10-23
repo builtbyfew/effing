@@ -2,6 +2,8 @@
 // Licensed under the Mozilla Public License 2.0 (MPL-2.0)
 // See NOTICE.md in the package root for details.
 
+import parseCssColor from "parse-css-color";
+
 import { formatCSSNumber } from "../draw/utils.ts";
 
 /**
@@ -225,6 +227,14 @@ function isValidFontWeight(weight: number | string): boolean {
   return Number.isFinite(weight) && weight >= 1 && weight <= 1000;
 }
 
+/** Whether `color` is a colour value, not a keyword such as `inherit`. */
+function isPaintableColor(color: unknown): boolean {
+  return (
+    typeof color === "string" &&
+    parseCssColor(color.trim().toLowerCase()) !== null
+  );
+}
+
 /**
  * Resolve the computed style for a node, inheriting from parent where appropriate.
  */
@@ -238,6 +248,12 @@ export function resolveStyle(
   // element inherits its parent's (`ctx.font` throws on one).
   if (style.fontWeight !== undefined && !isValidFontWeight(style.fontWeight)) {
     delete style.fontWeight;
+  }
+
+  // A colour Skia can't paint with is the parent's: `inherit` and
+  // `currentColor` by definition, and an invalid one because CSS ignores it.
+  if (style.color !== undefined && !isPaintableColor(style.color)) {
+    delete style.color;
   }
 
   // Apply inherited properties

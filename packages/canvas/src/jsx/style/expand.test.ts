@@ -31,11 +31,64 @@ describe("expandStyle – per-side border shorthands", () => {
     expect(result.borderBottomColor).toBe("blue");
   });
 
-  it("defaults style to solid and color to black", () => {
+  it("defaults style to solid and color to currentColor", () => {
     const result = expandStyle({ borderLeft: "5px" });
     expect(result.borderLeftWidth).toBe("5px");
     expect(result.borderLeftStyle).toBe("solid");
-    expect(result.borderLeftColor).toBe("black");
+    expect(result.borderLeftColor).toBe("currentColor");
+  });
+
+  it.each([
+    ["rgba(0, 0, 255, 0.5)"],
+    ["rgb(0 0 255 / 50%)"],
+    ["hsl(240, 100%, 50%)"],
+  ])("keeps a colour with spaces, %s, whole", (color) => {
+    const result = expandStyle({
+      borderLeft: `10px solid ${color}`,
+      border: `2px dashed ${color}`,
+    });
+    expect(result.borderLeftColor).toBe(color);
+    expect(result.borderTopColor).toBe(color);
+  });
+
+  it.each([
+    [0, 0],
+    [2, 2],
+    ["none", 0],
+    ["0", 0],
+    ["medium none", 0],
+    ["thick hidden red", 0],
+    ["solid red", 3],
+    ["2 dashed", 2],
+  ])("gives border %j a width of %d", (border, width) => {
+    expect(expandStyle({ border }).borderTopWidth).toBe(width);
+    expect(expandStyle({ borderTop: border }).borderTopWidth).toBe(width);
+  });
+
+  it("leaves the width of a border with only a colour unset", () => {
+    expect(expandStyle({ border: "red" }).borderTopWidth).toBeUndefined();
+  });
+
+  it("reads width keywords in borderWidth and its longhands", () => {
+    const result = expandStyle({
+      borderWidth: "thin",
+      borderLeftWidth: "thick",
+    });
+    expect(result.borderTopWidth).toBe(1);
+    expect(result.borderLeftWidth).toBe(5);
+  });
+
+  it("takes width, style and colour in any order", () => {
+    const result = expandStyle({
+      borderTop: "solid rgba(255, 0, 0, 1) 2px",
+      borderBottom: "red dotted thick",
+    });
+    expect(result.borderTopWidth).toBe("2px");
+    expect(result.borderTopStyle).toBe("solid");
+    expect(result.borderTopColor).toBe("rgba(255, 0, 0, 1)");
+    expect(result.borderBottomWidth).toBe(5);
+    expect(result.borderBottomStyle).toBe("dotted");
+    expect(result.borderBottomColor).toBe("red");
   });
 
   it("does not override explicit longhands", () => {
@@ -128,6 +181,21 @@ describe("expandStyle – margin, padding, border, flex, gap shorthands", () => 
     expect(style.borderTopWidth).toBe(2);
     expect(style.borderTopStyle).toBe("solid");
     expect(style.borderTopColor).toBe("red");
+  });
+
+  it.each([
+    ["red", ["red", "red", "red", "red"]],
+    ["#e11 #11e", ["#e11", "#11e", "#e11", "#11e"]],
+    ["red green blue", ["red", "green", "blue", "green"]],
+    ["red rgb(0, 128, 0) blue gold", ["red", "rgb(0, 128, 0)", "blue", "gold"]],
+  ])("expands borderColor %s to each side", (value, expected) => {
+    const style = expandStyle({ borderColor: value });
+    expect([
+      style.borderTopColor,
+      style.borderRightColor,
+      style.borderBottomColor,
+      style.borderLeftColor,
+    ]).toEqual(expected);
   });
 
   it("expands flex shorthand", () => {

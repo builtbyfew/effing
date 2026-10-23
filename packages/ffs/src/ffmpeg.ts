@@ -398,6 +398,15 @@ export class FFmpegRunner {
         if (!output.destroyed) output.destroy(toError(err));
       };
       for (const extraction of extractions) extraction.done.catch(fail);
+      // A feed that can't read a frame has ended its pipe early, so FFmpeg
+      // may well exit 0 on what it got: that still fails the render.
+      let feedError: unknown;
+      for (const feeder of feeders) {
+        feeder.catch((err) => {
+          feedError ??= err;
+          fail(err);
+        });
+      }
 
       /** Waits for the annies and feeds to stop, then removes the temp dir. */
       const cleanUp = async () => {
@@ -441,7 +450,8 @@ export class FFmpegRunner {
         // started when annies weren't streamed.
         const annieError =
           code === 0 && !this.closed
-            ? extractions.find((e) => e.error !== undefined)?.error
+            ? (feedError ??
+              extractions.find((e) => e.error !== undefined)?.error)
             : undefined;
         if (annieError !== undefined) {
           output.destroy(toError(annieError));

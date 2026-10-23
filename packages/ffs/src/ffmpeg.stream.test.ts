@@ -312,6 +312,34 @@ describe("FFmpegRunner with streamed annies", () => {
     },
   );
 
+  test(
+    "a frame that can't be fed fails the render",
+    { timeout: 10000 },
+    async () => {
+      // The feed ends the pipe early, so FFmpeg exits 0 on what it got.
+      const realOpen = fsp.open;
+      const openSpy = vi
+        .spyOn(fsp, "open")
+        .mockImplementation(async (file, ...rest) => {
+          if (String(file).endsWith("frame_00002")) {
+            throw new Error("EIO: frame unreadable");
+          }
+          return realOpen(file, ...rest);
+        });
+      try {
+        const command = framemd5Command([animationInput(0, "#anim")]);
+        const runner = new FFmpegRunner(command);
+        const output = await runner.run(async () =>
+          Readable.from([await annieBuffer(Readable.from(frames.jpeg))]),
+        );
+        output.resume();
+        await expect(finished(output)).rejects.toThrow("frame unreadable");
+      } finally {
+        openSpy.mockRestore();
+      }
+    },
+  );
+
   test("an annie that fails before its first frame rejects run()", async () => {
     const command = framemd5Command([animationInput(0, "#anim")]);
     const runner = new FFmpegRunner(command);
@@ -376,6 +404,22 @@ describe("AnnieExtraction", () => {
     expect(extraction.pipeFormat).toBe("png_pipe");
     expect(await fed(extraction)).toEqual(Buffer.concat([a, b, c]));
     await extraction.done;
+  });
+
+  test("a feed rejects when a frame on disk can't be read", async () => {
+    const dir = await fsp.mkdtemp(path.join(tempDir, "extract-"));
+    const [a, b] = frames.png;
+    const extraction = new AnnieExtraction(dir, async () =>
+      Readable.from([
+        await tarOf([
+          ["frame_00000", a],
+          ["frame_00001", b],
+        ]),
+      ]),
+    );
+    await extraction.done;
+    await fsp.rm(path.join(dir, "frame_00001"));
+    await expect(fed(extraction)).rejects.toThrow(/ENOENT/);
   });
 
   test("an annie that doesn't start at frame_00000 isn't streamed", async () => {

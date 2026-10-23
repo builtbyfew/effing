@@ -38,9 +38,21 @@ export type StartDevServerOptions = {
   strictPort?: boolean;
 };
 
+export type DevServer = {
+  port: number;
+  /**
+   * Get ready for a burst of requests, as for a render: start app workers
+   * now (half the pool) and import every fn in them, or import the fns on
+   * this thread without workers, instead of on the first requests. Call it
+   * once the environment the fns read (BASE_URL) is set.
+   */
+  prewarm: () => void;
+  close: () => Promise<void>;
+};
+
 export async function startDevServer(
   options: StartDevServerOptions,
-): Promise<{ port: number; close: () => Promise<void> }> {
+): Promise<DevServer> {
   // Mutable snapshot, refreshed when fn files are added/removed.
   let resolved: ResolvedFns = await resolveFns(
     options.configDir,
@@ -230,6 +242,7 @@ export async function startDevServer(
 
     return {
       port,
+      prewarm: () => app.prewarm(),
       async close() {
         for (const c of sseClients) {
           try {
@@ -348,6 +361,17 @@ async function startInProcessApp(
       invalidate: (file) => invalidateFile(runner.evaluatedModules, file),
       // The loader reads the current fns on every call.
       setFns: () => {},
+      prewarm() {
+        // Requests for an fn still loading wait for this same import; a
+        // failing fn is left for its request to report. Effies go first, as
+        // in a worker (see preloadFns).
+        const all = fns();
+        for (const kind of ["effie", "annie", "image"] as const) {
+          for (const { absPath } of all[kind]) {
+            runner.import(absPath).catch(() => {});
+          }
+        }
+      },
       close,
     };
   } catch (err) {

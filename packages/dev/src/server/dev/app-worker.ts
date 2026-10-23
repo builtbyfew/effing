@@ -85,4 +85,19 @@ server.listen(0, "127.0.0.1", () => {
   const address = server.address();
   invariant(address && typeof address === "object", "no server address");
   send({ type: "ready", port: address.port });
+  if (data.preload) preloadFns();
 });
+
+/**
+ * Import every fn, so the first request for one finds it (and the native
+ * modules it uses, like canvas) loaded. A request for an fn that is still
+ * loading waits for that same import. A failing fn is left for its request
+ * to report. Effies go first: a render asks for its effie before its layers.
+ */
+function preloadFns(): void {
+  for (const kind of ["effie", "annie", "image"] as const) {
+    for (const { absPath } of fns[kind]) {
+      runner.import(absPath).catch(() => {});
+    }
+  }
+}

@@ -10,7 +10,7 @@ const Y = 20;
 const W = 200;
 const H = 100;
 
-async function render(style: CSSProperties) {
+async function render(style: CSSProperties, parentStyle: CSSProperties = {}) {
   const canvas = createCanvas(X * 2 + W, Y * 2 + H);
   const ctx = canvas.getContext("2d");
   await renderReactElement(
@@ -21,6 +21,7 @@ async function render(style: CSSProperties) {
         width: X * 2 + W,
         height: Y * 2 + H,
         backgroundColor: "#fff",
+        ...parentStyle,
       }}
     >
       <div
@@ -287,16 +288,58 @@ describe("rounded borders of unequal widths", () => {
   });
 
   it.each([["currentColor"], ["inherit"], ["nope"]])(
-    "draws currentColor in black for an element whose colour is %s",
+    "draws currentColor in the parent's colour for an element whose colour is %s",
     async (color) => {
-      const { at } = await render({
-        backgroundColor: "#888",
-        border: "10px solid currentColor",
-        color,
-      });
-      expect(at(X + 100, Y + 5)).toEqual([0, 0, 0]);
+      const { at } = await render(
+        {
+          backgroundColor: "#888",
+          border: "10px solid currentColor",
+          color,
+        },
+        { color: "#0f0" },
+      );
+      expect(at(X + 100, Y + 5)).toEqual([0, 255, 0]);
     },
   );
+
+  it.each([
+    ["border", { border: "10px solid" }],
+    ["borderWidth", { borderWidth: 10, borderStyle: "solid" }],
+  ])(
+    "draws a %s without a colour in the element's colour",
+    async (_, borderStyle) => {
+      const { at } = await render({
+        backgroundColor: "#888",
+        color: "#0f0",
+        ...borderStyle,
+      });
+      expect(at(X + 100, Y + 5)).toEqual([0, 255, 0]);
+      expect(at(X + 5, Y + 50)).toEqual([0, 255, 0]);
+    },
+  );
+
+  it("draws a border shorthand whose colour has spaces", async () => {
+    const { at } = await render({
+      backgroundColor: "#fff",
+      borderLeft: "10px solid rgba(0, 255, 0, 1)",
+      borderTop: "10px solid rgb(255 0 0 / 100%)",
+    });
+    expect(at(X + 5, Y + 50)).toEqual([0, 255, 0]);
+    expect(at(X + 100, Y + 5)).toEqual([255, 0, 0]);
+  });
+
+  it("draws each side of a multi-value borderColor", async () => {
+    const { at } = await render({
+      backgroundColor: "#888",
+      borderWidth: 10,
+      borderStyle: "solid",
+      borderColor: "#f00 #0f0 #00f rgb(255, 255, 0)",
+    });
+    expect(at(X + 100, Y + 5)).toEqual([255, 0, 0]);
+    expect(at(X + W - 5, Y + 50)).toEqual([0, 255, 0]);
+    expect(at(X + 100, Y + H - 5)).toEqual([0, 0, 255]);
+    expect(at(X + 5, Y + 50)).toEqual([255, 255, 0]);
+  });
 
   it("scales the padding box's corners down to fit it", async () => {
     // The padding box is 15px wide, but its right corners' radii are 25px.

@@ -127,18 +127,22 @@ export class AnnieExtraction {
       const source = await fetchSource();
       this.source = source;
       if (this.aborted) source.destroy();
-      // abort() stops the loop below even while it waits for the source,
-      // which a destroyed stream doesn't always end promptly.
-      const aborted = new Promise<never>((_, reject) => {
-        this.onAbort = () => reject(new Error("Annie extraction aborted"));
-        if (this.aborted) this.onAbort();
-      });
-      aborted.catch(() => {});
       let firstType: AnnieFrameContentType | undefined;
       const frames = annieFrames(source);
       try {
         for (;;) {
-          const next = await Promise.race([frames.next(), aborted]);
+          if (this.aborted) throw new Error("Annie extraction aborted");
+          // abort() stops the loop even while it waits for the source,
+          // which a destroyed stream doesn't always end promptly. (One
+          // callback per frame: racing every frame against one long-lived
+          // promise would keep every frame's data reachable from it.)
+          const next = await new Promise<
+            Awaited<ReturnType<typeof frames.next>>
+          >((resolve, reject) => {
+            this.onAbort = () => reject(new Error("Annie extraction aborted"));
+            frames.next().then(resolve, reject);
+          });
+          this.onAbort = undefined;
           if (next.done) break;
           const frame = next.value;
           if (firstType === undefined) {
@@ -280,9 +284,11 @@ export class AnnieExtraction {
    * `pipe` mustn't hold on to a chunk once it has called the chunk's write
    * callback, as a socket or file stream doesn't.
    *
-   * Never rejects: when FFmpeg stops reading (it's done, failed or killed)
-   * or the pipe is destroyed, the feed just stops. FFmpeg's exit status, and
-   * the extraction's, tell whether the render worked.
+   * When FFmpeg stops reading (it's done, failed or killed) or the pipe is
+   * destroyed, the feed just stops: FFmpeg's exit status, and the
+   * extraction's, tell whether the render worked. Rejects when a frame on
+   * disk can't be read, after ending the pipe, which FFmpeg would otherwise
+   * take for the end of the annie.
    */
   async feed(
     pipe: Writable,
@@ -322,8 +328,9 @@ export class AnnieExtraction {
         }
         if (!(await written(pipe, buffer.subarray(0, size)))) break;
       }
-    } catch {
-      // A frame file that's gone: the temp dir was removed (FFmpeg exited).
+    } catch (err) {
+      // Once FFmpeg has stopped reading, nothing needs the frame any more.
+      if (!pipe.destroyed) throw err;
     } finally {
       pipe.end();
     }

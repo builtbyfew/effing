@@ -53,9 +53,23 @@ export type AppWorkersOptions = {
    * SSR environment's `hot.handleInvoke`, so workers share its transforms.
    */
   invoke: (payload: unknown) => Promise<InvokeResult>;
+  /**
+   * Stop a worker once it has been idle (ready, with no request in flight)
+   * for this many ms, which frees its memory; a later request starts a new
+   * one. Unset, workers live until `close()`.
+   */
+  idleTimeout?: number;
 };
 
-type Slot = { worker: Worker; port: Promise<number>; inFlight: number };
+type Slot = {
+  worker: Worker;
+  port: Promise<number>;
+  inFlight: number;
+  /** Stops the worker when it fires; only set while the worker is idle. */
+  idleTimer?: NodeJS.Timeout;
+  /** Stopped for being idle, not because it failed. */
+  retired?: boolean;
+};
 
 /**
  * Serves the dev app on worker threads, so requests (e.g. the annies of one
@@ -66,7 +80,8 @@ type Slot = { worker: Worker; port: Promise<number>; inFlight: number };
  * Workers are spawned lazily, up to `size`. A request goes to an idle worker,
  * else a new one, else the one with the fewest requests in flight. Workers
  * serve requests concurrently, so an fn that fetches another fn from this
- * server never waits for a free worker.
+ * server never waits for a free worker. With `idleTimeout`, a worker that has
+ * been idle that long is stopped.
  */
 export function createAppWorkers(options: AppWorkersOptions): DevApp {
   const slots: Slot[] = [];
@@ -87,6 +102,12 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
     } = Promise.withResolvers<number>();
     port.catch(() => {}); // reported to the requests waiting on it
     const slot: Slot = { worker, port, inFlight: 0 };
+    // A worker started ahead of requests (or whose request went away while
+    // it started) is idle once ready.
+    port.then(
+      () => idleSoon(slot),
+      () => {},
+    );
 
     worker.on("message", (msg: FromAppWorker) => {
       if (msg.type === "ready") {
@@ -124,8 +145,9 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
       stopped = true;
       const index = slots.indexOf(slot);
       if (index !== -1) slots.splice(index, 1);
+      clearTimeout(slot.idleTimer);
       failed(err);
-      if (!closed) console.error("App worker stopped:", err);
+      if (!closed && !slot.retired) console.error("App worker stopped:", err);
     };
     worker.on("error", stop);
     worker.on("exit", (code) =>
@@ -134,6 +156,29 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
 
     slots.push(slot);
     return slot;
+  };
+
+  // With an idle timeout, a worker that has no request in flight for that
+  // long is stopped. The clock starts once the pool has served a request, so
+  // workers started ahead of the first one (see `prewarm`) wait for it.
+  let served = false;
+  const idleSoon = (slot: Slot, restart = false): void => {
+    const timeout = options.idleTimeout;
+    if (timeout === undefined || closed || !served) return;
+    if (slot.inFlight > 0 || !slots.includes(slot)) return;
+    if (slot.idleTimer && !restart) return;
+    clearTimeout(slot.idleTimer);
+    slot.idleTimer = setTimeout(() => {
+      slot.idleTimer = undefined;
+      // Out of the pool first, so no request can pick it any more, and its
+      // exit isn't reported as a failure.
+      slot.retired = true;
+      const index = slots.indexOf(slot);
+      if (index !== -1) slots.splice(index, 1);
+      void slot.worker.terminate();
+    }, timeout);
+    // Stopping workers must not keep the process alive.
+    slot.idleTimer.unref();
   };
 
   const acquire = (): Slot => {
@@ -152,7 +197,15 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
       }
       const slot = acquire();
       slot.inFlight++;
-      res.on("close", () => slot.inFlight--);
+      clearTimeout(slot.idleTimer);
+      slot.idleTimer = undefined;
+      res.on("close", () => {
+        slot.inFlight--;
+        served = true;
+        idleSoon(slot, true);
+        // Also starts the clock for workers that haven't served yet.
+        for (const s of slots) idleSoon(s);
+      });
       slot.port.then(
         (port) => proxy(req, res, port, agent),
         (err: unknown) => fail(res, err),
@@ -176,6 +229,7 @@ export function createAppWorkers(options: AppWorkersOptions): DevApp {
     },
     async close() {
       closed = true;
+      for (const s of slots) clearTimeout(s.idleTimer);
       agent.destroy();
       await Promise.all(slots.map((s) => s.worker.terminate()));
       slots.length = 0;

@@ -209,6 +209,42 @@ describe("createAppWorkers", () => {
     });
   });
 
+  test("stops a worker that has been idle for idleTimeout", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { state } = await start({ size: 1, idleTimeout: 100 });
+    const first = await state();
+    // Busy (a request in flight) for longer than the timeout: kept.
+    expect((await state(300)).thread).toBe(first.thread);
+    // Back within the timeout: kept.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect((await state()).thread).toBe(first.thread);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const after = await state();
+    expect(after.thread).not.toBe(first.thread);
+    // Stopping an idle worker isn't a failure.
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  test("starts the idle clock of prewarmed workers at the first request", async () => {
+    const { app, state } = await start({ size: 4, idleTimeout: 100 });
+    app.prewarm();
+    // Longer than the timeout before the first request: both still there.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const states = await Promise.all([state(50), state(50)]);
+    expect(states.map((s) => s.preload)).toEqual([true, true]);
+    // Then idle for longer than the timeout: replaced on demand.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect((await state()).preload).toBe(false);
+  });
+
+  test("keeps workers without an idleTimeout", async () => {
+    const { state } = await start({ size: 1 });
+    const first = await state();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect((await state()).thread).toBe(first.thread);
+  });
+
   test("refuses requests once closed", async () => {
     const { app, base } = await start();
     await app.close();

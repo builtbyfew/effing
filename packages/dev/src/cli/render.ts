@@ -15,6 +15,15 @@ import { parseProps } from "./props";
 
 const FN_KINDS: readonly FnKind[] = ["image", "annie", "effie"] as const;
 
+/**
+ * How long an app worker may sit idle during a render before it's stopped.
+ * FFS fetches an effie and then all of its sources at once, so a worker that
+ * has served its share is done; stopping it returns its memory (its fn
+ * modules, canvas and decoded images, often 100+ MB) while FFmpeg, the
+ * render's biggest consumer, encodes.
+ */
+const RENDER_IDLE_WORKER_TIMEOUT = 500;
+
 export type RenderOptions = {
   config?: string;
   output?: string;
@@ -134,6 +143,7 @@ export async function runRender(
     host,
     port: config.dev?.port ?? DEFAULT_DEV.port,
     strictPort: false,
+    idleWorkerTimeout: RENDER_IDLE_WORKER_TIMEOUT,
   });
 
   try {

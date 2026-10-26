@@ -135,10 +135,16 @@ describe("inset box shadows inside borders of unequal widths", () => {
       borderBottomRightRadius: 30,
     });
     expect(outside(isGreen)).toBe(0);
-    // Outside the border box's curve, at its corners, nothing paints.
-    for (let x = X + 190; x < X + W; x++) {
-      expect(at(x, Y)).toEqual([255, 255, 255]);
-      expect(at(x, Y + H - 1)).toEqual([255, 255, 255]);
+    // Outside the border box's curve, at its corners, nothing paints: the
+    // padding box's corner, scaled to radii 15 and 18 from (180, 0), reaches
+    // past it there.
+    for (const row of [0, 1, 2]) {
+      const dy = 30 - (row + 0.5);
+      const edge = W - 30 + Math.sqrt(30 ** 2 - dy ** 2);
+      for (let x = X + Math.ceil(edge) + 1; x < X + W; x++) {
+        expect(at(x, Y + row)).toEqual([255, 255, 255]);
+        expect(at(x, Y + H - 1 - row)).toEqual([255, 255, 255]);
+      }
     }
     expect(isGreen(X + 187, Y + 50)).toBe(true);
   });

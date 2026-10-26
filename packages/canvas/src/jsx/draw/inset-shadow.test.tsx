@@ -117,9 +117,9 @@ describe("inset box shadows inside borders of unequal widths", () => {
       borderTop: "4px solid #f00",
       borderRadius: R,
     });
-    // The padding box's corner has radii 12 and 20, from (12, 4): its curve
-    // passes (14, 10.6) and (20, 4.6). A circle of radius 12 would leave a
-    // gap at the corner, of white, that the shadow should fill.
+    // The padding box's corner has radii 12 and 20, from (12, 4). A circle
+    // of radius 12, as the shadow was clipped to, reaches into the border
+    // there, and the shadow, painted after it, would cover it.
     const dy = 20 - (10 + 0.5 - 4);
     const inner = B + 12 * (1 - Math.sqrt(1 - (dy / 20) ** 2));
     expect(isGreen(X + Math.ceil(inner) + 1, Y + 10)).toBe(true);
@@ -171,19 +171,10 @@ describe("inset box shadows inside borders of unequal widths", () => {
     expect(green(B + 1, 50)).toBe(true);
     expect(green(B + 3, 50)).toBe(true);
     expect(green(B + 5, 50)).toBe(false);
-    // Along the curve too: in each row, a band about 4px wide.
-    for (const row of [10, 14, 18]) {
-      let first = -1;
-      let last = -1;
-      for (let x = 0; x < 60; x++) {
-        if (green(x, row)) {
-          if (first < 0) first = x;
-          last = x;
-        }
-      }
-      expect(first).toBeGreaterThan(0);
-      expect(last - first + 1).toBeGreaterThanOrEqual(3);
-      expect(last - first + 1).toBeLessThanOrEqual(7);
-    }
+    // At the curve, in the row whose centre is 10.5px down, the hole's edge
+    // is at x = 24 − 8·√(1 − (13.5 / 20)²) ≈ 18.1. A circular hole of radius
+    // 8 would have it at 16.1.
+    expect(green(17, 10)).toBe(true);
+    expect(green(19, 10)).toBe(false);
   });
 });

@@ -127,7 +127,8 @@ describe("inset box shadows inside borders of unequal widths", () => {
   });
 
   it("keeps the shadow in the border box when its corners are scaled down", async () => {
-    // The padding box is 15px wide, but its right corners' radii are 25px.
+    // The padding box is 15px wide, but its right corners' horizontal radii
+    // are 25px.
     const { isGreen, outside, at } = await render({
       borderLeft: "180px solid #f00",
       borderRight: "5px solid #f00",

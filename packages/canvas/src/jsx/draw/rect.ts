@@ -81,11 +81,7 @@ function drawBorders(
   style: ComputedStyle,
   borderRadius: BorderRadius,
 ): void {
-  const tw = Math.max(0, resolveBoxValue(style.borderTopWidth, width));
-  const rw = Math.max(0, resolveBoxValue(style.borderRightWidth, width));
-  const bw = Math.max(0, resolveBoxValue(style.borderBottomWidth, width));
-  const lw = Math.max(0, resolveBoxValue(style.borderLeftWidth, width));
-  // A negative width, which CSS doesn't allow, is none.
+  const [tw, rw, bw, lw] = borderWidths(style, width);
   if (tw === 0 && rw === 0 && bw === 0 && lw === 0) return;
 
   // Skia doesn't know currentColor: it's the element's colour, which is also
@@ -102,33 +98,11 @@ function drawBorders(
   ];
   const visible = sides.filter((s) => s.width > 0);
 
-  // The border area: the border box less the padding box, whose corners'
-  // radii are the border box's less the adjoining widths, on each axis.
-  const [tl, tr, br, bl] = clampRadii(borderRadius, width, height);
-  const pw = width - lw - rw;
-  const ph = height - tw - bw;
-  const inner: [number, number][] = [
-    [Math.max(0, tl - lw), Math.max(0, tl - tw)],
-    [Math.max(0, tr - rw), Math.max(0, tr - tw)],
-    [Math.max(0, br - rw), Math.max(0, br - bw)],
-    [Math.max(0, bl - lw), Math.max(0, bl - bw)],
-  ];
-  // Scaled down to fit the padding box, as CSS does, when a wide border
-  // leaves less room than the corners opposite it take.
-  const fit = Math.min(
-    1,
-    pw / (inner[0]![0] + inner[1]![0]),
-    pw / (inner[3]![0] + inner[2]![0]),
-    ph / (inner[0]![1] + inner[3]![1]),
-    ph / (inner[1]![1] + inner[2]![1]),
-  );
-  const scaled = fit < 1 && fit > 0;
-  if (scaled) {
-    for (const r of inner) {
-      r[0] *= fit;
-      r[1] *= fit;
-    }
-  }
+  // The border area: the border box less the padding box.
+  const outer = clampRadii(borderRadius, width, height);
+  const [tl, tr, br, bl] = outer;
+  const padding = paddingBox(x, y, width, height, [tw, rw, bw, lw], outer);
+  const { width: pw, height: ph, radii: inner, scaled } = padding;
   const fillArea = (color: string) => {
     // An invalid colour leaves the fill as it was: make that no colour.
     ctx.fillStyle = NO_COLOR;
@@ -146,7 +120,7 @@ function drawBorders(
       ctx.save();
       ctx.clip();
     }
-    ellipticalRect(ctx, x + lw, y + tw, pw, ph, inner);
+    ellipticalRect(ctx, padding.x, padding.y, pw, ph, inner);
     ctx.fill("evenodd");
     if (scaled) ctx.restore();
   };
@@ -239,6 +213,91 @@ function drawBorders(
 
 type Point = [number, number];
 
+/**
+ * An element's border widths, top, right, bottom and left. A negative width,
+ * which CSS doesn't allow, is none.
+ */
+function borderWidths(
+  style: ComputedStyle,
+  width: number,
+): [number, number, number, number] {
+  return [
+    Math.max(0, resolveBoxValue(style.borderTopWidth, width)),
+    Math.max(0, resolveBoxValue(style.borderRightWidth, width)),
+    Math.max(0, resolveBoxValue(style.borderBottomWidth, width)),
+    Math.max(0, resolveBoxValue(style.borderLeftWidth, width)),
+  ];
+}
+
+/** Elliptical corner radii, each `[horizontal, vertical]` (see `ellipticalRect`). */
+type EllipticalRadii = [number, number][];
+
+interface PaddingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radii: EllipticalRadii;
+  /**
+   * Whether the radii were scaled down to fit, so that a corner can reach
+   * past the border box's curve.
+   */
+  scaled: boolean;
+}
+
+/**
+ * The padding box of a border box with the given border widths (top, right,
+ * bottom, left) and corner radii (as drawn: see `clampRadii`), as CSS has it:
+ * its corners' radii are the border box's less the adjoining borders' widths,
+ * on each axis, so they are elliptical where the widths differ.
+ */
+function paddingBox(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  [tw, rw, bw, lw]: [number, number, number, number],
+  [tl, tr, br, bl]: Radii,
+): PaddingBox {
+  const pw = width - lw - rw;
+  const ph = height - tw - bw;
+  const { radii, scaled } = fitRadii(
+    [
+      [Math.max(0, tl - lw), Math.max(0, tl - tw)],
+      [Math.max(0, tr - rw), Math.max(0, tr - tw)],
+      [Math.max(0, br - rw), Math.max(0, br - bw)],
+      [Math.max(0, bl - lw), Math.max(0, bl - bw)],
+    ],
+    pw,
+    ph,
+  );
+  return { x: x + lw, y: y + tw, width: pw, height: ph, radii, scaled };
+}
+
+/**
+ * The radii scaled down to fit a `w` × `h` box, as CSS does, when they take
+ * more room than it has on a side.
+ */
+function fitRadii(
+  radii: EllipticalRadii,
+  w: number,
+  h: number,
+): { radii: EllipticalRadii; scaled: boolean } {
+  const fit = Math.min(
+    1,
+    w / (radii[0]![0] + radii[1]![0]),
+    w / (radii[3]![0] + radii[2]![0]),
+    h / (radii[0]![1] + radii[3]![1]),
+    h / (radii[1]![1] + radii[2]![1]),
+  );
+  // Not when the box is empty, which has no room to fit them in.
+  if (!(fit < 1 && fit > 0)) return { radii, scaled: false };
+  return {
+    radii: radii.map(([rx, ry]): [number, number] => [rx * fit, ry * fit]),
+    scaled: true,
+  };
+}
+
 interface BorderSide {
   width: number;
   color: string;
@@ -259,7 +318,7 @@ function ellipticalRect(
   y: number,
   w: number,
   h: number,
-  radii: [number, number][],
+  radii: EllipticalRadii,
 ): void {
   // Each corner: where it is, which way the rectangle lies from it, and the
   // angle its arc starts at, clockwise from the side before it.
@@ -365,28 +424,29 @@ export function drawInsetBoxShadow(
   const inset = shadows.filter((s) => s.inset);
   if (inset.length === 0) return;
 
-  const bt = resolveBoxValue(style.borderTopWidth, width);
-  const br = resolveBoxValue(style.borderRightWidth, width);
-  const bb = resolveBoxValue(style.borderBottomWidth, width);
-  const bl = resolveBoxValue(style.borderLeftWidth, width);
-  const px = x + bl;
-  const py = y + bt;
-  const pw = width - bl - br;
-  const ph = height - bt - bb;
+  const outer = clampRadii(borderRadius, width, height);
+  const padding = paddingBox(
+    x,
+    y,
+    width,
+    height,
+    borderWidths(style, width),
+    outer,
+  );
+  const { x: px, y: py, width: pw, height: ph, radii } = padding;
   if (pw <= 0 || ph <= 0) return;
 
-  // The padding box's corners: the border box's, less the borders' widths.
-  const [tl, tr, brr, bll] = clampRadii(borderRadius, width, height);
-  const inner: Radii = [
-    Math.max(0, tl - Math.max(bt, bl)),
-    Math.max(0, tr - Math.max(bt, br)),
-    Math.max(0, brr - Math.max(bb, br)),
-    Math.max(0, bll - Math.max(bb, bl)),
-  ];
-
   ctx.save();
+  // Where a padding box corner reaches past the border box's curve, as only
+  // a radius scaled down can, it is clipped to the border box, as the
+  // borders are.
+  if (padding.scaled) {
+    ctx.beginPath();
+    roundedRect(ctx, x, y, width, height, ...outer);
+    ctx.clip();
+  }
   ctx.beginPath();
-  roundedRect(ctx, px, py, pw, ph, ...inner);
+  ellipticalRect(ctx, px, py, pw, ph, radii);
   ctx.clip();
 
   for (let i = inset.length - 1; i >= 0; i--) {
@@ -400,13 +460,19 @@ export function drawInsetBoxShadow(
     const w = pw - s.spread * 2;
     const h = ph - s.spread * 2;
     if (w > 0 && h > 0) {
-      roundedRect(
+      // The hole's radii, on each axis, shrunk by the spread (grown, when
+      // negative), and scaled down to fit it.
+      const hole = radii.map(([rx, ry]): [number, number] => [
+        spreadRadius(rx, -s.spread),
+        spreadRadius(ry, -s.spread),
+      ]);
+      ellipticalRect(
         ctx,
         px + s.spread + s.offsetX,
         py + s.spread + s.offsetY,
         w,
         h,
-        ...spreadRadii(inner, -s.spread),
+        fitRadii(hole, w, h).radii,
       );
     }
     ctx.fill("evenodd");

@@ -1,5 +1,45 @@
 # @effing/canvas
 
+## 0.47.0
+
+### Minor Changes
+
+- f477fb0: Update to @effing/skia 1.0.10-effing.9: rasterise frames off the JS thread
+
+  - `canvas.encode()` now rasterises on @effing/skia's encode threads as well
+    as encoding there, so frames in flight rasterise in parallel instead of
+    one at a time on the JS thread. A canvas that was read or flushed since
+    it was created or last cleared whole (`getImageData`, `toBuffer`), has
+    `alpha: false` or has a Lottie frame on it still rasterises on the JS
+    thread, as does a second `encode()` of the same drawing in most cases.
+    `encodeSync()`, `toBuffer()`, `toDataURL()`, `toDataURLAsync()`,
+    `toBlob()` and `convertToBlob()` still rasterise on the calling thread.
+    Encoded bytes are unchanged.
+  - The system fonts and the user's font directories load once per process,
+    on a thread of their own, instead of on every worker thread that loads
+    @effing/canvas. Font operations wait for that load, and a process that
+    exits while it runs waits for it to finish. A font added to a user font
+    directory while the process runs is no longer picked up by a later
+    worker.
+  - On Linux, fonts in `/usr/local/share/fonts` now load as system fonts.
+
+### Patch Changes
+
+- 15d901f: Parse border colours as browsers do
+
+  - The `border` and per-side border shorthands no longer split a colour that contains spaces, such as `rgba(0, 0, 255, 0.5)`, into pieces, and take the width, style and colour in any order (`solid red 2px`). A style of `none` or `hidden` gives no border, a style without a width (`solid red`) gives a medium (3px) border, and width keywords (`thin`, `medium`, `thick`) are understood here and in `borderWidth` and its longhands.
+  - `borderColor` takes one to four values, as `borderWidth` does.
+  - A border without a colour, such as `border: "1px solid"`, is drawn in the element's `color` (`currentColor`), as in CSS, where it was black. This changes how an element with a non-black `color` and such a border renders.
+  - `color: "inherit"`, `color: "currentColor"` and an invalid colour now take the parent's colour, for text as well as borders, where text was drawn in whatever fill was last set.
+
+- ca34722: Clip inset box shadows to the padding box the borders are drawn to
+
+  An inset box shadow inside rounded borders of unequal widths was clipped to a padding box with circular corners, of the border radius less the wider adjoining border, so it painted over the border's elliptical inner curve. It is now clipped to the same padding box as the borders: elliptical corners, scaled down to fit when a wide border leaves no room, and a negative border width treated as none rather than moving the clip outside the box (#236).
+
+- ab2665e: Draw rounded borders of unequal widths inside the box, as browsers do
+
+  A border with rounded corners whose sides weren't all the same width or colour, such as a coloured `borderLeft` on a card with `borderRadius`, was stroked as a band of constant width: it overflowed the box by half its width along the adjacent edges, and kept its full width round the corners. Borders are now filled between the border box and the padding box, whose corner radii are the border box's less the adjoining widths on each axis, so a left-only border tapers to nothing where it meets the top and bottom edges. Sides of different colours meet along the line from the border box's corner to the padding box's.
+
 ## 0.46.2
 
 ## 0.46.1

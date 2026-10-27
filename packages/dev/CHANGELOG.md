@@ -1,5 +1,17 @@
 # @effing/dev
 
+## 0.47.0
+
+### Patch Changes
+
+- dc8b5c4: `effing render` stops an app worker once it has been idle for half a second, so the memory it used to render a layer goes back before FFmpeg's encode needs it
+- 5ef0c08: `effing render effie` starts half the app workers and loads the fns in them while FFS starts up, instead of when FFS first asks for the effie and its layers. It imports every fn in the project, so module-level code of fns the render doesn't use now runs too
+  - @effing/effie-preview@0.47.0
+  - @effing/effie@0.47.0
+  - @effing/fn@0.47.0
+  - @effing/serde@0.47.0
+  - @effing/annie-player@0.47.0
+
 ## 0.46.2
 
 ### Patch Changes

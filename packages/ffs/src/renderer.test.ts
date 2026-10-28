@@ -68,25 +68,47 @@ function filterComplex(layer: {
 
 describe("EffieRenderer overlay enable window", () => {
   test("with no delay, enable defaults to [0, segment.duration]", () => {
-    expect(filterComplex({})).toContain("enable='between(t,0,10)'");
+    expect(filterComplex({})).toContain("enable='between(t*30,-0.5,300.5)'");
   });
 
   test("with delay and no `from`, enable starts at delay", () => {
     // Without this, the transparent padding prefix would be composited over
     // the canvas during [0, delay] — see commit message for detail.
-    expect(filterComplex({ delay: 2 })).toContain("enable='between(t,2,10)'");
+    expect(filterComplex({ delay: 2 })).toContain(
+      "enable='between(t*30,59.5,300.5)'",
+    );
   });
 
   test("explicit `from` overrides delay-driven default", () => {
     expect(filterComplex({ delay: 2, from: 1 })).toContain(
-      "enable='between(t,1,10)'",
+      "enable='between(t*30,29.5,300.5)'",
     );
   });
 
   test("explicit `until` is respected alongside delay", () => {
     expect(filterComplex({ delay: 2, until: 5 })).toContain(
-      "enable='between(t,2,5)'",
+      "enable='between(t*30,59.5,150.5)'",
     );
+  });
+
+  test("times off the frame grid snap to their nearest frame", () => {
+    // 2.933 and 2.967 are frames 88 and 89 at 30 fps, rounded to the
+    // millisecond: compared as times, frame 88 (2.9333…) would fall after
+    // `until` and frame 89 (2.9666…) before `from`.
+    expect(filterComplex({ from: 2.967, until: 3.533 })).toContain(
+      "enable='between(t*30,88.5,106.5)'",
+    );
+    expect(filterComplex({ until: 2.933 })).toContain(
+      "enable='between(t*30,-0.5,88.5)'",
+    );
+  });
+
+  test("a delay pads the layer to the frame its enable window opens on", () => {
+    // 0.52 s is 15.6 frames at 30 fps: the content starts on frame 16, the
+    // first frame the layer shows.
+    const graph = filterComplex({ delay: 0.52 });
+    expect(graph).toContain("tpad=start=16:");
+    expect(graph).toContain("enable='between(t*30,15.5,300.5)'");
   });
 
   test("layer trim is reduced by `delay` so the padded stream matches segment duration", () => {
@@ -95,7 +117,7 @@ describe("EffieRenderer overlay enable window", () => {
     // extends the rendered output past the segment.
     expect(filterComplex({ delay: 2 })).toContain("trim=start=0:duration=8");
     expect(filterComplex({ delay: 2 })).toContain(
-      "[seg0_layer0]fps=30,format=yuva420p,tpad=start_duration=2:color=black@0,fps=30,trim=duration=10[delayed_seg0_layer0]",
+      "[seg0_layer0]fps=30,format=yuva420p,tpad=start=60:color=black@0,fps=30,trim=duration=10[delayed_seg0_layer0]",
     );
   });
 
@@ -488,7 +510,7 @@ describe("EffieRenderer static images", () => {
       "[4:v]format=yuva420p,loop=loop=-1:size=1,trim=start=0:duration=0.75,setsar=1,setpts=PTS-STARTPTS[seg1_layer0]",
     );
     expect(filterComplex).toContain(
-      "[seg1_layer0]fps=30,format=yuva420p,tpad=start_duration=0.25:color=black@0,fps=30,trim=duration=1[delayed_seg1_layer0]",
+      "[seg1_layer0]fps=30,format=yuva420p,tpad=start=8:color=black@0,fps=30,trim=duration=1[delayed_seg1_layer0]",
     );
   });
 

@@ -42,7 +42,7 @@ Defined in: [ffs/src/renderer.ts:196](https://github.com/builtbyfew/effing/blob/
 
 > **close**(): `void`
 
-Defined in: [ffs/src/renderer.ts:1035](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L1035)
+Defined in: [ffs/src/renderer.ts:1056](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L1056)
 
 Stops every render in progress.
 
@@ -56,7 +56,7 @@ Stops every render in progress.
 
 > **render**(`scaleFactor?`): `Promise`\<`Readable`\>
 
-Defined in: [ffs/src/renderer.ts:989](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L989)
+Defined in: [ffs/src/renderer.ts:1010](https://github.com/builtbyfew/effing/blob/main/packages/ffs/src/renderer.ts#L1010)
 
 Renders the effie data to a video stream.
 

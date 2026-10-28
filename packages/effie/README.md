@@ -101,6 +101,8 @@ All three timing fields are in seconds of segment time (where `t = 0` is when th
 
 For static image layers the two are visually equivalent. `from` defaults to `delay` so an unset `from` doesn't show an empty layer during the deferred span. `until` defaults to `segment.duration`. Set `from` or `until` explicitly only when you want a tighter visibility window.
 
+Renderers work in whole frames, so each of the three times stands for its nearest frame (at 30 fps, `2.933`, `2.9333` and `88/30` all mean frame 88). A layer shows on every frame from its `from` frame to its `until` frame, both included, so a layer that ends at frame 88 hands over cleanly to one that starts at frame 88 or 89.
+
 ### Effects vs Motion
 
 **Effects** and **Motion** serve different purposes:

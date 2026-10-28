@@ -416,6 +416,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
   }
 
   /**
+   * The frame a layer's `delay`, `from` or `until` falls on: the time
+   * rounded to the nearest frame of the composition. Compositions often
+   * give frame times rounded (2.933 or 2.934 for frame 88 at 30 fps), and
+   * even exact fractions can come out a hair off (107/30), so a time is
+   * taken to mean its nearest frame rather than compared as is.
+   */
+  private layerFrame(seconds: number): number {
+    return Math.round(seconds * this.effieData.fps);
+  }
+
+  /**
    * Whether a layer hides everything beneath it for its segment's whole
    * duration: its source is opaque (see FFmpegInputInfo) and at least
    * frame-sized, it's placed at 0:0 without motion, visible from the start
@@ -584,9 +595,12 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         // Prepend `delay` seconds of transparent frames with tpad, which pads
         // the layer at its own size (a layer need not be frame-sized).
         //
-        // - fps= before tpad: tpad derives the number of padding frames and
-        //   their timestamps from the input frame rate, which not every
-        //   source sets.
+        // - fps= before tpad: tpad derives the padding frames' timestamps
+        //   from the input frame rate, which not every source sets.
+        // - start= rather than start_duration=: the padding is `delay`
+        //   rounded to whole frames by layerFrame, the same frame the
+        //   overlay's enable window opens on when `from` is left to default
+        //   to `delay`, so the layer never opens on a padding frame.
         // - format=yuva420p: tpad fills with an opaque colour unless the
         //   stream has an alpha plane.
         // - fps= after tpad: re-anchors the stream to a 1/fps timebase and a
@@ -596,12 +610,12 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         //   lands one frame early (the last frame is dropped), and a
         //   1/1000000 timebase (e.g. from concat) would be read as 1/fps and
         //   duplicate frames for ~33333 s.
-        // - trim last: tpad rounds delay*fps to whole frames, so a fractional
-        //   product (e.g. 0.25 s at 30 fps) would otherwise push the last
-        //   frame to exactly segment.duration, which the overlay forwards to
-        //   the output as an extra frame.
+        // - trim last: the padding is rounded to whole frames, so a
+        //   fractional delay*fps (e.g. 0.25 s at 30 fps) would otherwise
+        //   push the last frame to exactly segment.duration, which the
+        //   overlay forwards to the output as an extra frame.
         filterParts.push(
-          `[${layerLabel}]fps=${this.effieData.fps},format=yuva420p,tpad=start_duration=${delay}:color=black@0,fps=${this.effieData.fps},trim=duration=${segment.duration}[delayed_${layerLabel}]`,
+          `[${layerLabel}]fps=${this.effieData.fps},format=yuva420p,tpad=start=${this.layerFrame(delay)}:color=black@0,fps=${this.effieData.fps},trim=duration=${segment.duration}[delayed_${layerLabel}]`,
         );
         overlayInputLabel = `delayed_${layerLabel}`;
       }
@@ -609,10 +623,17 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
       const offset = layer.motion
         ? processMotion(delay, layer.motion, scaleFactor)
         : "0:0";
-      const fromTime = layer.from ?? delay;
-      const untilTime = layer.until ?? segment.duration;
+      // The layer shows on the frames from layerFrame(from) to
+      // layerFrame(until), both included. The window is compared in frames
+      // (t*fps) with half a frame to spare at each end, so a time that is
+      // rounded (2.933 for frame 88 at 30 fps) or a hair off in floating
+      // point (107/30) still lands on its frame, and a layer that hands over
+      // to the next at the same frame, or at the next one, leaves no frame
+      // uncovered.
+      const fromFrame = this.layerFrame(layer.from ?? delay);
+      const untilFrame = this.layerFrame(layer.until ?? segment.duration);
       filterParts.push(
-        `[${currentVidLabel}][${overlayInputLabel}]overlay=${offset}:enable='between(t,${fromTime},${untilTime})',fps=${this.effieData.fps}[${overlayOutputLabel}]`,
+        `[${currentVidLabel}][${overlayInputLabel}]overlay=${offset}:enable='between(t*${this.effieData.fps},${fromFrame - 0.5},${untilFrame + 0.5})',fps=${this.effieData.fps}[${overlayOutputLabel}]`,
       );
       currentVidLabel = overlayOutputLabel;
     }

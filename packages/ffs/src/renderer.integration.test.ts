@@ -3039,3 +3039,92 @@ async function annieOf(frames: Buffer[]): Promise<Buffer> {
     })(),
   );
 }
+
+describe("layer hand-offs", () => {
+  // A layer that hands over to the next one at a frame time given off the
+  // frame grid (rounded to the millisecond, or an exact fraction that comes
+  // out a hair off in floating point) must still show on that frame, so the
+  // hand-off leaves no frame uncovered (see EffieRenderer.layerFrame).
+  const fps = 30;
+
+  /** Whether each frame of `mp4` is mostly white (the layers) or black. */
+  async function whiteFrames(mp4: string): Promise<boolean[]> {
+    const { stdout } = await execFileP(
+      renderFFmpegBin,
+      [
+        "-i",
+        mp4,
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-vf",
+        "scale=1:1,format=gray",
+        "-f",
+        "rawvideo",
+        "-",
+      ],
+      { encoding: "buffer", maxBuffer: 1 << 20 },
+    );
+    return Array.from(stdout, (luma) => luma > 128);
+  }
+
+  test.for([
+    ["rounded to the millisecond", [2.933, 2.967, 3.533, 3.567]],
+    ["exact fractions", [88 / fps, 89 / fps, 106 / fps, 107 / fps]],
+  ] as const)(
+    "white from frame 75 on, over three layers with times %s",
+    { timeout: 30000 },
+    async ([, [until0, delay1, until1, delay2]]) => {
+      const tempDir = await createTestOutputDir("layer-hand-offs");
+      try {
+        const white = path.join(tempDir, "white.png");
+        await execFileP(renderFFmpegBin, [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=white:s=32x32",
+          "-frames:v",
+          "1",
+          white,
+        ]);
+        const source = effieWebUrl(
+          `data:image/png;base64,${(await fs.readFile(white)).toString("base64")}`,
+        );
+        const effieData: EffieData<EffieSources> = {
+          width: 32,
+          height: 32,
+          fps,
+          cover: source,
+          background: { type: "color", color: "black" },
+          segments: [
+            {
+              // Frames 0 to 118.
+              duration: 3.967,
+              layers: [
+                { type: "image", source, delay: 2.5, until: until0 },
+                { type: "image", source, delay: delay1, until: until1 },
+                { type: "image", source, delay: delay2 },
+              ],
+            },
+          ],
+        };
+        const renderer = new EffieRenderer(effieData, { httpProxy: false });
+        const chunks: Buffer[] = [];
+        for await (const chunk of await renderer.render()) chunks.push(chunk);
+        renderer.close();
+        const output = path.join(tempDir, "output.mp4");
+        await fs.writeFile(output, Buffer.concat(chunks));
+
+        const frames = await whiteFrames(output);
+        expect(frames).toHaveLength(119);
+        expect(
+          frames.map((w, n) => (w ? n : -1)).filter((n) => n >= 0),
+        ).toEqual(Array.from({ length: 119 - 75 }, (_, i) => 75 + i));
+      } finally {
+        await cleanupTestOutput(tempDir);
+      }
+    },
+  );
+});

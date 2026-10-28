@@ -16,12 +16,13 @@ import { FFmpegRunner } from "./ffmpeg";
 import type { FFmpegInputInfo } from "./ffmpeg";
 import { HttpProxy } from "./proxy";
 import { FetchError } from "./handlers/errors";
-import type { EffieData, EffieSources } from "@effing/effie";
+import type { EffieData, EffieMotion, EffieSources } from "@effing/effie";
 
 function makeEffie(layer: {
   delay?: number;
   from?: number;
   until?: number;
+  motion?: EffieMotion;
 }): EffieData<EffieSources> {
   return {
     width: 100,
@@ -109,6 +110,14 @@ describe("EffieRenderer overlay enable window", () => {
     const graph = filterComplex({ delay: 0.52 });
     expect(graph).toContain("tpad=start=16:");
     expect(graph).toContain("enable='between(t*30,15.5,300.5)'");
+  });
+
+  test("a delayed layer's motion starts on the frame its content starts on", () => {
+    // 2.934 s is frame 88 at 30 fps (2.9333…), the layer's first frame.
+    const graph = buildFilterComplex(
+      makeEffie({ delay: 2.934, motion: { type: "shake" } }),
+    );
+    expect(graph).toContain(`lt(t,${88 / 30 - 1e-6})`);
   });
 
   test("layer trim is reduced by `delay` so the padded stream matches segment duration", () => {

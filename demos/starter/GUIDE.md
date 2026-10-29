@@ -68,3 +68,17 @@ FFS_API_KEY=your-ffs-api-key
 ## Deploying
 
 [Effing Cloud](https://effing.dev) is the easiest path: `npm run cloud:deploy` ships the project (configured via `effing.config.ts`) and everything around running it in production is handled for you. To self-host instead, use the included `Dockerfile` — `effing build` produces a small Node server that the Dockerfile runs with `node dist/server.js`.
+
+### Deploying from CI and scripts
+
+`effing-cloud login` saves a key for your machine through a browser login, and `effing-cloud logout` revokes it. For CI and other scripts, create an API key on the Credentials page of the Effing Cloud console (account owners only) and set it as `EFFING_CLOUD_API_KEY`. It takes precedence over any saved login, and `effing-cloud --help` lists it with the other environment variables.
+
+```bash
+export EFFING_CLOUD_API_KEY=...   # from a CI secret, never committed
+npx effing-cloud whoami           # fails with a non-zero exit code if the key is rejected
+npx effing-cloud deploy --json > deploy.json
+jq -r '.version' deploy.json
+jq -r '.previews[] | "\(.kind)/\(.id) \(.url)"' deploy.json
+```
+
+With `--json`, `deploy` prints one JSON document to stdout (version, deployment id, bundle hash and size, and a preview URL per fn) and moves its progress lines to stderr. `effing-cloud urls --json` prints the preview URLs of the active deployment as `{ "account", "project", "urls": [{ "kind", "id", "url" }] }`.

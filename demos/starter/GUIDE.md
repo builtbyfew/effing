@@ -71,7 +71,7 @@ FFS_API_KEY=your-ffs-api-key
 
 ### Deploying from CI and scripts
 
-`effing-cloud login` saves a key for your machine through a browser login, and `effing-cloud logout` revokes it. For CI and other scripts, create an API key on the Credentials page of the Effing Cloud console (account owners only) and set it as `EFFING_CLOUD_API_KEY`. It takes precedence over any saved login, and `effing-cloud --help` lists it with the other environment variables.
+`effing-cloud login` saves a key for your machine through a browser login, and `effing-cloud logout` revokes it. For CI and other scripts, create an API key on the Credentials page of the Effing Cloud console (account owners only) and set it as `EFFING_CLOUD_API_KEY`. Limit the key to this project (pick "Only <project>" when creating it) so a leaked CI secret can't touch the rest of the account. The project appears in that list after its first deploy. It takes precedence over any saved login, and `effing-cloud --help` lists it with the other environment variables.
 
 ```bash
 export EFFING_CLOUD_API_KEY=...   # from a CI secret, never committed

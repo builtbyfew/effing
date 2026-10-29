@@ -1,5 +1,14 @@
 # @effing/fn
 
+## 0.47.1
+
+### Patch Changes
+
+- Updated dependencies [174d3f5]
+  - @effing/effie@0.47.1
+  - @effing/annie@0.47.1
+  - @effing/serde@0.47.1
+
 ## 0.47.0
 
 ### Patch Changes

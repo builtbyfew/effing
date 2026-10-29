@@ -1,6 +1,6 @@
 {
   "name": "@effing/canvas",
-  "version": "0.47.0",
+  "version": "0.47.1",
   "description": "Low-level canvas rendering for JSX and Lottie using @effing/skia (Skia)",
   "repository": {
     "type": "git",

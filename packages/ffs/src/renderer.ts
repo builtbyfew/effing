@@ -620,16 +620,24 @@ export class EffieRenderer<U extends string = EffieWebUrl> {
         overlayInputLabel = `delayed_${layerLabel}`;
       }
       const overlayOutputLabel = `${labelPrefix}tmp${l}`;
-      // The motion's time runs from the frame the content starts on (see
-      // the padding above), so it's active from the layer's first frame.
-      // A frame's t (pts times the timebase) can come out a hair below
-      // frame/fps, so the start is put a microsecond earlier, which no
-      // frame can tell apart from the frame itself.
-      const contentStart =
-        delay > 0 ? this.layerFrame(delay) / this.effieData.fps - 1e-6 : 0;
-      const offset = layer.motion
-        ? processMotion(contentStart, layer.motion, scaleFactor)
-        : "0:0";
+      // The motion starts on a frame too: its `start` is snapped to a frame
+      // and counted from the frame the content starts on (see the padding
+      // above), so a motion with no `start` is active from the layer's
+      // first frame. A frame's t (pts times the timebase) can come out a
+      // hair below frame/fps, so the start is put a microsecond earlier,
+      // which no frame can tell apart from the frame itself.
+      let offset = "0:0";
+      if (layer.motion) {
+        const startFrame =
+          this.layerFrame(delay) + this.layerFrame(layer.motion.start ?? 0);
+        const start =
+          startFrame === 0 ? 0 : startFrame / this.effieData.fps - 1e-6;
+        offset = processMotion(
+          start,
+          { ...layer.motion, start: 0 },
+          scaleFactor,
+        );
+      }
       // The layer shows on the frames from layerFrame(from) to
       // layerFrame(until), both included. The window is compared in frames
       // (t*fps) with half a frame to spare at each end, so a time that is

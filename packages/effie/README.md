@@ -294,7 +294,7 @@ The layer's source must be `(1 + distance)` times the frame dimension along the 
 
 ## Motion
 
-All motion variants share optional `start` and `duration`, in seconds. `start` is measured from when the layer's content begins (segment time `delay`) and defaults to 0; `duration` defaults to 1. Variant-specific fields:
+All motion variants share optional `start` and `duration`, in seconds. `start` is measured from when the layer's content begins (segment time `delay`) and defaults to 0; `duration` defaults to 1. Like `delay`, `start` stands for its nearest frame. Variant-specific fields:
 
 | Type     | Required    | Optional                        | Description                           |
 | -------- | ----------- | ------------------------------- | ------------------------------------- |

@@ -118,6 +118,30 @@ describe("EffieRenderer overlay enable window", () => {
       makeEffie({ delay: 2.934, motion: { type: "shake" } }),
     );
     expect(graph).toContain(`lt(t,${88 / 30 - 1e-6})`);
+    expect(graph).toContain("tpad=start=88:");
+    expect(graph).toContain("enable='between(t*30,87.5,");
+  });
+
+  test("a motion's start snaps to a frame, counted from the content's", () => {
+    // 0.534 s is 16 frames (16.02), after the content's frame 88: frame 104.
+    const delayed = buildFilterComplex(
+      makeEffie({ delay: 2.934, motion: { type: "shake", start: 0.534 } }),
+    );
+    expect(delayed).toContain(`lt(t,${104 / 30 - 1e-6})`);
+    // 107/30 comes out a hair above frame 107's t; the margin keeps it on
+    // that frame.
+    const undelayed = buildFilterComplex(
+      makeEffie({ motion: { type: "shake", start: 107 / 30 } }),
+    );
+    expect(undelayed).toContain(`lt(t,${107 / 30 - 1e-6})`);
+    // A negative start still starts the motion before frame 0.
+    expect(
+      buildFilterComplex(makeEffie({ motion: { type: "shake", start: -0.5 } })),
+    ).toContain(`lt(t,${-15 / 30 - 1e-6})`);
+    // A motion starting on frame 0 starts at exactly 0.
+    expect(
+      buildFilterComplex(makeEffie({ motion: { type: "shake" } })),
+    ).toContain("lt(t,0)");
   });
 
   test("layer trim is reduced by `delay` so the padded stream matches segment duration", () => {

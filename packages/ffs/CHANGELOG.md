@@ -1,5 +1,14 @@
 # @effing/ffs
 
+## 0.47.1
+
+### Patch Changes
+
+- 174d3f5: FFS now takes a layer's `delay`, `from` and `until` to mean their nearest frame. A layer handing over to the next at times given off the frame grid, such as `until: 2.933` and `delay: 2.967` for frames 88 and 89 at 30 fps, no longer leaves those frames uncovered. Exact fractions such as `107/30`, which floating point puts a hair past the frame, no longer drop a frame either. A motion's `start` snaps to a frame too, counted from the frame the layer's content starts on, so a delayed layer's motion is active from its first frame.
+- Updated dependencies [174d3f5]
+  - @effing/effie@0.47.1
+  - @effing/annie@0.47.1
+
 ## 0.47.0
 
 ### Minor Changes

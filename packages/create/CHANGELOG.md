@@ -1,5 +1,7 @@
 # @effing/create
 
+## 0.47.2
+
 ## 0.47.1
 
 ### Patch Changes

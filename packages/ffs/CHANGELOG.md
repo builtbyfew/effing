@@ -1,5 +1,13 @@
 # @effing/ffs
 
+## 0.47.2
+
+### Patch Changes
+
+- c9ca8f7: Upgrade `body-parser` to 1.20.9, which fixes a denial of service via trailing bytes after a compressed request body (GHSA-27r3-jxmh-p828)
+  - @effing/annie@0.47.2
+  - @effing/effie@0.47.2
+
 ## 0.47.1
 
 ### Patch Changes

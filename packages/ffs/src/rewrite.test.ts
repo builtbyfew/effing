@@ -7,24 +7,24 @@ import {
 } from "./rewrite";
 
 describe("parseUrlRewrites", () => {
-  test("parses a JSON object of prefixes, longest first", () => {
+  test("parses a JSON object of origins", () => {
     expect(
       parseUrlRewrites(
         JSON.stringify({
           "https://a.example/": "http://a-internal:8080/",
-          "https://a.example/deep/": "http://deep-internal/",
+          "https://b.example/": "https://b-internal.example/",
         }),
       ),
     ).toEqual([
-      { from: "https://a.example/deep/", to: "http://deep-internal/" },
       { from: "https://a.example/", to: "http://a-internal:8080/" },
+      { from: "https://b.example/", to: "https://b-internal.example/" },
     ]);
   });
 
-  test("normalizes prefixes", () => {
+  test("normalizes origins, with or without a trailing slash", () => {
     expect(
       parseUrlRewrites(
-        JSON.stringify({ "HTTPS://A.Example:443/": "https://B.example/" }),
+        JSON.stringify({ "HTTPS://A.Example:443": "https://B.example/" }),
       ),
     ).toEqual([{ from: "https://a.example/", to: "https://b.example/" }]);
   });
@@ -44,20 +44,39 @@ describe("parseUrlRewrites", () => {
       JSON.stringify({ "file:///a/": "https://b.example/" }),
     ],
     [
-      "a prefix not ending in /",
-      JSON.stringify({ "https://a.example/x": "https://b.example/" }),
+      "a path on from",
+      JSON.stringify({ "https://a.example/x/": "https://b.example/" }),
     ],
     [
-      "a target not ending in /",
-      JSON.stringify({ "https://a.example/": "https://b.example/x" }),
+      "a path on to",
+      JSON.stringify({ "https://a.example/": "https://b.example/x/" }),
     ],
     [
       "a query",
       JSON.stringify({ "https://a.example/?k=1": "https://b.example/" }),
     ],
     [
+      "an empty query on from",
+      JSON.stringify({ "https://a.example/?": "https://b.example/" }),
+    ],
+    [
+      "an empty query on to",
+      JSON.stringify({ "https://a.example/": "https://b.example/?" }),
+    ],
+    [
+      "an empty fragment",
+      JSON.stringify({ "https://a.example/": "https://b.example/#" }),
+    ],
+    [
       "credentials",
       JSON.stringify({ "https://a.example/": "https://u:p@b.example/" }),
+    ],
+    [
+      "two keys for the same origin",
+      JSON.stringify({
+        "https://A.example/": "https://one.example/",
+        "https://a.example:443/": "https://two.example/",
+      }),
     ],
   ])("rejects %s", (_name, raw) => {
     expect(() => parseUrlRewrites(raw)).toThrow(UrlRewriteConfigError);
@@ -66,21 +85,27 @@ describe("parseUrlRewrites", () => {
 
 describe("rewriteUrl", () => {
   const rewrites = parseUrlRewrites(
-    JSON.stringify({
-      "https://fn.example/": "https://fn-internal.example/",
-      "https://fn.example/special/": "http://special-internal/",
-    }),
+    JSON.stringify({ "https://fn.example/": "https://fn-internal.example/" }),
   );
 
-  test("rewrites a matching prefix, keeping path and query", () => {
+  test("rewrites a matching origin, keeping path, query and fragment", () => {
     expect(
-      rewriteUrl("https://fn.example/acct/proj/mod?x=1&y=2", rewrites),
-    ).toBe("https://fn-internal.example/acct/proj/mod?x=1&y=2");
+      rewriteUrl("https://fn.example/acct/proj/mod?x=1&y=2#f", rewrites),
+    ).toBe("https://fn-internal.example/acct/proj/mod?x=1&y=2#f");
   });
 
-  test("prefers the longest matching prefix", () => {
-    expect(rewriteUrl("https://fn.example/special/a.tar", rewrites)).toBe(
-      "http://special-internal/a.tar",
+  test("rewrites a bare origin", () => {
+    expect(rewriteUrl("https://fn.example", rewrites)).toBe(
+      "https://fn-internal.example/",
+    );
+    expect(rewriteUrl("https://fn.example?x=1", rewrites)).toBe(
+      "https://fn-internal.example/?x=1",
+    );
+  });
+
+  test("passes dot segments through as the public origin would get them", () => {
+    expect(rewriteUrl("https://fn.example/a/.x/../../b", rewrites)).toBe(
+      `https://fn-internal.example${new URL("https://fn.example/a/.x/../../b").pathname}`,
     );
   });
 
@@ -90,25 +115,24 @@ describe("rewriteUrl", () => {
     );
   });
 
-  test("doesn't match a host that merely starts with the prefix's host", () => {
-    const url = "https://fn.example.evil.test/a";
+  test.each([
+    [
+      "a host that starts with the rule's host",
+      "https://fn.example.evil.test/a",
+    ],
+    ["a trailing-dot host", "https://fn.example./a"],
+    ["credentials", "https://user:pw@fn.example/a"],
+    ["another scheme", "http://fn.example/a"],
+    ["another port", "https://fn.example:8443/a"],
+    [
+      "the rule only in the query",
+      "https://other.example/?u=https://fn.example/",
+    ],
+    ["another origin", "https://other.example/a"],
+    ["a data URL", "data:text/plain,hi"],
+    ["a non-URL", "not a url"],
+  ])("leaves a URL with %s untouched", (_name, url) => {
     expect(rewriteUrl(url, rewrites)).toBe(url);
-  });
-
-  test("doesn't match another scheme or port", () => {
-    for (const url of ["http://fn.example/a", "https://fn.example:8443/a"]) {
-      expect(rewriteUrl(url, rewrites)).toBe(url);
-    }
-  });
-
-  test("leaves non-matching and non-absolute URLs untouched", () => {
-    for (const url of [
-      "https://other.example/a",
-      "data:text/plain,hi",
-      "not a url",
-    ]) {
-      expect(rewriteUrl(url, rewrites)).toBe(url);
-    }
   });
 
   test("is a no-op without rewrites", () => {
@@ -145,6 +169,14 @@ describe("urlRewrites", () => {
     expect(urlRewrites()).toEqual([
       { from: "https://c.example/", to: "https://d.example/" },
     ]);
+  });
+
+  test("returns a frozen list", () => {
+    vi.stubEnv(
+      "FFS_URL_REWRITES",
+      JSON.stringify({ "https://e.example/": "https://f.example/" }),
+    );
+    expect(Object.isFrozen(urlRewrites())).toBe(true);
   });
 
   test("keeps throwing while FFS_URL_REWRITES is malformed", () => {

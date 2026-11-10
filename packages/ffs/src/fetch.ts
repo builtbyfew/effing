@@ -145,7 +145,10 @@ export async function ffsFetch(
   });
 
   if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
+    // A rewritten request's Location would point into the internal target
+    // (and may end up in a customer-visible error), so leave it out.
+    const location =
+      target === url ? response.headers.get("location") : undefined;
     throw new Error(
       `${url} returned a ${response.status} redirect${location ? ` to ${location}` : ""}, which is not allowed`,
     );

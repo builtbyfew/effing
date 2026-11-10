@@ -1,5 +1,19 @@
-import { describe, expect, test } from "vitest";
-import { parseEffieData } from "./shared";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { createServerContext, parseEffieData } from "./shared";
+import { UrlRewriteConfigError } from "../rewrite";
+
+describe("createServerContext", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test("fails at startup when FFS_URL_REWRITES is malformed", async () => {
+    vi.stubEnv("FFS_URL_REWRITES", '{"https://a.example/x/": "https://b/"}');
+    await expect(createServerContext({ httpProxy: false })).rejects.toThrow(
+      UrlRewriteConfigError,
+    );
+  });
+});
 
 const FILE_URL = "file:///tmp/photo.png";
 

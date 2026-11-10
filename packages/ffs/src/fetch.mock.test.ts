@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { ffsFetch, clearAgentCache } from "./fetch";
 import { validateUrl, validatedLookup } from "./url";
 import { Agent, Response } from "undici";
+import { Readable } from "stream";
 
 // Mock undici
 vi.mock("undici", async () => {
@@ -341,6 +342,122 @@ describe("ffsFetch", () => {
       await expect(ffsFetch("http://169.254.169.254/")).rejects.toThrow(
         "URL blocked by SSRF protection",
       );
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("URL rewrites", () => {
+    const rewrites = JSON.stringify({
+      "https://fn.example/": "https://fn-internal.example/",
+    });
+
+    test("requests and validates the rewritten URL", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      await ffsFetch("https://fn.example/a/b?c=1");
+
+      expect(validateUrl).toHaveBeenCalledWith(
+        "https://fn-internal.example/a/b?c=1",
+      );
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://fn-internal.example/a/b?c=1",
+        expect.anything(),
+      );
+    });
+
+    test("leaves other URLs alone", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      await ffsFetch("https://other.example/a");
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://other.example/a",
+        expect.anything(),
+      );
+    });
+
+    test("requests the rewritten URL without SSRF validation when private networks are allowed", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "true");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+
+      await ffsFetch("https://fn.example/a");
+
+      expect(validateUrl).not.toHaveBeenCalled();
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://fn-internal.example/a",
+        expect.anything(),
+      );
+    });
+
+    test("sends a PUT with its body to the rewritten URL", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(new Response("ok"));
+      const body = Buffer.from("video");
+
+      await ffsFetch("https://fn.example/up", { method: "PUT", body });
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        "https://fn-internal.example/up",
+        expect.objectContaining({ method: "PUT", body }),
+      );
+    });
+
+    test("names the caller's URL in redirect errors and hides the target's Location", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      mockedFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://fn-internal.example/x" },
+        }),
+      );
+
+      await expect(ffsFetch("https://fn.example/a")).rejects.toThrow(
+        /^https:\/\/fn\.example\/a returned a 302 redirect, which is not allowed$/,
+      );
+    });
+
+    test("destroys a stream body when the rewritten URL fails SSRF validation", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", rewrites);
+      vi.stubEnv("FFS_ALLOW_PRIVATE_NETWORKS", "false");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      vi.mocked(validateUrl).mockRejectedValueOnce(
+        new Error("URL blocked by SSRF protection: blocked IP address"),
+      );
+      const body = Readable.from([Buffer.from("x")]);
+
+      await expect(
+        ffsFetch("https://fn.example/a", { method: "PUT", body }),
+      ).rejects.toThrow("URL blocked by SSRF protection");
+      expect(validateUrl).toHaveBeenCalledWith("https://fn-internal.example/a");
+      expect(body.destroyed).toBe(true);
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    test("destroys a stream body and doesn't fetch when the config is malformed", async () => {
+      vi.stubEnv("FFS_URL_REWRITES", "nope");
+      const { fetch: mockFetch } = await import("undici");
+      const mockedFetch = vi.mocked(mockFetch);
+      const body = Readable.from([Buffer.from("x")]);
+
+      await expect(
+        ffsFetch("https://fn.example/a", { method: "PUT", body }),
+      ).rejects.toThrow("Invalid FFS_URL_REWRITES");
+      expect(body.destroyed).toBe(true);
       expect(mockedFetch).not.toHaveBeenCalled();
     });
   });

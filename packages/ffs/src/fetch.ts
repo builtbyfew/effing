@@ -2,6 +2,7 @@ import { Readable } from "stream";
 import { fetch, Agent, type Response, type BodyInit } from "undici";
 import { FetchBodyError } from "./handlers/errors";
 import { validateUrl, validatedLookup } from "./url";
+import { rewriteUrl } from "./rewrite";
 
 /**
  * Options for ffsFetch function
@@ -104,30 +105,35 @@ export async function ffsFetch(
       ? envAllow === "true" || envAllow === "1"
       : process.env.NODE_ENV !== "production";
 
-  if (!allowPrivate) {
-    try {
+  let target: string;
+  try {
+    // FFS_URL_REWRITES may send this request elsewhere (see rewrite.ts). The
+    // SSRF check and the request use the rewritten URL, since that's where we
+    // connect; error messages keep the caller's URL.
+    target = rewriteUrl(url);
+    if (!allowPrivate) {
       // Validates the URL and caches the vetted addresses; the pinned Agent's
       // connect-time lookup reuses them, closing the validate/connect DNS gap.
-      await validateUrl(url);
-    } catch (error) {
-      // Stream bodies (e.g. file read streams) hold an open fd from the
-      // moment they're created; the request never starts on this path, so
-      // nothing downstream will consume or close them — destroy explicitly.
-      if (
-        body !== null &&
-        typeof body === "object" &&
-        "destroy" in body &&
-        typeof (body as { destroy: unknown }).destroy === "function"
-      ) {
-        (body as { destroy: () => void }).destroy();
-      }
-      throw error;
+      await validateUrl(target);
     }
+  } catch (error) {
+    // Stream bodies (e.g. file read streams) hold an open fd from the
+    // moment they're created; the request never starts on this path, so
+    // nothing downstream will consume or close them — destroy explicitly.
+    if (
+      body !== null &&
+      typeof body === "object" &&
+      "destroy" in body &&
+      typeof (body as { destroy: unknown }).destroy === "function"
+    ) {
+      (body as { destroy: () => void }).destroy();
+    }
+    throw error;
   }
 
   const agent = getAgent(headersTimeout, bodyTimeout, !allowPrivate);
 
-  const response = await fetch(url, {
+  const response = await fetch(target, {
     method,
     body,
     // Required by undici whenever the body is a stream (e.g. a file being
@@ -139,7 +145,10 @@ export async function ffsFetch(
   });
 
   if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
+    // A rewritten request's Location would point into the internal target
+    // (and may end up in a customer-visible error), so leave it out.
+    const location =
+      target === url ? response.headers.get("location") : undefined;
     throw new Error(
       `${url} returned a ${response.status} redirect${location ? ` to ${location}` : ""}, which is not allowed`,
     );

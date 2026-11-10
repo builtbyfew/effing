@@ -1,5 +1,13 @@
 # @effing/ffs
 
+## 0.47.3
+
+### Patch Changes
+
+- bde3774: Add `FFS_URL_REWRITES`, which sends outbound fetches for configured origins to another origin (e.g. a service's internal URL instead of its public one behind a CDN), while cache keys, events and errors keep the original URL.
+  - @effing/annie@0.47.3
+  - @effing/effie@0.47.3
+
 ## 0.47.2
 
 ### Patch Changes

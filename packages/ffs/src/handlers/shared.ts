@@ -4,6 +4,7 @@ import type { TransientStore } from "../storage";
 import { createTransientStore } from "../storage";
 import { HttpProxy } from "../proxy";
 import { ffsFetch } from "../fetch";
+import { urlRewrites } from "../rewrite";
 import type { TypedEventSender, EventSender } from "../sse";
 export type { EventSender } from "../sse";
 import type {
@@ -118,6 +119,8 @@ export async function createServerContext(options?: {
   onRenderError?: OnRenderError;
 }): Promise<ServerContext> {
   const port = process.env.FFS_PORT || process.env.PORT || 2000;
+  // Fail at startup, not on every fetch, when FFS_URL_REWRITES is malformed.
+  urlRewrites();
   const enableHttpProxy = options?.httpProxy ?? true;
   let httpProxy: HttpProxy | undefined;
   if (enableHttpProxy) {

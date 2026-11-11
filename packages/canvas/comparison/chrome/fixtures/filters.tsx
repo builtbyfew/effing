@@ -110,6 +110,16 @@ const COLOURS = { tolerance: { pixelThreshold: 0.01, pixels: 0.1 } };
 /** As `COLOURS`, for a chain that differs by 0.31% at 0.01 (none at 0.015). */
 const CHAINED_COLOURS = { tolerance: { pixelThreshold: 0.015, pixels: 0.1 } };
 
+/**
+ * As `COLOURS`, for `contrast(2)` over the backdrop's gradient. Since
+ * @effing/skia 1.1.0 gradients are dithered (±1 level) and `contrast()` can
+ * come out a level below Chrome's, which the 2× slope makes up to 3 levels:
+ * 0.47% of pixels differ at 0.01, none at 0.012.
+ */
+const CONTRASTED_GRADIENT = {
+  tolerance: { pixelThreshold: 0.015, pixels: 0.1 },
+};
+
 const fixtures: ChromeFixture[] = [
   ...FILTERS.map((filter) =>
     frame(
@@ -217,7 +227,11 @@ const fixtures: ChromeFixture[] = [
       80,
       backdrop(backdropFilter),
       // A blur's edges differ by more (up to 25 levels).
-      backdropFilter.includes("blur") ? {} : COLOURS,
+      backdropFilter.includes("blur")
+        ? {}
+        : backdropFilter === "contrast(2)"
+          ? CONTRASTED_GRADIENT
+          : COLOURS,
     ),
   ),
 ];

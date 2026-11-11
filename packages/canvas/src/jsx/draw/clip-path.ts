@@ -178,10 +178,97 @@ export function parseClipPath(
   }
 }
 
+/** Argument count per SVG path command, for {@link isValidPathData}. */
+const PATH_ARGS: Record<string, number> = {
+  m: 2,
+  l: 2,
+  t: 2,
+  h: 1,
+  v: 1,
+  c: 6,
+  s: 4,
+  q: 4,
+  a: 7,
+  z: 0,
+};
+
+const PATH_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/;
+
+/**
+ * Whether `d` is valid SVG path data, by the SVG 2 path grammar. A CSS
+ * `path()` with invalid data is an invalid declaration. `new Path2D(d)`
+ * can't be used to tell: like Chrome's, it keeps whatever parsed before the
+ * error rather than throwing.
+ */
+export function isValidPathData(d: string): boolean {
+  let i = 0;
+  const n = d.length;
+  const skipWsp = () => {
+    while (i < n && " \t\n\f\r".includes(d[i]!)) i++;
+  };
+  // Whitespace, then at most one comma, then whitespace.
+  const skipCommaWsp = () => {
+    skipWsp();
+    if (d[i] === ",") {
+      i++;
+      skipWsp();
+    }
+  };
+  const readNumber = () => {
+    const m = PATH_NUMBER.exec(d.slice(i));
+    if (!m) return false;
+    i += m[0].length;
+    return true;
+  };
+  const readFlag = () => {
+    if (d[i] !== "0" && d[i] !== "1") return false;
+    i++;
+    return true;
+  };
+  const readArgs = (cmd: string) => {
+    for (let k = 0; k < PATH_ARGS[cmd]!; k++) {
+      if (k > 0) skipCommaWsp();
+      const ok =
+        cmd === "a" && (k === 3 || k === 4) ? readFlag() : readNumber();
+      if (!ok) return false;
+    }
+    return true;
+  };
+
+  skipWsp();
+  if (i === n) return true;
+  if (d[i] !== "M" && d[i] !== "m") return false;
+  while (i < n) {
+    const cmd = d[i]!.toLowerCase();
+    if (!(cmd in PATH_ARGS)) return false;
+    i++;
+    skipWsp();
+    if (cmd !== "z") {
+      if (!readArgs(cmd)) return false;
+      // Further argument sets repeat the command.
+      for (;;) {
+        const save = i;
+        skipCommaWsp();
+        const hadComma = d.slice(save, i).includes(",");
+        if (i < n && /[+\-.\d]/.test(d[i]!)) {
+          if (!readArgs(cmd)) return false;
+        } else {
+          if (hadComma) return false;
+          i = save;
+          break;
+        }
+      }
+    }
+    skipWsp();
+  }
+  return true;
+}
+
 /**
  * Build a `Path2D` for a resolved clip shape. Returns `null` when the shape
- * is a `path()` whose data Skia cannot parse — treated like an invalid
- * declaration (the element is left unclipped) rather than a render failure.
+ * is a `path()` whose data isn't valid SVG path data — treated like an
+ * invalid declaration (the element is left unclipped) rather than a render
+ * failure.
  */
 export function clipShapeToPath(shape: ClipShape): Path2D | null {
   const p = new Path2D();
@@ -224,6 +311,7 @@ export function clipShapeToPath(shape: ClipShape): Path2D | null {
       }
       break;
     case "path": {
+      if (!isValidPathData(shape.d)) return null;
       let inner: Path2D;
       try {
         inner = new Path2D(shape.d);

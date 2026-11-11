@@ -8,8 +8,12 @@ Update to @effing/skia 1.1.0-effing.1, on upstream @napi-rs/canvas 1.1.0
   canvas draws and measures with, is unchanged under its default renderer.
 - Gradients are now dithered (within a level of the undithered colour), and
   are laid out as Chrome lays them out, so gradient pixels can shift slightly.
-  `blur()` and `contrast()` filters, which text shadows and CSS filters use,
-  also differ from the previous ones by a few levels.
+  CSS `blur()` and `contrast()` filters also differ from the previous ones by
+  a level or two, as @effing/skia now builds them as Chrome builds a canvas
+  `filter`.
+- `box-shadow` and `text-shadow` are now blurred as Chrome blurs them, with
+  the canvas shadow API rather than a `blur()` filter: closer to Chrome at
+  small blurs, and a shadow on a scaled element is now blurred by its scale.
 - A CSS `clip-path: path()` with invalid path data is still ignored (the
   element is left unclipped). canvas now checks the path data itself, since
   `Path2D` no longer throws on it. An empty or whitespace-only `path()` is

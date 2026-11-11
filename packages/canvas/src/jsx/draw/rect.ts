@@ -4,6 +4,7 @@ import parseCssColor from "parse-css-color";
 import type { ComputedStyle } from "../style/compute.ts";
 import { hasRadius, maxCornerRadius, roundedRect } from "./clip.ts";
 import type { Shadow } from "./shadow.ts";
+import { paintShadow } from "./shadow.ts";
 import { parseCSSLength, toNumber, resolveBoxValue } from "./utils.ts";
 
 /**
@@ -389,19 +390,19 @@ export function drawBoxShadow(
     const w = width + s.spread * 2;
     const h = height + s.spread * 2;
     if (w <= 0 || h <= 0) continue;
-    ctx.save();
-    setShadowPaint(ctx, s);
-    ctx.beginPath();
-    roundedRect(
+    const sx = x - s.spread;
+    const sy = y - s.spread;
+    paintShadow(
       ctx,
-      x - s.spread + s.offsetX,
-      y - s.spread + s.offsetY,
-      w,
-      h,
-      ...spreadRadii(radii, s.spread),
+      s,
+      { left: sx, top: sy, right: sx + w, bottom: sy + h },
+      () => {
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        roundedRect(ctx, sx, sy, w, h, ...spreadRadii(radii, s.spread));
+        ctx.fill();
+      },
     );
-    ctx.fill();
-    ctx.restore();
   }
   ctx.restore();
 }
@@ -453,30 +454,38 @@ export function drawInsetBoxShadow(
     const s = inset[i]!;
     // Far enough out that the shadow is solid where the blur reaches the box.
     const m = reach(s);
-    ctx.save();
-    setShadowPaint(ctx, s);
-    ctx.beginPath();
-    ctx.rect(px - m, py - m, pw + m * 2, ph + m * 2);
-    const w = pw - s.spread * 2;
-    const h = ph - s.spread * 2;
-    if (w > 0 && h > 0) {
-      // The hole's radii, on each axis, shrunk by the spread (grown, when
-      // negative), and scaled down to fit it.
-      const hole = radii.map(([rx, ry]): [number, number] => [
-        spreadRadius(rx, -s.spread),
-        spreadRadius(ry, -s.spread),
-      ]);
-      ellipticalRect(
-        ctx,
-        px + s.spread + s.offsetX,
-        py + s.spread + s.offsetY,
-        w,
-        h,
-        fitRadii(hole, w, h).radii,
-      );
-    }
-    ctx.fill("evenodd");
-    ctx.restore();
+    const bounds = {
+      left: px - m,
+      top: py - m,
+      right: px + pw + m,
+      bottom: py + ph + m,
+    };
+    paintShadow(ctx, s, bounds, () => {
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      // The offset moves the hole and the area around it alike; the area
+      // reaches far enough to cover the padding box either way.
+      ctx.rect(px - m, py - m, pw + m * 2, ph + m * 2);
+      const w = pw - s.spread * 2;
+      const h = ph - s.spread * 2;
+      if (w > 0 && h > 0) {
+        // The hole's radii, on each axis, shrunk by the spread (grown, when
+        // negative), and scaled down to fit it.
+        const hole = radii.map(([rx, ry]): [number, number] => [
+          spreadRadius(rx, -s.spread),
+          spreadRadius(ry, -s.spread),
+        ]);
+        ellipticalRect(
+          ctx,
+          px + s.spread,
+          py + s.spread,
+          w,
+          h,
+          fitRadii(hole, w, h).radii,
+        );
+      }
+      ctx.fill("evenodd");
+    });
   }
   ctx.restore();
 }
@@ -490,15 +499,6 @@ function reach(s: Shadow): number {
     Math.abs(s.spread) +
     1
   );
-}
-
-function setShadowPaint(ctx: SKRSContext2D, s: Shadow): void {
-  // An invalid colour leaves the fill as it was: make that no colour.
-  ctx.fillStyle = NO_COLOR;
-  ctx.fillStyle = s.color;
-  // Use a CSS blur filter (σ = blur / 2), as CSS defines the shadow's blur,
-  // rather than the canvas shadow API.
-  if (s.blur > 0) ctx.filter = `blur(${s.blur / 2}px)`;
 }
 
 /** Corner radii: top left, top right, bottom right, bottom left. */

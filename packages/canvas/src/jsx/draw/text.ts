@@ -13,7 +13,7 @@ import type {
 } from "../text/index.ts";
 import { setFont } from "../text/measure.ts";
 import type { Shadow } from "./shadow.ts";
-import { parseTextShadow } from "./shadow.ts";
+import { paintShadow, parseTextShadow } from "./shadow.ts";
 
 const emojiImageCache = new Map<string, Promise<Image | null>>();
 
@@ -69,8 +69,14 @@ export async function drawText(
   // Each pass is a single native call for the whole paragraph. The shadows
   // paint back to front: the first listed is on top.
   for (let i = shadows.length - 1; i >= 0; i--) {
-    drawShadowPass(ctx, shadows[i]!, getColorAlpha(first.color), () =>
-      fillParagraph(ctx, paragraph, x, y),
+    drawShadowPass(
+      ctx,
+      shadows[i]!,
+      getColorAlpha(first.color),
+      layout,
+      x,
+      y,
+      () => fillParagraph(ctx, paragraph, x, y),
     );
   }
   if (first.textStrokeWidth !== undefined && first.textStrokeWidth > 0) {
@@ -133,29 +139,47 @@ function getColorAlpha(color: string): number {
 }
 
 /**
- * Draw the text shadow manually instead of using the canvas shadow API.
+ * Draw one text shadow, with the canvas shadow API (see `paintShadow`).
  *
  * CSS text-shadow renders the shadow as if derived from the text's painted
  * appearance, so when the text color has alpha < 1 the shadow is also
- * attenuated. The canvas shadow API does NOT do this — it always renders
- * the shadow at the full specified opacity. We match CSS behavior by
- * drawing the shadow as a separate fillParagraph at the offset, with
- * globalAlpha scaled by the text color's alpha.
+ * attenuated: globalAlpha is scaled by the text color's alpha, and the text
+ * casting the shadow is drawn opaque.
  */
 function drawShadowPass(
   ctx: SKRSContext2D,
   shadow: Shadow,
   textAlpha: number,
+  layout: TextLayoutResult,
+  x: number,
+  y: number,
   drawFn: () => void,
 ): void {
   ctx.save();
-  // An invalid colour leaves the fill as it was: make that no colour.
-  ctx.fillStyle = "rgba(0, 0, 0, 0)";
-  ctx.fillStyle = shadow.color;
+  // The text is drawn opaque, so that its shadow is the shadow colour.
+  ctx.fillStyle = "#000";
   if (textAlpha < 1) ctx.globalAlpha *= textAlpha;
-  if (shadow.blur > 0) ctx.filter = `blur(${shadow.blur / 2}px)`;
-  ctx.translate(shadow.offsetX, shadow.offsetY);
-  drawFn();
+  // Where the text paints: its lines, and the text box, which overflowing
+  // lines can leave, and glyphs overhang by about their size at most.
+  let left = 0;
+  let right = layout.width;
+  let pad = 0;
+  for (const seg of layout.segments) {
+    left = Math.min(left, seg.x);
+    right = Math.max(right, seg.x + seg.width);
+    pad = Math.max(pad, seg.fontSize * 2);
+  }
+  paintShadow(
+    ctx,
+    shadow,
+    {
+      left: x + left - pad,
+      top: y - pad,
+      right: x + right + pad,
+      bottom: y + layout.height + pad,
+    },
+    drawFn,
+  );
   ctx.restore();
 }
 

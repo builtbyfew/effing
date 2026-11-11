@@ -145,6 +145,9 @@ export function splitTopLevel(text: string, separator: "," | " "): string[] {
   return parts.filter((p) => p !== "");
 }
 
+/** How far past the canvas a shape casting a shadow is drawn. */
+const SHADOW_SHIFT = 16384;
+
 /**
  * Paint `s` as the shadow of what `draw` paints, as CSS paints a shadow: a
  * Gaussian blur of σ = blur / 2, in the element's own space.
@@ -175,8 +178,10 @@ export function paintShadow(
     minX = Math.min(minX, m.a * x + m.c * y + m.e);
   }
   if (!Number.isFinite(minX)) return;
-  // Far enough right that none of the shape lands on the canvas.
-  const shift = Math.max(0, ctx.canvas.width - minX) + 16;
+  // Far enough right that none of the shape lands on the canvas, nor where
+  // a filter's layer reaches past it (a `drop-shadow()` cast back left), and
+  // a whole number of pixels, so that it cancels exactly.
+  const shift = Math.ceil(Math.max(0, ctx.canvas.width - minX)) + SHADOW_SHIFT;
   ctx.save();
   ctx.setTransform(m.a, m.b, m.c, m.d, m.e + shift, m.f);
   // An invalid colour leaves the shadow colour as it was: make that none.

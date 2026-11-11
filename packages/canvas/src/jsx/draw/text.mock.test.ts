@@ -94,6 +94,9 @@ describe("drawText", () => {
     await draw({}, "3px 4px 4px red");
 
     expect(fillParagraph).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(ctx.restore).mock.calls).toHaveLength(
+      vi.mocked(ctx.save).mock.calls.length,
+    );
     const [shadow, text] = calls;
     // The text is shifted off the canvas, and its shadow back by as much.
     expect(shadow!.shift).toBeGreaterThan(200);

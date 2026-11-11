@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { BUNDLED_SANS, loadFonts } from "../../../comparison/_helpers/fonts.ts";
 import { createCanvas, renderReactElement } from "../../index.ts";
 
 describe("text-shadow", () => {
@@ -23,6 +24,7 @@ describe("text-shadow", () => {
             position: "absolute",
             left: 150,
             top: 30,
+            fontFamily: BUNDLED_SANS,
             fontSize: 28,
             color: "#000",
             textShadow: "1px 1px 0 red",
@@ -32,7 +34,7 @@ describe("text-shadow", () => {
           Shadow
         </div>
       </div>,
-      {},
+      { fonts: await loadFonts(BUNDLED_SANS) },
     );
     const { data } = ctx.getImageData(0, 0, 300, 100);
     let drawn = 0;

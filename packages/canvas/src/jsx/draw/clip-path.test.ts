@@ -364,6 +364,8 @@ describe("parseClipPath – polygon / path", () => {
       "L10 10",
       "M0 0 L10 10 Z x",
       "M0 0 A5 5 0 2 1 10 10",
+      "M1. 2",
+      "M1.e2 2",
     ]) {
       const shape = parse(`path("${d}")`);
       expect(shape).toMatchObject({ kind: "path", d });
@@ -383,6 +385,8 @@ describe("parseClipPath – polygon / path", () => {
     expect(parse("polygon(0 0 0, 1 1)")).toBeNull();
     expect(parse("polygon()")).toBeNull();
     expect(parse('path("M0 0", "M1 1")')).toBeNull();
+    expect(parse('path("")')).toBeNull();
+    expect(parse('path("  ")')).toBeNull();
   });
 });
 

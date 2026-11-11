@@ -107,7 +107,7 @@ const BACKDROP_FILTERS = [
  */
 const COLOURS = { tolerance: { pixelThreshold: 0.01, pixels: 0.1 } };
 
-/** As `COLOURS`, for a chain that differs by 0.31% at 0.01 (none at 0.015). */
+/** As `COLOURS`, for a chain that differs by 0.72% at 0.01 (none at 0.015). */
 const CHAINED_COLOURS = { tolerance: { pixelThreshold: 0.015, pixels: 0.1 } };
 
 /**
@@ -117,7 +117,7 @@ const CHAINED_COLOURS = { tolerance: { pixelThreshold: 0.015, pixels: 0.1 } };
  * 0.47% of pixels differ at 0.01, none at 0.012.
  */
 const CONTRASTED_GRADIENT = {
-  tolerance: { pixelThreshold: 0.015, pixels: 0.1 },
+  tolerance: { pixelThreshold: 0.012, pixels: 0.1 },
 };
 
 const fixtures: ChromeFixture[] = [

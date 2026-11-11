@@ -15,29 +15,15 @@ import type {
 import type { ComputedStyle } from "../style/compute.ts";
 import { DEFAULT_FONT_FAMILY } from "../style/compute.ts";
 import { isEmoji } from "../language.ts";
-import { measureTrimMetrics, quoteFontFamilies } from "./measure.ts";
+import {
+  measureTrimMetrics,
+  quoteFontFamilies,
+  toFontStyle,
+  toWeight,
+} from "./measure.ts";
 import type { PlacedEmoji, TextLayoutResult, TextSegment } from "./index.ts";
 
 export type NativeParagraph = Paragraph;
-
-function toWeight(weight: number | string | undefined): number {
-  if (typeof weight === "number") return weight;
-  // A number as `ctx.font` reads it, so "1e3" is 1000 here too.
-  const text = String(weight ?? "400")
-    .trim()
-    .toLowerCase();
-  if (text === "bold") return 700;
-  const parsed = text === "" ? NaN : Number(text);
-  return Number.isFinite(parsed) ? parsed : 400;
-}
-
-function toFontStyle(
-  fontStyle: string | undefined,
-): ParagraphStyle["fontStyle"] {
-  if (fontStyle?.startsWith("italic")) return "italic";
-  if (fontStyle?.startsWith("oblique")) return "oblique";
-  return "normal";
-}
 
 const TEXT_ALIGNS = new Set([
   "left",

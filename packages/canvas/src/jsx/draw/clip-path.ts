@@ -192,7 +192,7 @@ const PATH_ARGS: Record<string, number> = {
   z: 0,
 };
 
-const PATH_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/;
+const PATH_NUMBER = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?/;
 
 /**
  * Whether `d` is valid SVG path data, by the SVG 2 path grammar. A CSS
@@ -615,7 +615,8 @@ function parsePath(args: string, ref: ReferenceBox): ClipShape | null {
   }
   if (parts.length !== 1) return null;
   const d = unquote(parts[0]!.trim());
-  if (!d) return null;
+  // Empty path data is an invalid declaration, as in Chrome.
+  if (!d.trim()) return null;
   return { kind: "path", d, dx: ref.x, dy: ref.y, fillRule };
 }
 

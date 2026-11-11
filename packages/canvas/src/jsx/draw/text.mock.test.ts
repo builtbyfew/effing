@@ -59,22 +59,64 @@ describe("drawText", () => {
     expect(fillParagraph).toHaveBeenCalledWith(ctx, expect.anything(), 10, 12);
   });
 
-  it("draws the shadow as a separate fill, offset and blurred", async () => {
+  /** The shadow each fillParagraph call casts, and where it draws. */
+  const shadowCalls = () => {
+    const calls: {
+      color: string;
+      blur: number;
+      offsetX: number;
+      offsetY: number;
+      shift: number;
+    }[] = [];
+    vi.mocked(fillParagraph).mockImplementation(() => {
+      // setTransform(a, b, c, d, e, f): e is the shift.
+      const args = vi.mocked(ctx.setTransform).mock.lastCall as
+        unknown[] | undefined;
+      const shift = args?.[4];
+      calls.push({
+        color: String(ctx.shadowColor),
+        blur: ctx.shadowBlur,
+        offsetX: ctx.shadowOffsetX,
+        offsetY: ctx.shadowOffsetY,
+        shift: typeof shift === "number" ? shift : 0,
+      });
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.shadowColor = "rgba(0, 0, 0, 0)";
+      vi.mocked(ctx.setTransform).mockClear();
+    });
+    return calls;
+  };
+
+  it("casts the shadow from text drawn off the canvas", async () => {
+    const calls = shadowCalls();
     await draw({}, "3px 4px 4px red");
 
     expect(fillParagraph).toHaveBeenCalledTimes(2);
-    expect(ctx.translate).toHaveBeenCalledWith(3, 4);
-    expect(ctx.filter).toBe("blur(2px)");
+    expect(vi.mocked(ctx.restore).mock.calls).toHaveLength(
+      vi.mocked(ctx.save).mock.calls.length,
+    );
+    const [shadow, text] = calls;
+    // The text is shifted off the canvas, and its shadow back by as much.
+    expect(shadow!.shift).toBeGreaterThan(200);
+    expect(shadow).toMatchObject({ color: "red", blur: 4, offsetY: 4 });
+    expect(shadow!.offsetX).toBe(3 - shadow!.shift);
+    expect(text).toMatchObject({ blur: 0, offsetX: 0, shift: 0 });
   });
 
   it("draws a list of shadows back to front, before the text", async () => {
+    const calls = shadowCalls();
     await draw({}, "1px 2px red, blue 3px 4px");
 
     expect(fillParagraph).toHaveBeenCalledTimes(3);
-    expect(vi.mocked(ctx.translate).mock.calls).toEqual([
-      [3, 4],
-      [1, 2],
-    ]);
+    expect(calls.map((c) => [c.color, c.offsetX + c.shift, c.offsetY])).toEqual(
+      [
+        ["blue", 3, 4],
+        ["red", 1, 2],
+        ["rgba(0, 0, 0, 0)", 0, 0],
+      ],
+    );
   });
 
   it("strokes the paragraph under the fill", async () => {

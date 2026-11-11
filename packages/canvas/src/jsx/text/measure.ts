@@ -1,5 +1,6 @@
 import { createCanvas } from "@effing/skia";
 import type { SKRSContext2D } from "@effing/skia";
+import type { ParagraphStyle } from "@effing/skia/extensions";
 
 // Scratch canvas for measuring glyphs
 let scratchCtx: SKRSContext2D | null = null;
@@ -40,8 +41,33 @@ export function quoteFontFamilies(fontFamily: string): string {
     .join(", ");
 }
 
+/** A font weight as a number, as text is laid out with it. */
+export function toWeight(weight: number | string | undefined): number {
+  if (typeof weight === "number") return weight;
+  // A number as `ctx.font` reads it, so "1e3" is 1000 here too.
+  const text = String(weight ?? "400")
+    .trim()
+    .toLowerCase();
+  if (text === "bold") return 700;
+  const parsed = text === "" ? NaN : Number(text);
+  return Number.isFinite(parsed) ? parsed : 400;
+}
+
+/** A font style keyword, as text is laid out with it. */
+export function toFontStyle(
+  fontStyle: string | undefined,
+): ParagraphStyle["fontStyle"] {
+  if (fontStyle?.startsWith("italic")) return "italic";
+  if (fontStyle?.startsWith("oblique")) return "oblique";
+  return "normal";
+}
+
 /**
- * Set font properties on a canvas context.
+ * Set font properties on a canvas context, as text is laid out with them.
+ *
+ * `ctx.font` ignores a value it can't parse and keeps the font it had, so
+ * the weight and style are normalised as layout normalises them, and the
+ * weight is clamped to the range `font` accepts (1 to 1000).
  */
 export function setFont(
   ctx: SKRSContext2D,
@@ -50,7 +76,11 @@ export function setFont(
   fontWeight: number | string = 400,
   fontStyle: string = "normal",
 ): void {
-  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${quoteFontFamilies(fontFamily)}`;
+  const weight = toWeight(fontWeight);
+  const clamped = Number.isFinite(weight)
+    ? Math.min(1000, Math.max(1, weight))
+    : 400;
+  ctx.font = `${toFontStyle(fontStyle)} ${clamped} ${fontSize}px ${quoteFontFamilies(fontFamily)}`;
 }
 
 /**

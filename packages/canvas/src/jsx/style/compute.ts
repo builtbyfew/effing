@@ -213,7 +213,7 @@ const INHERITABLE_PROPS: (keyof ComputedStyle)[] = [
 /** A CSS `<number>`: no trailing dot (`550.`), as `ctx.font` reads it. */
 const CSS_NUMBER = /^[+-]?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
 
-/** The font-weight keywords CSS accepts, left to `ctx.font` to read. */
+/** The font-weight keywords CSS accepts (`bolder` and `lighter` lay out as 400). */
 const FONT_WEIGHT_KEYWORDS = new Set(["normal", "bold", "bolder", "lighter"]);
 
 /** Whether `weight` is a font-weight CSS accepts: a keyword, or 1 to 1000. */

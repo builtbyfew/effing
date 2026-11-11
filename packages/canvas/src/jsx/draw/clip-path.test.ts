@@ -355,19 +355,38 @@ describe("parseClipPath – polygon / path", () => {
     });
   });
 
-  it("yields no clip for path data Skia cannot parse instead of throwing", () => {
-    for (const d of ["M", "M0 0 L10", "garbage"]) {
+  it("yields no clip for invalid path data instead of throwing", () => {
+    // Path2D keeps what parses before an error; a CSS path() is invalid whole.
+    for (const d of [
+      "M",
+      "M0 0 L10",
+      "garbage",
+      "L10 10",
+      "M0 0 L10 10 Z x",
+      "M0 0 A5 5 0 2 1 10 10",
+      "M1. 2",
+      "M1.e2 2",
+    ]) {
       const shape = parse(`path("${d}")`);
       expect(shape).toMatchObject({ kind: "path", d });
       expect(clipShapeToPath(shape!)).toBeNull();
     }
-    expect(clipShapeToPath(parse('path("M0 0 L10 10 Z")')!)).not.toBeNull();
+    for (const d of [
+      "M0 0 L10 10 Z",
+      "m0,0l10,10z",
+      "M0 0 A5 5 0 1110 10",
+      "M.5.5L-1e1+3",
+    ]) {
+      expect(clipShapeToPath(parse(`path("${d}")`)!), d).not.toBeNull();
+    }
   });
 
   it("rejects malformed values", () => {
     expect(parse("polygon(0 0 0, 1 1)")).toBeNull();
     expect(parse("polygon()")).toBeNull();
     expect(parse('path("M0 0", "M1 1")')).toBeNull();
+    expect(parse('path("")')).toBeNull();
+    expect(parse('path("  ")')).toBeNull();
   });
 });
 

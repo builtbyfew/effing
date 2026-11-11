@@ -1,3 +1,5 @@
+import type { SKRSContext2D } from "@effing/skia";
+
 /**
  * Parsing of the CSS `box-shadow` and `text-shadow` properties.
  *
@@ -141,4 +143,53 @@ export function splitTopLevel(text: string, separator: "," | " "): string[] {
     return parts.map((p) => p.trim());
   }
   return parts.filter((p) => p !== "");
+}
+
+/** How far past the canvas a shape casting a shadow is drawn. */
+const SHADOW_SHIFT = 16384;
+
+/**
+ * Paint `s` as the shadow of what `draw` paints, as CSS paints a shadow: a
+ * Gaussian blur of σ = blur / 2, in the element's own space.
+ *
+ * Chrome draws CSS shadows with a blur mask filter, as it draws canvas
+ * `shadowBlur`, which is not how it blurs a canvas `filter: blur()`; so the
+ * canvas shadow API is used. Its offset and blur are in device space, so
+ * they are mapped through the transform here (the blur by its scale, as
+ * Skia maps a mask filter's radius). The shape is drawn off the canvas, so
+ * only its shadow shows: `left` is the leftmost x it can paint, in local
+ * space.
+ */
+export function paintShadow(
+  ctx: SKRSContext2D,
+  s: Pick<Shadow, "offsetX" | "offsetY" | "blur" | "color">,
+  bounds: { left: number; top: number; right: number; bottom: number },
+  draw: () => void,
+): void {
+  const m = ctx.getTransform();
+  // The shape's leftmost device x, over its bounding box's corners.
+  let minX = Infinity;
+  for (const [x, y] of [
+    [bounds.left, bounds.top],
+    [bounds.right, bounds.top],
+    [bounds.left, bounds.bottom],
+    [bounds.right, bounds.bottom],
+  ] as const) {
+    minX = Math.min(minX, m.a * x + m.c * y + m.e);
+  }
+  if (!Number.isFinite(minX)) return;
+  // Far enough right that none of the shape lands on the canvas, nor where
+  // a filter's layer reaches past it (a `drop-shadow()` cast back left), and
+  // a whole number of pixels, so that it cancels exactly.
+  const shift = Math.ceil(Math.max(0, ctx.canvas.width - minX)) + SHADOW_SHIFT;
+  ctx.save();
+  ctx.setTransform(m.a, m.b, m.c, m.d, m.e + shift, m.f);
+  // An invalid colour leaves the shadow colour as it was: make that none.
+  ctx.shadowColor = "rgba(0, 0, 0, 0)";
+  ctx.shadowColor = s.color;
+  ctx.shadowBlur = s.blur * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+  ctx.shadowOffsetX = m.a * s.offsetX + m.c * s.offsetY - shift;
+  ctx.shadowOffsetY = m.b * s.offsetX + m.d * s.offsetY;
+  draw();
+  ctx.restore();
 }

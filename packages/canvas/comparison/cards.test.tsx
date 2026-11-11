@@ -323,8 +323,9 @@ describe("visual comparison: cards (satori smoke checks)", () => {
       "gradient-hero-card",
     );
 
-    // 0.46% measured.
-    expect(percentage).toBeLessThan(0.7);
+    // 0.93% measured (0.64% before @effing/skia 1.1.0, which dithers
+    // gradients and lays them out as Chrome does).
+    expect(percentage).toBeLessThan(1.2);
   });
 
   it("renders JobPostCard — wordBreak, boxShadow, tight lineHeight", async () => {

@@ -168,7 +168,8 @@ const fixtures: ChromeFixture[] = [
     "#ef4444 2px 3px 3px",
     {},
     {
-      // 1.81%; 1px off: 2.5%, blurred more: 4.5%.
+      // 1.11% (1.53% when blurred by a `blur()` filter, 1.81% before
+      // @effing/skia 1.1.0); 1px off: 2.5%, blurred more: 4.5% (measured then).
       tolerance: { pixels: 2.2 },
     },
   ),
@@ -176,7 +177,8 @@ const fixtures: ChromeFixture[] = [
     "casts a text shadow in currentColor",
     "3px 3px 2px",
     { color: "#22c55e" },
-    // 1.68%; 1px off: 3.6%, blurred more: 5.2%.
+    // 1.49% (2.48% when blurred by a `blur()` filter, 1.68% before
+    // @effing/skia 1.1.0); 1px off: 3.6%, blurred more: 5.2% (measured then).
     { tolerance: { pixels: 2.3 } },
   ),
   text(

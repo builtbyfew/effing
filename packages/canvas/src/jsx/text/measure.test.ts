@@ -9,12 +9,12 @@ describe("setFont", () => {
     // each of these must replace the 99px font set before it (ctx.font
     // leaves out the weight when it is 400).
     for (const [weight, style, expected] of [
-      [0, "normal", "1"],
-      [1001, "normal", "1000"],
+      [0, "normal", "1 12px"],
+      [1001, "normal", "1000 12px"],
       [Number.NaN, "normal", "12px"],
       ["heavy", "normal", "12px"],
       ["bold", "slanted", "bold 12px"],
-      ["550", "italic", "550"],
+      ["550", "italic", "italic 550 12px"],
     ] as const) {
       ctx.font = "99px serif";
       setFont(ctx, 12, "Inter", weight, style);

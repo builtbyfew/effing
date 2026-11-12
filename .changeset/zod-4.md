@@ -16,7 +16,10 @@ Upgrade to zod 4
   [zod 4 migration guide](https://zod.dev/v4/changelog)).
 - Validation error messages follow zod 4's wording, e.g. `Invalid input:
 expected number, received string` and `Unrecognized key: "extra"`. This shows
-  in the `issues` that FFS returns for an invalid Effie.
+  in the `issues` that FFS returns for an invalid Effie. When a value matches
+  no branch of a union (a transition, effect, motion or background), zod 4
+  reports a single `Invalid input` issue at that path, where zod 3 sometimes
+  reported the closest branch's issue instead (such as an unrecognized key).
 - `z.number()` in zod 4 no longer accepts `Infinity`, so an Effie with an
   infinite number (which JSON cannot express anyway) is now rejected.
 - `resolutions` in the dev config is still required to be non-empty, but its

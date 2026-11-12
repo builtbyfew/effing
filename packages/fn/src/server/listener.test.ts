@@ -20,7 +20,7 @@ type AnnieModule = FnModule<"annie">;
 type EffieModule = FnModule<"effie">;
 
 function makeImageModule(
-  schema: z.ZodSchema<unknown>,
+  schema: z.ZodType<unknown>,
   runner: (args: {
     props: unknown;
     bounds: { width: number; height: number };
@@ -34,7 +34,7 @@ function makeImageModule(
 }
 
 function makeAnnieModule(
-  schema: z.ZodSchema<unknown>,
+  schema: z.ZodType<unknown>,
   runner: (args: {
     props: unknown;
     bounds: { width: number; height: number };
@@ -44,7 +44,7 @@ function makeAnnieModule(
 }
 
 function makeEffieModule(
-  schema: z.ZodSchema<unknown>,
+  schema: z.ZodType<unknown>,
   runner: (args: {
     props: unknown;
     bounds: { width: number; height: number };
@@ -209,10 +209,7 @@ describe("createFnHttpListener", () => {
     };
     const loader = makeLoader({
       effie: {
-        "my-effie": makeEffieModule(
-          z.object({}).passthrough(),
-          async () => effieValue,
-        ),
+        "my-effie": makeEffieModule(z.looseObject({}), async () => effieValue),
       },
     });
     const segment = await signFnSegment(
@@ -237,7 +234,7 @@ describe("createFnHttpListener", () => {
     }
     const loader = makeLoader({
       annie: {
-        "my-annie": makeAnnieModule(z.object({}).passthrough(), () => frames()),
+        "my-annie": makeAnnieModule(z.looseObject({}), () => frames()),
       },
     });
     const segment = await signFnSegment(
@@ -264,7 +261,7 @@ describe("createFnHttpListener", () => {
     }
     const loader = makeLoader({
       annie: {
-        "my-annie": makeAnnieModule(z.object({}).passthrough(), () => frames()),
+        "my-annie": makeAnnieModule(z.looseObject({}), () => frames()),
       },
     });
     const segment = await signFnSegment(
@@ -293,7 +290,7 @@ describe("createFnHttpListener", () => {
   test("returns 400 for an unsigned / tampered segment", async () => {
     const loader = makeLoader({
       image: {
-        x: makeImageModule(z.object({}).passthrough(), async () => PNG_BYTES),
+        x: makeImageModule(z.looseObject({}), async () => PNG_BYTES),
       },
     });
     const res = await callListener(makeListener(loader), {

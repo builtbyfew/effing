@@ -1,5 +1,13 @@
 # @effing/effie-preview
 
+## 0.48.0
+
+### Patch Changes
+
+- Updated dependencies [91470ee]
+  - @effing/effie@0.48.0
+  - @effing/annie-player@0.48.0
+
 ## 0.47.3
 
 ### Patch Changes

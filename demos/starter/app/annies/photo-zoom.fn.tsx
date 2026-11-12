@@ -4,7 +4,7 @@ import { createCanvas, loadImage } from "@effing/canvas";
 import type { RunnerArgs, AnnieRunnerReturn } from "@effing/fn";
 
 export const propsSchema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
   frameCount: z.number().int().min(1).optional(),
   zoomLevel: z.number().optional(),
 });

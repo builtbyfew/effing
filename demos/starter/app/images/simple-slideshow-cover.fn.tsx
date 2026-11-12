@@ -5,7 +5,7 @@ import { loadFonts, interSemiBold } from "~/fonts";
 import { TextTypewriterOverlay } from "~/annies/text-typewriter.fn";
 
 export const propsSchema = z.object({
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
   text: z.string(),
   fontSize: z.number().int().min(1),
   fontColor: z.string().optional(),

@@ -6,6 +6,6 @@
 
 # Variable: effieHttpUrlSchema
 
-> `const` **effieHttpUrlSchema**: `ZodType`\<`` `http${string}` ``, `ZodTypeDef`, `` `http${string}` ``\>
+> `const` **effieHttpUrlSchema**: `ZodCustom`\<`` `http${string}` ``, `` `http${string}` ``\>
 
 Defined in: [effie/src/schema.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L21)

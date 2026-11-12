@@ -343,7 +343,12 @@ For `INVALID_EFFIE` errors caused by schema validation, the `issues` array conta
 {
   "error": "Invalid effie data",
   "code": "INVALID_EFFIE",
-  "issues": [{ "path": "segments.0.layers.0.x", "message": "Required" }]
+  "issues": [
+    {
+      "path": "segments.0.duration",
+      "message": "Invalid input: expected number, received undefined"
+    }
+  ]
 }
 ```
 

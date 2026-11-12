@@ -10,7 +10,7 @@
 Upgrade to zod 4
 
 - The zod peer dependency of `@effing/effie`, `@effing/fn` and `@effing/annie`
-  is now `^4.0.0` (was `^3.0.0`). The exported Effie schemas are zod 4 schemas,
+  is now `^4.5.0` (was `^3.0.0`). The exported Effie schemas are zod 4 schemas,
   and `propsSchema` in a fn module is typed as a zod 4 `z.ZodType`. Projects
   that still use zod 3 need to upgrade to zod 4 too (see the
   [zod 4 migration guide](https://zod.dev/v4/changelog)).
@@ -20,8 +20,9 @@ expected number, received string` and `Unrecognized key: "extra"`. This shows
   no branch of a union (a transition, effect, motion or background) still
   reports the closest branch's issue, except when several branches partially
   match (e.g. a `fade` transition with both `easing` and `through`), which now
-  yields a single `Invalid input` issue at that path. Early zod 4.0.x releases
-  report a single `Invalid input` for every union mismatch.
+  yields a single `Invalid input` issue at that path. The peer range starts
+  at 4.5.0 because older zod 4 releases report less detail for these
+  mismatches.
 - `z.number()` in zod 4 no longer accepts `Infinity`, so an Effie with an
   infinite number (which JSON cannot express anyway) is now rejected.
 - `resolutions` in the dev config is still required to be non-empty, but its

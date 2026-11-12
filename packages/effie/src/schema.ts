@@ -22,13 +22,13 @@ export const effieHttpUrlSchema = z.custom<EffieHttpUrl>(
   (val): val is EffieHttpUrl =>
     typeof val === "string" &&
     (val.startsWith("http://") || val.startsWith("https://")),
-  { message: "Must be an HTTP or HTTPS URL" },
+  { error: "Must be an HTTP or HTTPS URL" },
 );
 
 export const effieDataUrlSchema = z.custom<EffieDataUrl>(
   (val): val is EffieDataUrl =>
     typeof val === "string" && val.startsWith("data:"),
-  { message: "Must be a data URL" },
+  { error: "Must be a data URL" },
 );
 
 export const effieWebUrlSchema = z.custom<EffieWebUrl>(
@@ -37,19 +37,19 @@ export const effieWebUrlSchema = z.custom<EffieWebUrl>(
     (val.startsWith("http://") ||
       val.startsWith("https://") ||
       val.startsWith("data:")),
-  { message: "Must be an HTTP, HTTPS, or data URL" },
+  { error: "Must be an HTTP, HTTPS, or data URL" },
 ) satisfies z.ZodType<EffieWebUrl>;
 
 export const effieFileUrlSchema = z.custom<EffieFileUrl>(
   (val): val is EffieFileUrl =>
     typeof val === "string" && val.startsWith("file:"),
-  { message: "Must be a file URL" },
+  { error: "Must be a file URL" },
 ) satisfies z.ZodType<EffieFileUrl>;
 
 // Source reference schema (matches #sourceName pattern)
 const sourceRefSchema = z.custom<`#${string}`>(
   (val): val is `#${string}` => typeof val === "string" && val.startsWith("#"),
-  { message: "Source reference must start with #" },
+  { error: "Source reference must start with #" },
 );
 
 // Color schema for color backgrounds. Accepts the color forms ffmpeg's color
@@ -351,7 +351,7 @@ export function createEffieDataSchema(
       for (const ref of referencedSources) {
         if (!definedSources.has(ref)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: `Source reference "#${ref}" not found in sources`,
           });
         }
@@ -368,7 +368,7 @@ export function createEffieDataSchema(
 
           if (segment.duration < transitionDuration) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               message: `Segment ${i} duration (${segment.duration}s) must be at least as long as its transition duration (${transitionDuration}s)`,
               path: ["segments", i, "duration"],
             });
@@ -376,7 +376,7 @@ export function createEffieDataSchema(
 
           if (prevSegment.duration < transitionDuration) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               message: `Segment ${i - 1} duration (${prevSegment.duration}s) must be at least as long as the following transition duration (${transitionDuration}s)`,
               path: ["segments", i - 1, "duration"],
             });
@@ -427,7 +427,7 @@ const webOrFileUrlSchema = z.custom<WebOrFileUrl>(
       val.startsWith("https://") ||
       val.startsWith("data:") ||
       val.startsWith("file:")),
-  { message: "Must be an HTTP, HTTPS, data, or file URL" },
+  { error: "Must be an HTTP, HTTPS, data, or file URL" },
 );
 
 export const effieDataWithFilesSchema: z.ZodType<

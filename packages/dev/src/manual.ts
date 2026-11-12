@@ -541,7 +541,7 @@ import type { MyAnimationProps } from "${annieImport}";
 
 export const propsSchema = z.object({
   title: z.string(),
-  imageUrl: z.string().url(),
+  imageUrl: z.url(),
 });
 type MyVideoProps = z.infer<typeof propsSchema>;
 

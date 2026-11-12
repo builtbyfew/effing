@@ -11,7 +11,7 @@ export type RunnerArgs<P> = {
 export type FnKind = "image" | "annie" | "effie";
 
 type BaseFnModule = {
-  propsSchema: z.ZodSchema<unknown>;
+  propsSchema: z.ZodType<unknown>;
   previewProps: object;
 };
 

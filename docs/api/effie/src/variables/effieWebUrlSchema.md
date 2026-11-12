@@ -6,6 +6,6 @@
 
 # Variable: effieWebUrlSchema
 
-> `const` **effieWebUrlSchema**: `ZodType`\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md), `ZodTypeDef`, [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
+> `const` **effieWebUrlSchema**: `ZodCustom`\<[`EffieWebUrl`](../type-aliases/EffieWebUrl.md), [`EffieWebUrl`](../type-aliases/EffieWebUrl.md)\>
 
 Defined in: [effie/src/schema.ts:34](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L34)

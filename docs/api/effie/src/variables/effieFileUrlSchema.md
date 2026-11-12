@@ -6,6 +6,6 @@
 
 # Variable: effieFileUrlSchema
 
-> `const` **effieFileUrlSchema**: `ZodType`\<`` `file${string}` ``, `ZodTypeDef`, `` `file${string}` ``\>
+> `const` **effieFileUrlSchema**: `ZodCustom`\<`` `file${string}` ``, `` `file${string}` ``\>
 
 Defined in: [effie/src/schema.ts:43](https://github.com/builtbyfew/effing/blob/main/packages/effie/src/schema.ts#L43)

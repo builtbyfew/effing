@@ -10,7 +10,7 @@ export const propsSchema = z.object({
   slides: z.array(
     z.object({
       text: z.string(),
-      imageUrl: z.string().url(),
+      imageUrl: z.url(),
       duration: z.number().positive(),
     }),
   ),

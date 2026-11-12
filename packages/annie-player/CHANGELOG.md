@@ -1,5 +1,12 @@
 # @effing/annie-player
 
+## 0.48.0
+
+### Patch Changes
+
+- Updated dependencies [91470ee]
+  - @effing/annie@0.48.0
+
 ## 0.47.3
 
 ### Patch Changes

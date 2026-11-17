@@ -1,5 +1,11 @@
 # @effing/create
 
+## 0.48.1
+
+### Patch Changes
+
+- 441b9fb: The starter now depends on `effing-cloud` ^0.8.4 (was ^0.8.0), which uses zod 4 and so no longer pulls in zod 3.25.76 (GHSA-mrhx-c7xc-m3w5).
+
 ## 0.48.0
 
 ### Minor Changes

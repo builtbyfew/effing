@@ -1,5 +1,11 @@
 # @effing/annie-player
 
+## 0.48.1
+
+### Patch Changes
+
+- @effing/annie@0.48.1
+
 ## 0.48.0
 
 ### Patch Changes

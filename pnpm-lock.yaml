@@ -862,6 +862,12 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@effing/skia-linux-x64-musl@1.1.1-effing.1':
+    resolution: {integrity: sha512-7yKy4+TpZLD7ibPiyd5feT4prPp6wX+4bxp4I1o1TCA3g9gyzg0pV5+7Zr7TEnte0CCPGOuGXsMp1yQ6hbQILA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
   '@effing/skia-win32-x64-msvc@1.1.1-effing.1':
     resolution: {integrity: sha512-K2i9WIPyBZtZ93KnuzbpeOBBnPTnW9aVxIwqZdNvUGgjQVTvSUUa9erw/K8U+3ZIry13/v1bVpbWlro/5zdLIA==}
     engines: {node: '>= 10'}
@@ -4457,6 +4463,9 @@ snapshots:
   '@effing/skia-linux-x64-gnu@1.1.1-effing.1':
     optional: true
 
+  '@effing/skia-linux-x64-musl@1.1.1-effing.1':
+    optional: true
+
   '@effing/skia-win32-x64-msvc@1.1.1-effing.1':
     optional: true
 
@@ -4467,6 +4476,7 @@ snapshots:
       '@effing/skia-linux-arm64-gnu': 1.1.1-effing.1
       '@effing/skia-linux-arm64-musl': 1.1.1-effing.1
       '@effing/skia-linux-x64-gnu': 1.1.1-effing.1
+      '@effing/skia-linux-x64-musl': 1.1.1-effing.1
       '@effing/skia-win32-x64-msvc': 1.1.1-effing.1
 
   '@esbuild/aix-ppc64@0.27.7':

@@ -270,9 +270,9 @@ export function layoutTextNative(
     ? splitEmoji(text, fontSize, letterSpacing)
     : { items: [text], emoji: [] };
 
-  // Skia keeps its own cache of shaped text, so building a paragraph for text
-  // it has seen (the next frame of a video, or Yoga measuring a node again)
-  // only breaks the lines anew.
+  // The shaper keeps its own cache of shaped lines, so building a paragraph
+  // for text it has seen (the next frame of a video, or Yoga measuring a node
+  // again) is cheap.
   const paragraph = new Paragraph(content.items, {
     fontFamily: quoteFontFamilies(fontFamily),
     fontSize,

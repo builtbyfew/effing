@@ -21,7 +21,7 @@ What changes:
   SkParagraph took one default font for all of them. So text rendered with
   `fonts: []`, or in a family that isn't registered, can take another font
   and line height than before. A family with no installed match (a
-  misspelled name, `cursive`) now falls back to the default serif font, as
+  misspelled name) now falls back to the default serif font, as
   in Chrome, where SkParagraph took the default sans-serif one. Family
   names match in any case, and of two equally good fonts registered under
   one family name, the one registered last draws, where SkParagraph took

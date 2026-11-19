@@ -4,7 +4,7 @@
 
 > Part of the [**Effing**](../../README.md) family — programmatic video creation with TypeScript.
 
-Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v9.0.2**, FFmpeg 9.0.2).
+Downloads a platform-specific FFmpeg binary at install time from the [effing-ffmpeg-builds](https://github.com/builtbyfew/effing-ffmpeg-builds) GitHub releases (currently tag **v9.0.2-1**: FFmpeg 9.0.2 built with mbedTLS 3.6.8).
 
 ## Usage
 
@@ -26,7 +26,7 @@ The `install` lifecycle script (`node install.mjs`) runs during `pnpm install` a
 
 On a checksum mismatch the partially downloaded file is removed and the install fails; an existing binary is left untouched until its replacement has been verified.
 
-> **Maintenance:** every FFmpeg version bump (`FFMPEG_VERSION` in `install.mjs`) must regenerate `checksums.json`. For each supported target: `curl -sL "<base-url>/ffmpeg-<platform>-<arch>.gz" | gunzip | shasum -a 256`
+> **Maintenance:** every release bump (`FFMPEG_RELEASE` in `install.mjs`) must regenerate `checksums.json`. For each supported target: `curl -sL "<base-url>/ffmpeg-<platform>-<arch>.gz" | gunzip | shasum -a 256`
 
 The binary is placed in the package root (`packages/ffmpeg/ffmpeg`). In the monorepo, pnpm symlinks mean all workspace consumers share the same binary.
 

@@ -172,7 +172,8 @@ export function differences(
       const got = actual.lines[i]!;
       const what = `#${id} line ${i + 1}`;
       // Chrome doesn't say where it cut a truncated line: canvas's text
-      // (without its ellipsis) is the start of it.
+      // (without its ellipsis) is the start of it, or all of it where the cut
+      // took the start of a right-to-left run at the line's end.
       const [chromeText, canvasText] = [line.text, got.text].map(comparable);
       const textMatches = line.truncated
         ? chromeText!.startsWith(canvasText!)

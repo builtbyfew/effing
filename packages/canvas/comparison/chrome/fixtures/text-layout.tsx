@@ -110,9 +110,9 @@ const fixtures: ChromeFixture[] = [
       {
         // Canvas clips the line at its end edge as Chrome does, keeping the
         // visual left of the right-to-left run, the text's last words,
-        // ellipsized; it differs only in Chrome's "..." where canvas draws
-        // "…".
-        tolerance: { pixels: 2.5 },
+        // ellipsized. Chrome's "..." is narrower than canvas's "…", so
+        // Chrome keeps one more cluster, the "?": 2.3% on Linux.
+        tolerance: { pixels: 3.5 },
         knownPaintDifference: { why: THREE_DOTS, ellipses: ["#p line 1"] },
       },
     ),

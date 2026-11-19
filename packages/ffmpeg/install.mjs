@@ -44,12 +44,14 @@ if (!platform || !arch || !SUPPORTED.has(`${platform}-${arch}`)) {
 const binaryName = platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
 const binaryPath = path.join(__dirname, binaryName);
 
-// FFmpeg version to download. Keep checksums.json in sync when bumping.
-const FFMPEG_VERSION = "9.0.2";
+// effing-ffmpeg-builds release to download: the FFmpeg version, plus a
+// `-<revision>` suffix when that version was rebuilt with updated
+// dependencies. Keep checksums.json in sync when bumping.
+const FFMPEG_RELEASE = "9.0.2-1";
 
 const baseUrl =
   process.env.FFMPEG_BINARIES_URL ||
-  `https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v${FFMPEG_VERSION}`;
+  `https://github.com/builtbyfew/effing-ffmpeg-builds/releases/download/v${FFMPEG_RELEASE}`;
 const url = `${baseUrl}/ffmpeg-${platform}-${arch}.gz`;
 
 const skipChecksum = process.env.FFMPEG_SKIP_CHECKSUM === "1";
@@ -136,12 +138,12 @@ async function main() {
     }
     if ((await sha256(createReadStream(binaryPath))) === expected) {
       console.log(
-        `@effing/ffmpeg: binary already exists at ${binaryPath} (matches v${FFMPEG_VERSION} checksum)`,
+        `@effing/ffmpeg: binary already exists at ${binaryPath} (matches v${FFMPEG_RELEASE} checksum)`,
       );
       return;
     }
     console.log(
-      `@effing/ffmpeg: existing binary at ${binaryPath} does not match the v${FFMPEG_VERSION} checksum; re-downloading`,
+      `@effing/ffmpeg: existing binary at ${binaryPath} does not match the v${FFMPEG_RELEASE} checksum; re-downloading`,
     );
   }
 

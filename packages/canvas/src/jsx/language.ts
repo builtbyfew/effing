@@ -50,8 +50,8 @@ export function detectLanguageCode(text: string): string | undefined {
 // character, with or without U+FE0F, except the few that are text by default
 // in every font (©, ®, ™, digits, # and *). Browsers draw the other
 // text-default emoji characters in the BMP, such as ❤ or ☎, as monochrome
-// text through system font fallback; canvas has no such fallback, so an
-// image beats tofu.
+// text through system font fallback, which canvas has too, but an image looks
+// the same on every machine.
 
 /**
  * A code point reserved for emoji that this runtime's Unicode doesn't know

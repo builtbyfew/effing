@@ -289,6 +289,9 @@ export function layoutTextNative(
     keepTrailingWhitespace: whiteSpace === "pre" || whiteSpace === "pre-wrap",
     wordBreak: toWordBreak(style),
     overflowWrap: toOverflowWrap(style),
+    // Laid out with the Blink-style shaper canvas text uses, as Chrome's
+    // inline layout shapes it, rather than SkParagraph.
+    engine: "shaper",
   });
   countParagraph();
   const layout = paragraph.layout(width);

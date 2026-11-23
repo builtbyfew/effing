@@ -270,9 +270,9 @@ export function layoutTextNative(
     ? splitEmoji(text, fontSize, letterSpacing)
     : { items: [text], emoji: [] };
 
-  // Skia keeps its own cache of shaped text, so building a paragraph for text
-  // it has seen (the next frame of a video, or Yoga measuring a node again)
-  // only breaks the lines anew.
+  // The shaper keeps its own cache of shaped lines, so building a paragraph
+  // for text it has seen (the next frame of a video, or Yoga measuring a node
+  // again) is cheap.
   const paragraph = new Paragraph(content.items, {
     fontFamily: quoteFontFamilies(fontFamily),
     fontSize,
@@ -289,6 +289,9 @@ export function layoutTextNative(
     keepTrailingWhitespace: whiteSpace === "pre" || whiteSpace === "pre-wrap",
     wordBreak: toWordBreak(style),
     overflowWrap: toOverflowWrap(style),
+    // Laid out with the Blink-style shaper canvas text uses, as Chrome's
+    // inline layout shapes it, rather than SkParagraph.
+    engine: "shaper",
   });
   countParagraph();
   const layout = paragraph.layout(width);

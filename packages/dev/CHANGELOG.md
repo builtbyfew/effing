@@ -1,5 +1,15 @@
 # @effing/dev
 
+## 0.49.0
+
+### Patch Changes
+
+- @effing/annie-player@0.49.0
+- @effing/effie-preview@0.49.0
+- @effing/effie@0.49.0
+- @effing/fn@0.49.0
+- @effing/serde@0.49.0
+
 ## 0.48.2
 
 ### Patch Changes

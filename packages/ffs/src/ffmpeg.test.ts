@@ -492,6 +492,7 @@ describe("FFmpegRunner", () => {
 
 describe("isSupportedFFmpegVersion", () => {
   test.each([
+    "9.1",
     "9.0.2",
     "9.0.1",
     "8.1",

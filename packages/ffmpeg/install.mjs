@@ -47,7 +47,7 @@ const binaryPath = path.join(__dirname, binaryName);
 // effing-ffmpeg-builds release to download: the FFmpeg version, plus a
 // `-<revision>` suffix when that version was rebuilt with updated
 // dependencies. Keep checksums.json in sync when bumping.
-const FFMPEG_RELEASE = "9.0.2-1";
+const FFMPEG_RELEASE = "9.1";
 
 const baseUrl =
   process.env.FFMPEG_BINARIES_URL ||

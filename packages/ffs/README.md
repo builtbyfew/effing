@@ -12,7 +12,7 @@ Takes an `EffieData` composition and renders it to an MP4 video using FFmpeg. Us
 npm install @effing/ffs
 ```
 
-FFmpeg is bundled via `@effing/ffmpeg` (currently 9.0.2) — no system installation required. If you point `FFMPEG` at your own binary, it must be FFmpeg 8.1 or newer: 6.1 still renders but drops the final frame of layered segments, 7.x is not supported because its `xfade` rejects the segment chains as variable frame rate, and 8.0 renders at scale 1 but fails scaled renders, which shrink layers with premultiplied alpha through the alpha mode negotiation added in 8.1. A warning is logged once per process when the resolved binary is older than 8.1.
+FFmpeg is bundled via `@effing/ffmpeg` (currently 9.1) — no system installation required. If you point `FFMPEG` at your own binary, it must be FFmpeg 8.1 or newer: 6.1 still renders but drops the final frame of layered segments, 7.x is not supported because its `xfade` rejects the segment chains as variable frame rate, and 8.0 renders at scale 1 but fails scaled renders, which shrink layers with premultiplied alpha through the alpha mode negotiation added in 8.1. A warning is logged once per process when the resolved binary is older than 8.1.
 
 ## Quick Start
 

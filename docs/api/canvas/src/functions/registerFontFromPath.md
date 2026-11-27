@@ -6,9 +6,9 @@
 
 # Function: registerFontFromPath()
 
-> **registerFontFromPath**(`path`, `nameAlias?`): `void`
+> **registerFontFromPath**(`path`, `nameAlias?`, `descriptors?`): `void`
 
-Defined in: [canvas/src/jsx/font.ts:32](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L32)
+Defined in: [canvas/src/jsx/font.ts:72](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L72)
 
 Register a font from a file path.
 
@@ -25,6 +25,14 @@ Path to the font file
 `string`
 
 Optional font family name override
+
+### descriptors?
+
+`FontFaceDescriptors`
+
+Optional `@font-face` descriptors (`weight`, `style`,
+  `stretch`). A family's faces are matched by them; a face registered
+  without any counts as a normal one.
 
 ## Returns
 

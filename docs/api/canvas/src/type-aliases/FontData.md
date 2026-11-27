@@ -34,7 +34,7 @@ Defined in: [canvas/src/types.ts:14](https://github.com/builtbyfew/effing/blob/m
 
 > **style**: `"normal"` \| `"italic"`
 
-Defined in: [canvas/src/types.ts:17](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L17)
+Defined in: [canvas/src/types.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L23)
 
 ***
 
@@ -42,4 +42,9 @@ Defined in: [canvas/src/types.ts:17](https://github.com/builtbyfew/effing/blob/m
 
 > **weight**: `100` \| `200` \| `300` \| `400` \| `500` \| `600` \| `700` \| `800` \| `900`
 
-Defined in: [canvas/src/types.ts:16](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L16)
+Defined in: [canvas/src/types.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L22)
+
+The face's weight. A variable font claims its whole weight axis instead
+(falling back to this weight if skia rejects the range, or if the axis
+can't be read, as for a font collection, a WOFF2 font declaring more
+than 64 MiB decompressed, or a file that doesn't parse).

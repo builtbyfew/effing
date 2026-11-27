@@ -8,7 +8,7 @@
 
 > **RenderReactElementOptions** = `object`
 
-Defined in: [canvas/src/types.ts:27](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L27)
+Defined in: [canvas/src/types.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L29)
 
 Options for [renderReactElement](../functions/renderReactElement.md).
 
@@ -18,7 +18,7 @@ Options for [renderReactElement](../functions/renderReactElement.md).
 
 > `optional` **debug?**: `boolean`
 
-Defined in: [canvas/src/types.ts:35](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L35)
+Defined in: [canvas/src/types.ts:37](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L37)
 
 Draw layout bounding boxes for debugging
 
@@ -28,7 +28,7 @@ Draw layout bounding boxes for debugging
 
 > `optional` **emoji?**: [`EmojiStyle`](EmojiStyle.md) \| `"none"`
 
-Defined in: [canvas/src/types.ts:37](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L37)
+Defined in: [canvas/src/types.ts:39](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L39)
 
 Emoji style for rendering emoji characters as images. Defaults to "twemoji". Pass "none" to disable.
 
@@ -38,7 +38,7 @@ Emoji style for rendering emoji characters as images. Defaults to "twemoji". Pas
 
 > `optional` **fonts?**: [`FontData`](FontData.md)[]
 
-Defined in: [canvas/src/types.ts:29](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L29)
+Defined in: [canvas/src/types.ts:31](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L31)
 
 Font data for text rendering. Defaults to `[]` (system fonts).
 
@@ -48,7 +48,7 @@ Font data for text rendering. Defaults to `[]` (system fonts).
 
 > `optional` **height?**: `number`
 
-Defined in: [canvas/src/types.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L33)
+Defined in: [canvas/src/types.ts:35](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L35)
 
 Layout height override. Defaults to `ctx.canvas.height`.
 
@@ -58,7 +58,7 @@ Layout height override. Defaults to `ctx.canvas.height`.
 
 > `optional` **imageCache?**: [`ImageCache`](ImageCache.md)
 
-Defined in: [canvas/src/types.ts:59](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L59)
+Defined in: [canvas/src/types.ts:61](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L61)
 
 Cache for image loads — `<img>` and `background-image: url(...)` sources.
 By default each call creates a fresh cache, so every source is fetched
@@ -77,7 +77,7 @@ of sources, like one animation's frames, not a whole server's lifetime.
 
 > `optional` **userAgent?**: `string`
 
-Defined in: [canvas/src/types.ts:46](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L46)
+Defined in: [canvas/src/types.ts:48](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L48)
 
 User-Agent header sent on remote (http/https) image fetches — `<img>` and
 `background-image: url(...)` sources. When unset, fetch uses its default.
@@ -92,6 +92,6 @@ this header.)
 
 > `optional` **width?**: `number`
 
-Defined in: [canvas/src/types.ts:31](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L31)
+Defined in: [canvas/src/types.ts:33](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L33)
 
 Layout width override. Defaults to `ctx.canvas.width`.

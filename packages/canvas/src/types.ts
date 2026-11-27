@@ -15,7 +15,9 @@ export type FontData = {
   data: Buffer | ArrayBuffer;
   /**
    * The face's weight. A variable font claims its whole weight axis instead
-   * (falling back to this weight if skia rejects the range).
+   * (falling back to this weight if skia rejects the range, or if the axis
+   * can't be read, as for a font collection, a WOFF2 font declaring more
+   * than 64 MiB decompressed, or a file that doesn't parse).
    */
   weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
   style: "normal" | "italic";

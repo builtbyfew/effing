@@ -15,7 +15,8 @@ const registeredFonts = new Map<string, Buffer>();
  * Registration is idempotent: registering the same file under the same name,
  * weight and style again is a no-op. Another file under them is registered
  * too, and as the newest face it is the one drawn. Registrations are global
- * to the process, so give each file its own family name, weight and style.
+ * to the process, so give each file its own combination of family name,
+ * weight and style.
  *
  * @param font - Font data to register
  */

@@ -8,7 +8,7 @@
 
 > **registerFont**(`font`): `void`
 
-Defined in: [canvas/src/jsx/font.ts:22](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L22)
+Defined in: [canvas/src/jsx/font.ts:23](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L23)
 
 Register a font from a FontData buffer, with its `weight` and `style` as
 its `@font-face` descriptors: a family's faces are matched by them. A
@@ -18,7 +18,8 @@ range), so each weight draws its own instance.
 Registration is idempotent: registering the same file under the same name,
 weight and style again is a no-op. Another file under them is registered
 too, and as the newest face it is the one drawn. Registrations are global
-to the process, so give each file its own family name, weight and style.
+to the process, so give each file its own combination of family name,
+weight and style.
 
 ## Parameters
 

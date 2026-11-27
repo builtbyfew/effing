@@ -8,7 +8,7 @@
 
 > **registeredFamilies**(): `string`[]
 
-Defined in: [canvas/src/jsx/font.ts:41](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L41)
+Defined in: [canvas/src/jsx/font.ts:54](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L54)
 
 Get the list of registered font family names.
 

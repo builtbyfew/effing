@@ -67,12 +67,14 @@ import {
 // From a buffer
 registerFont({ name: "Inter", data: fontBuffer, weight: 400, style: "normal" });
 
-// From a file path
-registerFontFromPath("./fonts/Inter-Bold.ttf", "Inter");
+// From a file path, with its weight and style
+registerFontFromPath("./fonts/Inter-Bold.ttf", "Inter", { weight: 700 });
 
 // Check what's registered
 console.log(registeredFamilies()); // ["Inter", ...]
 ```
+
+A family's faces are matched by their weight and style, as `@font-face` rules are in a browser. `registerFont` passes the `FontData`'s; give `registerFontFromPath` the file's own as its third argument (`{ weight, style }`), since a face registered without them counts as a normal one: in a family registered one file per style without them, the file registered last draws every weight and style.
 
 ## Emoji Support
 
@@ -498,7 +500,7 @@ const fontSize = findLargestUsableFontSize({
 ### Font Helpers
 
 - `registerFont(font)` — Register a font from a `FontData` buffer (idempotent)
-- `registerFontFromPath(path, nameAlias?)` — Register a font from a file path
+- `registerFontFromPath(path, nameAlias?, descriptors?)` — Register a font from a file path, with its `@font-face` descriptors (`weight`, `style`, `stretch`)
 - `registeredFamilies()` — Get registered font family names
 
 ### Options

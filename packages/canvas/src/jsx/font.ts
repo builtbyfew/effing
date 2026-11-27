@@ -1,4 +1,4 @@
-import { GlobalFonts } from "@effing/skia";
+import { GlobalFonts, type FontFaceDescriptors } from "@effing/skia";
 
 import type { FontData } from "../types.ts";
 
@@ -18,7 +18,13 @@ export function registerFont(font: FontData): void {
     ? font.data
     : Buffer.from(font.data);
 
-  GlobalFonts.register(buffer, font.name);
+  // The weight and style are the face's @font-face descriptors: a family's
+  // faces are matched by them, and a face registered without any counts as
+  // a normal one.
+  GlobalFonts.register(buffer, font.name, {
+    weight: font.weight,
+    style: font.style,
+  });
 
   registeredFonts.add(key);
 }
@@ -28,9 +34,16 @@ export function registerFont(font: FontData): void {
  *
  * @param path - Path to the font file
  * @param nameAlias - Optional font family name override
+ * @param descriptors - Optional `@font-face` descriptors (`weight`, `style`,
+ *   `stretch`). A family's faces are matched by them; a face registered
+ *   without any counts as a normal one.
  */
-export function registerFontFromPath(path: string, nameAlias?: string): void {
-  GlobalFonts.registerFromPath(path, nameAlias ?? "");
+export function registerFontFromPath(
+  path: string,
+  nameAlias?: string,
+  descriptors?: FontFaceDescriptors,
+): void {
+  GlobalFonts.registerFromPath(path, nameAlias ?? "", descriptors);
 }
 
 /**

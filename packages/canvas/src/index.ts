@@ -9,6 +9,7 @@ export {
   Canvas,
   type SKRSContext2D,
   GlobalFonts,
+  type FontFaceDescriptors,
   Image,
   ImageData,
   Path2D,

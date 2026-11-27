@@ -15,8 +15,13 @@ style without them, the file registered last would draw every weight and
 style. So:
 
 - `registerFont` (and the `fonts` option of `renderReactElement`) now passes
-  each `FontData`'s `weight` and `style` as its descriptors. Nothing changes
-  for callers.
+  each `FontData`'s `weight` and `style` as its descriptors. A variable font
+  (TrueType, OpenType or WOFF) claims its whole weight axis instead, so it
+  still draws every weight as its own instance when registered once.
+- One static file registered under two weights (the regular file as both 400
+  and 700, say) now draws its own outlines at both, as a browser does with
+  such `@font-face` rules, instead of a synthesized bold at 700. Register the
+  bold file for 700 to draw a real bold.
 - `registerFontFromPath` takes the descriptors as an optional third argument
   (`{ weight, style, stretch }`). Pass the file's own when registering more
   than one face of a family from paths.

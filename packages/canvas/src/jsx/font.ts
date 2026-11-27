@@ -1,6 +1,7 @@
 import { GlobalFonts, type FontFaceDescriptors } from "@effing/skia";
 
 import type { FontData } from "../types.ts";
+import { weightAxisRange } from "./font-axes.ts";
 
 const registeredFonts = new Set<string>();
 
@@ -20,13 +21,15 @@ export function registerFont(font: FontData): void {
 
   // The weight and style are the face's @font-face descriptors: a family's
   // faces are matched by them, and a face registered without any counts as
-  // a normal one.
-  GlobalFonts.register(buffer, font.name, {
-    weight: font.weight,
+  // a normal one. A variable font claims its whole weight axis, so each
+  // weight draws its own instance rather than a synthesized bold.
+  const range = weightAxisRange(buffer);
+  const registered = GlobalFonts.register(buffer, font.name, {
+    weight: range ? `${range[0]} ${range[1]}` : font.weight,
     style: font.style,
   });
 
-  registeredFonts.add(key);
+  if (registered) registeredFonts.add(key);
 }
 
 /**

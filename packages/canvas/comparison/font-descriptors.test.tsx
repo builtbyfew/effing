@@ -226,6 +226,17 @@ describe("font descriptors", () => {
         api.registerFont({ name, data, weight: 400, style: "normal" });
       }
       expect(register).not.toHaveBeenCalled();
+
+      // A buffer changed after it was registered holds another file.
+      const changedName = family("changed");
+      const changed = Buffer.from(regular);
+      const font = { name: changedName, data: changed, weight: 400 } as const;
+      api.registerFont({ ...font, style: "normal" });
+      expect(register).toHaveBeenCalledTimes(1);
+      register.mockClear();
+      changed.fill(0);
+      api.registerFont({ ...font, style: "normal" });
+      expect(register).toHaveBeenCalled();
     } finally {
       register.mockRestore();
     }

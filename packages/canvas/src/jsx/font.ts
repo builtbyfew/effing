@@ -3,7 +3,7 @@ import { GlobalFonts, type FontFaceDescriptors } from "@effing/skia";
 import type { FontData } from "../types.ts";
 import { weightAxisRange } from "./font-axes.ts";
 
-/** The file registered for each name, weight and style. */
+/** A copy of the file registered for each name, weight and style. */
 const registeredFonts = new Map<string, Buffer>();
 
 /**
@@ -45,15 +45,13 @@ export function registerFont(font: FontData): void {
     style,
   });
 
-  if (registered) registeredFonts.set(key, buffer);
+  // A copy, so that a caller changing the buffer afterwards doesn't change it.
+  if (registered) registeredFonts.set(key, Buffer.from(buffer));
 }
 
-/** Whether two buffers hold the same bytes, cheaply when they share memory. */
+/** Whether two buffers hold the same bytes. */
 function sameBytes(a: Buffer, b: Buffer): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  if (a.buffer === b.buffer && a.byteOffset === b.byteOffset) return true;
-  return a.equals(b);
+  return a.length === b.length && a.equals(b);
 }
 
 function clampWeight(weight: number): number {

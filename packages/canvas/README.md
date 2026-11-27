@@ -74,7 +74,7 @@ registerFontFromPath("./fonts/Inter-Bold.ttf", "Inter", { weight: 700 });
 console.log(registeredFamilies()); // ["Inter", ...]
 ```
 
-A family's faces are matched by their weight and style, as `@font-face` rules are in a browser. `registerFont` passes the `FontData`'s (a variable font claims its whole weight axis, falling back to the `FontData`'s weight should that be refused, so it draws every weight when registered once); give `registerFontFromPath` the file's own as its third argument (`{ weight, style }`), since a face registered without them counts as a normal one: in a family registered one file per style without them, the file registered last draws every weight and style.
+A family's faces are matched by their weight and style, as `@font-face` rules are in a browser. `registerFont` passes the `FontData`'s (a variable font claims its whole weight axis, falling back to the `FontData`'s weight if skia rejects the range, so it draws every weight when registered once); give `registerFontFromPath` the file's own as its third argument (`{ weight, style }`), since a face registered without them counts as a normal one: in a family registered one file per style without them, the file registered last draws every weight and style.
 
 ## Emoji Support
 

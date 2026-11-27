@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -156,6 +156,15 @@ describe("font descriptors", () => {
   it("reads a variable font's weight axis from TrueType and WOFF, and none from a static font", () => {
     expect(weightAxisRange(variable)).toEqual([100, 700]);
     expect(weightAxisRange(toWoff(variable))).toEqual([100, 700]);
+    // A WOFF whose fvar declares more than the reader decompresses.
+    const hugeWoff = toWoff(variable);
+    for (let i = 0; i < hugeWoff.readUInt16BE(12); i++) {
+      const entry = 44 + 20 * i;
+      if (hugeWoff.toString("latin1", entry, entry + 4) === "fvar") {
+        hugeWoff.writeUInt32BE(0x7fffffff, entry + 12);
+      }
+    }
+    expect(weightAxisRange(hugeWoff)).toBeNull();
     expect(weightAxisRange(toWoff2(variable))).toEqual([100, 700]);
     // A compressed font declaring more than the reader decompresses.
     const huge = toWoff2(variable);
@@ -203,15 +212,23 @@ describe("font descriptors", () => {
     expect(draw(name, 400)).not.toEqual(draw(reference, 400));
     api.registerFont({ name, data: regular, weight: 400, style: "normal" });
     expect(draw(name, 400)).toEqual(draw(reference, 400));
-    // The same bytes again, in a new buffer, are not registered again: the
-    // regular face stays the newest.
-    api.registerFont({
-      name,
-      data: Buffer.from(regular),
-      weight: 400,
-      style: "normal",
-    });
-    api.registerFont({ name, data: regular, weight: 400, style: "normal" });
+
+    // The same bytes again, in the same buffer, a copy or a view of the same
+    // memory, are not registered again.
+    const register = vi.spyOn(api.GlobalFonts, "register");
+    try {
+      const view = new Uint8Array(
+        regular.buffer,
+        regular.byteOffset,
+        regular.length,
+      );
+      for (const data of [regular, Buffer.from(regular), Buffer.from(view)]) {
+        api.registerFont({ name, data, weight: 400, style: "normal" });
+      }
+      expect(register).not.toHaveBeenCalled();
+    } finally {
+      register.mockRestore();
+    }
     expect(draw(name, 400)).toEqual(draw(reference, 400));
   });
 

@@ -21,6 +21,10 @@ style. So:
   A static face of the same family registered after it takes its own
   weight over from it; one registered before it is shadowed, so list a
   variable font first in `fonts`.
+- `registerFont` with a name, weight and style already registered from
+  another file now registers that file too, and draws it as the newest face.
+  Before, the first file stayed for the life of the process. The same bytes
+  again are still a no-op.
 - One static file registered under two weights (the regular file as both 400
   and 700, say) now draws its own outlines at both, as a browser does with
   such `@font-face` rules, instead of a synthesized bold at 700. Register the

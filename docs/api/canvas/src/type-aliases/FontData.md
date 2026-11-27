@@ -45,4 +45,4 @@ Defined in: [canvas/src/types.ts:21](https://github.com/builtbyfew/effing/blob/m
 Defined in: [canvas/src/types.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L20)
 
 The face's weight. A variable font claims its whole weight axis instead
-(falling back to this weight should the axis be refused).
+(falling back to this weight if skia rejects the range).

@@ -10,11 +10,12 @@ const registeredFonts = new Map<string, Buffer>();
  * Register a font from a FontData buffer, with its `weight` and `style` as
  * its `@font-face` descriptors: a family's faces are matched by them. A
  * variable font (TrueType, OpenType, WOFF or WOFF2) claims its whole weight
- * axis instead of `weight` (falling back to `weight` should the axis be
- * refused), so each weight draws its own instance.
+ * axis instead of `weight` (falling back to `weight` if skia rejects the
+ * range), so each weight draws its own instance.
  * Registration is idempotent: registering the same file under the same name,
  * weight and style again is a no-op. Another file under them is registered
- * too, and as the newest face it is the one drawn.
+ * too, and as the newest face it is the one drawn. Registrations are global
+ * to the process, so give each file its own family name, weight and style.
  *
  * @param font - Font data to register
  */
@@ -24,7 +25,7 @@ export function registerFont(font: FontData): void {
     ? font.data
     : Buffer.from(font.data);
   const previous = registeredFonts.get(key);
-  if (previous && (previous === buffer || previous.equals(buffer))) return;
+  if (previous && sameBytes(previous, buffer)) return;
 
   // A face registered without descriptors counts as a normal one, so every
   // face gets its weight and style. A variable font claims its weight axis
@@ -44,6 +45,14 @@ export function registerFont(font: FontData): void {
   });
 
   if (registered) registeredFonts.set(key, buffer);
+}
+
+/** Whether two buffers hold the same bytes, cheaply when they share memory. */
+function sameBytes(a: Buffer, b: Buffer): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  if (a.buffer === b.buffer && a.byteOffset === b.byteOffset) return true;
+  return a.equals(b);
 }
 
 function clampWeight(weight: number): number {

@@ -4,7 +4,7 @@ import { brotliDecompressSync, inflateSync } from "node:zlib";
  * The range of a variable font's `wght` axis, read from its `fvar` table, or
  * `null` for a static font. Reads TrueType and OpenType files, WOFF and
  * WOFF2; returns `null` for font collections, for a compressed font that
- * declares more than {@link MAX_DECOMPRESSED} bytes, and for anything it
+ * declares more than 64 MiB decompressed, and for anything it
  * can't read.
  *
  * @param data - The font file

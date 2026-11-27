@@ -535,7 +535,7 @@ type EmojiStyle =
 
 ### Canvas Primitives
 
-The building blocks you need alongside a context are re-exported from `@effing/skia`, so you never need to import (or declare a dependency on) `@effing/skia` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
+The building blocks you need alongside a context are re-exported from `@effing/skia`, so you never need to import (or declare a dependency on) `@effing/skia` directly: `Canvas`, `SKRSContext2D`, `GlobalFonts`, `FontFaceDescriptors` (a type), `Image`, `ImageData`, `Path2D`, `DOMMatrix`, `DOMPoint`, `DOMRect`, `PathOp`, `FillType`, `StrokeJoin`, `StrokeCap`, and `LottieAnimation`. (`loadImage` is wrapped — see above — not re-exported directly.)
 
 ```typescript
 import { createCanvas, Path2D } from "@effing/canvas";

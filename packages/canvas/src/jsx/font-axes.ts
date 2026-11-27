@@ -1,9 +1,9 @@
-import { inflateSync } from "node:zlib";
+import { brotliDecompressSync, inflateSync } from "node:zlib";
 
 /**
  * The range of a variable font's `wght` axis, read from its `fvar` table, or
- * `null` for a static font. Reads TrueType and OpenType files and WOFF;
- * returns `null` for WOFF2 and font collections, and for anything it can't
+ * `null` for a static font. Reads TrueType and OpenType files, WOFF and
+ * WOFF2; returns `null` for font collections, and for anything it can't
  * read.
  *
  * @param data - The font file
@@ -21,11 +21,33 @@ const SFNT_VERSIONS = new Set([
   0x00010000, 0x4f54544f /* OTTO */, 0x74727565 /* true */,
 ]);
 const WOFF = 0x774f4646; // wOFF
+const WOFF2 = 0x774f4632; // wOF2
+const TTCF = 0x74746366; // ttcf
 const FVAR = 0x66766172; // fvar
 const WGHT = 0x77676874; // wght
 
+/** WOFF2's known table tags, by the index a table directory entry gives. */
+const WOFF2_TAGS = [
+  "cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "post", "cvt ",
+  "fpgm", "glyf", "loca", "prep", "CFF ", "VORG", "EBDT", "EBLC", "gasp",
+  "hdmx", "kern", "LTSH", "PCLT", "VDMX", "vhea", "vmtx", "BASE", "GDEF",
+  "GPOS", "GSUB", "EBSC", "JSTF", "MATH", "CBDT", "CBLC", "COLR", "CPAL",
+  "SVG ", "sbix", "acnt", "avar", "bdat", "bloc", "bsln", "cvar", "fdsc",
+  "feat", "fmtx", "fvar", "gvar", "hsty", "just", "lcar", "mort", "morx",
+  "opbd", "prop", "trak", "Zapf", "Silf", "Glat", "Gloc", "Feat", "Sill",
+]; // prettier-ignore
+
 function view(data: Uint8Array): DataView {
   return new DataView(data.buffer, data.byteOffset, data.byteLength);
+}
+
+function tag(dv: DataView, offset: number): string {
+  return String.fromCharCode(
+    dv.getUint8(offset),
+    dv.getUint8(offset + 1),
+    dv.getUint8(offset + 2),
+    dv.getUint8(offset + 3),
+  );
 }
 
 function fvarTable(data: Uint8Array): Uint8Array | null {
@@ -51,10 +73,60 @@ function fvarTable(data: Uint8Array): Uint8Array | null {
       const compLength = dv.getUint32(entry + 8);
       const origLength = dv.getUint32(entry + 12);
       const table = data.subarray(offset, offset + compLength);
-      return compLength < origLength ? inflateSync(table) : table;
+      return compLength < origLength
+        ? inflateSync(table, { maxOutputLength: origLength })
+        : table;
     }
+    return null;
   }
+  if (signature === WOFF2) return woff2FvarTable(data, dv);
   return null;
+}
+
+/** A WOFF2 font's `fvar` table (not a font collection's). */
+function woff2FvarTable(data: Uint8Array, dv: DataView): Uint8Array | null {
+  if (dv.getUint32(4) === TTCF) return null;
+  const numTables = dv.getUint16(12);
+  const totalSfntSize = dv.getUint32(16);
+  const totalCompressedSize = dv.getUint32(20);
+  let pos = 48;
+  const base128 = () => {
+    let value = 0;
+    for (let i = 0; i < 5; i++) {
+      const byte = dv.getUint8(pos++);
+      value = value * 128 + (byte & 0x7f);
+      if (!(byte & 0x80)) return value;
+    }
+    throw new Error("Bad UIntBase128");
+  };
+  // Tables follow each other in the decompressed stream, in directory order,
+  // each at its transformed length if transformed.
+  let start = 0;
+  let fvar: [number, number] | null = null;
+  for (let i = 0; i < numTables; i++) {
+    const flags = dv.getUint8(pos++);
+    let name: string;
+    if ((flags & 0x3f) === 0x3f) {
+      name = tag(dv, pos);
+      pos += 4;
+    } else {
+      name = WOFF2_TAGS[flags & 0x3f]!;
+    }
+    const version = flags >> 6;
+    let length = base128();
+    // glyf and loca are transformed at version 0, other tables at any other.
+    const transformed =
+      name === "glyf" || name === "loca" ? version === 0 : version !== 0;
+    if (transformed) length = base128();
+    if (name === "fvar") fvar = [start, length];
+    start += length;
+  }
+  if (!fvar) return null;
+  const stream = brotliDecompressSync(
+    data.subarray(pos, pos + totalCompressedSize),
+    { maxOutputLength: Math.max(totalSfntSize, start) },
+  );
+  return stream.subarray(fvar[0], fvar[0] + fvar[1]);
 }
 
 function wghtAxis(fvar: Uint8Array): [number, number] | null {

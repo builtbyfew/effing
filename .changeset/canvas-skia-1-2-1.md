@@ -16,8 +16,11 @@ style. So:
 
 - `registerFont` (and the `fonts` option of `renderReactElement`) now passes
   each `FontData`'s `weight` and `style` as its descriptors. A variable font
-  (TrueType, OpenType or WOFF) claims its whole weight axis instead, so it
-  still draws every weight as its own instance when registered once.
+  (TrueType, OpenType, WOFF or WOFF2) claims its whole weight axis instead,
+  so it still draws every weight as its own instance when registered once.
+  A static face of the same family registered after it takes its own
+  weight over from it; one registered before it is shadowed, so list a
+  variable font first in `fonts`.
 - One static file registered under two weights (the regular file as both 400
   and 700, say) now draws its own outlines at both, as a browser does with
   such `@font-face` rules, instead of a synthesized bold at 700. Register the

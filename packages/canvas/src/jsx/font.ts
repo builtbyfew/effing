@@ -6,8 +6,12 @@ import { weightAxisRange } from "./font-axes.ts";
 const registeredFonts = new Set<string>();
 
 /**
- * Register a font from a FontData buffer.
- * Registration is idempotent — re-registering the same font name is a no-op.
+ * Register a font from a FontData buffer, with its `weight` and `style` as
+ * its `@font-face` descriptors: a family's faces are matched by them. A
+ * variable font (TrueType, OpenType, WOFF or WOFF2) claims its whole weight
+ * axis instead of `weight`, so each weight draws its own instance.
+ * Registration is idempotent: registering the same name, weight and style
+ * again is a no-op.
  *
  * @param font - Font data to register
  */
@@ -19,17 +23,28 @@ export function registerFont(font: FontData): void {
     ? font.data
     : Buffer.from(font.data);
 
-  // The weight and style are the face's @font-face descriptors: a family's
-  // faces are matched by them, and a face registered without any counts as
-  // a normal one. A variable font claims its whole weight axis, so each
-  // weight draws its own instance rather than a synthesized bold.
+  // A face registered without descriptors counts as a normal one, so every
+  // face gets its weight and style. A variable font claims its weight axis
+  // (within the 1-1000 that @font-face allows), so a weight draws its own
+  // instance rather than a synthesized bold.
   const range = weightAxisRange(buffer);
-  const registered = GlobalFonts.register(buffer, font.name, {
-    weight: range ? `${range[0]} ${range[1]}` : font.weight,
-    style: font.style,
+  const style = font.style;
+  let registered = range
+    ? GlobalFonts.register(buffer, font.name, {
+        weight: `${clampWeight(range[0])} ${clampWeight(range[1])}`,
+        style,
+      })
+    : null;
+  registered ??= GlobalFonts.register(buffer, font.name, {
+    weight: font.weight,
+    style,
   });
 
   if (registered) registeredFonts.add(key);
+}
+
+function clampWeight(weight: number): number {
+  return Math.min(1000, Math.max(1, weight));
 }
 
 /**

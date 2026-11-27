@@ -3,8 +3,9 @@ import { brotliDecompressSync, inflateSync } from "node:zlib";
 /**
  * The range of a variable font's `wght` axis, read from its `fvar` table, or
  * `null` for a static font. Reads TrueType and OpenType files, WOFF and
- * WOFF2; returns `null` for font collections, and for anything it can't
- * read.
+ * WOFF2; returns `null` for font collections, for a compressed font that
+ * declares more than {@link MAX_DECOMPRESSED} bytes, and for anything it
+ * can't read.
  *
  * @param data - The font file
  */
@@ -16,6 +17,9 @@ export function weightAxisRange(data: Uint8Array): [number, number] | null {
     return null;
   }
 }
+
+/** The most this reads decompresses, whatever a font declares. */
+const MAX_DECOMPRESSED = 64 * 1024 * 1024;
 
 const SFNT_VERSIONS = new Set([
   0x00010000, 0x4f54544f /* OTTO */, 0x74727565 /* true */,
@@ -73,9 +77,9 @@ function fvarTable(data: Uint8Array): Uint8Array | null {
       const compLength = dv.getUint32(entry + 8);
       const origLength = dv.getUint32(entry + 12);
       const table = data.subarray(offset, offset + compLength);
-      return compLength < origLength
-        ? inflateSync(table, { maxOutputLength: origLength })
-        : table;
+      if (compLength >= origLength) return table;
+      if (origLength > MAX_DECOMPRESSED) return null;
+      return inflateSync(table, { maxOutputLength: origLength });
     }
     return null;
   }
@@ -122,9 +126,11 @@ function woff2FvarTable(data: Uint8Array, dv: DataView): Uint8Array | null {
     start += length;
   }
   if (!fvar) return null;
+  const size = Math.max(totalSfntSize, start);
+  if (size > MAX_DECOMPRESSED) return null;
   const stream = brotliDecompressSync(
     data.subarray(pos, pos + totalCompressedSize),
-    { maxOutputLength: Math.max(totalSfntSize, start) },
+    { maxOutputLength: size },
   );
   return stream.subarray(fvar[0], fvar[0] + fvar[1]);
 }

@@ -13,7 +13,10 @@ export type { EmojiStyle };
 export type FontData = {
   name: string;
   data: Buffer | ArrayBuffer;
-  /** The face's weight. A variable font claims its whole weight axis instead. */
+  /**
+   * The face's weight. A variable font claims its whole weight axis instead
+   * (falling back to this weight should the axis be refused).
+   */
   weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
   style: "normal" | "italic";
 };

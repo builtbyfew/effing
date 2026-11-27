@@ -34,7 +34,7 @@ Defined in: [canvas/src/types.ts:14](https://github.com/builtbyfew/effing/blob/m
 
 > **style**: `"normal"` \| `"italic"`
 
-Defined in: [canvas/src/types.ts:18](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L18)
+Defined in: [canvas/src/types.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L21)
 
 ***
 
@@ -42,6 +42,7 @@ Defined in: [canvas/src/types.ts:18](https://github.com/builtbyfew/effing/blob/m
 
 > **weight**: `100` \| `200` \| `300` \| `400` \| `500` \| `600` \| `700` \| `800` \| `900`
 
-Defined in: [canvas/src/types.ts:17](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L17)
+Defined in: [canvas/src/types.ts:20](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/types.ts#L20)
 
-The face's weight. A variable font claims its whole weight axis instead.
+The face's weight. A variable font claims its whole weight axis instead
+(falling back to this weight should the axis be refused).

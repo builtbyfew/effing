@@ -8,14 +8,16 @@
 
 > **registerFont**(`font`): `void`
 
-Defined in: [canvas/src/jsx/font.ts:18](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L18)
+Defined in: [canvas/src/jsx/font.ts:21](https://github.com/builtbyfew/effing/blob/main/packages/canvas/src/jsx/font.ts#L21)
 
 Register a font from a FontData buffer, with its `weight` and `style` as
 its `@font-face` descriptors: a family's faces are matched by them. A
 variable font (TrueType, OpenType, WOFF or WOFF2) claims its whole weight
-axis instead of `weight`, so each weight draws its own instance.
-Registration is idempotent: registering the same name, weight and style
-again is a no-op.
+axis instead of `weight` (falling back to `weight` should the axis be
+refused), so each weight draws its own instance.
+Registration is idempotent: registering the same file under the same name,
+weight and style again is a no-op. Another file under them is registered
+too, and as the newest face it is the one drawn.
 
 ## Parameters
 

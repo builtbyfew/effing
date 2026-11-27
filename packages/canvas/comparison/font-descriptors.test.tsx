@@ -157,6 +157,10 @@ describe("font descriptors", () => {
     expect(weightAxisRange(variable)).toEqual([100, 700]);
     expect(weightAxisRange(toWoff(variable))).toEqual([100, 700]);
     expect(weightAxisRange(toWoff2(variable))).toEqual([100, 700]);
+    // A compressed font declaring more than the reader decompresses.
+    const huge = toWoff2(variable);
+    huge.writeUInt32BE(0x7fffffff, 16);
+    expect(weightAxisRange(huge)).toBeNull();
     expect(weightAxisRange(regular)).toBeNull();
     expect(weightAxisRange(Buffer.from("not a font"))).toBeNull();
   });
@@ -183,6 +187,32 @@ describe("font descriptors", () => {
     for (const weight of [300, 400, 700]) {
       expect(draw(name, weight)).toEqual(draw(reference, weight));
     }
+  });
+
+  it("registers another file under the same name, weight and style, and the same file once", () => {
+    const reference = family("replaced reference");
+    api.registerFont({
+      name: reference,
+      data: regular,
+      weight: 400,
+      style: "normal",
+    });
+
+    const name = family("replaced");
+    api.registerFont({ name, data: variable, weight: 400, style: "normal" });
+    expect(draw(name, 400)).not.toEqual(draw(reference, 400));
+    api.registerFont({ name, data: regular, weight: 400, style: "normal" });
+    expect(draw(name, 400)).toEqual(draw(reference, 400));
+    // The same bytes again, in a new buffer, are not registered again: the
+    // regular face stays the newest.
+    api.registerFont({
+      name,
+      data: Buffer.from(regular),
+      weight: 400,
+      style: "normal",
+    });
+    api.registerFont({ name, data: regular, weight: 400, style: "normal" });
+    expect(draw(name, 400)).toEqual(draw(reference, 400));
   });
 
   it("registers a variable font whose weight axis goes beyond 1-1000", () => {

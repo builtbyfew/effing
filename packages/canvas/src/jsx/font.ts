@@ -3,25 +3,28 @@ import { GlobalFonts, type FontFaceDescriptors } from "@effing/skia";
 import type { FontData } from "../types.ts";
 import { weightAxisRange } from "./font-axes.ts";
 
-const registeredFonts = new Set<string>();
+/** The file registered for each name, weight and style. */
+const registeredFonts = new Map<string, Buffer>();
 
 /**
  * Register a font from a FontData buffer, with its `weight` and `style` as
  * its `@font-face` descriptors: a family's faces are matched by them. A
  * variable font (TrueType, OpenType, WOFF or WOFF2) claims its whole weight
- * axis instead of `weight`, so each weight draws its own instance.
- * Registration is idempotent: registering the same name, weight and style
- * again is a no-op.
+ * axis instead of `weight` (falling back to `weight` should the axis be
+ * refused), so each weight draws its own instance.
+ * Registration is idempotent: registering the same file under the same name,
+ * weight and style again is a no-op. Another file under them is registered
+ * too, and as the newest face it is the one drawn.
  *
  * @param font - Font data to register
  */
 export function registerFont(font: FontData): void {
   const key = `${font.name}:${font.weight}:${font.style}`;
-  if (registeredFonts.has(key)) return;
-
   const buffer = Buffer.isBuffer(font.data)
     ? font.data
     : Buffer.from(font.data);
+  const previous = registeredFonts.get(key);
+  if (previous && (previous === buffer || previous.equals(buffer))) return;
 
   // A face registered without descriptors counts as a normal one, so every
   // face gets its weight and style. A variable font claims its weight axis
@@ -40,7 +43,7 @@ export function registerFont(font: FontData): void {
     style,
   });
 
-  if (registered) registeredFonts.add(key);
+  if (registered) registeredFonts.set(key, buffer);
 }
 
 function clampWeight(weight: number): number {
